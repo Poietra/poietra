@@ -15,7 +15,7 @@
     "build": "pnpm build:wasm && pnpm build:web",
     "build:web": "node ../../scripts/build.mjs && pnpm typecheck && vite build && node scripts/prerender.mjs",
     "typecheck": "pnpm cf:types && tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && node ../../scripts/check-contracts.mjs",
-    "cf:types": "wrangler types .wrangler/worker-configuration.d.ts",
+    "cf:types": "mkdir -p .wrangler && wrangler types .wrangler/worker-configuration.d.ts",
     "deploy": "pnpm build:web && wrangler deploy --dry-run",
     "test": "vitest run",
     "test:core": "node ../../scripts/moon.mjs test --target wasm moonbit/motion",
