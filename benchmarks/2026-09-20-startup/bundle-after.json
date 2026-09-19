@@ -1,0 +1,239 @@
+{
+  "measuredAt": "2026-09-19T18:30:01.411Z",
+  "environment": {
+    "applicationRevision": "e9eacceec56131addc231a93586dd0c8c30b68e3",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "65e2978f279ba2d823977e75d1c1e86fba40581389d97c412f2c1441b1fb3812",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      2.95,
+      2.81,
+      1.63
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "aac6da54d6376874fbc35330435ce6b9ff7d330d95be9c63646c909eff17cf14",
+    "boundarySha256": "3690043b77962a53fac1de003327f5e1e41da75b342179f2b8b08366be6bc571"
+  },
+  "method": "Vite production output. JS groups include static imports, exclude dynamic imports/CSS/fonts/media. Home includes its dynamically selected entry. Compression computed per file: gzip level 9, Brotli Node defaults; server may serve identity.",
+  "groups": {
+    "homeJavascript": {
+      "files": [
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-BAaL0YQv.js",
+        "assets/index-BeaoxzLf.js",
+        "assets/home-w1Sxgb-2.js"
+      ],
+      "rawBytes": 290391,
+      "gzipBytes": 91071,
+      "brotliBytes": 78423
+    },
+    "editorStaticJavascript": {
+      "files": [
+        "assets/boundary-CFjLbrWu.js",
+        "assets/browser_media-B2nx3EjE.js",
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-BAaL0YQv.js",
+        "assets/index-BeaoxzLf.js",
+        "assets/bootstrap-AuoxN35E.js"
+      ],
+      "rawBytes": 1761845,
+      "gzipBytes": 492567,
+      "brotliBytes": 383811
+    }
+  },
+  "files": [
+    {
+      "file": "assets/svg-CSxnQDNt.js",
+      "rawBytes": 1261698,
+      "gzipBytes": 481037,
+      "brotliBytes": 363209
+    },
+    {
+      "file": "assets/bootstrap-AuoxN35E.js",
+      "rawBytes": 1259487,
+      "gzipBytes": 345279,
+      "brotliBytes": 256455
+    },
+    {
+      "file": "assets/src-CNFfMlGs.js",
+      "rawBytes": 676937,
+      "gzipBytes": 168671,
+      "brotliBytes": 136247
+    },
+    {
+      "file": "assets/index-BeaoxzLf.js",
+      "rawBytes": 239381,
+      "gzipBytes": 74166,
+      "brotliBytes": 63809
+    },
+    {
+      "file": "assets/browser_media-B2nx3EjE.js",
+      "rawBytes": 191194,
+      "gzipBytes": 51219,
+      "brotliBytes": 44706
+    },
+    {
+      "file": "assets/font-assets-Cb7bE4Zp.js",
+      "rawBytes": 127162,
+      "gzipBytes": 34137,
+      "brotliBytes": 20012
+    },
+    {
+      "file": "assets/browser_export-CAtAULLi.js",
+      "rawBytes": 110186,
+      "gzipBytes": 27141,
+      "brotliBytes": 22815
+    },
+    {
+      "file": "assets/ParseMethods-D9QpEsAn.js",
+      "rawBytes": 90736,
+      "gzipBytes": 21788,
+      "brotliBytes": 18990
+    },
+    {
+      "file": "assets/boundary-CFjLbrWu.js",
+      "rawBytes": 66384,
+      "gzipBytes": 19305,
+      "brotliBytes": 16514
+    },
+    {
+      "file": "assets/mo-CL9jhJJP.js",
+      "rawBytes": 57859,
+      "gzipBytes": 13244,
+      "brotliBytes": 9924
+    },
+    {
+      "file": "assets/TeXAtom-ChjANZhH.js",
+      "rawBytes": 54382,
+      "gzipBytes": 6637,
+      "brotliBytes": 5719
+    },
+    {
+      "file": "assets/images-IAPLbuZt.js",
+      "rawBytes": 52435,
+      "gzipBytes": 14039,
+      "brotliBytes": 12213
+    },
+    {
+      "file": "assets/home-w1Sxgb-2.js",
+      "rawBytes": 45611,
+      "gzipBytes": 14307,
+      "brotliBytes": 12287
+    },
+    {
+      "file": "assets/html-rxswSoWg.js",
+      "rawBytes": 44317,
+      "gzipBytes": 9451,
+      "brotliBytes": 8297
+    },
+    {
+      "file": "assets/tex-DM5UKA0F.js",
+      "rawBytes": 38086,
+      "gzipBytes": 11075,
+      "brotliBytes": 9592
+    },
+    {
+      "file": "assets/AmsConfiguration-B0_lW0fd.js",
+      "rawBytes": 23409,
+      "gzipBytes": 7692,
+      "brotliBytes": 6729
+    },
+    {
+      "file": "assets/liteAdaptor-Czvn_E1C.js",
+      "rawBytes": 22411,
+      "gzipBytes": 6052,
+      "brotliBytes": 5362
+    },
+    {
+      "file": "assets/Styles-PW13H2Ha.js",
+      "rawBytes": 8216,
+      "gzipBytes": 2853,
+      "brotliBytes": 2532
+    },
+    {
+      "file": "assets/Entities-MsPZmrvo.js",
+      "rawBytes": 7277,
+      "gzipBytes": 3406,
+      "brotliBytes": 2843
+    },
+    {
+      "file": "assets/kernel-fwjDfg9M.js",
+      "rawBytes": 4851,
+      "gzipBytes": 1725,
+      "brotliBytes": 1526
+    },
+    {
+      "file": "assets/sliders-horizontal-BAaL0YQv.js",
+      "rawBytes": 4683,
+      "gzipBytes": 2170,
+      "brotliBytes": 1946
+    },
+    {
+      "file": "assets/Factory-BKN6GMEE.js",
+      "rawBytes": 4287,
+      "gzipBytes": 1641,
+      "brotliBytes": 1464
+    },
+    {
+      "file": "assets/Options-D0viYWpE.js",
+      "rawBytes": 4275,
+      "gzipBytes": 1758,
+      "brotliBytes": 1545
+    },
+    {
+      "file": "wasm/poietra_core.wasm",
+      "rawBytes": 3769,
+      "gzipBytes": 1967,
+      "brotliBytes": 1839
+    },
+    {
+      "file": "assets/mathjax-BLw5IVDd.js",
+      "rawBytes": 2506,
+      "gzipBytes": 1079,
+      "brotliBytes": 951
+    },
+    {
+      "file": "assets/lengths-gKqLRlcS.js",
+      "rawBytes": 1716,
+      "gzipBytes": 825,
+      "brotliBytes": 727
+    },
+    {
+      "file": "assets/InputJax-Br4_JPsm.js",
+      "rawBytes": 1108,
+      "gzipBytes": 534,
+      "brotliBytes": 450
+    },
+    {
+      "file": "assets/rolldown-runtime-hePW80VL.js",
+      "rawBytes": 716,
+      "gzipBytes": 428,
+      "brotliBytes": 381
+    },
+    {
+      "file": "assets/PrioritizedList-CI0xZ2Me.js",
+      "rawBytes": 693,
+      "gzipBytes": 399,
+      "brotliBytes": 347
+    },
+    {
+      "file": "assets/projects-vfD6BhrC.js",
+      "rawBytes": 324,
+      "gzipBytes": 226,
+      "brotliBytes": 213
+    },
+    {
+      "file": "assets/demo-BZ9-TVQi.js",
+      "rawBytes": 99,
+      "gzipBytes": 105,
+      "brotliBytes": 86
+    }
+  ]
+}

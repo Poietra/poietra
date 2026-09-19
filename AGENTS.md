@@ -62,6 +62,11 @@ and measurements belong in [README.md](README.md).
   Resolve every Yjs parent and encode all detached values before writing or
   reviving a retained source; Yjs cannot roll back writes after a conversion fails.
   Keep copied states independent and preserve offline source edits through Undo.
+- 2026-09-20: After reports of slow startup, playback, dragging and export, evaluate
+  only the current Composition while editing; memoize unchanged layer rows. Reuse
+  prepared frames only for static holds without visible video. Export must retain
+  every timestamp/frame, Scene boundaries, video timing and encoder backpressure.
+  Load export/file I/O on demand while capturing export inputs before any await.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

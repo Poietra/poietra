@@ -160,11 +160,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,376 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,404 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **52,308 application MoonBit lines** and **770 native JS
+The same inventory has **52,553 application MoonBit lines** and **779 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -216,6 +216,92 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Startup, dragging, playback and WebCodecs — 2026-09-20
+
+After reports of slow startup, playback and dragging, CPU profiles identified
+whole-Scene playback compilation during pointer edits, unchanged layer rows
+rendering again, and repeated painting during static holds. Composition editing
+now decodes only the current states and required metadata. Layer rows retain their
+rendered UI when their displayed properties are unchanged. Prepared MoonBit
+playback programs identify static holds and reuse their frames in preview/export.
+Video and transitions remain time-dependent; export still encodes every requested
+frame and keeps the same codec, bitrate, timestamps, backpressure and cancellation.
+
+Input validation schemas are constructed on first use and cached, allowing unused
+server validation code to leave the editor bundle. Export and project file I/O
+load on demand. Export captures its source and settings before awaiting that load.
+Tests cover edits during export, video start/end boundaries, different Scenes,
+MP4/WebM decoding, mixed audio, cancellation and file/media round trips.
+
+Measurements used Node 24.13.0, MoonBit `0.10.13+cbb11c36f`, Chromium
+153.0.8010.12 and an Intel Core Ultra 7 255H under WSL2. Browser/driver affinity
+was `0–3`, local hosts `4–5`; workloads ran sequentially with frozen builds.
+SwiftShader was used. These are local instrumented measurements, **not field INP,
+physical FPS, PageSpeed scores or measurements on the reporter's device**. Other
+host activity was not isolated. Tables show medians (min–max).
+
+The production editor used one client at 1440×900. Each drag has 60 trusted pointer
+moves at nominal 60 Hz: one warmup and three measured runs, 180 samples. Latency
+runs from pointer delivery to the matching DOM change plus two animation frames.
+Playback samples rAF intervals across a three-second Scene: two one-second holds
+and a one-second transition. CDP CPU sampling at 1 ms adds overhead.
+
+| Interaction | Before | After |
+| --- | ---: | ---: |
+| Drag, 100 objects | 33.3 ms (32.2–61.4) | 33.3 ms (29.4–58.1) |
+| Drag, 500 objects | 61.7 ms (53.6–98.6) | 50.0 ms (33.9–68.8) |
+| Playback interval, 100 objects | 16.7 ms (16.5–100.1) | 16.7 ms (16.5–66.7) |
+| Playback interval, 500 objects | 33.3 ms (16.6–150.0) | 16.7 ms (16.5–150.0) |
+
+The 500-object drag median fell 19%; the 100-object median was unchanged. Playback
+still has long intervals, so this is not a claim of consistently smooth 60 fps.
+[Before](benchmarks/2026-09-20-interaction/ui-before.json) and
+[after](benchmarks/2026-09-20-interaction/ui-after.json) retain every sample.
+
+WebCodecs used release MoonBit modules served through Vite, at 1280×720/30 fps.
+Each case had one full warmup export and three measured exports, with fresh
+painter/encoder resources. Stage wrappers and CDP sampling are included. The demo
+is 3.4 seconds/102 frames; shape fixtures are 3 seconds/90 frames with two 1.2-second
+holds and a 0.6-second transition. These timing fixtures have no audio/video source;
+separate browser regressions verify both. Every output's packet count and first
+decoded frame were checked. Module download, the native facade snapshot, UI/download handling and verification
+are outside timing.
+
+| Engine export, warmed modules | Before | After |
+| --- | ---: | ---: |
+| Demo MP4 | 425.7 ms (415.5–437.1) | 293.5 ms (286.5–297.3) |
+| Demo WebM | 457.8 ms (457.1–483.6) | 340.2 ms (335.7–356.1) |
+| 100 shapes, MP4 | 478.1 ms (467.9–514.9) | 300.0 ms (293.5–309.7) |
+| 500 shapes, MP4 | 870.0 ms (867.4–876.8) | 443.6 ms (431.2–458.0) |
+
+The measured exports took 26–49% less time. The 500-shape painter runs 20 times
+instead of 90, while all 90 frames are encoded. That benefit depends on how much
+of a project is static. [Before](benchmarks/2026-09-20-interaction/export-before.json)
+and [after](benchmarks/2026-09-20-interaction/export-after.json) include individual
+stage timings. Compressed CPU profiles are retained alongside the JSON files.
+
+Cold startup used three new mobile contexts (412×823, DPR 1, Japanese), a seeded
+one-circle room, disabled HTTP cache, 150 ms HTTP latency, 200,000 B/s download,
+93,750 B/s upload and 4× CPU slowdown. The local Node host serves **uncompressed**
+assets: these deliberately constrained load times do not represent Cloudflare's
+compressed delivery. WebSocket WAN latency and real mobile GPU behavior are absent.
+
+| Startup measurement | Before | After |
+| --- | ---: | ---: |
+| Editor static JS, raw | 2,037,607 B | 1,761,845 B |
+| Editor static JS, gzip level 9 | 563,197 B | 492,567 B |
+| First contentful paint | 1,708 ms (1,692–1,716) | 1,700 ms (1,696–1,716) |
+| Largest contentful paint | 12,160 ms (12,152–12,176) | 10,712 ms (10,688–10,712) |
+| Circle DOM plus two rAF callbacks | 12,775 ms (12,708–12,791) | 11,279 ms (11,236–11,307) |
+
+The initial JS gzip sum is 12.5% smaller; FCP is essentially unchanged. Computed
+per-file compression excludes CSS, fonts, dynamic modules and media. Full bundle
+inventories and cold-load samples are in [startup results](benchmarks/2026-09-20-startup/).
+Startup's baseline revision is `13751cb`; interaction/export use `1343f3e`, whose
+application source digest is identical. All final results use
+[`e9eacce`](https://github.com/Poietra/poietra/commit/e9eacceec56131addc231a93586dd0c8c30b68e3).
+Each JSON records source and release hashes, environment and exclusions.
 
 ### Composition creation — 2026-09-20
 
@@ -547,6 +633,8 @@ pnpm exec playwright install chromium
 POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-home.mjs
 POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-editor.mjs
 node scripts/measure-bundle.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-startup.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-interaction.mjs
 ```
 
 `measure-home` defaults to five runs/locale (`POIETRA_PERF_RUNS`);
@@ -565,12 +653,13 @@ PORT=5189 OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-render node server/index
 # apps/studio, measurement terminal; repeat three times with distinct outputs
 node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
   --output test-results/benchmarks/rendering-1.json
+POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 ```
 
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 673 Vitest behavioral/backend checks, 40 MoonBit JS tests, 33 MoonBit
+runs 675 Vitest behavioral/backend checks, 40 MoonBit JS tests, 33 MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
@@ -618,6 +707,21 @@ local validation. The explicit `production` environment updates the existing
 and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
+
+The performance release [`e9eacce`](https://github.com/Poietra/poietra/commit/e9eacceec56131addc231a93586dd0c8c30b68e3)
+is deployed at 100% as `0aa7fa1f-ac38-46b8-bc8a-8ea4b1fea4b9` since
+2026-09-20 03:37 JST. Binding/runtime metadata and asset routing match the prior
+version. The production smoke again verified existing room/image persistence,
+two-browser edits and Undo, GitHub authorization start, and release JS/WASM hashes.
+It also played a Scene and downloaded a real MP4 whose full frame count decoded
+successfully. Rollback target for this update: `b9df5edd-9b0c-44f3-a488-1db05f9b8049`.
+No user room was used for verification. Local checks passed 675 unit tests and
+82 distinct browser checks covering editor, export/media, project/image I/O and
+production pages, plus the MoonBit JS/WASM tests, public contracts and extension
+check described above. Provider callbacks and paid AI requests remain outside
+these checks. The [full CI run for the deployed application](https://github.com/Poietra/poietra/actions/runs/35461447083)
+also passed, including all 154 main browser checks and actual workerd persistence,
+R2 recovery and account integrations.
 
 The initial cutover deployed source [`7b8c903`](https://github.com/Poietra/poietra/commit/7b8c903c9b50926829014565d1c73ff9d385a094)
 as Worker version `b9df5edd-9b0c-44f3-a488-1db05f9b8049` at 100% on
