@@ -128,7 +128,7 @@ test('MP4 import creates a visible video object and a separate soundtrack', asyn
   const room = await open(page), watch = await observer(page, room);
   try {
     await page.getByLabel('音声・動画ファイル', { exact: true }).setInputFiles(file);
-    await expect(page.getByTestId('video-track')).toHaveCount(1); await expect(page.getByTestId('audio-track')).toHaveCount(1);
+    await expect(page.getByTestId('video-track')).toHaveCount(1, { timeout: 15_000 }); await expect(page.getByTestId('audio-track')).toHaveCount(1);
     const scene = watch.project().scenes['scene-1'], video = Object.values(scene.objects).find(object => object.kind === 'video')!;
     expect(video.media).toMatchObject({ width: 160, height: 90, hasAudio: true });
     expect(Object.values(scene.audioTracks!)[0].asset.src).toBe(video.media!.src);

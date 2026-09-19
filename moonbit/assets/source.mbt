@@ -24,6 +24,11 @@ fn ascii_word(value : String) -> Bool {
 }
 
 ///|
+pub fn valid_room(value : String) -> Bool {
+  value.length() >= 16 && value.length() <= 80 && ascii_word(value)
+}
+
+///|
 pub fn room_source(source : String, kind : AssetKind) -> Bool {
   if !source.has_prefix("/api/rooms/") {
     return false
@@ -33,9 +38,7 @@ pub fn room_source(source : String, kind : AssetKind) -> Bool {
   parts[0] == "" &&
   parts[1] == "api" &&
   parts[2] == "rooms" &&
-  parts[3].length() >= 16 &&
-  parts[3].length() <= 80 &&
-  ascii_word(parts[3]) &&
+  valid_room(parts[3]) &&
   parts[4] == (if kind == Image { "images" } else { "media" }) &&
   parts[5].length() == 64 &&
   parts[5]

@@ -15,6 +15,7 @@
     "typecheck": "pnpm --dir apps/studio typecheck"
   },
   "dependencies": {
+    "lib0": "0.2.117",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "4.6.5"

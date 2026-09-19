@@ -3,6 +3,13 @@ extern "js" fn locale_language(tag : String) -> String =
   #|tag => new Intl.Locale(tag).language
 
 ///|
+pub fn normalized_language(tag : String) -> String? {
+  Some(@core.throwable(fn() { locale_language(tag) })) catch {
+    _ => None
+  }
+}
+
+///|
 fn optional_string(value : @core.Any) -> String? {
   if @core.is_nullish(value) {
     None

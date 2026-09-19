@@ -1,0 +1,19 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/presence",
+  "poietra/poietra/y_protocol" @wire,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "read_presence_update:readPresenceUpdate",
+        "presence_message:presenceMessage",
+      ],
+    },
+  },
+)

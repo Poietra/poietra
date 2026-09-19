@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import { once } from 'node:events';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import { presenceMessage } from '../worker/presence';
 import type { Room } from '../server/collaboration';
+import * as Y from 'yjs';
+import * as encoding from 'lib0/encoding';
+import * as sync from 'y-protocols/sync';
 
 let directory: string;
 let server: WebSocketServer;
@@ -26,7 +29,7 @@ afterAll(async () => {
   for (const socket of sockets) socket.terminate();
   for (const socket of server.clients) socket.terminate();
   await new Promise<void>(resolve => server.close(() => resolve()));
-  room.doc.destroy();
+  room.dispose();
   vi.unstubAllEnvs();
   await rm(directory, { recursive: true, force: true });
 });
@@ -81,4 +84,32 @@ test('new rooms evict saved inactive rooms and restore them without evicting an 
     for (const room of rooms.values()) { room.aiBusy = false; room.dispose(); }
     rooms.clear();
   }
+});
+
+test('saves an out-of-order update before disconnect so a restart can finish it when its dependency arrives', async () => {
+  const socket = await connect(), peer = new Y.Doc(), updates: Uint8Array[] = [];
+  Y.applyUpdate(peer, Y.encodeStateAsUpdate(room.doc));
+  peer.on('update', update => updates.push(update));
+  const parent = new Y.Map();
+  peer.getMap('project').set('pending-parent', parent);
+  parent.set('value', 'survives restart');
+  expect(updates).toHaveLength(2);
+  const send = (update: Uint8Array) => {
+    const message = encoding.createEncoder(); encoding.writeVarUint(message, 0);
+    sync.writeUpdate(message, update); socket.send(encoding.toUint8Array(message));
+  };
+  try {
+    send(updates[1]);
+    await expect.poll(async () => {
+      const recovered = new Y.Doc();
+      try {
+        Y.applyUpdate(recovered, await readFile(join(directory, `${room.id}.yjs`)));
+        Y.applyUpdate(recovered, updates[0]);
+        return (recovered.getMap('project').get('pending-parent') as Y.Map<string> | undefined)?.get('value');
+      } finally { recovered.destroy(); }
+    }).toBe('survives restart');
+    expect(room.doc.getMap('project').has('pending-parent')).toBe(false);
+    send(updates[0]);
+    await expect.poll(() => (room.doc.getMap('project').get('pending-parent') as Y.Map<string> | undefined)?.get('value')).toBe('survives restart');
+  } finally { socket.close(); peer.destroy(); }
 });

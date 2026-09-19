@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      lib0:
+        specifier: 0.2.117
+        version: 0.2.117
       react:
         specifier: 19.3.0
         version: 19.3.0

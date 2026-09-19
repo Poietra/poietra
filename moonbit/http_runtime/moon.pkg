@@ -1,0 +1,34 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_web/http",
+  "mizchi/js_web/streams",
+  "mizchi/js_web/crypto",
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "poietra/poietra/http_policy" @policy,
+  "poietra/poietra/site",
+  "poietra/poietra/site_boundary" @locale,
+  "poietra/poietra/assets",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "prefers_markdown:prefersMarkdown",
+        "public_page_plan:publicPagePlan",
+        "fetch_public_page:fetchPublicPage",
+        "image_digest:imageDigest",
+        "read_image_body:readImageBody",
+        "image_headers:imageHeaders",
+        "media_byte_range:mediaByteRange",
+        "media_headers:mediaHeaders",
+        "media_response_plan:mediaResponsePlan",
+        "media_error_type:mediaErrorType",
+        "write_media_chunks:writeMediaChunks",
+      ],
+    },
+  },
+)

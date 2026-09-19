@@ -14,6 +14,8 @@ import {
   "mizchi/js@0.13.0",
   "mizchi/js_core@0.13.0",
   "mizchi/js_browser@0.13.0",
+  "mizchi/js_web@0.13.0",
+  "mizchi/js_node@0.13.0",
   "mizchi/js_builtin@0.13.0",
   "mizchi/npm_typed@0.1.16",
 }

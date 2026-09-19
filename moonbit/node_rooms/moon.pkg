@@ -1,0 +1,17 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "mizchi/js_node/fs",
+  "poietra/poietra/boundary",
+  "poietra/poietra/y_protocol" @wire,
+  "poietra/poietra/server_presence" @presence,
+  "poietra/poietra/assets",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": { "format": "esm", "exports": [ "create_registry:createRegistry" ] },
+  },
+)

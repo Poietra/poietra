@@ -47,7 +47,7 @@ if (args.child) {
     bindings: { OPENAI_MODEL: 'gpt-6-astra' },
     serviceBindings: { ASSETS: async request => {
       const pathname = new URL(request.url).pathname;
-      let path = resolve(repository, 'dist', `.${pathname === '/' ? '/index.html' : pathname}`);
+      let path = resolve(repository, 'dist', `.${pathname.endsWith('/') ? pathname + 'index.html' : pathname}`);
       if (!path.startsWith(resolve(repository, 'dist') + '/')) return new Response('Not found', { status: 404 });
       let body;
       try { body = await readFile(path); }

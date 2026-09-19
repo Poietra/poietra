@@ -11,7 +11,9 @@ audio/video track editing, the animation timeline, canvas interaction and global
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller,
-AI/image schemas, proposal compilation and the complete public website/startup flow. Services still contain
+AI/image schemas, proposal compilation, the complete public website/startup flow,
+shared HTTP negotiation/upload policies, bounded presence and local room synchronization.
+AI, authentication and storage services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -149,6 +151,21 @@ node scripts/moon.mjs check --target js
   A small React class adapter keeps actual error capture: the upstream typed React
   Error Boundary currently returns children without catching errors, so it is not
   used for this responsibility. Recovery content and decisions remain in MoonBit.
+- `moonbit/http_policy` and `http_runtime`: shared HTML/Markdown negotiation,
+  immutable media validators/ranges, SHA-256 and bounded streaming ingestion.
+  A media upload reuses one 128 KiB buffer only after its sink resolves; images
+  coalesce incoming fragments without retaining a growing chunk list.
+- `moonbit/presence`, `server_presence` and `y_protocol`: bounded, typed presence
+  and safe-integer ownership clocks. Length-prefixed reads are bounded by the
+  supplied byte view, including views backed by a larger buffer.
+- `moonbit/node_rooms`: local WebSocket rooms, presence ownership, persistence and
+  inactive-room eviction. Out-of-order Yjs updates schedule persistence even when
+  missing dependencies prevent an immediate document event; disposal cancels
+  pending saves, and one failed peer cannot interrupt broadcasts to the others.
+- The Worker host defers generated modules inside its request/DO initialization
+  gate. The pinned MoonBit core initializes hash seeds with Web Crypto, which
+  workerd forbids at global scope. Wrangler bundles the deferred import into a
+  local initializer; no compiler patch or global crypto replacement is used.
 - `moonbit/schemas`: AI operations, easing, media and bounded chat-history schemas
   built with mizchi’s typed Zod bindings. Native schema/error identity preserves
   OpenAI structured output and the existing API error/repair contract.
@@ -184,7 +201,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **622 regression/differential tests**, 15 MoonBit tests on JS,
+Locally verified: **628 regression/differential tests**, 15 MoonBit tests on JS,
 3 kernel tests and the pure proposal planner test on WASM, typechecking and the
 production build. The complete studio,
 selective Undo and editor Store passed the **152-test CI browser selection**, covering
@@ -213,6 +230,16 @@ checks, including actual MP4/WebM exports.
 The new compiler matches the pinned TypeScript implementation in 100 mixed-operation
 scenarios, including rejected timing and valid creation/append sequences. A poisoned
 unrelated state proves one-field edits do not read or clone its payload.
+The HTTP/presence/local-room migration passed 52 additional browser checks with
+both server and browsers restricted to two cores, plus 25 production-page checks.
+HTTP policy matches the original in 1,200 mixed header/range cases. Streaming tests
+verify byte identity, one-buffer reuse, backpressure and source cleanup on failure.
+Actual Node and workerd processes passed media restart/range/quota checks.
+The R2 integration also passed legacy SQLite copying, concurrent deduplication,
+interrupted uploads, injected write failures and orphan cleanup across restarts.
+Workerd checks cover live-socket hibernation, reconnect ownership, forced process
+restart, compaction and out-of-order updates; account/TTL tests use mocked OAuth
+provider HTTP. The local room also saves pending dependencies before disconnection.
 CI checks generated adapters and runs the core/editor/media suites with the pinned
 compiler. These checks do not constitute a production migration or deployment.
 
@@ -294,6 +321,17 @@ and two additional compatibility probes with Zod 4.6.5. They are adopted for
 discriminated operations, strict easing records, nullable timing and schema output.
 Project files use a typed bounded decoder with explicit identifier,
 media and cross-reference checks instead of adopting it as their validator.
+
+The MIT-declared `mizchi/js_web` and `mizchi/js_node` 0.13.0 bindings are adopted
+for the HTTP/Streams/Crypto and filesystem boundaries, with application
+decisions kept in MoonBit. The upstream variadic path/process helpers use CommonJS
+`require`, so native ESM entrypoints use direct ESM bindings for those calls. On 2026-09-19,
+[cloudflare.mbt 0.1.12](https://github.com/mizchi/cloudflare.mbt/tree/575da27df27e0342813143ed17cce470960fbf73)
+passed its JS typecheck and four upstream R2 tests. A workerd probe also verified
+SQLite bound writes, row/column iteration, single-row reads and safe-integer values.
+Its full suite stalled in D1; hibernating-WebSocket APIs are absent and would need
+an additional boundary before adoption. [mars.mbt](https://github.com/mizchi/mars.mbt/tree/ff4485e0309a8532d03002eb588ab06dcd252848)
+was inspected, but its Cloudflare adapter is a placeholder and is not adopted.
 
 ## Repository and deployment
 

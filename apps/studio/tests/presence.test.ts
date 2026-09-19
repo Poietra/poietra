@@ -17,6 +17,27 @@ function update(entries: { clientId: number; clock: number; state: unknown }[]) 
 const state = { user: { name: 'Alice', color: '#abcdef' }, editor: { selectedIds: [], cursor: null } };
 
 describe('hibernatable presence', () => {
+  test('keeps safe-integer client IDs and clocks without 32-bit truncation', () => {
+    for (const clientId of [2 ** 31 + 17, 2 ** 32 + 29, Number.MAX_SAFE_INTEGER]) {
+      const clock = 2 ** 32 + 73;
+      const present = readPresenceUpdate(update([{ clientId, clock, state }]), null)!;
+      expect(present).toMatchObject({ clientId, clock });
+      expect(readPresenceUpdate(update([{ clientId, clock: clock - 1, state: null }]), present)).toBe(present);
+      const decoder = decoding.createDecoder(presenceMessage([present]));
+      expect(decoding.readVarUint(decoder)).toBe(1);
+      expect(readPresenceUpdate(decoding.readVarUint8Array(decoder), null)).toEqual(present);
+    }
+  });
+
+  test('rejects oversized, excessive and truncated messages before accepting presence', () => {
+    expect(() => readPresenceUpdate(new Uint8Array(16385), null)).toThrow('large');
+    const excessive = encoding.createEncoder(); encoding.writeVarUint(excessive, 101);
+    expect(() => readPresenceUpdate(encoding.toUint8Array(excessive), null)).toThrow('many');
+    const bytes = update([{ clientId: 71, clock: 3, state }]);
+    expect(() => readPresenceUpdate(bytes.subarray(0, bytes.length - 2), null)).toThrow();
+    expect(readPresenceUpdate(update([{ clientId: 71, clock: 3, state: null }]), null)).toBeNull();
+  });
+
   test('replayed clocks cannot resurrect a removal or replace a newer state', () => {
     const present = readPresenceUpdate(update([{ clientId: 7, clock: 3, state }]), null)!;
     const removed = readPresenceUpdate(update([{ clientId: 7, clock: 3, state: null }]), present)!;

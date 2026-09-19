@@ -1,21 +1,20 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { cp, mkdir, mkdtemp, open, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { createServer } from 'node:net';
 import { WebSocket } from 'ws';
 import * as Y from 'yjs';
 import * as sync from 'y-protocols/sync';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
+import { snapshotWorkerSource } from './fixtures/worker-snapshot.mjs';
 
 // Production DO classes and auth service, isolated local storage. Only external
 // provider HTTP responses and clock are supplied by this unshipped test entry.
 const root = await mkdtemp(join(tmpdir(), 'poietra-accounts-worker-'));
-const snapshot = join(root, 'source'); await mkdir(snapshot);
-await Promise.all(['worker', 'shared', 'server', 'package.json'].map(path => cp(resolve(path), join(snapshot, path), { recursive: true })));
-await symlink(resolve('node_modules'), join(snapshot, 'node_modules'), 'dir');
+const snapshot = await snapshotWorkerSource(root);
 await mkdir(join(snapshot, 'assets')); await writeFile(join(snapshot, 'assets', 'index.html'), 'Accounts integration');
 const listener = createServer(); await new Promise(resolve => listener.listen(0, '127.0.0.1', resolve));
 const port = listener.address().port; await new Promise(resolve => listener.close(resolve));
@@ -27,8 +26,6 @@ await writeFile(join(snapshot, 'wrangler.jsonc'), JSON.stringify(config));
 await writeFile(join(snapshot, 'accounts-test.ts'), `
 import original from './worker/index';
 export { ProjectRoom, AuthRecord, UserAccount } from './worker/index';
-import { AuthService } from './server/auth';
-import { workerAuthRepository } from './worker/accounts';
 const providerFetch: typeof fetch = async (input, init) => {
   const target = String(input);
   if (target === 'https://oauth2.googleapis.com/token' || target === 'https://github.com/login/oauth/access_token') {
@@ -43,6 +40,8 @@ const providerFetch: typeof fetch = async (input, init) => {
   throw new Error('Unexpected provider endpoint');
 };
 export default { async fetch(request: Request, env: Env) {
+  const { AuthService } = await import('./server/auth');
+  const { workerAuthRepository } = await import('./worker/accounts');
   const url = new URL(request.url);
   if (url.pathname === '/__test/ttl') {
     const record = env.AUTH_RECORDS.getByName('integration-ttl');

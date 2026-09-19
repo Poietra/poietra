@@ -1,16 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { cp, mkdir, mkdtemp, open, readFile, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
+import { snapshotWorkerSource } from './fixtures/worker-snapshot.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'poietra-media-storage-'));
 // Parallel UI/AI development must not HMR-restart this persistence test mid-upload.
-const snapshot = join(root, 'source'); await mkdir(snapshot);
-await Promise.all(['worker', 'shared', 'server', 'package.json'].map(path => cp(resolve(path), join(snapshot, path), { recursive: true })));
-await symlink(resolve('node_modules'), join(snapshot, 'node_modules'), 'dir');
+const snapshot = await snapshotWorkerSource(root);
 await mkdir(join(snapshot, 'assets')); await writeFile(join(snapshot, 'assets', 'index.html'), 'Media API integration');
 const config = JSON.parse(await readFile('wrangler.jsonc', 'utf8')); config.assets.directory = './assets';
 await writeFile(join(snapshot, 'wrangler.jsonc'), JSON.stringify(config));
