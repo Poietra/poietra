@@ -5,7 +5,7 @@ pub(all) enum Shape {
   Path(String)
   Arrow(ArrowGeometry)
   NumberLine(ArrowGeometry)
-}
+} derive(Eq)
 
 ///|
 pub(all) struct ArrowGeometry {
@@ -13,7 +13,7 @@ pub(all) struct ArrowGeometry {
   angle : Double
   head : Double
   spread : Double
-}
+} derive(Eq)
 
 ///|
 pub fn shape_geometry(

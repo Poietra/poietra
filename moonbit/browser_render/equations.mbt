@@ -13,6 +13,12 @@ priv struct EquationEntry {
 let equations : Map[String, EquationEntry?] = Map([])
 
 ///|
+let equation_models : @core.Any = @core.new(
+  @core.global_this()._get("WeakMap"),
+  [],
+)
+
+///|
 let math_loading : Ref[@core.Promise[MathRuntime]?] = Ref(None)
 
 ///|
@@ -45,7 +51,7 @@ fn encode_math_node(node : @render.MathNode) -> @core.Any {
 
 ///|
 fn encode_equation(value : @render.Equation) -> @core.Any {
-  frozen(
+  let result = frozen(
     @core.from_entries([
       ("x", @core.any(value.x)),
       ("y", @core.any(value.y)),
@@ -55,6 +61,8 @@ fn encode_equation(value : @render.Equation) -> @core.Any {
       ("glyphs", @core.any(value.glyphs)),
     ]),
   )
+  equation_models._call("set", [result, @core.any(value)]) |> ignore
+  result
 }
 
 ///|

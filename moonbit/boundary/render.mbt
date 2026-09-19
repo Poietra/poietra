@@ -8,7 +8,7 @@ fn write_order(value : @core.Any) -> @render.WriteOrder {
 }
 
 ///|
-fn decode_drawable(value : @core.Any) -> @render.Drawable {
+pub fn decode_drawable(value : @core.Any) -> @render.Drawable {
   let object = value._get("object")
   let image = optional(object._get("image"), fn(v) { v._get("src").cast() })
   {

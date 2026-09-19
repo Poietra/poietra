@@ -7,8 +7,8 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands,
 Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
-rendering, font preparation and MathJax conversion. Most editor screens,
-higher-level editor/Undo commands, AI, Canvas/GPU and media orchestration, and services still contain
+rendering, font preparation, MathJax conversion and Canvas shape/text/equation drawing. Most editor screens,
+higher-level editor/Undo commands, AI, frame/GPU and media orchestration, and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -50,7 +50,10 @@ node scripts/moon.mjs check --target js
   and self-contained SVG generation. Prepared MathJax trees are decoded once per
   resource lifetime. The pure renderer receives explicit font/image resources.
 - `moonbit/browser_render`: font subset selection/loading and measurements,
-  MathJax conversion and immutable prepared resources. Concurrent requests share
+  MathJax conversion, Canvas paths/glyphs/text atlases, and SVG image decoding.
+  Atlas allocation is bounded before integer conversion; each text line is measured
+  once for all masks. Native Canvas state and image URLs are released on failure,
+  cancellation and disposal. Concurrent requests share
   preparation; failed font/chunk loads remain retryable. Host failures preserve
   the JavaScript `Error` contract across the async boundary.
 - `moonbit/editor`: typed connection/persistence states, operation feedback,
@@ -85,7 +88,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 541 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 546 regression/differential tests, 5 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry

@@ -1,9 +1,13 @@
 import {
   "mizchi/js_core" @core,
+  "mizchi/js_browser/canvas",
+  "mizchi/js_builtin/regexp",
+  "moonbitlang/core/math",
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/string",
   "poietra/poietra/render",
   "poietra/poietra/editor",
+  "poietra/poietra/boundary",
 }
 
 supported_targets = "js"
@@ -13,6 +17,11 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "text_drawing_key:textDrawingKey",
+        "prepare_text_drawing:prepareTextDrawing",
+        "with_svg_image:withSvgImage",
+        "prepare_shape_drawing:prepareShapeDrawing",
+        "prepare_equation_drawing:prepareEquationDrawing",
         "prepare_equations:prepareEquations",
         "get_equation:getEquation",
         "create_font_catalog:createFontCatalog",
