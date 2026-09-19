@@ -463,3 +463,37 @@ test('Responses strict schema exposes normalized custom easing for base and prop
   expect(body.input[0].content).toContain('Existing independent channels keep their own easing');
   expect(parse).toHaveBeenCalledTimes(1);
 });
+
+test('a stalled image store shares the request deadline and cannot publish a late proposal', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(0);
+  parse.mockResolvedValueOnce(withPicture());
+  generate.mockResolvedValueOnce({ data: [{ b64_json: encodedWebp }] });
+  let finishStore!: (src: string) => void;
+  const store = vi.fn(() => new Promise<string>(resolve => { finishStore = resolve; }));
+  const outcome = createEditProposal(doc, input, 'test-key-never-sent', 'test-model', {
+    images: { model: 'test-image-model', quality: 'medium', store },
+  }).then(value => ({ value }), error => ({ error }));
+  await vi.advanceTimersByTimeAsync(1);
+  expect(store).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(169999);
+  expect(await outcome).toMatchObject({ error: { message: expect.stringContaining('時間内に完了しませんでした') } });
+  expect(generate.mock.calls[0][1].signal.aborted).toBe(true);
+  finishStore(`/api/rooms/ai-unit-test-room/images/${'a'.repeat(64)}`);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(vi.mocked(console.log)).not.toHaveBeenCalled();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+test('a failed picture aborts its parallel sibling and releases the timer', async () => {
+  vi.useFakeTimers();
+  const { images } = imageSink();
+  parse.mockResolvedValueOnce(withPicture([{ ...picture, ref: '@moon', name: 'Moon' }]));
+  generate.mockRejectedValueOnce(new Error('image generation failed'))
+    .mockImplementationOnce((_body, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new Error('aborted sibling')), { once: true });
+    }));
+  await expect(createEditProposal(doc, input, 'test-key-never-sent', 'test-model', { images })).rejects.toThrow('image generation failed');
+  expect(generate).toHaveBeenCalledTimes(2);
+  expect(generate.mock.calls[1][1].signal.aborted).toBe(true);
+  expect(vi.getTimerCount()).toBe(0);
+});

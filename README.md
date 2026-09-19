@@ -12,9 +12,9 @@ optional login/project bookmarks, sample project generation, portable-file valid
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller,
 AI/image schemas, proposal compilation, the complete public website/startup flow,
-shared HTTP negotiation/upload policies, bounded presence and local room synchronization.
-AI, authentication and storage services still contain
-TypeScript implementations. Keeping those running preserves the original regression suite
+shared HTTP negotiation/upload policies, bounded presence, local room synchronization,
+asset storage, authentication and AI services. The main Worker/Node request handlers
+still contain TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
 ## Run locally
@@ -181,6 +181,11 @@ node scripts/moon.mjs check --target js
 - `moonbit/schemas`: AI operations, easing, media and bounded chat-history schemas
   built with mizchi’s typed Zod bindings. Native schema/error identity preserves
   OpenAI structured output and the existing API error/repair contract.
+- `moonbit/ai_service`: request snapshots, typed conversation roles, bounded one-time
+  proposal repair, usage accounting, SDK tuning fallback and parallel image generation.
+  Text, images and image storage share a 170-second deadline; a failed image cancels
+  its siblings. The native OpenAI SDK remains a runtime adapter. All 42 service tests
+  pass, including its actual retry/Retry-After implementation with simulated HTTP.
 - `moonbit/proposal_plan`: pure typed AI commands, identity kinds and guarded edit
   plans. Metadata and lazy state reads replace whole-Scene cloning. Appends copy
   the effective state at their declaration; later edits cannot change earlier
@@ -203,8 +208,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas are the AI service and the main Worker/Node
-request handlers, including the Worker's room synchronization and legacy storage.
+Remaining migration areas are the main Worker/Node request handlers, including the Worker's room synchronization and legacy storage.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -214,7 +218,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **636 regression/differential tests**, 15 MoonBit tests on JS,
+Locally verified: **638 regression/differential tests**, 15 MoonBit tests on JS,
 3 kernel tests and the pure proposal planner test on WASM, typechecking and the
 production build. The complete studio,
 selective Undo and editor Store passed the **154-test CI browser selection**, covering
@@ -366,6 +370,14 @@ development-only lifecycle fixtures passed against Vite. CI exposed a Node uploa
 rejection race: immediately destroying a still-uploading request could reset the
 socket before its 413 response arrived. Rejected inputs now drain within a byte/time
 budget before responding; a stalled-body HTTP regression enforces that deadline.
+
+[mizchi/llm](https://github.com/mizchi/llm/tree/8ff08f81f8ecaa5b1b22c94b16a121d151455efa)
+and [openai_sdk](https://github.com/moonbit-community/openai_sdk/tree/f634faec4d8c0359804a0afaedcf25665032cc03)
+were inspected for the AI service. Their inspected APIs center on Chat Completions;
+this editor requires Responses structured output and Images. The former's asynchronous
+text helper hides transport errors, and its module/license declarations disagree
+(MIT/Apache-2.0). Neither is adopted. The installed official SDK 7.15.0 remains behind
+MoonBit lifecycle code; no paid API calls were needed for migration tests.
 
 ## Repository and deployment
 

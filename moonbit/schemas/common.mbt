@@ -166,3 +166,25 @@ let ai_history : @zod.ZodSchema = {
 pub fn ai_history_schema() -> @core.Any {
   ai_history.as_any()
 }
+
+///|
+let ai_request : @zod.ZodSchema = @zod.object({
+  "roomId": @zod.string().regex("^[a-zA-Z0-9_-]{16,80}$"),
+  "sceneId": @zod.string().max(100),
+  "compositionId": @zod.string().max(100).nullable(),
+  "transitionId": @zod.string().max(100).nullable(),
+  "selectedIds": @zod.array(@zod.string().max(100)).max(100),
+  "prompt": @zod.string().trim().min(1).max(3000),
+  "history": ai_history.optional(),
+  "supportsCompositionAppends": @zod.boolean().optional(),
+})
+
+///|
+pub fn ai_request_schema() -> @core.Any {
+  ai_request.as_any()
+}
+
+///|
+pub fn parse_ai_request(value : @core.Any) -> @core.Any {
+  parse(ai_request, value)
+}

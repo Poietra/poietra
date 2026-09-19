@@ -1,0 +1,25 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "poietra/poietra/http_runtime" @http,
+  "poietra/poietra/schemas",
+  "poietra/poietra/proposals",
+  "poietra/poietra/boundary",
+  "poietra/poietra/assets",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "create_edit_proposal:createEditProposal",
+        "image_quality:imageQuality",
+        "response_tuning:responseTuning",
+        "ai_error_message:aiErrorMessage",
+      ],
+    },
+  },
+)

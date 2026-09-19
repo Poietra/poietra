@@ -21,6 +21,7 @@ options(
         "media_playback_schema:mediaPlaybackSchema",
         "audio_track_schema:audioTrackSchema",
         "ai_history_schema:aiHistorySchema",
+        "ai_request_schema:aiRequestSchema",
       ],
     },
   },
