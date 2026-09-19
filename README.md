@@ -5,7 +5,8 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
-controls, connection status, operation feedback, group animation commands,
+controls, connection status, operation feedback, group animation commands and inspectors,
+property timing controls, collaborative easing gestures,
 Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. Most editor screens,
 higher-level editor/Undo commands, AI and services still contain

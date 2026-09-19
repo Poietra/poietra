@@ -17,6 +17,26 @@ pub fn write_easing(value : @scene.Easing) -> @core.Any {
 }
 
 ///|
+pub fn read_track(value : @core.Any) -> @scene.Track {
+  decode_Track(value)
+}
+
+///|
+pub fn read_timing(value : @core.Any) -> @scene.Timing {
+  decode_Timing(value)
+}
+
+///|
+pub fn write_timing(value : @scene.Timing) -> @core.Any {
+  encode_Timing(value)
+}
+
+///|
+pub fn read_object_kind(value : @core.Any) -> @scene.ObjectKind {
+  decode_ObjectKind(value)
+}
+
+///|
 pub fn is_valid_easing(value : @core.Any) -> Bool {
   if @core.typeof_(value) == "string" {
     let name : String = value.cast()

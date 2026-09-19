@@ -17,6 +17,9 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "property_timing_inspector:PropertyTimingInspector",
+        "group_controls:GroupControls",
+        "group_animation_inspector:GroupAnimationInspector",
         "easing_editor:EasingEditor",
         "use_editor:useEditor",
         "project_preview:ProjectPreview",

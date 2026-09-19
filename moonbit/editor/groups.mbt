@@ -91,6 +91,29 @@ pub(all) struct EditableTrack {
 }
 
 ///|
+pub(all) struct GroupTiming {
+  existing : Bool
+  start : Double
+  duration : Double
+}
+
+///|
+pub fn group_timing_limits(
+  targets : Array[GroupTiming],
+  duration : Double,
+) -> (Double, Double) {
+  let mut start = duration
+  let mut length = duration
+  for target in targets {
+    if target.existing {
+      start = @scene.minimum(start, duration - target.duration)
+    }
+    length = @scene.minimum(length, duration - target.start)
+  }
+  (@scene.maximum(0.0, start), @scene.maximum(0.0, length))
+}
+
+///|
 pub(all) enum WriteOrder {
   Together
   Sequential
