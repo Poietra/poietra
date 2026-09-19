@@ -42,7 +42,7 @@ jobs:
           moon check --target js --deny-warn
       - run: pnpm test
       - run: node scripts/moon.mjs test --target js
-      - run: node scripts/moon.mjs test --target wasm moonbit/motion
+      - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan
       - run: pnpm build
       - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
       - name: Install video verification tools

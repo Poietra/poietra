@@ -1,5 +1,6 @@
 import * as moon from '../../../_build/js/release/build/boundary/boundary.js';
-import { z } from 'zod';
+import type { z } from 'zod';
+import * as schemas from '../../../_build/js/release/build/schemas/schemas.js';
 
 export const MEDIA_FILE_LIMIT = 32 * 1024 * 1024;
 export const MEDIA_ROOM_BYTES_LIMIT = 128 * 1024 * 1024;
@@ -9,23 +10,12 @@ export const MEDIA_ACCEPT = MEDIA_MIMES.join(',') + ',audio/x-wav,audio/x-flac,a
 export const MEDIA_ASSET_PATH = /^\/api\/rooms\/([a-zA-Z0-9_-]{16,80})\/media\/([a-f0-9]{64})$/;
 export const MEDIA_UPLOAD_PATH = /^\/api\/rooms\/([a-zA-Z0-9_-]{16,80})\/media$/;
 export const MEDIA_DATA_URL = /^data:(video\/(?:mp4|webm)|audio\/(?:mpeg|wav|ogg|flac|mp4|webm));base64,[A-Za-z0-9+/]+={0,2}$/;
-const mediaTime = z.number().finite().min(0).max(24 * 60 * 60 * 1000);
-const id = z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/).refine(value => !['__proto__', 'constructor', 'prototype'].includes(value));
-
-export const MediaAssetSchema = z.object({
-  src: z.string().max(Math.ceil(MEDIA_FILE_LIMIT * 4 / 3) + 64).refine(value => MEDIA_ASSET_PATH.test(value) || MEDIA_DATA_URL.test(value)),
-  mime: z.enum(MEDIA_MIMES), duration: mediaTime.refine(value => value > 0),
-  width: z.number().int().min(1).max(8192).optional(), height: z.number().int().min(1).max(8192).optional(),
-  hasAudio: z.boolean(), waveform: z.array(z.number().finite().min(0).max(1)).max(160).optional(),
-}).refine(asset => !asset.mime.startsWith('video/') || !!asset.width && !!asset.height)
-  .refine(asset => !asset.src.startsWith('data:') || asset.src.startsWith(`data:${asset.mime};`));
 export interface MediaAsset { src: string; mime: string; duration: number; width?: number; height?: number; hasAudio: boolean; waveform?: number[] }
-export const MediaPlaybackSchema = z.object({ start: mediaTime, offset: mediaTime, duration: mediaTime });
-export type MediaPlayback = z.infer<typeof MediaPlaybackSchema>;
-export const AudioTrackSchema = MediaPlaybackSchema.extend({
-  id, name: z.string().max(200), asset: MediaAssetSchema, volume: z.number().finite().min(0).max(1), muted: z.boolean(),
-}).refine(track => track.asset.hasAudio && track.offset + track.duration <= track.asset.duration + 1);
+export interface MediaPlayback { start: number; offset: number; duration: number }
 export interface AudioTrack extends MediaPlayback { id: string; name: string; asset: MediaAsset; volume: number; muted: boolean }
+export const MediaAssetSchema = schemas.mediaAssetSchema() as z.ZodType<MediaAsset>;
+export const MediaPlaybackSchema = schemas.mediaPlaybackSchema() as z.ZodType<MediaPlayback>;
+export const AudioTrackSchema = schemas.audioTrackSchema() as z.ZodType<AudioTrack>;
 
 export const canonicalMediaMime: (mime: string) => string = moon.canonicalMediaMime;
 export const mediaMime: (bytes: Uint8Array, declared?: string) => string | null = moon.mediaMime;

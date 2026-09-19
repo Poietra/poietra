@@ -22,6 +22,41 @@ pub fn read_track(value : @core.Any) -> @scene.Track {
 }
 
 ///|
+pub fn write_track(value : @scene.Track) -> @core.Any {
+  encode_Track(value)
+}
+
+///|
+pub fn read_scene_object(value : @core.Any) -> @scene.SceneObject {
+  decode_SceneObject(value)
+}
+
+///|
+pub fn write_scene_object(value : @scene.SceneObject) -> @core.Any {
+  encode_SceneObject(value)
+}
+
+///|
+pub fn read_bezier(value : @core.Any) -> @scene.Bezier {
+  decode_Bezier(value)
+}
+
+///|
+pub fn write_bezier(value : @scene.Bezier) -> @core.Any {
+  encode_Bezier(value)
+}
+
+///|
+pub fn write_composition(value : @scene.Composition) -> @core.Any {
+  encode_Composition(value)
+}
+
+///|
+pub fn write_transition(value : @scene.Transition) -> @core.Any {
+  encode_Transition(value)
+}
+
+///|
 pub fn read_object_state(value : @core.Any) -> @scene.ObjectState {
   decode_ObjectState(value)
 }

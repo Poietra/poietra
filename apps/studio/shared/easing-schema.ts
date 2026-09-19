@@ -1,14 +1,5 @@
-import { z } from 'zod';
-
-const coordinate = z.number().finite().min(0).max(1);
-
-/** Timing curves use normalized time/progress coordinates, not Scene pixels. */
-export const CubicBezierEasingSchema = z.object({
-  type: z.literal('cubicBezier'),
-  x1: coordinate, y1: coordinate, x2: coordinate, y2: coordinate,
-}).strict();
-
-export const EasingSchema = z.union([
-  z.enum(['linear', 'easeInOut', 'easeIn', 'easeOut']),
-  CubicBezierEasingSchema,
-]);
+import type { z } from 'zod';
+import type { CubicBezierEasing, Easing } from './model';
+import { cubicEasingSchema, easingSchema } from '../../../_build/js/release/build/schemas/schemas.js';
+export const CubicBezierEasingSchema = cubicEasingSchema() as z.ZodType<CubicBezierEasing>;
+export const EasingSchema = easingSchema() as z.ZodType<Easing>;

@@ -15,7 +15,8 @@
     "typecheck": "pnpm --dir apps/studio typecheck"
   },
   "dependencies": {
-    "react": "19.3.0"
+    "react": "19.3.0",
+    "zod": "4.6.5"
   },
   "imports": {
     "#poietra/ui-host": "./apps/studio/src/platform/ui-host.mjs",

@@ -2,6 +2,10 @@ import {
   "mizchi/js_core" @core,
   "poietra/poietra/assets",
   "poietra/poietra/boundary",
+  "poietra/poietra/scene",
+  "poietra/poietra/editor",
+  "poietra/poietra/proposal_plan" @plan,
+  "poietra/poietra/schemas",
 }
 
 supported_targets = "js"
@@ -13,6 +17,10 @@ options(
       "exports": [
         "validate_proposal_for_apply:validateProposalForApply",
         "apply_proposal:applyProposal",
+        "compile_proposal:compileProposal",
+        "validate_state_value:validateStateValue",
+        "placeholder_image:placeholderImage",
+        "with_generated_images:withGeneratedImages",
       ],
     },
   },

@@ -10,8 +10,8 @@ property timing controls, collaborative easing gestures, object/property inspect
 audio/video track editing, the animation timeline, canvas interaction and global keyboard/clipboard handling,
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller. Landing/bootstrap,
-AI proposal compilation and services still contain
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller,
+AI/image schemas and proposal compilation. Landing/bootstrap and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -141,7 +141,15 @@ node scripts/moon.mjs check --target js
   and sweeps sorted intervals instead of repeatedly copying every range; clock
   values retain JS safe-integer precision. Invalid restoration fails before
   touching either history stack, and native failures restore temporary filters.
-- `moonbit/proposals`: preflight and atomic application of AI edits. It verifies
+- `moonbit/schemas`: AI operations, easing, media and bounded chat-history schemas
+  built with mizchi’s typed Zod bindings. Native schema/error identity preserves
+  OpenAI structured output and the existing API error/repair contract.
+- `moonbit/proposal_plan`: pure typed AI commands, identity kinds and guarded edit
+  plans. Metadata and lazy state reads replace whole-Scene cloning. Appends copy
+  the effective state at their declaration; later edits cannot change earlier
+  copies. Generated creations respect the same 500-object portable-file limit.
+- `moonbit/proposals`: schema decoding, generated-image preparation, compilation
+  and atomic application of AI edits. It verifies
   values, parent identities, append dependencies and projected timing before any
   write. Only touched tracks are copied for projection. Parent/child replacement
   conflicts are rejected, and all new shared values are prepared before the Yjs
@@ -158,8 +166,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas include landing/bootstrap,
-AI proposal compilation, and Workers/Node services.
+Remaining migration areas include landing/bootstrap and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -169,8 +176,8 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **619 regression/differential tests**, 14 MoonBit tests on JS,
-3 kernel tests on WASM, typechecking and the production build. The complete studio,
+Locally verified: **622 regression/differential tests**, 15 MoonBit tests on JS,
+3 kernel tests and the pure proposal planner test on WASM, typechecking and the production build. The complete studio,
 selective Undo and editor Store passed the **152-test CI browser selection**, covering
 offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
 portable media, seeking and actual MP4/WebM output. An additional 15 chat/structure
@@ -185,7 +192,11 @@ OAuth registration. Homepage checks verify that simply visiting loads no editor
 engine. Native-failure and delayed-completion tests cover Undo history restoration,
 audio resume, canceled imports, account switches and persistence after disposal.
 Clock subtraction matches an independent point-set model in 500 randomized cases.
-The proposal preflight/application migration also passed all 24 AI browser checks.
+The proposal compiler/schema migration also passed 53 AI/chat/image/media browser
+checks, including actual MP4/WebM exports.
+The new compiler matches the pinned TypeScript implementation in 100 mixed-operation
+scenarios, including rejected timing and valid creation/append sequences. A poisoned
+unrelated state proves one-field edits do not read or clone its payload.
 CI checks generated adapters and runs the core/editor/media suites with the pinned
 compiler. These checks do not constitute a production migration or deployment.
 
@@ -223,7 +234,24 @@ networking. Seven alternating batches of 50 edits after warmup:
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-snapshots.ts
 ```
 
-The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability and [mizchi/npm_typed](https://github.com/mizchi/npm_typed) for typed React hooks and elements. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) were also investigated; they are not active dependencies. The initial UI migration keeps the existing React/Base UI runtime and replaces application components with MoonBit.
+A separate 2026-09-19 benchmark compiles a one-field AI edit with guards and
+preflight, starting from an existing immutable snapshot. Seven alternating batches
+of 10 compilations after warmup; Node 24.13.0 on Linux x64:
+
+| Objects | Compositions | Original ms | MoonBit ms |
+| ---: | ---: | ---: | ---: |
+| 100 | 10 | 1.701 | 0.226 |
+| 500 | 10 | 7.472 | 0.236 |
+| 500 | 40 | 32.454 | 0.508 |
+
+```sh
+pnpm --dir apps/studio exec node --import tsx scripts/benchmark-proposals.ts
+```
+
+This measures compilation only, excluding model calls, network, UI and applying
+changes. The old compiler at `afbd6b3` is retained only as a test/benchmark oracle.
+
+The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability and [mizchi/npm_typed](https://github.com/mizchi/npm_typed.mbt) for typed React hooks/elements and Zod schemas. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) were also investigated; they are not active dependencies. The initial UI migration keeps the existing React/Base UI runtime and replaces application components with MoonBit.
 
 On 2026-09-19, source review of [gfx](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
 informed the separation of the pure Glow program from its browser driver; gfx's
@@ -245,7 +273,10 @@ These remain candidates, not adopted or production-verified replacements.
 The MIT-licensed [jsonschema v0.8.1](https://github.com/mizchi/moonbit_jsonschema/tree/c58c2433df573960e432c5f9061dfe57b40169a1)
 passed its 47 upstream JS tests with the pinned compiler, but compatibility probes
 found that string `pattern` and `propertyNames` constraints were not enforced.
-Project files therefore use a typed bounded decoder with explicit identifier,
+The MIT-licensed `mizchi/npm_typed` 0.1.16 Zod bindings passed all 48 upstream tests
+and two additional compatibility probes with Zod 4.6.5. They are adopted for
+discriminated operations, strict easing records, nullable timing and schema output.
+Project files use a typed bounded decoder with explicit identifier,
 media and cross-reference checks instead of adopting it as their validator.
 
 ## Repository and deployment

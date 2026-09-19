@@ -1,0 +1,5 @@
+import {
+  "poietra/poietra/scene",
+  "poietra/poietra/editor",
+  "poietra/poietra/assets",
+}

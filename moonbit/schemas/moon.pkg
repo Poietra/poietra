@@ -1,0 +1,27 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/npm_typed/zod",
+  "poietra/poietra/assets",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "edit_proposal_schema:editProposalSchema",
+        "resolved_proposal_schema:resolvedProposalSchema",
+        "easing_schema:easingSchema",
+        "cubic_easing_schema:cubicEasingSchema",
+        "image_asset_schema:imageAssetSchema",
+        "image_source_schema:imageSourceSchema",
+        "media_asset_schema:mediaAssetSchema",
+        "media_playback_schema:mediaPlaybackSchema",
+        "audio_track_schema:audioTrackSchema",
+        "ai_history_schema:aiHistorySchema",
+      ],
+    },
+  },
+)
