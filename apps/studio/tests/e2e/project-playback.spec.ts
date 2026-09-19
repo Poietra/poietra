@@ -106,6 +106,38 @@ function exportProject(): Project {
   project.sceneOrder.push(second.id); project.scenes[second.id] = second;
   return project;
 }
+
+test('video preview seeks across Scenes without publishing an old video frame into the next Scene', async ({ page }, info) => {
+  const file = info.outputPath('preview.mp4');
+  await execute('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=10:duration=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', file]);
+  const project = blankProject(), first = project.scenes.opening;
+  first.compositions[first.compositionOrder[0]].duration = 500;
+  first.objects.clip = { id: 'clip', name: 'Clip', kind: 'video', order: 0, groupId: null, locked: false,
+    media: { src: `data:video/mp4;base64,${(await readFile(file)).toString('base64')}`, mime: 'video/mp4', duration: 1000, width: 160, height: 90, hasAudio: false },
+    playback: { start: 0, offset: 0, duration: 500 } };
+  first.compositions[first.compositionOrder[0]].states.clip = defaultState('video', { x: 320, y: 180, width: 320, height: 180 });
+  const second = makeBlankScene('closing', 'Closing');
+  second.compositions[second.compositionOrder[0]].duration = 500;
+  second.background = '#802020'; project.sceneOrder.push(second.id); project.scenes[second.id] = second;
+  const room = await open(page, project), errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    await preview(page);
+    const slider = page.getByRole('slider', { name: 'Project preview position', exact: true });
+    const image = page.locator('.project-preview-svg [data-object-id="clip"] image');
+    await expect(image).toHaveAttribute('href', /^data:image\/png/);
+    const initial = await image.getAttribute('href');
+    await slider.fill('500');
+    await expect(page.getByTestId('project-preview-frame')).toHaveAttribute('data-scene-id', 'closing');
+    await expect(image).toHaveCount(0);
+    await slider.fill('300');
+    await expect(image).toHaveAttribute('href', /^data:image\/png/);
+    await expect.poll(() => image.getAttribute('href')).not.toBe(initial);
+    await slider.fill('800'); await expect(image).toHaveCount(0);
+    await page.getByRole('button', { name: '閉じる', exact: true }).click();
+    expect(errors).toEqual([]);
+  } finally { room.close(); }
+});
 function pixel(frame: Buffer, x: number, y: number) { return [...frame.subarray((y * 640 + x) * 3, (y * 640 + x) * 3 + 3)]; }
 function near(actual: number[], expected: number[]) { for (const [index, value] of actual.entries()) expect(Math.abs(value - expected[index])).toBeLessThanOrEqual(7); }
 

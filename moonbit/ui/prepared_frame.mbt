@@ -9,6 +9,7 @@ priv struct PreparedFrame {
 priv struct PreparationFailure {
   scope : String
   source : @core.Any
+  message : String
 }
 
 ///|
@@ -51,9 +52,18 @@ fn FramePreparation::enqueue(
         (self.publish)({ scope: self.scope, source, frame, })
         (self.fail)(None)
       } catch {
-        _ =>
+        error =>
           if !ui_aborted(signal) {
-            (self.fail)(Some({ scope: self.scope, source, }))
+            (self.fail)(
+              Some({
+                scope: self.scope,
+                source,
+                message: error_message(
+                  ui_native_error(error),
+                  "動画を読み込めませんでした。",
+                ),
+              }),
+            )
           }
       }
     }

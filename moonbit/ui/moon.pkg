@@ -17,6 +17,7 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "project_preview:ProjectPreview",
         "export_dialog:ExportDialog",
         "download_blob:download",
         "canvas_frame:CanvasFrame",
