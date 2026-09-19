@@ -11,7 +11,7 @@ audio/video track editing, the animation timeline, canvas interaction and global
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller. Landing/bootstrap,
-higher-level editor/Undo commands, AI proposal compilation and services still contain
+higher-level editor commands, AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -127,6 +127,12 @@ node scripts/moon.mjs check --target js
   replies; history limits and proposal-target labels live in the pure editor model.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
+- `moonbit/browser_undo`: typed preservation plans for shared creations, promoted
+  tracks, independent timing maps and their duration dependencies. Native Yjs
+  identities use mizchi's weak collections. Clock subtraction groups by client
+  and sweeps sorted intervals instead of repeatedly copying every range; clock
+  values retain JS safe-integer precision. Invalid restoration fails before
+  touching either history stack, and native failures restore temporary filters.
 - Shared snapshots invalidate only changed branches before observers run.
   Unchanged Scenes retain identity, avoiding needless playback compilation.
   Cached snapshots are immutable; clone before editing outside the command API.
@@ -139,7 +145,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas include higher-level editing and Undo, landing/bootstrap,
+Remaining migration areas include higher-level editing, landing/bootstrap,
 AI proposal compilation, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
@@ -150,7 +156,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 609 regression/differential tests, 12 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 610 regression/differential tests, 14 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -194,6 +200,9 @@ maps and object limits before allocating any document identities.
 The complete MoonBit studio controller then passed all 152 browser checks in the
 CI editor selection, including offline collaboration, selective Undo, real encoded
 video and a deterministic race between two delayed audio-resume requests.
+The selective Undo migration passed 22 further browser checks, 150 existing
+collaboration/history unit tests and a native-failure restoration check. Clock
+subtraction also matches an independent point-set model over 500 randomized cases.
 Initial editor loading was also checked with both the dev server and browser tests
 restricted to two CPU cores: the 11 chat checks passed with a 15 s startup budget.
 WASM begins loading alongside the editor graph; the 10 homepage checks confirm

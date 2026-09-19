@@ -1,0 +1,25 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "mizchi/js_builtin/weak",
+  "poietra/poietra/boundary",
+  "poietra/poietra/collaboration",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "create_session:createSession",
+        "destroy_session:destroySession",
+        "session_counts:sessionCounts",
+        "undo:undo",
+        "redo:redo",
+        "rollback_gesture:rollbackGesture",
+      ],
+    },
+  },
+)
