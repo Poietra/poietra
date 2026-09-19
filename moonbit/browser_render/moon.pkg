@@ -18,6 +18,7 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "create_glow_renderer:createGlowRenderer",
         "create_frame_painter:createFramePainter",
         "draw_svg_frame:drawSvgFrame",
         "create_layer_cache:createLayerCache",

@@ -25,3 +25,6 @@
   Invalidate changed branches before Yjs observers, and bypass caches during
   unobserved writes. Keep the tests for nested and observer-queued transactions.
   Mutable consumers must explicitly clone; commands write only intended fields.
+- 2026-09-19: The founder reiterated researching existing MoonBit implementations
+  as each subsystem is rewritten. Inspect upstream source, license, compatibility
+  and tests before adding a dependency; record concise adoption decisions in README.

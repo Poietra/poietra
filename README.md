@@ -7,8 +7,8 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands,
 Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition and raster caching. Most editor screens,
-higher-level editor/Undo commands, AI, GPU and media orchestration, and services still contain
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching and GPU Glow. Most editor screens,
+higher-level editor/Undo commands, AI, media orchestration, and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -50,7 +50,8 @@ node scripts/moon.mjs check --target js
   and self-contained SVG generation. Prepared MathJax trees are decoded once per
   resource lifetime. The pure renderer receives explicit font/image resources.
 - `moonbit/browser_render`: font subset selection/loading and measurements,
-  MathJax conversion, Canvas paths/glyphs/text atlases, and SVG image decoding, and atomic frame publication. Raster cache keys compare typed
+  MathJax conversion, Canvas paths/glyphs/text atlases, SVG image decoding,
+  and atomic frame publication. Raster cache keys compare typed
   appearance without serializing embedded images; pending replacements lease their
   text masks, and invalidated requests cannot resurrect cleared entries.
   Atlas allocation is bounded before integer conversion; each text line is measured
@@ -58,6 +59,9 @@ node scripts/moon.mjs check --target js
   cancellation and disposal. Concurrent requests share
   preparation; failed font/chunk loads remain retryable. Host failures preserve
   the JavaScript `Error` contract across the async boundary.
+- Glow uses a typed, pure render program validated against device limits before
+  allocation. The browser driver owns textures, framebuffers and programs; partial
+  initialization releases every acquired handle. Lost GPU contexts fall back to SVG.
 - `moonbit/editor`: typed connection/persistence states, operation feedback,
   group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
   before writing; existing tracks change only intended leaves. A delayed
@@ -80,7 +84,7 @@ node scripts/moon.mjs check --target js
   differential testing, not runtime imports.
 
 Remaining migration areas include higher-level editing and Undo, UI screens,
-Canvas/GPU resources and media/export, shared chat/AI, and Workers/Node services.
+media/export, shared chat/AI, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -90,13 +94,15 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 552 regression/differential tests, 6 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 568 regression/differential tests, 7 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
 replacement, cancellation and resource release. The Scene/chat migration passed
 17 browser checks, including shared waiting state and reduced motion. CI runs
 the core suite and editor selection with a pinned compiler.
+The GPU migration also passed eight production-bundle browser checks for buffer
+resizing, device-limit fallback, and actual 399-frame MP4/WebM export and decoding.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts
@@ -133,6 +139,16 @@ pnpm --dir apps/studio exec node --import tsx scripts/benchmark-snapshots.ts
 ```
 
 The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability and [mizchi/npm_typed](https://github.com/mizchi/npm_typed) for typed React hooks and elements. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) were also investigated; they are not active dependencies. The initial UI migration keeps the existing React/Base UI runtime and replaces application components with MoonBit.
+
+On 2026-09-19, source review of [gfx](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
+informed the separation of the pure Glow program from its browser driver; gfx's
+WebGL driver is currently a stub, so it is not a runtime dependency.
+[canvas](https://github.com/mizchi/canvas-mbt), [image](https://github.com/mizchi/image-mbt),
+[mayo](https://github.com/mizchi/mayo) and [converge](https://github.com/mizchi/converge)
+were also inspected. Canvas uses its own TTF rasterizer; image does not decode WebP;
+Mayo requires cross-origin isolation and explicit shared Int32 layouts. Converge's
+column-level CRDT needs a separate compatibility evaluation for selective Undo.
+These remain candidates, not adopted or production-verified replacements.
 
 ## Repository and deployment
 

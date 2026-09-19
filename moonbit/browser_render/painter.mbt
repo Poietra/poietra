@@ -267,7 +267,7 @@ pub fn create_frame_painter(
     let lifetime = @core.throwable(fn() {
       @core.new(@core.global_this()._get("AbortController"), [])
     })
-    let glow = @core.throwable(fn() { services._call("createGlowRenderer", []) })
+    let glow = @core.throwable(fn() { create_glow_renderer() })
     let painter : FramePainter = {
       target,
       staging,
