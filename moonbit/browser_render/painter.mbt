@@ -9,7 +9,7 @@ priv struct FramePainter {
   target : Surface
   staging : Surface
   layers : RasterCache
-  videos : @core.Any
+  videos : @browser_media.VideoFrames
   lifetime : @core.Any
   mut backend : PainterBackend
 }
@@ -45,7 +45,7 @@ fn FramePainter::dispose(self : FramePainter) -> Unit {
   }
   self.lifetime._call("abort", [image_abort_error()]) |> ignore
   self.use_svg()
-  self.videos._call("dispose", []) |> ignore
+  self.videos.dispose()
   release_surface(self.staging)
 }
 
@@ -190,10 +190,7 @@ async fn FramePainter::render(
         self.target.canvas._get("height").cast(),
       )
     })
-    let videos : @core.Promise[Unit] = @core.throwable(fn() {
-      self.videos._call("prepare", [input, signal]).cast()
-    })
-    videos.wait()
+    self.videos.prepare(input, signal).wait()
     image_check_abort(signal)
     let items : FixedArray[@core.Any] = input._get("objects").cast()
     let frame : @render.RenderFrame = {
@@ -253,17 +250,14 @@ extern "js" fn define_getter(
 pub fn create_frame_painter(
   canvas : @core.Any,
   resources : @core.Any,
-  services : @core.Any,
 ) -> @core.Promise[@core.Any] {
   @core.from_async(fn() raise {
     let target = @core.throwable(fn() { opaque_surface(canvas) })
     let staging_canvas = @core.throwable(native_canvas)
     errdefer release_canvas(staging_canvas)
     let staging = @core.throwable(fn() { opaque_surface(staging_canvas) })
-    let videos = @core.throwable(fn() {
-      services._call("createVideoFrames", [])
-    })
-    errdefer videos._call("dispose", []) |> ignore
+    let videos = @core.throwable(@browser_media.VideoFrames::new)
+    errdefer videos.dispose()
     let lifetime = @core.throwable(fn() {
       @core.new(@core.global_this()._get("AbortController"), [])
     })

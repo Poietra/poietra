@@ -9,6 +9,7 @@ import {
   "poietra/poietra/scene",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
+  "poietra/poietra/browser_media",
 }
 
 supported_targets = "js"

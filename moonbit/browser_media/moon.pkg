@@ -1,0 +1,24 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/assets",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "create_video_frames:createVideoFrames",
+        "prepare_video_frame:prepareVideoFrame",
+        "prepared_image:preparedImage",
+        "prepare_images:prepareImages",
+        "open_media:openMedia",
+        "image_blob:imageBlob",
+        "blob_data_url:blobDataUrl",
+      ],
+    },
+  },
+)

@@ -18,6 +18,7 @@
     "react": "19.3.0"
   },
   "imports": {
-    "#poietra/ui-host": "./apps/studio/src/platform/ui-host.mjs"
+    "#poietra/ui-host": "./apps/studio/src/platform/ui-host.mjs",
+    "#poietra/media-host": "./apps/studio/src/platform/media-host.mjs"
   }
 }

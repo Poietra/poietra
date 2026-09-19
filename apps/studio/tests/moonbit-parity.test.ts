@@ -55,7 +55,8 @@ test('the original evaluator is an oracle for every animation and independently 
       expect(migrated.transitionFrame(scene, transition, 250, moon)).toEqual(original.transitionFrame(scene, transition, 250, rust));
     }
   }
-});
+// Exhaustive semantic comparisons, not a timing benchmark; shared CI runners can exceed 5 seconds.
+}, 20000);
 
 test('scene holds, boundaries, missing states and video clocks match the original evaluator', () => {
   const scene = makeDemoProject().scenes['scene-1'];
