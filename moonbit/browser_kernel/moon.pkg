@@ -1,0 +1,10 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: { "js": { "format": "esm", "exports": [ "load_kernel:loadKernel" ] } },
+)

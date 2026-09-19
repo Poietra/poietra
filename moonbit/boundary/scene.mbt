@@ -124,3 +124,18 @@ extern "js" fn make_segment(
 pub fn scene_duration(input : @core.Any) -> Double {
   @scene.timeline_duration(decode_timeline(input))
 }
+
+///|
+pub fn track_progress(
+  host : @core.Any,
+  time : Double,
+  start : Double,
+  duration : Double,
+  easing : @core.Any,
+) -> Double {
+  @scene.timing_progress(
+    { start, duration, easing: decode_Easing(easing), },
+    time,
+    kernel(host),
+  )
+}

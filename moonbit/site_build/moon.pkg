@@ -1,0 +1,10 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/site",
+}
+
+supported_targets = "js"
+
+options(
+  link: { "js": { "format": "esm", "exports": [ "render_files:renderFiles" ] } },
+)

@@ -1,0 +1,22 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/http_runtime" @http,
+  "poietra/poietra/assets",
+  "poietra/poietra/boundary",
+  "poietra/poietra/y_protocol" @wire,
+  "poietra/poietra/server_presence" @presence,
+  "poietra/poietra/room_assets" @storage,
+  "poietra/poietra/r2_upload" @upload,
+  "poietra/poietra/worker_assets" @delivery,
+  "poietra/poietra/ai_service" @ai,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": { "format": "esm", "exports": [ "room_class:projectRoomClass" ] },
+  },
+)

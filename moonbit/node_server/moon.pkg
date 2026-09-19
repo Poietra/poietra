@@ -1,0 +1,16 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_node/fs",
+  "poietra/poietra/assets",
+  "poietra/poietra/node_auth" @auth,
+  "poietra/poietra/node_assets" @storage,
+  "poietra/poietra/ai_service" @ai,
+  "poietra/poietra/schemas",
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: { "js": { "format": "esm", "exports": [ "start_server:startServer" ] } },
+)

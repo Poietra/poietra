@@ -2,20 +2,16 @@
 
 MoonBit rewrite of [Poietra's collaborative browser motion editor](https://github.com/Poietra/poietra-hackathon).
 
-**Migration in progress.** The running editor currently uses MoonBit for its
-motion kernel, scene evaluation, canvas geometry, shared-document operations and
-CRDT structure projection, model defaults/validation, project timelines, shared UI
-controls, connection status, operation feedback, group animation commands and inspectors,
-property timing controls, collaborative easing gestures, object/property inspectors,
-audio/video track editing, the animation timeline, canvas interaction and global keyboard/clipboard handling,
-optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
-Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller,
-AI/image schemas, proposal compilation, the complete public website/startup flow,
-shared HTTP negotiation/upload policies, bounded presence, local room synchronization,
-asset storage, authentication and AI services. The main Worker/Node request handlers
-still contain TypeScript implementations. Keeping those running preserves the original regression suite
-while each implementation is replaced; this is not yet a complete rewrite.
+Application logic is implemented in typed MoonBit: the editor UI, document model,
+collaboration, animation evaluation, rendering, media processing, export, AI,
+authentication, asset storage and Worker/Node servers. The numeric motion kernel
+compiles to WebAssembly; browser and server integrations use the JavaScript target.
+
+JavaScript/TypeScript files retain native imports, runtime registration, package
+bindings and declarations. React, Yjs, OpenAI, MathJax and Mediabunny remain host
+libraries. The original regression tests and pinned comparison oracles are retained;
+the running application does not require Rust. This repository has not been deployed
+to the existing production domain.
 
 ## Run locally
 
@@ -174,6 +170,15 @@ node scripts/moon.mjs check --target js
   session rotation, private project indexes and TTL cleanup. Provider JSON is
   read into a fixed bounded buffer. Cryptographic operations use Web Crypto and
   MoonBit core base64; identities remain separate for Google and GitHub.
+- `moonbit/node_server`, `worker_server` and `worker_room`: HTTP routing, bounded
+  JSON ingestion, static delivery, hibernating WebSockets, durable update journals,
+  compaction, presence ownership, legacy asset streaming/migration and AI locks.
+  Journal failures abort the room; unresolved Yjs dependencies are persisted too.
+  Native SQLite tests verify that a restored room respects an in-flight AI lock and
+  a late old request cannot release a successor's lock.
+- `moonbit/site_build` generates localized HTML, canonical/hreflang/structured data,
+  Markdown and noindex editor/404 pages. `browser_kernel` loads the WASM module;
+  typed timing evaluation is shared with scene playback/export.
 - The Worker host defers generated modules inside its request/DO initialization
   gate. The pinned MoonBit core initializes hash seeds with Web Crypto, which
   workerd forbids at global scope. Wrangler bundles the deferred import into a
@@ -208,17 +213,17 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas are the main Worker/Node request handlers, including the Worker's room synchronization and legacy storage.
-Unmigrated TypeScript remains visible until its replacement passes the same tests.
-Rust is no longer required to build the running application.
+`apps/studio` now contains runtime adapters and type declarations for the MoonBit
+implementation. The pinned TypeScript/Rust oracles are test-only. JavaScript build
+scripts perform native file/tool I/O; public-page generation policy is MoonBit.
 
 The founder explicitly requested architectural improvements on 2026-09-18.
-Compatibility adapters are temporary migration scaffolding; old internal APIs
-do not constrain the MoonBit design.
+Native compatibility adapters preserve library/runtime interfaces; the application
+model and its implementation are owned by the MoonBit packages.
 
 ## Checks and performance
 
-Locally verified: **638 regression/differential tests**, 15 MoonBit tests on JS,
+Locally verified: **640 regression/differential tests**, 15 MoonBit tests on JS,
 3 kernel tests and the pure proposal planner test on WASM, typechecking and the
 production build. The complete studio,
 selective Undo and editor Store passed the **154-test CI browser selection**, covering
@@ -378,6 +383,11 @@ this editor requires Responses structured output and Images. The former's asynch
 text helper hides transport errors, and its module/license declarations disagree
 (MIT/Apache-2.0). Neither is adopted. The installed official SDK 7.15.0 remains behind
 MoonBit lifecycle code; no paid API calls were needed for migration tests.
+
+The completed Worker/Node routing migration passed the real workerd hibernation,
+snapshot/journal restart, pending-dependency recovery, stale-presence replacement,
+R2 failure/migration/quota and account restart tests. Node media persistence and
+concurrent quotas were rechecked after its entry point moved to MoonBit.
 
 ## Repository and deployment
 

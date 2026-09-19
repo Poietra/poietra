@@ -23,6 +23,15 @@ fn progress(
   if track.type_ == Cut {
     return if time >= timing.start + timing.duration { 1.0 } else { 0.0 }
   }
+  timing_progress(timing, time, kernel)
+}
+
+///|
+pub fn timing_progress(
+  timing : Timing,
+  time : Double,
+  kernel : Kernel,
+) -> Double {
   match timing.easing {
     CubicBezier(x1, y1, x2, y2) => {
       if time < timing.start {

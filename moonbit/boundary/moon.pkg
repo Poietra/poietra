@@ -131,6 +131,7 @@ options(
         "resize_from_corner:resizeFromCorner",
         "rotation_from_pointer:rotationFromPointer",
         "evaluate_scene:evaluateScene",
+        "track_progress:trackProgress",
         "composition_frame:compositionFrame",
         "transition_frame:transitionFrame",
         "scene_segments:sceneSegments",
