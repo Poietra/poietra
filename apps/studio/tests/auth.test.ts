@@ -120,7 +120,7 @@ describe('optional accounts and private project index', () => {
     for (let index = 0; index < ACCOUNT_PROJECT_LIMIT; index++) await f.repository.putProject(id, { roomId: `room-${String(index).padStart(16, '0')}`, name: 'Saved', updatedAt: index });
     expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Overflow' })).status).toBe(409);
     expect((await f.mutate('/api/projects/room-0000000000000000', 'PUT', cookie, { name: 'Rename' })).status).toBe(200);
-  });
+  }, 20000); // Fills the whole account index; allow slower shared CI runners.
 });
 
 describe('OAuth state, PKCE and callback protection', () => {

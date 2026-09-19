@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/math",
+  "moonbitlang/core/string",
   "poietra/poietra/scene",
   "poietra/poietra/editor",
 }

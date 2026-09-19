@@ -1,6 +1,6 @@
 // Public original 3f49040; independent migration oracle.
 import type { RenderObject } from '../../../src/engine/evaluate';
-import { FONT_FAMILY, measureText } from '../../../src/engine/rendering/fonts';
+import { FONT_FAMILY, measureText } from './fonts';
 import { escapeXml, finite, number as n, unit } from './svg';
 
 // The clip extends past the measured ink vertically to include accents and stroke edges.

@@ -1,0 +1,25 @@
+import {
+  "mizchi/js_core" @core,
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/string",
+  "poietra/poietra/render",
+  "poietra/poietra/editor",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "prepare_equations:prepareEquations",
+        "get_equation:getEquation",
+        "create_font_catalog:createFontCatalog",
+        "prepare_fonts:prepareFonts",
+        "embedded_font_styles:embeddedFontStyles",
+        "measure_text:measureText",
+      ],
+    },
+  },
+)
