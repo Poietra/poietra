@@ -22,8 +22,9 @@ There are no executable `.ts` or `.tsx` files in `src`, `shared`, `server` or
 `worker`. Public `.d.ts` contracts and TypeScript tests/tooling remain; native JS
 entry points run without a TypeScript loader.
 
-The rewrite is verified locally and in CI. **It has not been deployed to
-poietra.com**; that domain belongs to the original service.
+**The MoonBit implementation is live at [poietra.com](https://poietra.com)**
+since 2026-09-20 02:55 JST. It updates the existing service and retains its shared
+rooms, media storage and account bindings. See [deployment details](#deployment-and-limits).
 
 ## What you can make
 
@@ -600,7 +601,9 @@ node tests/accounts-worker.integration.mjs
 Video checks need FFmpeg/ffprobe. Set `POIETRA_TEST_URL` to test an existing isolated
 server; otherwise Playwright starts its configured host. API/OAuth responses are
 simulated in automated tests. Live Google/GitHub registration and paid OpenAI
-requests have **not** been validated for this rewrite.
+requests have **not** been validated for this rewrite. The production cutover smoke
+confirmed GitHub's authorization redirect and flow storage, without completing a
+provider login or making a paid AI request.
 
 ## Deployment and limits
 
@@ -609,11 +612,45 @@ room/account SQLite Durable Objects and a private R2 media bucket. Try it locall
 with `pnpm --dir apps/studio dev:worker` after building.
 `pnpm --dir apps/studio run deploy` currently performs **only a dry-run bundle**.
 
-Before any real deployment, choose an account/origin, review the copied account ID,
-OAuth settings, generated canonical URLs and storage names. The configuration has
-independent `poietra-moonbit` Worker/bucket names and no production domain route;
-its SEO origin still points at the original service. Do not reuse production
-storage to validate the rewrite.
+The default Wrangler configuration uses isolated `poietra-moonbit` storage for
+local validation. The explicit `production` environment updates the existing
+`poietra-hackathon` Worker in Yumaboda's account, serving `https://poietra.com`
+and the existing workers.dev links. It retains the three SQLite Durable Object
+namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
+OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
+
+The initial cutover deployed source [`7b8c903`](https://github.com/Poietra/poietra/commit/7b8c903c9b50926829014565d1c73ff9d385a094)
+as Worker version `b9df5edd-9b0c-44f3-a488-1db05f9b8049` at 100% on
+2026-09-20 02:55 JST. Before activation, all binding metadata, namespace IDs,
+secrets' names, migration tag and asset routing were compared with the previous
+version. The deployed JS/WASM hashes match the release build. Production smoke
+checks covered English/Japanese pages, health, a room and R2 image created before
+the cutover, image upload deduplication, two-browser editing, Undo preserving a
+peer's color, and persistence after reload and a fresh WebSocket connection.
+The browsers reported no page errors. Existing user projects were not used for
+the smoke; it used a newly created verification room.
+
+For subsequent deployments, build and check first, record the active version,
+upload a version, compare its bindings, then activate it:
+
+```sh
+cd apps/studio
+pnpm build:web
+pnpm check:production
+pnpm exec wrangler whoami
+pnpm exec wrangler deployments list --env production
+pnpm upload:production
+# Use the version ID printed by upload:
+pnpm exec wrangler versions view VERSION_ID --env production --json
+pnpm deploy:production VERSION_ID@100 --yes
+```
+
+`upload:production` rebuilds and uploads without shifting traffic; it preserves
+remote variables and secrets. Version deployment retains the existing domain
+triggers. Repeat the production smoke after activation. To roll back code/assets,
+deploy the previously recorded version at 100% with the same command. The initial
+cutover's rollback target is `1b796cd2-d8c0-4ceb-9610-5ead93f86ef4`; rolling back a
+Worker version does not undo room edits or restore a storage snapshot.
 
 Desktop Chromium is the primary tested browser. Codec availability depends on
 the browser/device; MP4 audio requires AAC encoding, while WebM uses Opus. The

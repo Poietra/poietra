@@ -10,7 +10,8 @@ AI に頼んだ編集も、同じオブジェクトの位置・色・時間と�
 数値カーネルは WASM、ブラウザ・サーバーとの接続は JavaScript ターゲットです。
 `src`・`shared`・`server`・`worker` の実行用 TS/TSX は削除しました。
 公開 API の型宣言とテスト用 TypeScript は維持し、Node サーバーは TS ローダーなしで起動します。
-**MoonBit 版は本番未配置です。`poietra.com` で公開されている元サービスとは区別してください。**
+**2026-09-20 02:55 JST から [poietra.com](https://poietra.com) で MoonBit 版を公開しています。**
+既存 Worker を更新し、共有ルーム・素材・アカウントの保存先と設定を引き継いでいます。
 
 GitHub の言語表示は、テストなどを含むソース容量の比率です。2026-09-20 に比較用の旧実装を削除しました。
 残る TS はテスト 15,376 行、型宣言 1,860 行、計測・設定 138 行で、
@@ -180,7 +181,8 @@ Google / GitHub は片方だけでも設定できます。各プロバイダー�
 
 セッションと本人用プロジェクト一覧は共同編集ドキュメントから分離しています。一覧から外しても部屋は削除しません。
 Google と GitHub をメールアドレスで自動統合せず、共有リンクの編集権限もログインでは制限しません。
-認証テストはプロバイダー HTTP を模擬しています。MoonBit 版での実プロバイダー接続は未検証です。
+認証テストはプロバイダー HTTP を模擬しています。本番では GitHub 認証の開始、フローの保存、
+GitHub へのリダイレクトを確認しました。実プロバイダーでのログイン完了と有料 AI 呼び出しは今回の公開確認に含みません。
 
 ## 実行と配置
 
@@ -196,11 +198,31 @@ pnpm run deploy        # ビルドと wrangler deploy --dry-run のみ
 
 Node はローカルファイル、Worker は SQLite Durable Objects と非公開 R2 を使います。
 編集データ・素材の参照・容量管理は部屋に、素材本体は R2 に置きます。アップロード完了後に参照を確定し、途中の素材を公開しません。
-旧 SQLite 素材を読む経路と、ハッシュ・サイズ確認後に R2 へ切り替える経路もありますが、本番データの移行は実施していません。
+旧 SQLite 素材の読み出しと、ハッシュ・サイズ確認後の R2 への切り替えにも対応します。今回の公開では保存先を維持し、素材の一括移行は行っていません。
 
-設定には独立した `poietra-moonbit` Worker・バケット名を使い、本番 domain route はありません。
-実配置の前にはコピー元の account ID、`AUTH_ORIGIN`、SEO の canonical、保存先を配置環境に合わせて確認する必要があります。
-この作業で既存サービスへの配置やストレージ変更はしていません。
+既定の設定はローカル検証用の `poietra-moonbit` です。本番は `--env production` を明示し、
+Yumaboda アカウントの既存 `poietra-hackathon` Worker を更新します。3 種類の Durable Object、
+`poietra-assets-prod` バケット、認証・AI の秘密情報、`poietra.com` と旧 workers.dev の接続先を維持します。
+
+初回公開はソース `7b8c903`、Worker version `b9df5edd-9b0c-44f3-a488-1db05f9b8049` です。
+公開前後で保存先 ID と設定を照合し、公開された JS/WASM とビルド成果物のハッシュの一致を確認しました。
+専用の確認用ルームで、旧版が保存したデータ・画像の復元、画像の重複排除、2 ブラウザでの共同編集、
+相手の色変更を保つ Undo、再読み込みと新しい WebSocket 接続後の復元を確認しました。
+
+```sh
+# apps/studio
+pnpm build:web
+pnpm check:production
+pnpm exec wrangler whoami
+pnpm exec wrangler deployments list --env production  # 復帰先の version ID を記録
+pnpm upload:production                              # ビルドとアップロード、配信はまだ切り替わらない
+pnpm exec wrangler versions view VERSION_ID --env production --json
+pnpm deploy:production VERSION_ID@100 --yes           # アップロードされた ID を指定
+```
+
+切り替え後は公開 URL で動作を確認します。復帰には、記録した以前の version ID を同じコマンドで 100% に戻します。
+コード・配信アセットの復帰であり、編集データの巻き戻しではありません。
+初回公開の復帰先と詳細は[ルート README](../../README.md#deployment-and-limits)に記載しています。
 
 トップページは英日 HTML と Markdown をビルド時に生成します。言語は明示 URL、保存済み設定、ブラウザ設定の順で扱い、未対応言語は英語へ戻します。
 サーバーの初期 HTML は URL と `Accept-Language`、操作接続後はブラウザ保存済み設定も使います。`/ja/` で日本語を明示できます。
