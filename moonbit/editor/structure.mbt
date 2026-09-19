@@ -164,18 +164,13 @@ fn empty_transition(
   objects : Array[String],
   allocate : (String) -> String,
 ) -> @scene.Transition {
-  let tracks = Map([])
-  for id in objects {
-    let track = @scene.default_track(id, 800.0)
-    tracks[id] = { ..track, implicit: Some(true), }
-  }
-  {
-    id: allocate("transition"),
-    fromId: from_id,
-    toId: to_id,
-    duration: 800.0,
-    tracks,
-  }
+  @scene.implicit_transition(
+    allocate("transition"),
+    from_id,
+    to_id,
+    800.0,
+    objects,
+  )
 }
 
 ///|

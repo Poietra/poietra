@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-19T17:15:16.602Z",
+  "environment": {
+    "applicationRevision": "0abc9b114b7d237f9e38e24c99b69a6b8a65e802",
+    "trackedModifications": [
+      "apps/studio/tests/moonbit-scene-commands.test.ts",
+      "apps/studio/tests/store-limits.test.ts",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "d13be06a1a5815e9bc5fca8126ff9596d20e2da16aa94762dfbe0f501e4f3cad",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "2",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      0.13,
+      0.19,
+      0.34
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "ebe0f793bc4f8fc6995b0c10d17176c051719c46f1ef44f2f65eb32b1f99edf6",
+    "boundarySha256": "3b2a8f673148313844f0a7ae5e3657b78885581dfdb1a9fd6c70e10e68fa0490"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 3,
+  "suites": {
+    "creation": {
+      "summary": [
+        {
+          "operation": "append composition",
+          "objects": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.1643667999999991,
+            "min": 0.13266700000000356,
+            "max": 0.2544569999999965
+          }
+        },
+        {
+          "operation": "append composition",
+          "objects": 100,
+          "msPerOperation": {
+            "n": 3,
+            "median": 1.0710317999999917,
+            "min": 1.0608776000000035,
+            "max": 3.3263734
+          }
+        },
+        {
+          "operation": "append composition",
+          "objects": 500,
+          "msPerOperation": {
+            "n": 3,
+            "median": 4.04312960000002,
+            "min": 3.985975800000142,
+            "max": 4.279725199999939
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Composition creation including snapshot reuse, IDs, JS marshalling, local Yjs publication and Undo capture; excludes fixture setup, cleanup, UI, rendering, persistence and networking",
+          "iterations": "7 batches × 5 fresh documents after 2 warmup batches; one creation per document",
+          "results": [
+            {
+              "operation": "append composition",
+              "objects": 0,
+              "msPerOperation": 0.1643667999999991,
+              "samples": {
+                "msPerOperation": [
+                  0.12160119999999779,
+                  1.0978883999999993,
+                  0.1643667999999991,
+                  0.1827253999999982,
+                  0.34523059999999645,
+                  0.06907259999999837,
+                  0.09068439999999782
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 100,
+              "msPerOperation": 3.3263734,
+              "samples": {
+                "msPerOperation": [
+                  3.3263734,
+                  1.5549954000000183,
+                  5.6479092000000035,
+                  4.816832599999975,
+                  0.8374189999999544,
+                  1.0123165999999855,
+                  3.9983062000000245
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 500,
+              "msPerOperation": 4.279725199999939,
+              "samples": {
+                "msPerOperation": [
+                  13.176348000000008,
+                  4.035517800000025,
+                  5.620806399999992,
+                  4.4067254000000045,
+                  3.915911199999937,
+                  4.279725199999939,
+                  4.062792799999988
+                ]
+              }
+            }
+          ],
+          "checksum": 27600
+        },
+        {
+          "scope": "Composition creation including snapshot reuse, IDs, JS marshalling, local Yjs publication and Undo capture; excludes fixture setup, cleanup, UI, rendering, persistence and networking",
+          "iterations": "7 batches × 5 fresh documents after 2 warmup batches; one creation per document",
+          "results": [
+            {
+              "operation": "append composition",
+              "objects": 0,
+              "msPerOperation": 0.2544569999999965,
+              "samples": {
+                "msPerOperation": [
+                  0.28969639999999686,
+                  0.5235913999999979,
+                  0.07570479999999406,
+                  0.07350600000000326,
+                  0.31618280000000143,
+                  0.1460117999999909,
+                  0.2544569999999965
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 100,
+              "msPerOperation": 1.0608776000000035,
+              "samples": {
+                "msPerOperation": [
+                  1.0929506000000173,
+                  3.5288610000000062,
+                  4.545334600000001,
+                  0.7935268000000064,
+                  0.8497096000000056,
+                  0.9162280000000464,
+                  1.0608776000000035
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 500,
+              "msPerOperation": 3.985975800000142,
+              "samples": {
+                "msPerOperation": [
+                  9.662618400000019,
+                  3.9628585999999357,
+                  4.730931199999896,
+                  4.048264599999993,
+                  3.7017490000000635,
+                  3.6431836000000657,
+                  3.985975800000142
+                ]
+              }
+            }
+          ],
+          "checksum": 27600
+        },
+        {
+          "scope": "Composition creation including snapshot reuse, IDs, JS marshalling, local Yjs publication and Undo capture; excludes fixture setup, cleanup, UI, rendering, persistence and networking",
+          "iterations": "7 batches × 5 fresh documents after 2 warmup batches; one creation per document",
+          "results": [
+            {
+              "operation": "append composition",
+              "objects": 0,
+              "msPerOperation": 0.13266700000000356,
+              "samples": {
+                "msPerOperation": [
+                  0.21000999999999975,
+                  0.061327600000004166,
+                  0.13266700000000356,
+                  0.2415738000000033,
+                  0.07384940000000598,
+                  0.0645838000000026,
+                  0.6729323999999963
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 100,
+              "msPerOperation": 1.0710317999999917,
+              "samples": {
+                "msPerOperation": [
+                  1.0710317999999917,
+                  1.1087754000000132,
+                  1.0479607999999985,
+                  0.6622801999999979,
+                  0.6116389999999683,
+                  3.9324799999999867,
+                  4.169827200000009
+                ]
+              }
+            },
+            {
+              "operation": "append composition",
+              "objects": 500,
+              "msPerOperation": 4.04312960000002,
+              "samples": {
+                "msPerOperation": [
+                  4.254430999999977,
+                  4.04312960000002,
+                  4.390848400000005,
+                  3.3947503999999755,
+                  3.6901041999999054,
+                  4.649610800000209,
+                  3.788562800000091
+                ]
+              }
+            }
+          ],
+          "checksum": 27600
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-19T17:15:24.797Z",
+  "loadAverageAfter": [
+    0.64,
+    0.3,
+    0.37
+  ]
+}

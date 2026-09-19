@@ -129,6 +129,9 @@ The rewrite changes the data flow as well as the language:
   typed insert/clear/keep/update variants while retaining existing Yjs parents.
   Single-track timing distinguishes missing, automatic and explicit tracks with
   an enum and validates the whole candidate before planning its changes.
+  Scene/Composition creation shares typed factories with sample documents and
+  copy/delete operations. Creation checks limits, resolves every shared parent
+  and encodes detached maps before publishing one captured local transaction.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -156,19 +159,18 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,259 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,376 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **52,138 application MoonBit lines** and **770 native JS
+The same inventory has **52,308 application MoonBit lines** and **770 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
 runtime behavior through host bindings. Replacing those libraries is a separate
 implementation and compatibility task; it cannot be inferred from the TS ratio.
 
-Internal refactoring remains. [Scene/Composition creation](moonbit/browser_editor/structure_commands.mbt)
-still assembles native records, and [audio/video commands](moonbit/browser_editor/media_commands.mbt)
+Internal refactoring remains. [Audio/video commands](moonbit/browser_editor/media_commands.mbt)
 still merge native patches before validation. Parts of the UI and host
 orchestration also use `Any`. Move remaining domain decisions into typed plans;
 React/DOM, Yjs and platform object interactions belong in host bindings. The
@@ -194,6 +196,10 @@ with Node 24's built-in type stripping; `tsx` is no longer in the dependency tre
    Property channels share enumeration, lookup and replacement in `scene/editing`;
    `editor` timing plans describe changed leaves without host types. Verify new
    channel behavior on both JS and WASM and preserve existing Yjs parent identity.
+   Scene/Composition defaults live in `scene/creation`; creation decisions and
+   capacity checks live in `editor/structure_commands`. Prepare host values and
+   validate their parents before publication; a Yjs transaction cannot roll back
+   earlier writes when a later conversion throws.
 3. Export host-facing operations in the package's `moon.pkg`. Add a precise
    adjacent `.d.ts` contract and, for direct forwarding, a `scripts/bindings.json`
    entry. Native JS should only register platform objects, import assets or wire
@@ -209,6 +215,43 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Composition creation — 2026-09-20
+
+Scene/Composition creation now uses pure typed plans and shared factories.
+Composition duplication also enforces the existing 100-item limit. Preparation
+rejects a plain array in place of a shared order and preserves native conversion
+errors before any publication, including revival of a retained deleted source.
+Regression checks cover fresh nested maps, offline source edits, Undo/Redo and
+portable files; the pure plans run on both JS and WASM.
+
+This workload times `EditorStore.addComposition` with real Yjs and Undo capture,
+including ID allocation and JS marshalling. It reuses a materialized immutable
+snapshot and copies its states into fresh shared maps. Fixture setup, cleanup,
+UI, rendering, persistence and networking are excluded. Each of three fresh
+Node 24.13.0 processes used two warmup batches, then seven batches of five fresh
+documents, with one append per document. Runs were pinned to CPU `2` on Intel
+Core Ultra 7 255H/WSL2, using MoonBit `0.10.13+cbb11c36f`; source and artifacts
+stayed frozen, with builds/tests/servers run separately. Other host activity was
+not isolated.
+
+Values are medians of process medians, with their min–max range in parentheses.
+**No consistent speedup is established by this measurement.** The larger
+workloads remain around the previous cost while gaining preparation checks.
+
+| Objects copied | Before | After |
+| --- | ---: | ---: |
+| 0 | 0.164 ms (0.133–0.254) | 0.122 ms (0.070–0.157) |
+| 100 | 1.071 ms (1.061–3.326) | 1.044 ms (0.898–1.937) |
+| 500 | 4.043 ms (3.986–4.280) | 4.093 ms (3.991–5.660) |
+
+[Before samples](benchmarks/2026-09-20-creation/before.json) use application
+revision [`0abc9b1`](https://github.com/Poietra/poietra/commit/0abc9b114b7d237f9e38e24c99b69a6b8a65e802);
+[after samples](benchmarks/2026-09-20-creation/after.json) use the creation changes
+committed with this report. Both record source/release hashes and use
+[the same harness](apps/studio/scripts/benchmark-creation.mjs). After building,
+run `taskset -c 2 node scripts/benchmark.mjs --suite creation --runs 3` on Linux.
+These are local command costs, not browser frame rates.
 
 ### Single-track timing — 2026-09-20
 
@@ -237,8 +280,9 @@ tests and servers ran separately; other host activity was not isolated.
 
 [Before samples](benchmarks/2026-09-20-tracks/before.json) use an isolated checkout
 of [`0d8550e`](https://github.com/Poietra/poietra/commit/0d8550ed4de27ddbdc3c37bcb6a8a4557a2bc285);
-[after samples](benchmarks/2026-09-20-tracks/after.json) use the track changes
-committed with this report. Both record source/release hashes and use
+[after samples](benchmarks/2026-09-20-tracks/after.json) use
+[`0abc9b1`](https://github.com/Poietra/poietra/commit/0abc9b114b7d237f9e38e24c99b69a6b8a65e802).
+Both record source/release hashes and use
 [the same harness](apps/studio/scripts/benchmark-track.mjs).
 Run `pnpm bench --suite track --runs 3` after building; prefix with `taskset -c 2`
 on Linux to match the CPU affinity. These numbers do not measure browser FPS.
@@ -525,7 +569,7 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 667 Vitest behavioral/backend checks, 34 MoonBit JS tests, 27 MoonBit
+runs 673 Vitest behavioral/backend checks, 40 MoonBit JS tests, 33 MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2

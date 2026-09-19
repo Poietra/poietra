@@ -1,42 +1,4 @@
 ///|
-fn composition(
-  id : String,
-  name : String,
-  duration : Double,
-  accent : String,
-) -> @scene.Composition {
-  {
-    id,
-    name,
-    duration,
-    accent,
-    states: Map([]),
-    deleted: None,
-    incomingTransitionId: None,
-  }
-}
-
-///|
-pub fn blank_scene(id : String, name : String) -> @scene.Scene {
-  let cid = id + "-comp-1"
-  {
-    id,
-    name,
-    width: 1280.0,
-    height: 720.0,
-    background: "#08090b",
-    objects: Map([]),
-    audioTracks: Some(Map([])),
-    compositionOrder: [cid],
-    compositions: Map([
-      (cid, composition(cid, "Composition 1", 1000.0, "#f4ce55")),
-    ]),
-    transitions: Map([]),
-    deleted: None,
-  }
-}
-
-///|
 fn sample_object(
   id : String,
   name : String,
@@ -59,8 +21,12 @@ fn sample_object(
 
 ///|
 pub fn demo_project() -> @scene.Project {
-  let first = composition("comp-1", "Composition 1", 1000.0, "#f4ce55")
-  let second = composition("comp-2", "Composition 2", 1600.0, "#14aab4")
+  let first = @scene.empty_composition(
+    "comp-1", "Composition 1", 1000.0, "#f4ce55",
+  )
+  let second = @scene.empty_composition(
+    "comp-2", "Composition 2", 1600.0, "#14aab4",
+  )
   let objects = Map([])
   let add = fn(
     id : String,
@@ -126,7 +92,7 @@ pub fn demo_project() -> @scene.Project {
     },
   }
   let scene : @scene.Scene = {
-    ..blank_scene("scene-1", "Scene 1"),
+    ..@scene.blank_scene("scene-1", "Scene 1"),
     objects,
     compositionOrder: [first.id, second.id],
     compositions: Map([(first.id, first), (second.id, second)]),

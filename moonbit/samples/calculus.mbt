@@ -7,9 +7,9 @@ pub fn calculus_project() -> @scene.Project {
   let yellow = "#f4ce55"
   let builder : CalculusBuilder = {
     compositions: [
-      composition("forward", "Forward pass", 2600.0, cyan),
-      composition("loss", "Measure the error", 2800.0, yellow),
-      composition("gradient", "Follow the gradient", 4000.0, coral),
+      @scene.empty_composition("forward", "Forward pass", 2600.0, cyan),
+      @scene.empty_composition("loss", "Measure the error", 2800.0, yellow),
+      @scene.empty_composition("gradient", "Follow the gradient", 4000.0, coral),
     ],
     objects: Map([]),
   }

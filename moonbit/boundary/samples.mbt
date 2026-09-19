@@ -1,6 +1,6 @@
 ///|
 pub fn make_blank_scene(id : String, name : String) -> @core.Any {
-  encode_Scene(@samples.blank_scene(id, name))
+  encode_Scene(@scene.blank_scene(id, name))
 }
 
 ///|

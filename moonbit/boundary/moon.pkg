@@ -20,6 +20,7 @@ options(
     "object_commands.mbt": [ "js" ],
     "animation_commands.mbt": [ "js" ],
     "track_commands.mbt": [ "js" ],
+    "structure_commands.mbt": [ "js" ],
     "project_file.mbt": [ "js" ],
     "chat_validation.mbt": [ "js" ],
     "proposal_targets.mbt": [ "js" ],

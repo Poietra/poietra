@@ -52,6 +52,11 @@ and measurements belong in [README.md](README.md).
   including through `setTrack`: replacement erased offline peer easing/start
   edits, including through Undo/Redo. Single-track activation keeps its strict
   inherited-duration bounds; group edits have a separate remaining-duration rule.
+- 2026-09-20: Scene/Composition append uses pure `editor` plans and shared
+  `scene/creation` factories. Apply the same capacity checks to duplication.
+  Resolve every Yjs parent and encode all detached values before writing or
+  reviving a retained source; Yjs cannot roll back writes after a conversion fails.
+  Keep copied states independent and preserve offline source edits through Undo.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

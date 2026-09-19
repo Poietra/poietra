@@ -4,6 +4,7 @@ import { makeBlankScene } from '../shared/demo';
 import { initializeDocument, readProject } from '../shared/document';
 import { EditorStore } from '../src/editor/store';
 import { EditorUndoManager } from '../src/editor/undo';
+import { duplicateComposition } from '../src/editor/structure';
 
 test.each(['objects', 'compositions'] as const)('manual creation respects the portable %s limit before writing or recording Undo', kind => {
   const scene = makeBlankScene('scene-limit', 'Scene');
@@ -23,6 +24,7 @@ test.each(['objects', 'compositions'] as const)('manual creation respects the po
     const store = Object.assign(Object.create(EditorStore.prototype), { doc, undoManager }) as EditorStore;
     const before = readProject(doc), clock = Y.encodeStateVector(doc);
     expect(() => kind === 'objects' ? store.addObject(scene.id, scene.compositionOrder[0], 'circle') : store.addComposition(scene.id)).toThrow(kind === 'objects' ? '500' : '100');
+    if (kind === 'compositions') expect(() => duplicateComposition(doc, scene.id, scene.compositionOrder[0])).toThrow('100');
     expect(Y.encodeStateVector(doc)).toEqual(clock);
     expect(readProject(doc)).toEqual(before);
     expect(undoManager.canUndo()).toBe(false);

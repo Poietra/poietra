@@ -101,8 +101,9 @@ pub fn duplicate_scene(
     doc,
     fn() {
       let current = current_scene(doc, id, host)
-      if current.ids.length() >= 100 {
-        fail("Scene は 100 件まで追加できます。")
+      if @editor.check_structure_capacity(SceneList, current.ids.length())
+        is Err(error) {
+        fail(creation_error(error))
       }
       let copy = @editor.copy_scene(decode_Scene(current.scene), new_id)
       let value = to_shared(encode_Scene(copy), host)
@@ -261,6 +262,10 @@ pub fn duplicate_composition(
     doc,
     fn() {
       let current = current_structure(doc, scene_id, composition_id, host)
+      if @editor.check_structure_capacity(CompositionList, current.ids.length())
+        is Err(error) {
+        fail(creation_error(error))
+      }
       let plan = @editor.copy_composition(
         decode_Composition(shared_json(current.composition)),
         current.ids.get(current.index + 1),
