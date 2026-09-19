@@ -246,6 +246,7 @@ pub fn group_animation_plan(
   patch : Array[TrackField],
 ) -> Result[Array[TrackEdit], GroupError] {
   let result : Array[TrackEdit] = []
+  let channels = @scene.property_channels()
   for target in targets {
     let base = @scene.resolve_track(target.stored, target.object_id, limit)
     let implicit = target.stored
@@ -284,20 +285,7 @@ pub fn group_animation_plan(
     if !@scene.valid_easing(track.easing) {
       return Err(InvalidEasing)
     }
-    for
-      channel in [
-        @scene.Position,
-        @scene.Opacity,
-        @scene.Size,
-        @scene.Rotation,
-        @scene.Fill,
-        @scene.Stroke,
-        @scene.StrokeWidth,
-        @scene.FontSize,
-        @scene.CornerRadius,
-        @scene.ShapePath,
-        @scene.Reveal,
-      ] {
+    for channel in channels {
       if @scene.timing_override(track, channel) is Some(timing) {
         if !@scene.valid_timing_bounds(timing.start, timing.duration, limit) {
           return Err(PropertyBounds)

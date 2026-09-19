@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-19T16:20:15.888Z",
+  "environment": {
+    "applicationRevision": "43860b6e19adb9b9a756d3a7382162303cbfdf22",
+    "trackedModifications": [
+      "apps/studio/scripts/benchmark-environment.mjs",
+      "apps/studio/tests/property-animation.test.ts",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "ec0bbaa42473318138b94ccd53f54fbc00ccc811dcd6c7024c9c291b89c4e8f2",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "2",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      0.11,
+      0.36,
+      0.5
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "a73f5acb81d1e28a9ea567eceaa801b7fc3e522fb6d0311fbcd44eea1447f821",
+    "boundarySha256": "eaf4adf191f9b05ea18272e15bc578c67dabf661c832f5d1793dd636e241f50f"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 3,
+  "suites": {
+    "timing": {
+      "summary": [
+        {
+          "operation": "extend",
+          "tracks": 100,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.05736437999999992,
+            "min": 0.055130999999999944,
+            "max": 0.057803909999999945
+          }
+        },
+        {
+          "operation": "shorten base",
+          "tracks": 100,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.054428979999999856,
+            "min": 0.05401531000000006,
+            "max": 0.05463384999999988
+          }
+        },
+        {
+          "operation": "shorten properties",
+          "tracks": 100,
+          "overridesPerTrack": 11,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.22977927999999964,
+            "min": 0.22901421000000027,
+            "max": 0.23419889000000013
+          }
+        },
+        {
+          "operation": "locked floor",
+          "tracks": 100,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.05394122000000039,
+            "min": 0.0531444700000003,
+            "max": 0.05633277000000021
+          }
+        },
+        {
+          "operation": "extend",
+          "tracks": 500,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.3210310000000004,
+            "min": 0.3112777700000004,
+            "max": 0.3410191700000007
+          }
+        },
+        {
+          "operation": "shorten base",
+          "tracks": 500,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.32118870000000016,
+            "min": 0.31558545000000093,
+            "max": 0.3245317299999988
+          }
+        },
+        {
+          "operation": "shorten properties",
+          "tracks": 500,
+          "overridesPerTrack": 11,
+          "msPerOperation": {
+            "n": 3,
+            "median": 1.2582369900000026,
+            "min": 1.215710899999999,
+            "max": 1.2687323600000036
+          }
+        },
+        {
+          "operation": "locked floor",
+          "tracks": 500,
+          "overridesPerTrack": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.3157926199999974,
+            "min": 0.29901858000000175,
+            "max": 0.32185667999999623
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Transition duration planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 100 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "extend",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.05736437999999992,
+              "samples": {
+                "msPerOperation": [
+                  0.06266433000000006,
+                  0.05499826999999996,
+                  0.058852649999999895,
+                  0.0608005,
+                  0.05639297000000013,
+                  0.05736437999999992,
+                  0.05693121000000005
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.05463384999999988,
+              "samples": {
+                "msPerOperation": [
+                  0.057667950000000016,
+                  0.053385829999999995,
+                  0.07086694000000023,
+                  0.05463384999999988,
+                  0.06532451000000009,
+                  0.05407819000000018,
+                  0.053842719999999816
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 100,
+              "overridesPerTrack": 11,
+              "msPerOperation": 0.23419889000000013,
+              "samples": {
+                "msPerOperation": [
+                  0.2432974999999999,
+                  0.23339133000000004,
+                  0.23419889000000013,
+                  0.23329479999999989,
+                  0.3307319100000001,
+                  0.2890628000000004,
+                  0.22047335000000032
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.05394122000000039,
+              "samples": {
+                "msPerOperation": [
+                  0.10508694999999989,
+                  0.07437452999999948,
+                  0.05702564999999993,
+                  0.053895599999999606,
+                  0.053547509999999646,
+                  0.053130989999999656,
+                  0.05394122000000039
+                ]
+              }
+            },
+            {
+              "operation": "extend",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.3210310000000004,
+              "samples": {
+                "msPerOperation": [
+                  0.3198154199999999,
+                  0.3325509699999998,
+                  0.3129459699999995,
+                  0.32329620999999975,
+                  0.32969598000000017,
+                  0.3131215200000008,
+                  0.3210310000000004
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.3245317299999988,
+              "samples": {
+                "msPerOperation": [
+                  0.3374221,
+                  0.3200739199999998,
+                  0.3125599900000009,
+                  0.3310849700000006,
+                  0.3285478499999999,
+                  0.3228428699999995,
+                  0.3245317299999988
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 500,
+              "overridesPerTrack": 11,
+              "msPerOperation": 1.2687323600000036,
+              "samples": {
+                "msPerOperation": [
+                  1.2753405399999997,
+                  1.2486951400000021,
+                  1.3192357900000002,
+                  1.294259219999999,
+                  1.245926320000001,
+                  1.2687323600000036,
+                  1.2466232099999979
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.3157926199999974,
+              "samples": {
+                "msPerOperation": [
+                  0.32162598999999775,
+                  0.3126873999999998,
+                  0.3094749999999976,
+                  0.3157926199999974,
+                  0.3119046499999968,
+                  0.34130567000000156,
+                  0.31791276999999807
+                ]
+              }
+            }
+          ],
+          "checksum": 5045600
+        },
+        {
+          "scope": "Transition duration planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 100 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "extend",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.057803909999999945,
+              "samples": {
+                "msPerOperation": [
+                  0.10032512999999994,
+                  0.05345258000000001,
+                  0.059490729999999985,
+                  0.05879282000000004,
+                  0.053825620000000074,
+                  0.057803909999999945,
+                  0.05497667000000007
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.05401531000000006,
+              "samples": {
+                "msPerOperation": [
+                  0.052443590000000026,
+                  0.05488779999999991,
+                  0.06591622999999998,
+                  0.05223775000000017,
+                  0.056459140000000047,
+                  0.05401531000000006,
+                  0.05260839000000004
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 100,
+              "overridesPerTrack": 11,
+              "msPerOperation": 0.22977927999999964,
+              "samples": {
+                "msPerOperation": [
+                  0.2368360899999999,
+                  0.21807068000000016,
+                  0.21775307999999996,
+                  0.22977927999999964,
+                  0.28458526000000006,
+                  0.2504361800000004,
+                  0.21706504999999993
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.05633277000000021,
+              "samples": {
+                "msPerOperation": [
+                  0.11066724000000022,
+                  0.054322010000000205,
+                  0.05443495999999982,
+                  0.05633277000000021,
+                  0.054132089999999945,
+                  0.0739800200000002,
+                  0.059239029999999956
+                ]
+              }
+            },
+            {
+              "operation": "extend",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.3410191700000007,
+              "samples": {
+                "msPerOperation": [
+                  0.3410191700000007,
+                  0.34541049000000046,
+                  0.37018743000000087,
+                  0.36717714,
+                  0.3135831600000006,
+                  0.3041825099999994,
+                  0.32023537000000035
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.32118870000000016,
+              "samples": {
+                "msPerOperation": [
+                  0.309452940000001,
+                  0.3207745599999998,
+                  0.3323786599999994,
+                  0.30862272000000074,
+                  0.3763394200000005,
+                  0.32118870000000016,
+                  0.3486802199999988
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 500,
+              "overridesPerTrack": 11,
+              "msPerOperation": 1.2582369900000026,
+              "samples": {
+                "msPerOperation": [
+                  1.2732887099999994,
+                  1.2401113299999997,
+                  1.27431509,
+                  1.2324572000000011,
+                  1.2582369900000026,
+                  1.2604837799999995,
+                  1.191214560000003
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.29901858000000175,
+              "samples": {
+                "msPerOperation": [
+                  0.29737595000000056,
+                  0.2981211399999984,
+                  0.29901858000000175,
+                  0.32026752000000214,
+                  0.30949669000000085,
+                  0.2908083099999976,
+                  0.30194602999999914
+                ]
+              }
+            }
+          ],
+          "checksum": 5045600
+        },
+        {
+          "scope": "Transition duration planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 100 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "extend",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.055130999999999944,
+              "samples": {
+                "msPerOperation": [
+                  0.08075942000000012,
+                  0.054659859999999866,
+                  0.06929543999999993,
+                  0.058479779999999974,
+                  0.05417134000000004,
+                  0.055130999999999944,
+                  0.05461361000000011
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.054428979999999856,
+              "samples": {
+                "msPerOperation": [
+                  0.05240160000000003,
+                  0.050511810000000136,
+                  0.05101806000000011,
+                  0.054428979999999856,
+                  0.05562002999999976,
+                  0.05460323999999986,
+                  0.05527090000000015
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 100,
+              "overridesPerTrack": 11,
+              "msPerOperation": 0.22901421000000027,
+              "samples": {
+                "msPerOperation": [
+                  0.2150115599999998,
+                  0.22901421000000027,
+                  0.22941164000000014,
+                  0.2538056899999998,
+                  0.3123239699999999,
+                  0.2236855300000002,
+                  0.21111525000000028
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 100,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.0531444700000003,
+              "samples": {
+                "msPerOperation": [
+                  0.08989994000000025,
+                  0.08687208999999996,
+                  0.051957080000000246,
+                  0.050338760000000204,
+                  0.057191369999999894,
+                  0.052380899999999994,
+                  0.0531444700000003
+                ]
+              }
+            },
+            {
+              "operation": "extend",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.3112777700000004,
+              "samples": {
+                "msPerOperation": [
+                  0.34309888,
+                  0.31056556,
+                  0.32458364999999956,
+                  0.29994665000000054,
+                  0.3112777700000004,
+                  0.3387293199999999,
+                  0.3061517500000002
+                ]
+              }
+            },
+            {
+              "operation": "shorten base",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.31558545000000093,
+              "samples": {
+                "msPerOperation": [
+                  0.2898683600000004,
+                  0.30370811000000003,
+                  0.2963850400000001,
+                  0.32091092000000004,
+                  0.3269775399999992,
+                  0.3195775500000002,
+                  0.31558545000000093
+                ]
+              }
+            },
+            {
+              "operation": "shorten properties",
+              "tracks": 500,
+              "overridesPerTrack": 11,
+              "msPerOperation": 1.215710899999999,
+              "samples": {
+                "msPerOperation": [
+                  1.160868220000002,
+                  1.1986463600000001,
+                  1.215710899999999,
+                  1.2098324100000013,
+                  1.2212695899999995,
+                  1.2529044299999987,
+                  1.27640492
+                ]
+              }
+            },
+            {
+              "operation": "locked floor",
+              "tracks": 500,
+              "overridesPerTrack": 0,
+              "msPerOperation": 0.32185667999999623,
+              "samples": {
+                "msPerOperation": [
+                  0.321329810000002,
+                  0.32185667999999623,
+                  0.31925032999999986,
+                  0.3230369699999983,
+                  0.425817790000001,
+                  0.32842403000000103,
+                  0.30650126
+                ]
+              }
+            }
+          ],
+          "checksum": 5045600
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-19T16:20:23.681Z",
+  "loadAverageAfter": [
+    0.25,
+    0.39,
+    0.5
+  ]
+}

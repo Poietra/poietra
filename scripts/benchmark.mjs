@@ -7,7 +7,7 @@ import { environment, root, stats } from '../apps/studio/scripts/benchmark-envir
 
 const { values } = parseArgs({ options: { output: { type: 'string', default: 'test-results/benchmarks/cpu.json' }, runs: { type: 'string', default: '3' }, suite: { type: 'string' }, help: { type: 'boolean' } } });
 if (values.help) {
-  console.log('Usage: pnpm bench [--runs 1..9] [--suite evaluation|snapshots|proposals|editing] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
+  console.log('Usage: pnpm bench [--runs 1..9] [--suite evaluation|snapshots|proposals|editing|timing] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
   process.exit(0);
 }
 const count = Number(values.runs);
@@ -17,6 +17,7 @@ const suites = [
   ['snapshots', 'benchmark-snapshots.ts', ['msPerEditAndRead']],
   ['proposals', 'benchmark-proposals.ts', ['msPerProposal']],
   ['editing', 'benchmark-editing.mjs', ['msPerOperation']],
+  ['timing', 'benchmark-timing.mjs', ['msPerOperation']],
 ];
 if (values.suite && !suites.some(([name]) => name === values.suite)) throw new Error('Unknown --suite');
 const output = resolve(values.output);

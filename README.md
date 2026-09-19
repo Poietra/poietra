@@ -124,7 +124,9 @@ The rewrite changes the data flow as well as the language:
   `ObjectInsertion` plan. Drag/hide eligibility and animation selection use typed
   values in `editor`, which is checked on both JS and WASM. Adapters read only
   the needed metadata and encode complete batches before any Yjs write. Group
-  expansion uses sets; drag plans encode coordinate leaves directly.
+  expansion uses sets; drag plans encode coordinate leaves directly. Transition
+  resizing reads only time ranges and emits changed leaves; property timing uses
+  typed insert/clear/keep/update variants while retaining existing Yjs parents.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -152,11 +154,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,142 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,194 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **51,658 application MoonBit lines** and **770 native JS
+The same inventory has **51,881 application MoonBit lines** and **770 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -180,6 +182,9 @@ with Node 24's built-in type stripping; `tsx` is no longer in the dependency tre
    needs them. A generated record does not automatically gain UI, persistence
    validation or animation semantics. Use compiler errors and regression tests
    to find affected constructors and exhaustive matches; keep old files readable.
+   Property channels share enumeration, lookup and replacement in `scene/editing`;
+   `editor` timing plans describe changed leaves without host types. Verify new
+   channel behavior on both JS and WASM and preserve existing Yjs parent identity.
 3. Export host-facing operations in the package's `moon.pkg`. Add a precise
    adjacent `.d.ts` contract and, for direct forwarding, a `scripts/bindings.json`
    entry. Native JS should only register platform objects, import assets or wire
@@ -195,6 +200,41 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Transition timing — 2026-09-20
+
+Transition resizing and property timing now use pure typed `editor` plans. Resize
+inputs contain only numeric bounds, avoiding unused paths, curves and animation
+metadata. Changes retain each property's existing Yjs map and write only modified
+start/duration leaves. Previously, shortening a Transition replaced the whole
+property timing and erased an offline peer's easing or start edit. Twelve failing
+regressions reproduced this; the fix preserves those edits through synchronization
+and Undo/Redo. All 11 property channels share the same typed operations.
+
+Each before/after suite ran in three fresh Node 24.13.0 processes, pinned to CPU
+`2` on Intel Core Ultra 7 255H/WSL2 with MoonBit `0.10.13+cbb11c36f`. Each process
+used two warmup batches and seven measured batches of 100 operations. Values are
+medians of process medians; ranges span the three after medians.
+
+| Operation | Tracks | Before | After | After range | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Extend Transition | 500 | 0.32103 ms | 0.09874 ms | 0.09671–0.13556 ms | 3.3× |
+| Shorten base timing | 500 | 0.32119 ms | 0.16115 ms | 0.13480–0.16392 ms | 2.0× |
+| Shorten all 11 property timings | 500 | 1.25824 ms | 1.04388 ms | 1.01578–1.06296 ms | 1.2× |
+| Preserve locked timing floor | 500 | 0.31579 ms | 0.10244 ms | 0.09413–0.10457 ms | 3.1× |
+
+These measure command planning and JS marshalling, excluding Yjs publication,
+UI, rendering and networking; they are not browser FPS. The locked case attempts
+a shortening that the locked object's timing prevents. Sources/artifacts stayed
+frozen and builds/tests ran separately; other host activity was not isolated.
+
+[Before samples](benchmarks/2026-09-20-timing/before.json) use application
+[`43860b6`](https://github.com/Poietra/poietra/commit/43860b6e19adb9b9a756d3a7382162303cbfdf22);
+[after samples](benchmarks/2026-09-20-timing/after.json) use the timing changes
+committed with this report. Metadata records the parent checkout, working changes,
+source digest and release module hashes. Both use [the same harness](apps/studio/scripts/benchmark-timing.mjs)
+and also record 100-track workloads. Run `pnpm bench --suite timing --runs 3`
+after building; on Linux, prefix with `taskset -c 2` to match the CPU affinity.
 
 ### Typed editing commands — 2026-09-20
 
@@ -226,9 +266,10 @@ activity was not isolated.
 
 [Before samples](benchmarks/2026-09-20-editing/before.json) use application
 [`f5762b1`](https://github.com/Poietra/poietra/commit/f5762b1054f608e8438625154356c6f527dfb6dc);
-[after samples](benchmarks/2026-09-20-editing/after.json) use the typed changes
-committed with this report (the metadata records the parent checkout and working
-changes). Both use [the same harness](apps/studio/scripts/benchmark-editing.mjs).
+[after samples](benchmarks/2026-09-20-editing/after.json) use the typed changes in
+[`43860b6`](https://github.com/Poietra/poietra/commit/43860b6e19adb9b9a756d3a7382162303cbfdf22)
+(the metadata records the parent checkout and working changes). Both use
+[the same harness](apps/studio/scripts/benchmark-editing.mjs).
 Run `pnpm bench --suite editing --runs 3` after building to measure the current
 implementation; historical implementations remain in Git history.
 
@@ -441,7 +482,7 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 633 Vitest behavioral/backend checks, 22 MoonBit JS tests, 15 MoonBit
+runs 647 Vitest behavioral/backend checks, 28 MoonBit JS tests, 21 MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2

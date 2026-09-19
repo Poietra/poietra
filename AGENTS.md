@@ -47,6 +47,9 @@ and measurements belong in [README.md](README.md).
   JS and WASM. Creation/clipboard/import share `ObjectInsertion`; boundary code
   reads required metadata and encodes batches before publication. Avoid decoding
   whole Scenes for pointer edits or constructing display tracks for command plans.
+- 2026-09-20: Transition resizing reads numeric bounds and writes only changed
+  timing leaves. Retain existing property-timing Yjs parents: replacing a whole
+  timing erased offline peer easing/start edits, including through Undo/Redo.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

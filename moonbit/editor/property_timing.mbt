@@ -37,19 +37,7 @@ pub fn property_channels(
   kind : @scene.ObjectKind,
   track : @scene.Track,
 ) -> Array[@scene.PropertyChannel] {
-  [
-    @scene.Position,
-    Opacity,
-    Size,
-    Rotation,
-    Fill,
-    Stroke,
-    StrokeWidth,
-    FontSize,
-    CornerRadius,
-    ShapePath,
-    Reveal,
-  ].filter(fn(channel) {
+  @scene.property_channels().filter(fn(channel) {
     // Imported overrides stay reachable even if the current object no longer uses them.
     if @scene.timing_override(track, channel) is Some(_) {
       return true

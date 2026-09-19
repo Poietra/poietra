@@ -14,6 +14,23 @@ pub(all) enum PropertyChannel {
 } derive(Eq)
 
 ///|
+pub fn property_channels() -> Array[PropertyChannel] {
+  [
+    Position,
+    Opacity,
+    Size,
+    Rotation,
+    Fill,
+    Stroke,
+    StrokeWidth,
+    FontSize,
+    CornerRadius,
+    ShapePath,
+    Reveal,
+  ]
+}
+
+///|
 pub fn property_channel(value : String) -> PropertyChannel? {
   match value {
     "position" => Some(Position)
@@ -45,6 +62,27 @@ pub fn timing_override(track : Track, channel : PropertyChannel) -> Timing? {
     CornerRadius => track.cornerRadiusTiming
     ShapePath => track.pathTiming
     Reveal => track.revealTiming
+  }
+}
+
+///|
+pub fn with_timing_override(
+  track : Track,
+  channel : PropertyChannel,
+  timing : Timing?,
+) -> Track {
+  match channel {
+    Position => { ..track, positionTiming: timing, }
+    Opacity => { ..track, opacityTiming: timing, }
+    Size => { ..track, sizeTiming: timing, }
+    Rotation => { ..track, rotationTiming: timing, }
+    Fill => { ..track, fillTiming: timing, }
+    Stroke => { ..track, strokeTiming: timing, }
+    StrokeWidth => { ..track, strokeWidthTiming: timing, }
+    FontSize => { ..track, fontSizeTiming: timing, }
+    CornerRadius => { ..track, cornerRadiusTiming: timing, }
+    ShapePath => { ..track, pathTiming: timing, }
+    Reveal => { ..track, revealTiming: timing, }
   }
 }
 

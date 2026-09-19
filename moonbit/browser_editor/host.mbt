@@ -92,23 +92,6 @@ fn number(value : @core.Any) -> Double {
 }
 
 ///|
-fn channels() -> Array[@scene.PropertyChannel] {
-  [
-    @scene.Position,
-    Opacity,
-    Size,
-    Rotation,
-    Fill,
-    Stroke,
-    StrokeWidth,
-    FontSize,
-    CornerRadius,
-    ShapePath,
-    Reveal,
-  ]
-}
-
-///|
 fn channel_key(channel : @scene.PropertyChannel) -> String {
   @editor.property_channel_name(channel) + "Timing"
 }

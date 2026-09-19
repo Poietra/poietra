@@ -1,25 +1,4 @@
 ///|
-fn with_timing(
-  track : @scene.Track,
-  channel : @scene.PropertyChannel,
-  timing : @scene.Timing?,
-) -> @scene.Track {
-  match channel {
-    Position => { ..track, positionTiming: timing, }
-    Opacity => { ..track, opacityTiming: timing, }
-    Size => { ..track, sizeTiming: timing, }
-    Rotation => { ..track, rotationTiming: timing, }
-    Fill => { ..track, fillTiming: timing, }
-    Stroke => { ..track, strokeTiming: timing, }
-    StrokeWidth => { ..track, strokeWidthTiming: timing, }
-    FontSize => { ..track, fontSizeTiming: timing, }
-    CornerRadius => { ..track, cornerRadiusTiming: timing, }
-    ShapePath => { ..track, pathTiming: timing, }
-    Reveal => { ..track, revealTiming: timing, }
-  }
-}
-
-///|
 fn Compiler::edit_track(
   self : Compiler,
   reference : String,
@@ -37,7 +16,7 @@ fn Compiler::edit_track(
         "アニメーションを準備しています。同期完了後にもう一度依頼してください。",
       )
     }
-    entry.value = with_timing(entry.value, channel, timing)
+    entry.value = @scene.with_timing_override(entry.value, channel, timing)
     if !entry.timing_fields.contains(channel) {
       entry.timing_fields.push(channel)
     }

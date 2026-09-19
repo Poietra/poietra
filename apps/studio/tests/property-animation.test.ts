@@ -120,6 +120,58 @@ describe('stable parents, copy, timing bounds and collaborative Undo', () => {
     applyChanges(f.alice.doc, [{ path: ['scenes', sid, 'objects', 'sigmoid', 'locked'], value: true }]);
     f.alice.setTransitionDuration(sid, tid, 400); expect(f.transition().duration).toBe(700); expect(f.track().positionTiming).toEqual(timing(500, 200)); expect(f.transition().tracks.circle.opacityTiming).toEqual(timing(450, 250)); f.sync();
   });
+  test.each(PROPERTY_CHANNELS)('shortening preserves an offline peer easing edit to the same %s timing through Undo/Redo', channel => {
+    const f = replicas();
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', channel, timing(600, 100)); f.sync();
+    const curve = { type: 'cubicBezier' as const, x1: .2, y1: .1, x2: .7, y2: .9 };
+    f.bob.setPropertyTiming(sid, tid, 'sigmoid', channel, { ...timing(600, 100), easing: curve });
+    f.alice.setTransitionDuration(sid, tid, 500); f.sync();
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(400, 100), easing: curve });
+    f.alice.undo(); f.sync();
+    expect(f.transition().duration).toBe(800);
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(600, 100), easing: curve });
+    f.alice.redo(); f.sync();
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(400, 100), easing: curve });
+  });
+  test('shortening writes only the duration when a peer independently moves the same channel earlier', () => {
+    const f = replicas();
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', timing(600, 100)); f.sync();
+    f.bob.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', timing(600, 50));
+    f.alice.setTransitionDuration(sid, tid, 500); f.sync();
+    expect(f.track().opacityTiming).toEqual(timing(400, 50));
+    f.alice.undo(); f.sync();
+    expect(f.track().opacityTiming).toEqual(timing(600, 50));
+  });
+  test('property timing plans retain parent identity, skip equivalent curves and preserve null versus deletion', () => {
+    const f = replicas(), path = [...trackPath, 'opacityTiming'];
+    const value = { ...timing(300, 100), easing: { type: 'cubicBezier' as const, x1: .2, y1: .1, x2: .7, y2: .9 } };
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', value);
+    const parent = getShared(f.alice.doc, path), before = Y.encodeStateVector(f.alice.doc);
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', structuredClone(value));
+    expect(Y.encodeStateVector(f.alice.doc)).toEqual(before);
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', { ...value, duration: 250 });
+    expect(getShared(f.alice.doc, path)).toBe(parent);
+    expect(f.track().opacityTiming).toEqual({ ...value, duration: 250 });
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', null);
+    expect(getShared(f.alice.doc, path)).toBeNull();
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', value);
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', undefined as unknown as null);
+    expect(getShared(f.alice.doc, path)).toBeUndefined();
+  });
+  test('duration planning reads only bounds, leaving unrelated animation payloads untouched', () => {
+    const track = defaultTrack('circle', { start: 100, duration: 600, opacityTiming: timing(600, 100) });
+    const unread = vi.fn(() => { throw new Error('Unrelated payload was read'); });
+    for (const key of ['path', 'easing', 'order', 'type']) Object.defineProperty(track, key, { get: unread });
+    Object.defineProperty(track.opacityTiming!, 'easing', { get: unread });
+    const fake = { scene: () => ({ objects: { circle: { locked: false } }, transitions: { t: { tracks: { circle: track } } } }), edit: vi.fn() };
+    EditorStore.prototype.setTransitionDuration.call(fake, 's', 't', 500);
+    expect(unread).not.toHaveBeenCalled();
+    expect(fake.edit.mock.calls[0][0]).toEqual([
+      { path: ['scenes', 's', 'transitions', 't', 'duration'], value: 500 },
+      { path: ['scenes', 's', 'transitions', 't', 'tracks', 'circle', 'duration'], value: 400 },
+      { path: ['scenes', 's', 'transitions', 't', 'tracks', 'circle', 'opacityTiming', 'duration'], value: 400 },
+    ]);
+  });
   test('Undo cannot shorten a Transition below a peer channel; Redo rejects restored channel past peer shortening atomically', () => {
     const f = replicas(); f.alice.setTransitionDuration(sid, tid, 2000); f.sync(); f.bob.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', timing(1800)); f.sync();
     undoPreservingPeerTracks(f.alice.undoManager); expect(f.transition().duration).toBe(2000); expect(f.alice.undoManager.lastUndoPreservedDurations).toBe(1); f.sync();
