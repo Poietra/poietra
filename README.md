@@ -7,7 +7,7 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
-audio/video track editing, the animation timeline, canvas interaction,
+audio/video track editing, the animation timeline, canvas interaction and global keyboard/clipboard handling,
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining screens,
@@ -101,6 +101,9 @@ node scripts/moon.mjs check --target js
   Canvas gestures use typed modes and own their Undo entry; cancellation preserves
   earlier edits and peer changes. Hit testing uses the published painted frame.
   Ruler presses seek precisely even when the wide moving playhead overlaps them.
+  Global keyboard/clipboard handlers keep stable subscriptions and read current
+  state. Typed shortcut actions preserve IME/text selection and one-gesture nudge
+  Undo. Asset paste checks its destination again after asynchronous transfers.
   Account sessions own their list/save requests; switching identity aborts old
   work and rejects its late responses, including already received JSON.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
@@ -174,6 +177,13 @@ tracks, cancellation, shared assets, portable files and decoded output pixels.
 Project transfer changes passed those checks again with clipboard/new-room cases
 (21 browser checks). The project dialog passed 11 account/media/project checks
 and a regression for reopening while an earlier file read is still pending.
+Keyboard handling passed 18 browser checks for group nudges, IME, native clipboard,
+preview controls and text editing. Clipboard integration then passed 17 image/input
+checks and a delayed-response test for switching the paste destination.
+Initial editor loading was also checked with both the dev server and browser tests
+restricted to two CPU cores: the 11 chat checks passed with a 15 s startup budget.
+WASM begins loading alongside the editor graph; the 10 homepage checks confirm
+that visiting the homepage still loads no editor engine.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

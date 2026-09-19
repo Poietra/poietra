@@ -258,3 +258,41 @@ test('pasting an image into another project saves its own asset and fails withou
     await expect(page.locator('.scene-svg image')).toHaveCount(1);
   } finally { watch.close(); await context.close(); }
 });
+
+test('a late image paste response cannot change the previous composition after switching targets', async ({ page, browser }) => {
+  await open(page); await upload(page);
+  const text = await page.locator('[data-testid="stage-main"]').evaluate(element => {
+    const clipboardData = new DataTransfer(); element.dispatchEvent(new ClipboardEvent('copy', { bubbles: true, cancelable: true, clipboardData }));
+    return clipboardData.getData('text/plain');
+  });
+  const context = await browser.newContext(), target = await context.newPage(), room = await open(target), watch = await observer(target, room);
+  try {
+    await target.evaluate(() => {
+      const native = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const response = await native(...args);
+        if (args[1]?.method === 'POST' && String(args[0]).endsWith('/images')) {
+          const json = response.json.bind(response);
+          response.json = async () => {
+            const data = await json();
+            await new Promise<void>(resolve => { (window as unknown as { releasePaste: () => void }).releasePaste = resolve; });
+            return data;
+          };
+        }
+        return response;
+      };
+    });
+    await target.locator('[data-testid="stage-main"]').evaluate((element, text) => {
+      const clipboardData = new DataTransfer(); clipboardData.setData('text/plain', text);
+      element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData }));
+    }, text);
+    await expect.poll(() => target.evaluate(() => typeof (window as unknown as { releasePaste?: unknown }).releasePaste)).toBe('function');
+    await target.getByRole('button', { name: 'Composition 2', exact: true }).click();
+    await target.evaluate(() => (window as unknown as { releasePaste: () => void }).releasePaste());
+    await expect(target.getByRole('button', { name: 'Add image', exact: true })).toBeEnabled();
+    expect(Object.values(watch.project().scenes['scene-1'].objects).filter(object => object.kind === 'image')).toEqual([]);
+    await expect(target.locator('.scene-svg image')).toHaveCount(0);
+    await target.getByRole('button', { name: 'Composition 1', exact: true }).click();
+    await expect(target.locator('.scene-svg image')).toHaveCount(0);
+  } finally { watch.close(); await context.close(); }
+});

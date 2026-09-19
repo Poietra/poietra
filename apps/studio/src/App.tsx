@@ -1,3 +1,4 @@
+import { useEditorKeyboard, useEditorClipboard } from '../../../_build/js/release/build/ui/ui.js';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { ArrowRight, BookOpen, ChartNoAxesColumnIncreasing, Check, ChevronDown, Circle, Copy, Download, Film, LoaderCircle, MousePointer2, Pause, Play, Plus, Redo2, Send, Share2, Sigma, SlidersHorizontal, MessageCircle, ImagePlus, Spline, Square, Type, Undo2, X, ArrowUpRight, Minus, Keyboard, Link2 } from 'lucide-react';
@@ -28,7 +29,6 @@ import { SceneTabs } from './ui/SceneTabs';
 import { ConnectionStatus } from './ui/ConnectionStatus';
 import { IconButton, Modal } from './ui/components';
 import { download } from './ui/utils';
-import { copyObjects, parseObjects, serializeObjects, OBJECT_CLIPBOARD_MIME } from '../shared/clipboard';
 
 export function App({ store, kernel, renderer, exporter, createFramePainter }: { store: EditorStore; kernel: MotionKernel; renderer: RendererContract; exporter: ExporterContract | null; createFramePainter?: PainterContract['createFramePainter'] }) {
   const mediaInput = useRef<HTMLInputElement>(null);
@@ -67,8 +67,6 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
   const renderReady = renderRevision > 0;
   const playStart = useRef({ time: 0, position: 0, end: 0 });
   const pasteInPlace = useRef(false);
-  const lastPaste = useRef({ text: '', count: 0, target: '' });
-  const nudge = useRef<string | null>(null);
   const project = snapshot.project;
   const scene = project?.scenes[sceneId] ?? (project ? project.scenes[project.sceneOrder[0]] : null);
   const selection = scene && ((requestedSelection.kind === 'composition' && scene.compositions[requestedSelection.id]) || (requestedSelection.kind === 'transition' && scene.transitions[requestedSelection.id])) ? requestedSelection : { kind: 'composition' as const, id: scene?.compositionOrder[0] || '' };
@@ -223,7 +221,6 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
   }
   function activateTool(value: Tool) { setTool(value); setPlaying(false); if (transportView) { editMoment(value !== 'select'); return; } setTransportView(false); if (transition) select({ kind: 'composition', id: transition.toId }); }
   function chooseObjects(ids: string[]) { if (transportView) editMoment(); setSelectedIds(ids); }
-  function finishNudge() { if (nudge.current !== null) { nudge.current = null; store.endGesture(); } }
   function seek(time: number, scope: 'scene'|'transition' = transition && !transportView ? 'transition' : 'scene') { playbackRequest.current++; mediaPlayback.cancel(); setPreparingPlayback(false); setPlaying(false); setTransportView(scope === 'scene'); setTransitionSeeking(scope === 'transition'); setPathEditing(false); setPlayhead(clamp(time, 0, total)); }
   async function play(scope: 'scene'|'transition' = 'scene') {
     if (playing || preparingPlayback) { playbackRequest.current++; mediaPlayback.cancel(); setPlaying(false); setPreparingPlayback(false); return; }
@@ -239,6 +236,11 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
     setPreviewScope(scope); setTransportView(scope === 'scene'); setTransitionSeeking(scope === 'transition'); setPlayhead(position); setPlaying(true);
   }
 
+  useEditorKeyboard({ store, scene, compositionId, activeIds, transportView, transition, composing, pasteInPlace,
+    notify, undo, redo, editMoment, activateTool, play, setSelectedIds, setPlaying, setTransportView, setTool, setPathEditing, select });
+  useEditorClipboard({ store, scene, compositionId, activeIds, transportView, composing, pasteInPlace,
+    imageRequest, mediaRequest, setImportingImage, rehostImageAssets, importFiles, setSelectedIds, setTool, select, notify });
+
   useEffect(() => {
     if (!textEditRequest) return;
     if (scene?.id === textEditRequest.sceneId && selection.kind === 'composition' && compositionId === textEditRequest.compositionId && activeIds.length === 1 && activeIds[0] === textEditRequest.objectId && !transportView && rightTab === 'properties') {
@@ -247,22 +249,6 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
     }
     setTextEditRequest(null);
   }, [textEditRequest, scene?.id, compositionId, activeIds.join(','), transportView, rightTab]);
-  useEffect(() => {
-    const start = () => { composing.current = true; finishNudge(); };
-    const end = () => { composing.current = false; };
-    window.addEventListener('compositionstart', start); window.addEventListener('compositionend', end); window.addEventListener('blur', end);
-    return () => { window.removeEventListener('compositionstart', start); window.removeEventListener('compositionend', end); window.removeEventListener('blur', end); };
-  }, [store]);
-  useEffect(() => {
-    function returnToControls(event: Event) {
-      // Chromium can retain a number input's selected text after it loses focus.
-      // Returning to a button or canvas must restore object clipboard/Undo keys.
-      if (event.target instanceof Element && event.target.closest('button, [role="button"], .stage-surface')) window.getSelection()?.removeAllRanges();
-    }
-    window.addEventListener('pointerdown', returnToControls, true); window.addEventListener('focusin', returnToControls);
-    return () => { window.removeEventListener('pointerdown', returnToControls, true); window.removeEventListener('focusin', returnToControls); };
-  }, []);
-
   useEffect(() => {
     if (!scene) return; let current = true;
     renderer.prepareScene(scene).then(() => { if (current) { setRenderRevision(value => value + 1); setRenderError(''); } }).catch(error => { if (current) setRenderError(error instanceof Error ? error.message : '描画を準備できませんでした。'); });
@@ -281,108 +267,6 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
     if (playhead > total) setPlayhead(total);
   }, [total, previewScope, selectedSegment?.start, transition?.duration]);
   useEffect(() => { if (scene) store.presence({ sceneId: scene.id, compositionId, selectedIds: activeIds }); }, [scene?.id, compositionId, activeIds.join(','), store]);
-  useEffect(() => {
-    function released(event: KeyboardEvent) { if (event.key.startsWith('Arrow')) finishNudge(); }
-    window.addEventListener('keyup', released); window.addEventListener('blur', finishNudge); window.addEventListener('pointerdown', finishNudge, true);
-    return () => { window.removeEventListener('keyup', released); window.removeEventListener('blur', finishNudge); window.removeEventListener('pointerdown', finishNudge, true); finishNudge(); };
-  }, [store]);
-  useEffect(() => { finishNudge(); }, [scene?.id, compositionId, activeIds.join(',')]);
-  useEffect(() => {
-    function key(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.isComposing || composing.current || event.keyCode === 229) return;
-      const element = event.target as HTMLElement;
-      if (element.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"], [role="menuitem"]')) return;
-      if (window.getSelection()?.toString()) return;
-      if (event.code === 'Space' && element.closest('button, [role="tab"]')) return;
-      if (!event.key.startsWith('Arrow')) finishNudge();
-      const command = event.metaKey || event.ctrlKey;
-      if (transportView && (['Delete', 'Backspace', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) || command && ['d', 'g', 'a'].includes(event.key.toLowerCase()))) {
-        event.preventDefault(); notify('「この場面を編集」または Esc で編集に戻れます。'); return;
-      }
-      if (transportView && event.key === 'Escape') { event.preventDefault(); editMoment(); return; }
-      if (event.metaKey || event.ctrlKey) {
-        if (event.key.toLowerCase() === 'v') pasteInPlace.current = event.shiftKey;
-        if (event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); }
-        if (event.key.toLowerCase() === 'd' && scene && activeIds.length) { event.preventDefault(); setSelectedIds(store.duplicate(scene.id, compositionId, activeIds)); }
-        if (event.key.toLowerCase() === 'a' && scene) { event.preventDefault(); setSelectedIds(Object.keys(scene.objects).filter(id => scene.compositions[compositionId]?.states[id]?.visible)); }
-        if (event.key.toLowerCase() === 'g' && scene && activeIds.length) { event.preventDefault(); event.shiftKey ? store.unlink(scene.id, activeIds) : store.link(scene.id, activeIds); }
-        return;
-      }
-      const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-      if (directions[event.key] && scene && activeIds.length) {
-        event.preventDefault();
-        const current = store.scene(scene.id);
-        const ids = store.linkedIds(scene.id, activeIds).filter(id => current.compositions[compositionId]?.states[id]?.visible);
-        if (!ids.length) return;
-        const target = `${scene.id}/${compositionId}/${ids.join(',')}`;
-        if (nudge.current !== target) { finishNudge(); store.beginGesture(); nudge.current = target; }
-        const starts = Object.fromEntries(ids.map(id => { const state = current.compositions[compositionId].states[id]; return [id, { x: state.x, y: state.y }]; }));
-        const [dx, dy] = directions[event.key]; const step = event.shiftKey ? 10 : 1;
-        store.translate(scene.id, compositionId, starts, dx * step, dy * step);
-        setPlaying(false); setTransportView(false); setTool('select');
-        if (transition) select({ kind: 'composition', id: compositionId });
-        return;
-      }
-      if (event.code === 'Space') { event.preventDefault(); play(transportView ? 'scene' : transition ? 'transition' : 'scene'); }
-      if (event.key === 'Escape') { setSelectedIds([]); setTool('select'); setPlaying(false); setPathEditing(false); }
-      if ((event.key === 'Delete' || event.key === 'Backspace') && scene && activeIds.length) { event.preventDefault(); const ids = activeIds.filter(id => !scene.objects[id].locked && scene.compositions[compositionId]?.states[id]?.visible); if (ids.length) { store.hide(scene.id, compositionId, ids); setSelectedIds(activeIds.filter(id => !ids.includes(id))); notify(`${ids.length} 個を ${scene.compositions[compositionId].name} から非表示にしました。ほかの場面には残ります。`); } }
-      const tools: Record<string, Tool> = { v: 'select', r: 'rectangle', o: 'circle', t: 'text', e: 'equation', p: 'path', l: 'arrow' };
-      if (tools[event.key.toLowerCase()]) activateTool(tools[event.key.toLowerCase()]);
-    }
-    window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
-  });
-
-  useEffect(() => {
-    const textTarget = (target: EventTarget | null) => target instanceof Element && !!target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"], [role="menuitem"]');
-    function copy(event: ClipboardEvent) {
-      if (!scene || composing.current || textTarget(event.target) || window.getSelection()?.toString() || !activeIds.length || !event.clipboardData) return;
-      if (transportView) { event.preventDefault(); notify('編集する場面を開いてからコピーしてください。'); return; }
-      const current = store.scene(scene.id);
-      const ids = event.type === 'cut' ? activeIds.filter(id => !current.objects[id]?.locked) : activeIds;
-      const data = copyObjects(current, compositionId, ids);
-      if (!data.objects.length) return;
-      try {
-        const text = serializeObjects(data);
-        event.clipboardData.setData(OBJECT_CLIPBOARD_MIME, text);
-        event.clipboardData.setData('text/plain', text);
-        event.preventDefault(); lastPaste.current = { text: '', count: 0, target: '' };
-        if (event.type === 'cut') { store.hide(scene.id, compositionId, ids); setSelectedIds([]); }
-        notify(`${data.objects.length} 個のオブジェクトを${event.type === 'cut' ? '切り取りました' : 'コピーしました'}`);
-      } catch (error) { event.preventDefault(); notify(error instanceof Error ? error.message : 'コピーできませんでした'); }
-    }
-    async function paste(event: ClipboardEvent) {
-      if (!scene || composing.current || textTarget(event.target) || window.getSelection()?.toString() || !event.clipboardData) return;
-      const mediaFiles = [...event.clipboardData.files];
-      if (mediaFiles.length) { event.preventDefault(); void importFiles(mediaFiles); return; }
-      const text = event.clipboardData.getData(OBJECT_CLIPBOARD_MIME) || event.clipboardData.getData('text/plain');
-      const inPlace = pasteInPlace.current; pasteInPlace.current = false;
-      try {
-        const data = parseObjects(text);
-        if (!data) return;
-        event.preventDefault();
-        if (transportView) { notify('編集する場面を開いてから貼り付けてください。'); return; }
-        if (data.objects.some(object => object.image || object.media)) {
-          if (imageRequest.current || mediaRequest.current) { notify('素材の保存が終わってから貼り付けてください。'); return; }
-          const request = { sceneId: scene.id, compositionId, controller: new AbortController() };
-          imageRequest.current = request; setImportingImage(true);
-          try {
-            await rehostImageAssets(data.objects, store.roomId, request.controller.signal);
-            request.controller.signal.throwIfAborted();
-          } catch (error) { if (request.controller.signal.aborted) return; throw error; }
-          finally { if (imageRequest.current === request) { imageRequest.current = null; setImportingImage(false); } }
-        }
-        const target = `${scene.id}/${compositionId}`;
-        const count = lastPaste.current.text === text && lastPaste.current.target === target ? lastPaste.current.count + 1 : 1;
-        const ids = store.paste(scene.id, compositionId, data, inPlace ? 0 : count * 24);
-        lastPaste.current = { text, count: inPlace ? 0 : count, target };
-        setSelectedIds(ids); setTool('select'); select({ kind: 'composition', id: compositionId });
-        notify(`${ids.length} 個のオブジェクトを貼り付けました`);
-      } catch (error) { event.preventDefault(); notify(error instanceof Error ? error.message : '貼り付けできませんでした'); }
-    }
-    window.addEventListener('copy', copy); window.addEventListener('cut', copy); window.addEventListener('paste', paste);
-    return () => { window.removeEventListener('copy', copy); window.removeEventListener('cut', copy); window.removeEventListener('paste', paste); };
-  });
-
   async function share() { try { await navigator.clipboard.writeText(location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('リンク欄を選択してコピーしてください'); } }
   const participants = [...snapshot.peers].sort((a,b) => a.clientId === store.doc.clientID ? -1 : b.clientId === store.doc.clientID ? 1 : a.clientId-b.clientId);
 

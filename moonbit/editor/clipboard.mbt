@@ -5,6 +5,32 @@ pub(all) struct ObjectClipboard {
 }
 
 ///|
+pub(all) struct PasteHistory {
+  text : String
+  scene : String
+  composition : String
+  count : Int
+}
+
+///|
+pub fn next_paste(
+  previous : PasteHistory?,
+  text : String,
+  scene : String,
+  composition : String,
+  in_place : Bool,
+) -> (PasteHistory, Double) {
+  let count = match previous {
+    Some(previous) if previous.text == text &&
+      previous.scene == scene &&
+      previous.composition == composition => previous.count + 1
+    _ => 1
+  }
+  let count = if in_place { 0 } else { count }
+  ({ text, scene, composition, count, }, count.to_double() * 24.0)
+}
+
+///|
 pub(all) struct PastedObject {
   object : @scene.SceneObject
   states : Array[(String, @scene.ObjectState)]

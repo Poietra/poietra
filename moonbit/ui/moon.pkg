@@ -35,6 +35,8 @@ options(
         "stage:Stage",
         "object_icon:ObjectIcon",
         "use_editor:useEditor",
+        "use_editor_keyboard:useEditorKeyboard",
+        "use_editor_clipboard:useEditorClipboard",
         "project_preview:ProjectPreview",
         "export_dialog:ExportDialog",
         "download_blob:download",
