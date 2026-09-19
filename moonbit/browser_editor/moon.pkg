@@ -1,0 +1,58 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/browser_undo" @undo,
+  "poietra/poietra/boundary",
+  "poietra/poietra/editor",
+  "poietra/poietra/scene",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "add_composition:addComposition",
+        "add_media:addMedia",
+        "add_object:addObject",
+        "add_scene:addScene",
+        "apply_proposal:applyProposal",
+        "begin_gesture:beginGesture",
+        "create_store:createStore",
+        "current_room:currentRoom",
+        "duplicate:duplicate",
+        "edit_batch:editBatch",
+        "end_gesture:endGesture",
+        "hide:hide",
+        "link:link",
+        "linked_ids:linkedIds",
+        "paste:paste",
+        "presence:presence",
+        "project:project",
+        "redo_edit:redoEdit",
+        "remove_audio_track:removeAudioTrack",
+        "retry_connection:retryConnection",
+        "rollback_gesture:rollbackGesture",
+        "scene:scene",
+        "set_audio_track:setAudioTrack",
+        "set_composition:setComposition",
+        "set_name:setName",
+        "set_object:setObject",
+        "set_project_name:setProjectName",
+        "set_property_timing:setPropertyTiming",
+        "set_scene:setScene",
+        "set_track:setTrack",
+        "set_transition_duration:setTransitionDuration",
+        "set_video_playback:setVideoPlayback",
+        "snapshot:snapshot",
+        "subscribe:subscribe",
+        "translate:translate",
+        "undo_edit:undoEdit",
+        "unlink:unlink",
+        "update_state:updateState",
+      ],
+    },
+  },
+)

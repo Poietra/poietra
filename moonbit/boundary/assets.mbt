@@ -52,3 +52,18 @@ pub fn write_image_asset(value : @scene.ImageAsset) -> @core.Any {
 pub fn write_media_asset(value : @scene.MediaAsset) -> @core.Any {
   encode_MediaAsset(value)
 }
+
+///|
+pub fn read_media_playback(value : @core.Any) -> @scene.MediaPlayback raise {
+  decode_MediaPlayback(parse_file_field(value, Playback))
+}
+
+///|
+pub fn read_audio_track(value : @core.Any) -> @scene.AudioTrack raise {
+  decode_AudioTrack(parse_file_field(value, Audio))
+}
+
+///|
+pub fn write_media_playback(value : @scene.MediaPlayback) -> @core.Any {
+  encode_MediaPlayback(value)
+}

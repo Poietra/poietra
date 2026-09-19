@@ -11,7 +11,7 @@ audio/video track editing, the animation timeline, canvas interaction and global
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller. Landing/bootstrap,
-higher-level editor commands, AI proposal compilation and services still contain
+AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -127,6 +127,14 @@ node scripts/moon.mjs check --target js
   replies; history limits and proposal-target labels live in the pure editor model.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
+- `moonbit/browser_editor`: the complete editor Store, field-level commands and
+  owned connection/persistence lifecycle. Immutable snapshots feed new shared maps
+  without a redundant Composition clone. Media commands use the same validated
+  insertion plan as file imports. Presence is read only on awareness changes;
+  project edits keep the peer array's identity. Destroy releases subscriptions,
+  timers and the WebSocket provider and ignores late IndexedDB completions.
+  Preference-storage failures do not prevent editing. Manual creation checks the
+  portable format's 500-object/100-Composition limits before writing.
 - `moonbit/browser_undo`: typed preservation plans for shared creations, promoted
   tracks, independent timing maps and their duration dependencies. Native Yjs
   identities use mizchi's weak collections. Clock subtraction groups by client
@@ -145,7 +153,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas include higher-level editing, landing/bootstrap,
+Remaining migration areas include landing/bootstrap,
 AI proposal compilation, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
@@ -156,57 +164,24 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 610 regression/differential tests, 14 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
-also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
-actual MP4/WebM export and decoding. An additional 42 browser rendering checks
-passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
-replacement, cancellation and resource release. The Scene/chat migration passed
-17 browser checks, including shared waiting state and reduced motion. CI runs
-the core suite and editor selection with a pinned compiler.
-The GPU and export migrations passed eight production-bundle browser checks for buffer
-resizing, device-limit fallback, and actual 399-frame MP4/WebM export and decoding.
-Five additional media browser checks passed after decoder, mixer and export migrations, including
-seeks, mixed/trimmed audio and MP4/WebM video pixels. The preview migration also
-passed 13 browser checks for Canvas scheduling, stale-frame suppression, media
-import/sharing and project playback/export, plus real AudioContext cleanup and
-a regression check for serialization-free ticks and metadata/gain changes. The export
-dialog passed all six stale-session/cancel/retry/download checks and the three
-project playback/export checks after moving to a typed state machine. The MoonBit
-project preview passed those checks again, plus a real-video regression that seeks
-back and forth across a Scene without video. Scene intervals are prepared once,
-and frames without video skip the decode queue and its snapshot copy. The typed
-easing editor passed 11 browser checks covering shared curves, one-gesture Undo,
-Esc/blur cancellation, peer replacements and independent timing edits.
-The canvas migration passed 35 browser checks for drawing, selection, group moves,
-corner resizing, rotation, text editing and preview scheduling. The timeline passed
-13 checks including a deterministic regression for clicks underneath the playhead.
-Shared chat and AI controls passed 35 browser checks covering concurrent requests,
-offline history, cancel/retry, automatic application, new Scenes/objects/images,
-guarded peer conflicts and selective Undo. Account/project screens passed seven
-browser checks, including delayed read/write responses across account switches.
-File/clipboard changes passed 21 browser checks for shared paste/Undo, independent
-room imports, embedded image/audio/video assets, and failed/canceled imports.
-The import migration passed 15 browser checks for image normalization, audio/video
-tracks, cancellation, shared assets, portable files and decoded output pixels.
-Project transfer changes passed those checks again with clipboard/new-room cases
-(21 browser checks). The project dialog passed 11 account/media/project checks
-and a regression for reopening while an earlier file read is still pending.
-Keyboard handling passed 18 browser checks for group nudges, IME, native clipboard,
-preview controls and text editing. Clipboard integration then passed 17 image/input
-checks and a delayed-response test for switching the paste destination.
-The import controller passed 16 image/media browser checks, plus mixed-batch
-failure and one-step Undo/Redo checks. Its pure plan rejects full/missing audio
-maps and object limits before allocating any document identities.
-The complete MoonBit studio controller then passed all 152 browser checks in the
-CI editor selection, including offline collaboration, selective Undo, real encoded
-video and a deterministic race between two delayed audio-resume requests.
-The selective Undo migration passed 22 further browser checks, 150 existing
-collaboration/history unit tests and a native-failure restoration check. Clock
-subtraction also matches an independent point-set model over 500 randomized cases.
-Initial editor loading was also checked with both the dev server and browser tests
-restricted to two CPU cores: the 11 chat checks passed with a 15 s startup budget.
-WASM begins loading alongside the editor graph; the 10 homepage checks confirm
-that visiting the homepage still loads no editor engine.
+Locally verified: **617 regression/differential tests**, 14 MoonBit tests on JS,
+3 kernel tests on WASM, typechecking and the production build. The complete studio,
+selective Undo and editor Store passed the **152-test CI browser selection**, covering
+offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
+portable media, seeking and actual MP4/WebM output. An additional 15 chat/structure
+checks passed with both the dev server and browsers restricted to two CPU cores;
+initial editor loading uses a 15 s budget for those simultaneous fresh sessions.
+
+Separate rendering/production checks cover SVG/Canvas agreement, Japanese text,
+equation Write, GPU limits, decoder cancellation and actual 399-frame MP4/WebM
+export and decoding. Media checks exercise stereo mixing and real AudioContext
+cleanup. Account behavior is tested with simulated authentication, not a live
+OAuth registration. Homepage checks verify that simply visiting loads no editor
+engine. Native-failure and delayed-completion tests cover Undo history restoration,
+audio resume, canceled imports, account switches and persistence after disposal.
+Clock subtraction matches an independent point-set model in 500 randomized cases.
+CI checks generated adapters and runs the core/editor/media suites with the pinned
+compiler. These checks do not constitute a production migration or deployment.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

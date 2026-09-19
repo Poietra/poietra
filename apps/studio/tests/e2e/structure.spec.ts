@@ -4,7 +4,8 @@ import { parseProjectFile } from '../../shared/project-file';
 
 async function open(page: Page, room: string) {
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  // Two fresh editor graphs start together on the two-core CI runner.
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
 }
 async function action(page: Page, name: string, action: 'Duplicate' | 'Delete') {
   await page.getByRole('button', { name: `${name} の操作`, exact: true }).click();

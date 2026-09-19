@@ -4,6 +4,7 @@ pub fn asset_import_changes(
   composition : String,
   assets : Array[@editor.PreparedAsset],
   point : @scene.Point?,
+  start_override? : Double,
 ) -> @core.Any raise {
   let objects = scene._get("objects")
   let transitions = scene._get("transitions")
@@ -27,7 +28,7 @@ pub fn asset_import_changes(
     transitions: @core.object_keys(transitions).map(fn(id) {
       (id, transitions._get(id)._get("duration").cast())
     }),
-    start,
+    start: start_override.unwrap_or(start),
     audio_count: if @core.is_nullish(audio) {
       None
     } else {
@@ -81,6 +82,14 @@ pub fn asset_import_changes(
   }
   @core.from_entries([
     ("ids", @core.any(FixedArray::from_array(ids[:]))),
+    (
+      "audioIds",
+      @core.any(
+        FixedArray::makei(additions.audio.length(), fn(i) {
+          additions.audio[i].id
+        }),
+      ),
+    ),
     ("changes", @core.any(FixedArray::from_array(changes[:]))),
   ])
 }

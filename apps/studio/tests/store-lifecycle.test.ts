@@ -1,0 +1,113 @@
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import * as Y from 'yjs';
+import { initializeDocument } from '../shared/document';
+import { makeDemoProject } from '../shared/demo';
+
+const mocks = vi.hoisted(() => {
+  class Events {
+    events = new Map<string, Set<(...args: any[]) => void>>();
+    on(name: string, callback: (...args: any[]) => void) { if (!this.events.has(name)) this.events.set(name, new Set()); this.events.get(name)!.add(callback); }
+    off(name: string, callback: (...args: any[]) => void) { this.events.get(name)?.delete(callback); }
+    emit(name: string, ...args: any[]) { for (const callback of this.events.get(name) ?? []) callback(...args); }
+  }
+  const providers: Provider[] = [], persistence: Persistence[] = [];
+  class Provider extends Events {
+    local: any = {};
+    awareness = Object.assign(new Events(), {
+      getStates: vi.fn(() => new Map([[this.doc.clientID, this.local]])),
+      getLocalState: () => this.local,
+      setLocalState: (value: any) => { this.local = value; },
+      setLocalStateField: (key: string, value: any) => { this.local[key] = value; this.awareness.emit('change'); },
+    });
+    destroy = vi.fn(); disconnect = vi.fn(); connect = vi.fn();
+    constructor(_url: string, _room: string, readonly doc: Y.Doc) { super(); providers.push(this); }
+  }
+  class Persistence extends Events {
+    resolve!: (db: any) => void;
+    _db = new Promise(resolve => { this.resolve = resolve; });
+    db: any;
+    constructor() { super(); persistence.push(this); }
+  }
+  return { Provider, Persistence, providers, persistence };
+});
+vi.mock('y-websocket', () => ({ WebsocketProvider: mocks.Provider }));
+vi.mock('y-indexeddb', () => ({ IndexeddbPersistence: mocks.Persistence }));
+import { EditorStore } from '../src/editor/store';
+
+const stores: EditorStore[] = [];
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.stubGlobal('location', { protocol: 'http:', host: 'localhost' });
+  const storage = { getItem: () => null, setItem() {} };
+  vi.stubGlobal('localStorage', storage); vi.stubGlobal('sessionStorage', storage);
+});
+afterEach(() => {
+  for (const store of stores.splice(0)) if (!store.doc.isDestroyed) store.doc.destroy();
+  mocks.providers.length = 0; mocks.persistence.length = 0;
+  vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals();
+});
+function create() { const store = new EditorStore(crypto.randomUUID()); stores.push(store); initializeDocument(store.doc, makeDemoProject()); return store; }
+
+test('project writes reuse presence until awareness changes', () => {
+  const store = create(), awareness = mocks.providers[0].awareness;
+  const peers = store.snapshot().peers;
+  awareness.getStates.mockClear();
+  store.setProjectName('Edited');
+  store.updateState('scene-1', 'comp-1', 'circle', { x: 300 });
+  expect(store.snapshot().peers).toBe(peers);
+  expect(awareness.getStates).not.toHaveBeenCalled();
+  store.presence({ selectedIds: ['circle'] });
+  expect(awareness.getStates).toHaveBeenCalledTimes(1);
+  expect(store.snapshot().peers[0].selectedIds).toEqual(['circle']);
+});
+
+test('unavailable preference storage does not prevent editing or rename', () => {
+  const denied = { getItem() { throw new Error('Blocked storage'); }, setItem() { throw new Error('Blocked storage'); } };
+  vi.stubGlobal('localStorage', denied); vi.stubGlobal('sessionStorage', denied);
+  const store = create();
+  expect(store.chatAuthorId).toMatch(/^[\da-f-]{36}$/);
+  store.setName('Alice'); store.setProjectName('Local project');
+  expect(store.userName).toBe('Alice'); expect(store.project().name).toBe('Local project');
+});
+
+test('automatic connection attempts share one deadline and retry retains the document and history', () => {
+  const store = create(), provider = mocks.providers[0];
+  store.setProjectName('Pending edit');
+  const doc = store.doc, manager = store.undoManager;
+  vi.advanceTimersByTime(6000); provider.emit('status', { status: 'connecting' });
+  vi.advanceTimersByTime(2001);
+  expect(store.snapshot().connectionIssue).toContain('時間がかかっています');
+  store.retryConnection();
+  expect(provider.disconnect).toHaveBeenCalledOnce(); expect(provider.connect).toHaveBeenCalledOnce();
+  expect(store.doc).toBe(doc); expect(store.undoManager).toBe(manager); expect(manager.canUndo()).toBe(true);
+  provider.emit('status', { status: 'connected' }); provider.emit('sync', true);
+  expect(store.snapshot().connectionIssue).toBeNull();
+  vi.advanceTimersByTime(9000); expect(store.snapshot().connectionIssue).toBeNull();
+});
+
+test('destroy closes the provider and ignores a late database open or sync', async () => {
+  const store = create(), provider = mocks.providers[0], persistence = mocks.persistence[0];
+  const listener = vi.fn(); store.subscribe(listener);
+  store.doc.destroy(); listener.mockClear();
+  const before = store.snapshot(), db = { addEventListener: vi.fn(), transaction: vi.fn() };
+  persistence.db = db; persistence.resolve(db);
+  await Promise.resolve(); persistence.emit('synced'); provider.emit('status', { status: 'connected' });
+  vi.advanceTimersByTime(30000);
+  expect(provider.destroy).toHaveBeenCalledOnce(); expect(db.addEventListener).not.toHaveBeenCalled(); expect(db.transaction).not.toHaveBeenCalled();
+  expect(listener).not.toHaveBeenCalled(); expect(store.snapshot()).toBe(before);
+});
+
+test('destroy detaches an in-flight storage transaction and its late completion', async () => {
+  const store = create(), persistence = mocks.persistence[0];
+  const transaction: any = {};
+  const db = { addEventListener: vi.fn(), removeEventListener: vi.fn(), transaction: vi.fn(() => transaction) };
+  persistence.db = db; persistence.resolve(db); await Promise.resolve();
+  persistence.emit('synced');
+  const complete = transaction.oncomplete;
+  expect(typeof complete).toBe('function');
+  const listener = vi.fn(); store.subscribe(listener);
+  store.doc.destroy(); listener.mockClear();
+  expect(transaction.oncomplete).toBeNull(); expect(transaction.onerror).toBeNull(); expect(db.removeEventListener).toHaveBeenCalledTimes(3);
+  complete(); expect(listener).not.toHaveBeenCalled();
+  expect(store.snapshot().localPersistence).toBe('loading');
+});
