@@ -6,6 +6,7 @@ import {
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/string",
   "poietra/poietra/render",
+  "poietra/poietra/scene",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
 }
@@ -17,6 +18,9 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "create_frame_painter:createFramePainter",
+        "draw_svg_frame:drawSvgFrame",
+        "create_layer_cache:createLayerCache",
         "text_drawing_key:textDrawingKey",
         "prepare_text_drawing:prepareTextDrawing",
         "with_svg_image:withSvgImage",

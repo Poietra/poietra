@@ -4,6 +4,10 @@ priv suberror BrowserFailure {
 }
 
 ///|
+extern "js" fn native_throw(error : @core.Any) -> Unit =
+  #|error => { throw error; }
+
+///|
 /// npm Promise rejection values are native errors. Preserve their identity and
 /// expose domain failures through the same Error.message contract at the boundary.
 fn host_error(error : Error) -> @core.Any {

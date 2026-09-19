@@ -13,7 +13,7 @@ pub(all) struct Drawable {
   order : WriteOrder
   image : String?
   video_frame : String?
-}
+} derive(Eq)
 
 ///|
 pub(all) struct Bounds {

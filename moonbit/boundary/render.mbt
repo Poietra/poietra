@@ -66,7 +66,7 @@ fn decode_text_metrics(value : @core.Any) -> @render.TextMetrics {
 }
 
 ///|
-fn render_resources(host : @core.Any) -> @render.Resources {
+pub fn render_resources(host : @core.Any) -> @render.Resources {
   {
     equation: fn(text) {
       optional(host._call("getEquation", [@core.any(text)]), decode_equation)

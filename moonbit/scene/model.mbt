@@ -2,13 +2,13 @@
 pub(all) struct Point {
   x : Double
   y : Double
-} derive(FromJson, ToJson)
+} derive(Eq, FromJson, ToJson)
 
 ///|
 pub(all) struct Bezier {
   c1 : Point
   c2 : Point
-} derive(FromJson, ToJson)
+} derive(Eq, FromJson, ToJson)
 
 ///|
 pub(all) enum Easing {
@@ -75,7 +75,7 @@ pub(all) struct ObjectState {
   cornerRadius : Double
   effect : Effect
   path : Bezier
-} derive(FromJson, ToJson)
+} derive(Eq, FromJson, ToJson)
 
 ///|
 pub(all) struct ImageAsset {
