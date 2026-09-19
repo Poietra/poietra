@@ -1,0 +1,29 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/exporting",
+  "poietra/poietra/audio",
+  "poietra/poietra/browser_media",
+  "poietra/poietra/boundary",
+  "poietra/poietra/scene",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "export_scene:exportScene",
+        "export_project:exportProject",
+        "get_export_capabilities:getExportCapabilities",
+        "find_export_codec:findExportCodec",
+        "environment_reason:environmentReason",
+        "bitrate_for:bitrateFor",
+        "export_abort_error:exportAbortError",
+        "check_abort:checkAbort",
+        "abortable:abortable",
+      ],
+    },
+  },
+)

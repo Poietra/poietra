@@ -335,6 +335,17 @@ describe('exportScene', () => {
     await expect(exportScene(scene(), kernel, { format: 'webm', fps: 30 })).rejects.toThrow('original encoder failure');
     expect(canvas.height).toBe(0);
   });
+
+  it('releases all resources when encoder calls and cleanup throw synchronously', async () => {
+    const failure = new Error('synchronous encoder failure');
+    mocks.add.mockImplementationOnce(() => { throw failure; });
+    mocks.cancel.mockImplementationOnce(() => { throw new Error('synchronous cleanup failure'); });
+    mocks.close.mockImplementationOnce(() => { throw new Error('source cleanup failure'); });
+    await expect(exportScene(scene(), kernel, { format: 'webm', fps: 30 })).rejects.toMatchObject({ cause: failure });
+    expect(mocks.close).toHaveBeenCalledOnce();
+    expect(mocks.dispose).toHaveBeenCalledOnce();
+    expect(canvas).toMatchObject({ width: 0, height: 0 });
+  });
 });
 
 
