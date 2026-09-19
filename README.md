@@ -7,7 +7,8 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
-audio/video track editing, the animation timeline and canvas interaction,
+audio/video track editing, the animation timeline, canvas interaction,
+optional login/project bookmarks and sample project generation,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
 higher-level editor/Undo commands, AI proposal compilation and services still contain
@@ -47,6 +48,8 @@ node scripts/moon.mjs check --target js
   resolves implicit tracks, matches objects, sorts layers and parses colors once.
   Seeking uses binary search; preview and export share this same evaluator.
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
+- `moonbit/samples`: immutable scene builders for the blank canvas and both editable
+  examples. Every state, track and metadata field matches the original examples.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
 - `moonbit/render`: typed shape geometry, exact cubic bounds, text/equation Write,
   and self-contained SVG generation. Prepared MathJax trees are decoded once per
@@ -91,6 +94,8 @@ node scripts/moon.mjs check --target js
   Canvas gestures use typed modes and own their Undo entry; cancellation preserves
   earlier edits and peer changes. Hit testing uses the published painted frame.
   Ruler presses seek precisely even when the wide moving playhead overlaps them.
+  Account sessions own their list/save requests; switching identity aborts old
+  work and rejects its late responses, including already received JSON.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
 - `moonbit/browser_chat`: validated room messages, per-entry snapshot caching and
   owned Yjs subscriptions. Typed request sessions suppress canceled or stale AI
@@ -146,7 +151,8 @@ corner resizing, rotation, text editing and preview scheduling. The timeline pas
 13 checks including a deterministic regression for clicks underneath the playhead.
 Shared chat and AI controls passed 35 browser checks covering concurrent requests,
 offline history, cancel/retry, automatic application, new Scenes/objects/images,
-guarded peer conflicts and selective Undo.
+guarded peer conflicts and selective Undo. Account/project screens passed seven
+browser checks, including delayed read/write responses across account switches.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

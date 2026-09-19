@@ -19,6 +19,9 @@ options(
       "format": "esm",
       "exports": [
         "assistant_panel:AssistantPanel",
+        "account_projects:AccountProjects",
+        "use_account_projects:useAccountProjects",
+        "login_url:loginUrl",
         "property_timing_inspector:PropertyTimingInspector",
         "group_controls:GroupControls",
         "group_animation_inspector:GroupAnimationInspector",

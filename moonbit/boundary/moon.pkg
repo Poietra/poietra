@@ -1,6 +1,7 @@
 import {
   "mizchi/js_core" @core,
   "poietra/poietra/scene",
+  "poietra/poietra/samples",
   "poietra/poietra/geometry",
   "poietra/poietra/editor",
   "poietra/poietra/collaboration",
@@ -10,6 +11,7 @@ import {
 options(
   targets: {
     "chat.mbt": [ "js" ],
+    "samples.mbt": [ "js" ],
     "chat_validation.mbt": [ "js" ],
     "proposal_targets.mbt": [ "js" ],
     "render.mbt": [ "js" ],
@@ -30,6 +32,9 @@ options(
     "js": {
       "exports": [
         "codex_prompt:codexPrompt",
+        "make_blank_scene:makeBlankScene",
+        "make_demo_project:makeDemoProject",
+        "make_calculus_project:makeCalculusProject",
         "proposal_targets:proposalTargets",
         "chat_history:chatHistory",
         "trim_ai_history:trimAiHistory",

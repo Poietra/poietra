@@ -85,3 +85,45 @@ test('a cancelled login returns to the same guest project with an actionable mes
   await page.getByRole('textbox', { name: 'Project name', exact: true }).fill('Guest continues');
   await expect(page.getByRole('textbox', { name: 'Project name', exact: true })).toHaveValue('Guest continues');
 });
+
+for (const delayedMethod of ['GET', 'PUT']) test(`a delayed ${delayedMethod} response from the previous account cannot replace the current account's projects`, async ({ page }) => {
+  const room = crypto.randomUUID();
+  let account = 'google:alice';
+  const writes: string[] = [];
+  await page.addInitScript(method => {
+    const original = window.fetch.bind(window);
+    let release!: () => void;
+    const paused = new Promise<void>(resolve => { release = resolve; });
+    Object.assign(window, { releaseAccountResponse: release, accountResponsePaused: false });
+    window.fetch = async (input, init) => {
+      const response = await original(input, init);
+      const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.href);
+      if (url.pathname.startsWith('/api/projects') && (init?.method ?? 'GET') === method && new Headers(init?.headers).get('X-Poietra-Account') === 'google:alice') {
+        const json = response.json.bind(response);
+        // Reproduce a response already received when abort happens: JSON work
+        // can finish later even though the originating account has gone away.
+        response.json = async () => { const value = await json(); Object.assign(window, { accountResponsePaused: true }); await paused; return value; };
+      }
+      return response;
+    };
+  }, delayedMethod);
+  await page.route('**/api/auth/session', route => route.fulfill({ json: { user: { id: account, name: account === 'google:alice' ? 'Alice' : 'Bob', provider: 'google' }, providers: { google: true, github: true } } }));
+  await page.route('**/api/projects**', route => {
+    const owner = route.request().headers()['x-poietra-account'];
+    const project = { roomId: owner === 'google:alice' ? 'alice-private-room' : 'bob-private-room', name: owner === 'google:alice' ? 'Alice private work' : 'Bob private work', updatedAt: Date.now() };
+    if (route.request().method() === 'PUT') { writes.push(owner); return route.fulfill({ json: { project } }); }
+    return route.fulfill({ json: { projects: [project] } });
+  });
+  await page.goto(`/?room=${room}&projects=1`);
+  await expect(page.getByText('Alice', { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { accountResponsePaused: boolean }).accountResponsePaused)).toBe(true);
+  account = 'google:bob';
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.getByText('Bob', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Bob private work/ })).toBeVisible();
+  await expect.poll(() => writes.includes('google:bob')).toBe(true);
+  await page.evaluate(() => (window as unknown as { releaseAccountResponse(): void }).releaseAccountResponse());
+  await expect(page.getByRole('link', { name: /Alice private work/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Bob private work/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'ログアウト', exact: true })).toBeEnabled();
+});
