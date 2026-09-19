@@ -1,0 +1,23 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/auth_policy" @policy,
+  "poietra/poietra/auth_service" @auth,
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "record_class:authRecordClass",
+        "account_class:userAccountClass",
+        "repository:workerAuthRepository",
+        "worker_auth:workerAuth",
+      ],
+    },
+  },
+)

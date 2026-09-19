@@ -59,7 +59,9 @@ jobs:
         run: |
           pnpm --dir apps/studio exec node tests/media-storage.integration.mjs node
           pnpm --dir apps/studio exec node tests/r2-assets-worker.integration.mjs
-      - name: Preserve browser failure evidence
+      - name: Check account isolation, callback races and TTL across Worker restarts
+        run: pnpm --dir apps/studio exec node tests/accounts-worker.integration.mjs
+      - name: Preserve browser and local runtime failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -70,3 +72,5 @@ jobs:
             apps/studio/test-results/**/error-context.md
             apps/studio/test-results/**/trace.zip
             apps/studio/test-results/**/test-failed-*.png
+            /tmp/poietra-media-storage-*/*.log
+            /tmp/poietra-accounts-worker-*/*.log

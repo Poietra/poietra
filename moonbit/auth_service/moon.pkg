@@ -1,0 +1,27 @@
+import {
+  "moonbitlang/core/encoding/base64",
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "mizchi/js_web/crypto",
+  "mizchi/js_web/http" @web,
+  "mizchi/js_web/streams",
+  "poietra/poietra/auth_policy" @policy,
+  "poietra/poietra/assets",
+  "poietra/poietra/editor",
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "auth_class:authServiceClass",
+        "auth_hash:authHash",
+        "safe_return_to:safeReturnTo",
+      ],
+    },
+  },
+)

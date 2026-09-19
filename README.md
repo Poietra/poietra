@@ -169,6 +169,11 @@ node scripts/moon.mjs check --target js
   Local image uploads use bounded memory and asynchronous files, with serialized
   quota/publication checks and atomic private files. Native error identity is
   shared across independently linked MoonBit modules.
+- `moonbit/auth_policy`, `auth_service`, `node_auth` and `worker_accounts`:
+  typed pending OAuth flows and sessions, browser-bound one-use state, PKCE,
+  session rotation, private project indexes and TTL cleanup. Provider JSON is
+  read into a fixed bounded buffer. Cryptographic operations use Web Crypto and
+  MoonBit core base64; identities remain separate for Google and GitHub.
 - The Worker host defers generated modules inside its request/DO initialization
   gate. The pinned MoonBit core initializes hash seeds with Web Crypto, which
   workerd forbids at global scope. Wrangler bundles the deferred import into a
@@ -198,7 +203,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas are AI/authentication services and the main Worker/Node
+Remaining migration areas are the AI service and the main Worker/Node
 request handlers, including the Worker's room synchronization and legacy storage.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
@@ -209,7 +214,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **630 regression/differential tests**, 15 MoonBit tests on JS,
+Locally verified: **636 regression/differential tests**, 15 MoonBit tests on JS,
 3 kernel tests and the pure proposal planner test on WASM, typechecking and the
 production build. The complete studio,
 selective Undo and editor Store passed the **154-test CI browser selection**, covering
@@ -349,6 +354,18 @@ The production build also passed 18 image/media browser checks, including portab
 imports, peer Undo and MP4/WebM pixel verification, on two CPU cores.
 [mars.mbt](https://github.com/mizchi/mars.mbt/tree/ff4485e0309a8532d03002eb588ab06dcd252848)
 was inspected, but its Cloudflare adapter is a placeholder and is not adopted.
+The `npm_typed` 0.1.16 [better-auth binding](https://github.com/mizchi/npm_typed.mbt/tree/main/better_auth)
+was also inspected. It uses CommonJS loading and a different session/database API;
+it is not adopted for the existing per-token Durable Object storage. The MoonBit
+auth service passes the OAuth/state/PKCE/private-index tests, including malformed
+and oversized provider responses and native SHA-256/base64url comparison. Real
+workerd tests cover callback races, TTL alarms and two process restarts with mocked
+provider HTTP; live Google/GitHub OAuth registration is still unverified.
+Eight account/project browser tests passed against the production build; the two
+development-only lifecycle fixtures passed against Vite. CI exposed a Node upload
+rejection race: immediately destroying a still-uploading request could reset the
+socket before its 413 response arrived. Rejected inputs now drain within a byte/time
+budget before responding; a stalled-body HTTP regression enforces that deadline.
 
 ## Repository and deployment
 

@@ -2,7 +2,10 @@ import { mkdtemp, mkdir, open, readdir, readFile, rm, stat } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
+import { createServer, request as httpRequest } from 'node:http';
 import { saveRoomImage } from '../server/images';
+import { handleMedia } from '../server/media';
+import { MEDIA_FILE_LIMIT } from '../shared/media';
 import { IMAGE_BYTES_LIMIT, IMAGE_ROOM_BYTES_LIMIT } from '../shared/images';
 
 it('serializes concurrent image publication, preserves dedup at quota, and publishes only private complete files', async () => {
@@ -30,6 +33,53 @@ it('serializes concurrent image publication, preserves dedup at quota, and publi
     await expect(saveRoomImage('../outside', left)).rejects.toThrow('Invalid room');
     await expect(saveRoomImage(room, new Uint8Array(IMAGE_BYTES_LIMIT + 1))).rejects.toThrow('1 MB');
   } finally {
+    if (previous === undefined) delete process.env.POIETRA_DATA_DIR; else process.env.POIETRA_DATA_DIR = previous;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it('delivers an HTTP size error while a declared oversized body is still arriving', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'poietra-node-rejection-'));
+  const previous = process.env.POIETRA_DATA_DIR;
+  process.env.POIETRA_DATA_DIR = root;
+  const server = createServer(async (request, response) => {
+    if (!await handleMedia(request, response, request.url!)) { response.statusCode = 404; response.end(); }
+  });
+  try {
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('No address');
+    const origin = `http://127.0.0.1:${address.port}`;
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({ async pull(controller) {
+      await new Promise(resolve => setTimeout(resolve, 2));
+      if (sent === MEDIA_FILE_LIMIT + 1) { controller.close(); return; }
+      const size = Math.min(512 * 1024, MEDIA_FILE_LIMIT + 1 - sent);
+      sent += size; controller.enqueue(new Uint8Array(size));
+    } });
+    const result = await fetch(`${origin}/api/rooms/${crypto.randomUUID()}/media`, {
+      method: 'POST', headers: { Origin: origin, 'Content-Type': 'audio/wav', 'Content-Length': String(MEDIA_FILE_LIMIT + 1) }, body, ...{ duplex: 'half' },
+    });
+    expect(result.status).toBe(413);
+    expect(await result.json()).toEqual({ error: '音声・動画は 32 MB 以下にしてください。' });
+    // A client that never finishes must still receive the rejection promptly.
+    await new Promise<void>((resolve, reject) => {
+      const pending = httpRequest(`${origin}/api/rooms/${crypto.randomUUID()}/media`, {
+        method: 'POST', headers: { Origin: origin, 'Content-Length': String(MEDIA_FILE_LIMIT + 1) },
+      }, response => {
+        const chunks: Buffer[] = [];
+        response.on('data', chunk => chunks.push(chunk));
+        response.on('end', () => {
+          clearTimeout(timeout); pending.destroy();
+          try { expect(response.statusCode).toBe(413); expect(JSON.parse(Buffer.concat(chunks).toString()).error).toContain('32 MB'); resolve(); }
+          catch (error) { reject(error); }
+        });
+      });
+      const timeout = setTimeout(() => { pending.destroy(); reject(new Error('Rejected request retained its stalled body')); }, 4000);
+      pending.on('error', error => { clearTimeout(timeout); reject(error); });
+      pending.write(new Uint8Array(16));
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     if (previous === undefined) delete process.env.POIETRA_DATA_DIR; else process.env.POIETRA_DATA_DIR = previous;
     await rm(root, { recursive: true, force: true });
   }

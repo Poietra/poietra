@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { ACCOUNT_PROJECT_LIMIT, AUTH_FLOW_TTL, AUTH_SESSION_TTL, AuthService, authHash, safeReturnTo, type AuthConfig } from '../server/auth';
 import { NodeAuthRepository } from '../server/auth-node';
 import type { AuthProvider, AuthSession } from '../shared/accounts';
@@ -124,6 +125,33 @@ describe('optional accounts and private project index', () => {
 });
 
 describe('OAuth state, PKCE and callback protection', () => {
+  it('matches native SHA-256 and unpadded base64url for Unicode and empty values', async () => {
+    for (const value of ['', 'google:Alice', 'github:9007199254740991', '共同制作 🎬', '\ud800']) {
+      expect(await authHash(value)).toBe(createHash('sha256').update(value).digest('base64url'));
+    }
+  });
+  it.each([null, { access_token: 'token', token_type: 'Basic' }, { access_token: 42, token_type: 'Bearer' }])('fails closed for malformed provider token output: %j', async value => {
+    const f = fixture(), flow = await f.start();
+    f.exchange.mockResolvedValueOnce(Response.json(value));
+    const result = await f.complete(flow);
+    expect(result.headers.get('Location')).toContain('auth_error=failed');
+    expect(cookiePair(result, 'session')).toBe('');
+    expect(f.exchange).toHaveBeenCalledOnce();
+    expect((await f.complete(flow)).headers.get('Location')).toBe('/?auth_error=expired');
+  });
+  it('bounds fragmented provider JSON, cancels the oversized stream, and releases its reader', async () => {
+    const f = fixture(), flow = await f.start(), cancel = vi.fn();
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) { controller.enqueue(new Uint8Array(257).fill(32)); sent += 257; }, cancel,
+    }, { highWaterMark: 0 });
+    f.exchange.mockResolvedValueOnce(new Response(body));
+    const result = await f.complete(flow);
+    expect(result.headers.get('Location')).toContain('auth_error=failed');
+    expect(cookiePair(result, 'session')).toBe('');
+    expect(sent).toBeGreaterThan(65536); expect(sent).toBeLessThanOrEqual(65536 + 257);
+    expect(cancel).toHaveBeenCalledOnce(); expect(body.locked).toBe(false);
+  });
   it.each(['google', 'github'] as const)('uses one-use browser-bound state and S256 PKCE for %s', async provider => {
     const f = fixture(), flow = await f.start(provider), result = await f.complete(flow, 'Alice', provider);
     expect(flow.auth.searchParams.get('code_challenge_method')).toBe('S256');

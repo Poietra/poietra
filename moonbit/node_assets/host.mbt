@@ -102,12 +102,18 @@ fn error_response(response : @core.Any, status : Int, message : String) -> Unit 
 }
 
 ///|
-fn reject_upload(
+async fn reject_upload(
   response : @core.Any,
   request : @core.Any,
   error : Error,
   kind : @assets.AssetKind,
 ) -> Unit {
+  if !(request._get("complete").cast() : Bool) {
+    // A TCP reset immediately after response.finish can discard a 413 while the
+    // client is still writing. Drain a bounded, promptly arriving remainder first.
+    response._set("shouldKeepAlive", @core.any(false))
+    drain_rejected(request, kind.file_limit())
+  }
   let value = @http.native_error(error)
   if !(response._get("headersSent").cast() : Bool) &&
     !(response._get("destroyed").cast() : Bool) {
@@ -128,12 +134,53 @@ fn reject_upload(
     }
     error_response(response, status, message)
   }
-  if !(request._get("complete").cast() : Bool) {
-    response._call("once", [
-      @core.any("finish"),
-      @core.any(fn() { request._call("destroy", []) |> ignore }),
-    ])
+}
+
+///|
+async fn drain_rejected(request : @core.Any, limit : Int) -> Unit {
+  let timeout : @core.PromiseResolvers[@core.Any] = @core.Promise::withResolvers()
+  let timer = @core.global_this()._call("setTimeout", [
+    @core.any(fn() {
+      timeout.reject(
+        @core.new(@core.global_this()._get("Error"), [
+          @core.any("Upload drain deadline"),
+        ]).cast(),
+      )
+    }),
+    @core.any(2000),
+  ])
+  defer @core.global_this()._call("clearTimeout", [timer]) |> ignore
+  let source = iterator(request)
+  // Never wait for return() behind a stalled next(); closing the HTTP response
+  // owns the socket. Observe rejection so cancellation cannot leak a promise.
+  defer (try
+    @http.call_promise(source, "return", []).catch_(fn(_error) {
+      @core.Promise::resolve(@core.undefined())
+    })
     |> ignore
+  catch {
+    _ => ()
+  })
+  let mut discarded = 0.0
+  try {
+    while discarded <= (limit + 131072).to_double() {
+      let next = @http.call_promise(source, "next", [])
+      let race : @core.Promise[@core.Any] = @core.global_this()
+        ._get("Promise")
+        ._call("race", [
+          @core.any(
+            ([next, timeout.promise] : FixedArray[@core.Promise[@core.Any]]),
+          ),
+        ])
+        .cast()
+      let result = race.wait()
+      if (result._get("done").cast() : Bool) {
+        break
+      }
+      discarded += (result._get("value")._get("byteLength").cast() : Double)
+    }
+  } catch {
+    _ => ()
   }
 }
 
