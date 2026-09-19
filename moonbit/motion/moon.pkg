@@ -1,0 +1,23 @@
+options(
+  link: {
+    "wasm": {
+      "exports": [
+        "ease",
+        "track_progress",
+        "interpolate",
+        "cubic_bezier",
+        "cubic_bezier_ease",
+      ],
+    },
+    "js": {
+      "exports": [
+        "ease",
+        "track_progress",
+        "interpolate",
+        "cubic_bezier",
+        "cubic_bezier_ease",
+      ],
+      "format": "esm",
+    },
+  },
+)

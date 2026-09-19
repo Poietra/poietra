@@ -1,0 +1,18 @@
+# Poietra MoonBit rewrite
+
+- 2026-09-18: The founder requested a complete MoonBit rewrite of the public
+  `Poietra/poietra-hackathon` application in this public `Poietra/poietra` repository.
+- Preserve the editor's existing functionality, appearance, collaborative editing
+  semantics, portable project files, and preview/export agreement during migration.
+- Implement application and domain logic in typed MoonBit. JavaScript adapters are
+  for browser/runtime/npm interoperability, not containers for the old implementation.
+- Keep pure domain code independent of the UI and host runtime. Compile the motion
+  kernel to WebAssembly; use the JS target for host integrations.
+- `apps/studio` initially contains the public hackathon application's source and
+  regression tests at commit `3f49040ee4bcf06bfcf02e269712833f3729c536`.
+  Replace implementations incrementally and test the actual generated artifacts.
+- Do not describe unported features as migrated or untested behavior as verified.
+- Historical design work lives in the separate private `poietra-design-archive`.
+  Do not copy its documents or history into this public repository.
+- Keep documentation in README. Do not deploy to the existing production domain
+  or reuse its production storage while validating the rewrite locally.

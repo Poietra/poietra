@@ -1,0 +1,169 @@
+import { expect, test, type Page, type Route } from '@playwright/test';
+import { defaultTrack } from '../../shared/model';
+
+// These are explicit API stubs. No real model call or API key is involved in this suite.
+const positionProposal = (x: number, expected = 245, message = '円の位置を調整しました。') => ({
+  id: crypto.randomUUID(), message, count: 1,
+  changes: [{ path: ['scenes', 'scene-1', 'compositions', 'comp-1', 'states', 'circle', 'x'], value: x, expected, existed: true }],
+});
+const fulfill = (route: Route, body: object, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+async function open(page: Page, room = crypto.randomUUID()) {
+  await page.route('**/api/health', route => fulfill(route, { ok: true, ai: true }));
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
+}
+async function assistant(page: Page) { await page.getByRole('button', { name: 'Chat', exact: true }).click(); }
+async function send(page: Page, text = '円を中央にしてください') {
+  await page.getByRole('textbox', { name: 'チャットメッセージ' }).fill(`@codex ${text}`);
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+}
+async function design(page: Page) { await page.getByRole('button', { name: 'Design', exact: true }).click(); }
+async function setX(page: Page, value: string) {
+  const field = page.getByRole('spinbutton', { name: 'Position X', exact: true }); await field.fill(value); await field.press('Tab');
+}
+
+test('a proposal survives inspecting Design, preserves peer fields, and rejects a stale follow-up', async ({ browser }) => {
+  const first = await browser.newContext(); const second = await browser.newContext();
+  const alice = await first.newPage(); const bob = await second.newPage(); const room = crypto.randomUUID();
+  await Promise.all([open(alice, room), open(bob, room)]);
+  await alice.route('**/api/ai/propose', route => fulfill(route, positionProposal(640)));
+  await assistant(alice); await send(alice);
+  await expect(alice.getByRole('button', { name: 'Apply edits' })).toBeVisible();
+  await design(alice); await assistant(alice);
+  await expect(alice.getByRole('button', { name: 'Apply edits' })).toBeVisible();
+  await bob.getByRole('button', { name: '色 #f4ce55', exact: true }).click();
+  await alice.getByRole('button', { name: 'Apply edits' }).click();
+  await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('640');
+  await expect(bob.getByRole('textbox', { name: 'Fillのカラーコード' })).toHaveValue('F4CE55');
+  await alice.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('245');
+  await send(alice, 'もう一度中央へ');
+  await expect(alice.getByRole('button', { name: 'Apply edits' })).toBeVisible();
+  await setX(bob, '350');
+  await design(alice); await expect(alice.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('350'); await assistant(alice);
+  await alice.getByRole('button', { name: 'Apply edits' }).click();
+  await expect(alice.getByRole('alert')).toContainText('提案後に対象が変更');
+  await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('350');
+  await expect(bob.getByRole('textbox', { name: 'Fillのカラーコード' })).toHaveValue('F4CE55');
+  await first.close(); await second.close();
+});
+
+test('changing the composition while waiting keeps the request target explicit', async ({ page }) => {
+  await open(page); await assistant(page);
+  let route!: Route;
+  await page.route('**/api/ai/propose', current => { route = current; });
+  await send(page); await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+  await fulfill(route, positionProposal(640));
+  await expect(page.getByRole('button', { name: '対象を表示', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply edits' })).toBeVisible();
+  await page.getByRole('button', { name: '対象を表示', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply edits' }).click();
+  await design(page); await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('640');
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('955');
+});
+
+test('canceling then requesting again ignores the first response and keeps the next draft', async ({ page }) => {
+  await open(page); await assistant(page);
+  let first!: Route; let second!: Route; let count = 0;
+  await page.route('**/api/ai/propose', route => { count += 1; if (count === 1) first = route; else second = route; });
+  await send(page, '最初の依頼');
+  await expect.poll(() => count).toBe(1);
+  await page.getByRole('button', { name: '停止', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'チャットメッセージ' })).toHaveValue('@codex 最初の依頼');
+  await send(page, '次の依頼'); await expect.poll(() => count).toBe(2);
+  await page.getByRole('textbox', { name: 'チャットメッセージ' }).fill('編集中の下書き');
+  await fulfill(first, positionProposal(500, 245, '停止済みの応答')).catch(() => {});
+  await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible();
+  await fulfill(second, positionProposal(640, 245, '新しい応答'));
+  await expect(page.getByText('新しい応答', { exact: true })).toBeVisible();
+  await expect(page.getByText('停止済みの応答', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'チャットメッセージ' })).toHaveValue('編集中の下書き');
+  await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0);
+});
+
+test('changing the scene cancels the pending response and later requests use the new scene', async ({ page }) => {
+  await open(page); await assistant(page); let first!: Route; const requests: Array<{ sceneId: string; selectedIds: string[] }> = [];
+  await page.route('**/api/ai/propose', route => {
+    requests.push(route.request().postDataJSON());
+    if (requests.length === 1) first = route;
+    else return fulfill(route, { id: crypto.randomUUID(), message: '新しい Scene の応答', count: 0, changes: [] });
+  });
+  await send(page); await expect.poll(() => requests.length).toBe(1);
+  await page.getByRole('button', { name: 'Scene を追加', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Scene を切り替えたため');
+  await send(page, '新しい場面を考えて');
+  await expect(page.getByText('新しい Scene の応答', { exact: true })).toBeVisible();
+  expect(requests[1].sceneId).not.toBe('scene-1'); expect(requests[1].selectedIds).toEqual([]);
+  await fulfill(first, positionProposal(640, 245, '前の Scene の応答')).catch(() => {});
+  await expect(page.getByText('前の Scene の応答', { exact: true })).toHaveCount(0);
+});
+
+test('an API failure can be retried, with no fake edit and no lost draft', async ({ page }) => {
+  await open(page); await assistant(page); let first!: Route; let count = 0;
+  await page.route('**/api/ai/propose', route => {
+    count += 1;
+    if (count === 1) first = route;
+    else return fulfill(route, positionProposal(640));
+  });
+  await send(page); await expect.poll(() => count).toBe(1);
+  await page.getByRole('textbox', { name: 'チャットメッセージ' }).fill('次の依頼の下書き');
+  await fulfill(first, { error: '接続を再確認してください。' }, 503);
+  await expect(page.getByRole('alert')).toContainText('接続を再確認');
+  await expect(page.getByRole('button', { name: 'Apply edits' })).toHaveCount(0);
+  await page.getByRole('button', { name: '再試行', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Apply edits' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'チャットメッセージ' })).toHaveValue('次の依頼の下書き');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('Ctrl+Enter sends a @codex request and applies the guarded proposal without a click', async ({ page }) => {
+  await open(page); await assistant(page);
+  await page.route('**/api/ai/propose', route => fulfill(route, positionProposal(640)));
+  const composer = page.getByRole('textbox', { name: 'チャットメッセージ' });
+  await composer.fill('@codex 円を中央にしてください'); await composer.press('Control+Enter');
+  await expect(page.getByText('Applied', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply edits' })).toHaveCount(0);
+  await expect(page.locator('.toast')).toContainText('即適用');
+  await design(page); await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('640');
+  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('245');
+});
+
+test('an AI proposal that generated a picture adds an image object which renders and undoes', async ({ page }) => {
+  await open(page); await assistant(page);
+  const src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const state = (visible: boolean) => ({ x: 900, y: 200, width: 300, height: 200, rotation: 0, opacity: 1, visible, fill: 'none', stroke: '#ffffff', strokeWidth: 0, text: '', fontSize: 36, cornerRadius: 0, effect: 'none', path: { c1: { x: 140, y: 0 }, c2: { x: 260, y: -180 } } });
+  await page.route('**/api/ai/propose', route => fulfill(route, { id: crypto.randomUUID(), message: '星の画像を追加しました。', count: 1, changes: [
+    { path: ['scenes', 'scene-1', 'objects', 'obj_ai_star'], value: { id: 'obj_ai_star', name: 'AI star', kind: 'image', image: { src, width: 1536, height: 1024 }, order: 9, locked: false, groupId: null }, expected: null, existed: false },
+    { path: ['scenes', 'scene-1', 'compositions', 'comp-1', 'states', 'obj_ai_star'], value: state(true), expected: null, existed: false },
+    { path: ['scenes', 'scene-1', 'compositions', 'comp-2', 'states', 'obj_ai_star'], value: state(false), expected: null, existed: false },
+    // Match compileProposal: an object and its implicit animation parents are one local edit.
+    { path: ['scenes', 'scene-1', 'transitions', 'transition-1', 'tracks', 'obj_ai_star'], value: defaultTrack('obj_ai_star', { duration: 800, implicit: true }), expected: null, existed: false },
+  ] }));
+  await send(page, '星のイラストを右上に追加して');
+  await page.getByRole('button', { name: 'Apply edits' }).click();
+  await expect(page.getByRole('button', { name: 'AI star', exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid="stage-main"] .scene-svg [data-object-id="obj_ai_star"]')).toBeVisible();
+  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'AI star', exact: true })).toHaveCount(0);
+});
+
+test('Ctrl+Enter refuses automatic application after a collaborator changes the requested property', async ({ page, browser }) => {
+  const context = await browser.newContext(), peer = await context.newPage(), room = crypto.randomUUID();
+  try {
+    await Promise.all([open(page, room), open(peer, room)]); await assistant(page);
+    let pending!: Route;
+    await page.route('**/api/ai/propose', route => { pending = route; });
+    const composer = page.getByRole('textbox', { name: 'チャットメッセージ' });
+    await composer.fill('@codex 円を中央にしてください'); await composer.press('Control+Enter');
+    await expect.poll(() => !!pending).toBe(true);
+    await setX(peer, '350');
+    await design(page); await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('350'); await assistant(page);
+    await fulfill(pending, positionProposal(640));
+    await expect(page.getByRole('alert')).toContainText('提案後に対象が変更');
+    await expect(page.getByText('Applied', { exact: true })).toHaveCount(0);
+    await expect(peer.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('350');
+  } finally { await context.close(); }
+});

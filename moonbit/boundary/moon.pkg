@@ -1,0 +1,33 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/scene",
+  "poietra/poietra/geometry",
+}
+
+options(
+  targets: {
+    "scene.mbt": [ "js" ],
+    "adapters.mbt": [ "js" ],
+    "geometry.mbt": [ "js" ],
+  },
+  link: {
+    "js": {
+      "exports": [
+        "rotate_vector:rotateVector",
+        "world_to_local:worldToLocal",
+        "local_to_world:localToWorld",
+        "point_in_rotated_bounds:pointInRotatedBounds",
+        "rectangle_from_points:rectangleFromPoints",
+        "rectangle_contains_rotated_bounds:rectangleContainsRotatedBounds",
+        "resize_from_corner:resizeFromCorner",
+        "rotation_from_pointer:rotationFromPointer",
+        "evaluate_scene:evaluateScene",
+        "composition_frame:compositionFrame",
+        "transition_frame:transitionFrame",
+        "scene_segments:sceneSegments",
+        "scene_duration:sceneDuration",
+      ],
+      "format": "esm",
+    },
+  },
+)
