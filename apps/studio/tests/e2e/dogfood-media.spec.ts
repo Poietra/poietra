@@ -24,6 +24,49 @@ async function observer(page: Page, room: string) {
 async function field(page: Page, name: string, value: string) { const input = page.getByRole('spinbutton', { name, exact: true }); await input.fill(value); await input.press('Tab'); }
 async function uploadWave(page: Page) { await page.getByLabel('音声・動画ファイル', { exact: true }).setInputFiles(wave()); await expect(page.getByTestId('audio-track')).toHaveCount(1); }
 
+async function pasteMixedAssets(page: Page, broken = false) {
+  const audio = wave();
+  await page.evaluate(({ bytes, broken }) => {
+    const canvas = document.createElement('canvas'); canvas.width = 40; canvas.height = 20;
+    canvas.getContext('2d')!.fillRect(0, 0, 40, 20);
+    const png = Uint8Array.from(atob(canvas.toDataURL().split(',')[1]), c => c.charCodeAt(0));
+    const clipboardData = new DataTransfer();
+    clipboardData.items.add(new File([png], 'Mixed.png', { type: 'image/png' }));
+    clipboardData.items.add(new File([broken ? 'invalid' : new Uint8Array(bytes)], 'Batch.wav', { type: 'audio/wav' }));
+    (document.activeElement as HTMLElement)?.blur();
+    document.body.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+  }, { bytes: [...audio.buffer], broken });
+}
+
+test('a mixed image/audio paste commits together and has one Undo item', async ({ page }) => {
+  const room = await open(page), watch = await observer(page, room);
+  try {
+    await pasteMixedAssets(page);
+    await expect(page.getByTestId('audio-track')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Mixed', exact: true })).toBeVisible();
+    await expect.poll(() => Object.values(watch.project().scenes['scene-1'].objects).filter(o => o.kind === 'image').length).toBe(1);
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect(page.getByTestId('audio-track')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Mixed', exact: true })).toHaveCount(0);
+    await expect.poll(() => Object.values(watch.project().scenes['scene-1'].objects).filter(o => o.kind === 'image').length).toBe(0);
+    await page.getByRole('button', { name: 'やり直す (⌘⇧Z)', exact: true }).click();
+    await expect(page.getByTestId('audio-track')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Mixed', exact: true })).toBeVisible();
+  } finally { watch.close(); }
+});
+
+test('a failed second item leaves the entire mixed paste out of shared data', async ({ page }) => {
+  const room = await open(page), watch = await observer(page, room);
+  try {
+    await pasteMixedAssets(page, true);
+    await expect(page.locator('.media-import-status.is-error')).toBeVisible();
+    await expect(page.getByTestId('audio-track')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Mixed', exact: true })).toHaveCount(0);
+    expect(Object.values(watch.project().scenes['scene-1'].objects).filter(o => o.kind === 'image')).toHaveLength(0);
+    await expect(page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true })).toBeDisabled();
+  } finally { watch.close(); }
+});
+
 test('audio is a shared independent waveform track with trim, volume, mute, and undo', async ({ page, browser }, info) => {
   const room = await open(page), watch = await observer(page, room), context = await browser.newContext(), peer = await context.newPage();
   try {

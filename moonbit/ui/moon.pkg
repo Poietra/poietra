@@ -37,6 +37,7 @@ options(
         "use_editor:useEditor",
         "use_editor_keyboard:useEditorKeyboard",
         "use_editor_clipboard:useEditorClipboard",
+        "use_editor_imports:useEditorImports",
         "project_preview:ProjectPreview",
         "export_dialog:ExportDialog",
         "download_blob:download",

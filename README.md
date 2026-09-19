@@ -104,6 +104,9 @@ node scripts/moon.mjs check --target js
   Global keyboard/clipboard handlers keep stable subscriptions and read current
   state. Typed shortcut actions preserve IME/text selection and one-gesture nudge
   Undo. Asset paste checks its destination again after asynchronous transfers.
+  Imports own their progress, cancellation and target. Mixed image/audio/video
+  batches prepare every asset and validate all limits before one shared command,
+  so failures leave no partial document edits and one Undo restores the batch.
   Account sessions own their list/save requests; switching identity aborts old
   work and rejects its late responses, including already received JSON.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
@@ -180,6 +183,9 @@ and a regression for reopening while an earlier file read is still pending.
 Keyboard handling passed 18 browser checks for group nudges, IME, native clipboard,
 preview controls and text editing. Clipboard integration then passed 17 image/input
 checks and a delayed-response test for switching the paste destination.
+The import controller passed 16 image/media browser checks, plus mixed-batch
+failure and one-step Undo/Redo checks. Its pure plan rejects full/missing audio
+maps and object limits before allocating any document identities.
 Initial editor loading was also checked with both the dev server and browser tests
 restricted to two CPU cores: the 11 chat checks passed with a 15 s startup budget.
 WASM begins loading alongside the editor graph; the 10 homepage checks confirm
