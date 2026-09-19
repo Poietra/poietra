@@ -12,7 +12,7 @@ async function editor(browser: Browser, room: string) {
     if (offline) socket.close(); else { sockets.push(socket); socket.connectToServer(); }
   });
   const page = await context.newPage(); await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   return { context, page, async disconnect() {
     offline = true; for (const socket of sockets) socket.close(); await context.setOffline(true);
     await expect(page.getByText('Offline', { exact: true })).toBeVisible();
@@ -109,7 +109,7 @@ test('untouched creation Undo/Redo stays normal; a later peer-created animation 
     expect(parseProjectFile(JSON.stringify(data.project()))).toEqual(data.project());
     await layer(alice.page, 'Composition 1').click();
     await expect(alice.page.locator(`[data-testid="stage-main"] .scene-svg [data-object-id="${id}"]`)).toBeVisible();
-    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible();
+    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await expect(layer(bob.page, 'Circle 2')).toBeVisible();
     await expect(bob.page.locator(`[data-testid="stage-main"] .scene-svg [data-object-id="${id}"]`)).toBeVisible();
   } finally { data.close(); await alice.context.close(); await bob.context.close(); }

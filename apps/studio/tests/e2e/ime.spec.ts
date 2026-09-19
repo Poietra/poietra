@@ -16,8 +16,8 @@ test('Chromium composition commits Japanese text, preserves Enter, then returns 
   const room = crypto.randomUUID(), cdp = await first.newCDPSession(page);
   try {
     await Promise.all([page.goto(`/?room=${room}`), peer.goto(`/?room=${room}`)]);
-    await expect(page.getByText('Live', { exact: true })).toBeVisible();
-    await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'テキスト (T)', exact: true }).click();
     const stage = page.getByTestId('stage-main'), rect = await stage.boundingBox();
     await page.mouse.click(rect!.x + rect!.width / 2, rect!.y + rect!.height / 3);

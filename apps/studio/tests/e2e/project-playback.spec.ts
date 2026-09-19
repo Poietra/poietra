@@ -12,7 +12,7 @@ import { defaultState, type Project } from '../../shared/model';
 const execute = promisify(execFile);
 async function open(page: Page, project: Project) {
   const room = crypto.randomUUID(); await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc(), provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
   await new Promise<void>(resolve => provider.on('sync', synced => { if (synced) resolve(); }));

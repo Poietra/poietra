@@ -7,7 +7,7 @@ test('guest editing and project creation remain available alongside both optiona
   await page.route('**/api/projects**', route => { indexRequests++; return route.fulfill({ status: 401, json: { error: 'ログインしてください。' } }); });
   const room = crypto.randomUUID();
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
   for (const provider of ['Google', 'GitHub']) {
     const link = page.getByRole('link', { name: `${provider} でログイン` });

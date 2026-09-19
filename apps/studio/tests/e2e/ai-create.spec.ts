@@ -30,7 +30,7 @@ const reply = (route: Route, value: unknown, status = 200) => route.fulfill({ st
 async function fixture(page: Page, operations: Operation[]) {
   const room = crypto.randomUUID();
   await page.route('**/api/health', route => reply(route, { ok: true, ai: true }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc();
   const provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
@@ -69,7 +69,7 @@ test('one AI proposal creates Move and Write animations, previews in two browser
   const peer = await peerContext.newPage();
   await peer.route('**/api/ai/propose', route => route.abort('blockedbyclient'));
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     const original = structuredClone(room.scene());
     await request(page);
     await expect(page.getByLabel('編集する対象', { exact: true })).toContainText('AI ball');
@@ -119,7 +119,7 @@ test('creation Undo preserves a peer-edited new object, its animation and requir
   const peer = await peerContext.newPage();
   await peer.route('**/api/ai/propose', route => route.abort('blockedbyclient'));
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await request(page, '黄色い円を新しく作って1200msで動かし、既存Circleの最初のXを300にして'); const id = room.id('AI ball');
     await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
     await expect(peer.getByRole('button', { name: 'AI ball', exact: true })).toBeVisible();
@@ -148,7 +148,7 @@ test('Undo of an AI timing extension keeps a peer’s longer existing animation 
   const peer = await peerContext.newPage();
   await peer.route('**/api/ai/propose', route => route.abort('blockedbyclient'));
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await request(page, '既存のCircleを同じ経路で2秒かけて動かして');
     await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
     await peer.getByRole('button', { name: 'Transition 2,000 ms', exact: true }).click();

@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function open(page: Page) {
   await page.goto(`/?room=${crypto.randomUUID()}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId('stage-main').locator('[data-object-id="circle"]')).toBeVisible();
 }
 async function center(locator: Locator) {

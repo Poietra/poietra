@@ -13,7 +13,7 @@ async function editor(browser: Browser, room: string) {
     if (offline) socket.close(); else { sockets.push(socket); socket.connectToServer(); }
   });
   const page = await context.newPage(); await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   return { context, page, async offline() {
     offline = true; for (const socket of sockets) socket.close(); await context.setOffline(true);
     await expect(page.getByText('Offline', { exact: true })).toBeVisible();

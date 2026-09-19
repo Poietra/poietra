@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function open(page: Page, room: string) { await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible(); await expect(page.locator('[data-testid="stage-main"] [data-object-id="circle"]')).toBeVisible(); }
+async function open(page: Page, room: string) { await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 }); await expect(page.locator('[data-testid="stage-main"] [data-object-id="circle"]')).toBeVisible(); }
 async function selectCircle(page: Page) { await page.getByRole('button', { name: 'Circle', exact: true }).click(); }
 async function x(page: Page) {
   const surface = await page.getByTestId('stage-main').boundingBox();

@@ -4,7 +4,7 @@ import { parseProjectFile } from '../../shared/project-file';
 
 async function open(page: Page, room: string) {
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('tab', { name: 'Scene 1', exact: true })).toBeVisible();
 }
 async function action(page: Page, name: string, action: 'Rename' | 'Duplicate' | 'Delete') {
@@ -100,7 +100,7 @@ test('opposite offline Scene deletions retain one editable Scene and adding to i
       await page.keyboard.press('Escape'); await expect(page.getByRole('button', { name: 'Scene 1 のシーン操作', exact: true })).toBeFocused();
     }
     await alice.page.getByRole('button', { name: 'Scene を追加', exact: true }).click(); await expect(tabs(bob.page)).toHaveCount(2);
-    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible();
+    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await expect(tabs(bob.page)).toHaveCount(2); await expect(bob.page.getByRole('tab', { name: 'Scene 1', exact: true })).toBeVisible();
     await alice.page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
     await expect(tabs(bob.page)).toHaveCount(1); await bob.page.getByRole('button', { name: 'Circle', exact: true }).click();

@@ -40,7 +40,7 @@ test('people chat without AI availability, see real names and unread messages, a
     await expect(log(alice).getByText('いいですね！\n次の場面も相談しましょう', { exact: true })).toBeVisible();
     await send(alice, '連絡先 person@codex.com');
     expect(calls).toBe(0);
-    await alice.reload(); await expect(alice.getByText('Live', { exact: true })).toBeVisible();
+    await alice.reload(); await expect(alice.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await alice.getByRole('button', { name: 'Chat', exact: true }).click();
     await expect(log(alice).locator('.chat-message.user')).toHaveCount(3);
     await expect(alice.locator('.assistant-heading')).toHaveCount(0);
@@ -84,7 +84,7 @@ test('@codex calls AI only on the sending browser, shares pending/reply/apply st
     await expect(thinking(bob)).toHaveCount(0);
     await expect(log(bob).getByRole('button', { name: 'Apply edits', exact: true })).toHaveCount(0);
     await expect(log(bob).getByText('依頼した人が適用できます', { exact: true })).toBeVisible();
-    await alice.reload(); await expect(alice.getByText('Live', { exact: true })).toBeVisible();
+    await alice.reload(); await expect(alice.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await alice.getByRole('button', { name: 'Chat', exact: true }).click();
     await expect(log(alice).getByRole('button', { name: 'Apply edits', exact: true })).toBeVisible();
     await log(alice).getByRole('button', { name: 'Apply edits', exact: true }).click();
@@ -240,7 +240,7 @@ test('an interrupted request becomes stopped after reload and can be restored wi
   await page.route('**/api/ai/propose', () => { calls++; });
   await open(page, crypto.randomUUID(), 'Alice');
   await send(page, '@codex 円を黄色にして'); await expect.poll(() => calls).toBe(1);
-  await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   await expect(log(page).getByText('停止しました', { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(thinking(page)).toHaveCount(0);

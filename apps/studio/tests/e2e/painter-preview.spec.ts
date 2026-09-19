@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function open(page: Page) {
   await page.goto(`/tests/e2e/fixtures/painter-preview.html?room=${crypto.randomUUID()}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-testid="stage-main"] .scene-hit-svg')).toHaveCount(1);
 }
 const circle = (page: Page, stage = 'main') => page.locator(`[data-testid="stage-${stage}"] .scene-svg [data-object-id="circle"]`);

@@ -18,7 +18,7 @@ async function add(page: Page, tool: string, x: number, y: number, content?: str
   return id!;
 }
 async function setup(page: Page) {
-  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const rectangle = await add(page, '四角形 (R)', 430, 180);
   await field(page, 'Width', 70); await field(page, 'Height', 60); await field(page, 'Rotation', 35);
   const text = await add(page, 'テキスト (T)', 620, 200, '日 本 語'); await field(page, 'Rotation', -30);
@@ -49,7 +49,7 @@ test('a reverse marquee encloses rotated shapes, text and equations; the selecti
   const ids = await setup(page);
   const peerContext = await browser.newContext(); const peer = await peerContext.newPage();
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await marquee(page, { x: 890, y: 290 }, { x: 370, y: 100 });
     await expect.poll(() => selected(page)).toEqual(Object.values(ids).sort());
     await expect(page.locator('.inspector-title-label')).toContainText('3 objects');
@@ -89,7 +89,7 @@ test('Shift marquee preserves selection, Shift click toggles and locked selected
 });
 
 test('small empty clicks never become marquees, partial bounds and invisible objects are excluded, and Escape cancels selection', async ({ page }) => {
-  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
   const empty = await world(page, 100, 100);
   await page.mouse.move(empty.x, empty.y); await page.mouse.down(); await page.mouse.move(empty.x + 2, empty.y + 1);

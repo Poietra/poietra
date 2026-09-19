@@ -32,10 +32,10 @@ for (const example of [
   { tool: '数式 (E)', label: 'LaTeX expression', content: String.raw`x \qquad\qquad\qquad y`, revised: String.raw`x \qquad\qquad\qquad z` },
 ]) test(`${example.label}: create, edit, drag rotated whitespace, reopen, undo and synchronize the same object`, async ({ page, browser }) => {
   const room = crypto.randomUUID();
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const peerContext = await browser.newContext(); const peer = await peerContext.newPage();
   try {
-    await peer.goto(`/?room=${room}`); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(`/?room=${room}`); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: example.tool, exact: true }).click();
     const at = await world(page, 650, 230); await page.mouse.click(at.x, at.y);
     const input = page.getByRole('textbox', { name: example.label, exact: true });
@@ -83,7 +83,7 @@ for (const example of [
 });
 
 test('double click edits the visible transition destination, while an interpolated preview stays read only', async ({ page }) => {
-  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
   await page.getByRole('button', { name: 'Equation', exact: true }).click();
   const slider = page.getByRole('slider', { name: 'Transition preview position', exact: true });
@@ -106,7 +106,7 @@ test('double click edits the visible transition destination, while an interpolat
 
 
 test('grabbing the canvas commits an unfinished Inspector value before starting the drag', async ({ page }) => {
-  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
   const input = page.getByRole('spinbutton', { name: 'Position X', exact: true });
   await input.fill('500'); // Deliberately leave the field focused, with its value uncommitted.
@@ -120,7 +120,7 @@ test('grabbing the canvas commits an unfinished Inspector value before starting 
 });
 
 test('LaTeX completion lists commands, inserts snippets with the caret inside the first braces, and stays quiet for line breaks', async ({ page }) => {
-  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${crypto.randomUUID()}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
   await page.getByRole('button', { name: 'Equation', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'LaTeX expression', exact: true });

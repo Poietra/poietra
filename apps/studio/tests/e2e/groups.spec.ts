@@ -7,7 +7,7 @@ import { defaultTrack } from '../../shared/model';
 
 async function fixture(page: Page) {
   const room = crypto.randomUUID(); await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const doc = new Y.Doc();
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
@@ -43,7 +43,7 @@ test('two browsers group, drag together, set common timing, preview, ungroup and
   const first = await browser.newContext({ viewport: { width: 1715, height: 1050 } }), second = await browser.newContext({ viewport: { width: 1715, height: 1050 } });
   const alice = await first.newPage(), bob = await second.newPage(); const room = await fixture(alice);
   try {
-    await bob.goto(`/?room=${room.room}`); await expect(bob.getByText('Live', { exact: true })).toBeVisible();
+    await bob.goto(`/?room=${room.room}`); await expect(bob.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     const before = structuredClone(room.scene());
     await chooseMembers(alice); await alice.getByRole('button', { name: 'Group', exact: true }).click();
     await expect(bob.getByRole('button', { name: 'Select group: Circle, Second circle', exact: true }).first()).toBeVisible();

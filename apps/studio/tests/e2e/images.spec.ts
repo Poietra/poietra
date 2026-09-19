@@ -11,7 +11,7 @@ import { parseProjectFile } from '../../shared/project-file';
 
 const execute = promisify(execFile);
 async function open(page: Page, room = crypto.randomUUID()) {
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   return room;
 }
 async function fixture(page: Page, name = 'Together.png') {
@@ -139,7 +139,7 @@ test('an uploaded image receives AI Move and Write tracks and previews the right
       return route.fulfill({ json: compileProposal(watch.doc, watch.project(), 'scene-1', { message: calls === 1 ? '画像を移動します。' : '画像を左から表示します。', operations }) });
     });
     // Refresh the availability indicator without waiting for its periodic health check.
-    await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+    await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Together', exact: true }).click();
     await page.getByRole('button', { name: 'Chat', exact: true }).click();
     await page.getByRole('textbox', { name: 'チャットメッセージ', exact: true }).fill('@codex 画像を次の場面へ右に動かして');

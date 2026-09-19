@@ -14,7 +14,7 @@ function wave(name = 'Tone.wav') {
   for (let i = 0; i < samples; i++) bytes.writeInt16LE(Math.round(Math.sin(i * 440 * Math.PI * 2 / 16000) * 14000), 44 + i * 2);
   return { name, mimeType: 'audio/wav', buffer: bytes };
 }
-async function open(page: Page, room = crypto.randomUUID()) { await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible(); return room; }
+async function open(page: Page, room = crypto.randomUUID()) { await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 }); return room; }
 async function observer(page: Page, room: string) {
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc(), provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });

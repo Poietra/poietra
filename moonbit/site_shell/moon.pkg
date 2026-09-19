@@ -1,0 +1,30 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/npm_typed/react",
+  "mizchi/npm_typed/react_dom_client" @client,
+  "poietra/poietra/site",
+  "poietra/poietra/site_boundary" @locale,
+  "poietra/poietra/editor",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "resolve_locale:resolveLocale",
+        "get_locale:getLocale",
+        "apply_page_language:applyPageLanguage",
+        "page_copy:pageCopy",
+        "is_editor_location:isEditorLocation",
+        "last_room:lastRoom",
+        "room_link:roomLink",
+        "boundary_component:boundaryComponent",
+        "start_page:startPage",
+        "open_editor:openEditor",
+      ],
+    },
+  },
+)

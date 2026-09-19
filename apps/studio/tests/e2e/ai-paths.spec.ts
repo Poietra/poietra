@@ -17,7 +17,7 @@ const reply = (route: Route, body: unknown, status = 200) => route.fulfill({ sta
 async function fixture(page: Page) {
   const room = crypto.randomUUID();
   await page.route('**/api/health', route => reply(route, { ok: true, ai: true }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc();
   const provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });

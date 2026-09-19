@@ -6,8 +6,8 @@ test('opening a saved project creates a separate shared room and leaves collabor
   const original = await context.newPage(); const imported = await context.newPage();
   const originalRoom = crypto.randomUUID();
   await Promise.all([original.goto(`/?room=${originalRoom}`), imported.goto(`/?room=${originalRoom}`)]);
-  await expect(original.getByText('Live', { exact: true })).toBeVisible();
-  await expect(imported.getByText('Live', { exact: true })).toBeVisible();
+  await expect(original.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(imported.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const project = makeDemoProject(); project.name = 'Restored project';
   project.scenes['scene-1'].compositions['comp-1'].states.circle.x = 412;
   await imported.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
@@ -17,7 +17,7 @@ test('opening a saved project creates a separate shared room and leaves collabor
   await expect(original.getByRole('textbox', { name: 'Project name', exact: true })).toHaveValue('A little motion');
   const secondContext = await browser.newContext(); const collaborator = await secondContext.newPage();
   await collaborator.goto(imported.url());
-  await expect(collaborator.getByText('Live', { exact: true })).toBeVisible();
+  await expect(collaborator.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await collaborator.getByRole('button', { name: 'Circle', exact: true }).click();
   await expect(collaborator.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('412');
   await imported.reload();

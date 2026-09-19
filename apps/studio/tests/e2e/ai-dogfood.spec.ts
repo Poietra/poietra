@@ -27,7 +27,7 @@ async function field(page: Page, label: string, value: string) {
 }
 async function open(page: Page, room = crypto.randomUUID()) {
   await page.route('**/api/health', route => fulfill(route, { ok: true, ai: true }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   return room;

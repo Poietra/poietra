@@ -95,7 +95,7 @@ test('opposite offline deletions converge to one retained composition and adding
     await expect(compositions(bob.page)).toHaveCount(2);
     await expect(bob.page.getByRole('button', { name: 'Composition 1', exact: true })).toBeVisible();
     await expect(bob.page.getByRole('button', { name: 'Transition 800 ms', exact: true })).toHaveCount(1);
-    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible();
+    await bob.page.reload(); await expect(bob.page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await expect(compositions(bob.page)).toHaveCount(2);
     await alice.page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
     await expect(compositions(bob.page)).toHaveCount(1);

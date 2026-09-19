@@ -1,0 +1,12 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/site",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": { "format": "esm", "exports": [ "resolve_locale:resolveLocale" ] },
+  },
+)

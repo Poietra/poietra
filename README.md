@@ -11,7 +11,7 @@ audio/video track editing, the animation timeline, canvas interaction and global
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller,
-AI/image schemas and proposal compilation. Landing/bootstrap and services still contain
+AI/image schemas, proposal compilation and the complete public website/startup flow. Services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -141,6 +141,14 @@ node scripts/moon.mjs check --target js
   and sweeps sorted intervals instead of repeatedly copying every range; clock
   values retain JS safe-integer precision. Invalid restoration fails before
   touching either history stack, and native failures restore temporary filters.
+- `moonbit/site`, `site_boundary`, `site_shell` and `browser_site`: typed English/
+  Japanese copy, locale choice, the interactive homepage, lazy entry loading and
+  project creation. Visiting the public page opens no collaboration connection and
+  loads no editor/codec engine. Build-time HTML/Markdown share the MoonBit copy.
+  Owned creation requests ignore late completion after cancellation or unmount.
+  A small React class adapter keeps actual error capture: the upstream typed React
+  Error Boundary currently returns children without catching errors, so it is not
+  used for this responsibility. Recovery content and decisions remain in MoonBit.
 - `moonbit/schemas`: AI operations, easing, media and bounded chat-history schemas
   built with mizchi’s typed Zod bindings. Native schema/error identity preserves
   OpenAI structured output and the existing API error/repair contract.
@@ -166,7 +174,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas include landing/bootstrap and Workers/Node services.
+Remaining migration areas are the Workers/Node services and shared HTTP helpers.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -177,19 +185,27 @@ do not constrain the MoonBit design.
 ## Checks and performance
 
 Locally verified: **622 regression/differential tests**, 15 MoonBit tests on JS,
-3 kernel tests and the pure proposal planner test on WASM, typechecking and the production build. The complete studio,
+3 kernel tests and the pure proposal planner test on WASM, typechecking and the
+production build. The complete studio,
 selective Undo and editor Store passed the **152-test CI browser selection**, covering
 offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
 portable media, seeking and actual MP4/WebM output. An additional 15 chat/structure
 checks passed with both the dev server and browsers restricted to two CPU cores;
-initial editor loading uses a 15 s budget for those simultaneous fresh sessions.
+navigation/reload waits for initial editor readiness use a 15 s budget for those
+simultaneous fresh sessions. CI traces from two further 5 s timeouts showed no
+runtime errors and reached Live by the failure screenshot; regular edit/sync
+assertions keep their existing budgets.
 
 Separate rendering/production checks cover SVG/Canvas agreement, Japanese text,
 equation Write, GPU limits, decoder cancellation and actual 399-frame MP4/WebM
 export and decoding. Media checks exercise stereo mixing and real AudioContext
 cleanup. Account behavior is tested with simulated authentication, not a live
-OAuth registration. Homepage checks verify that simply visiting loads no editor
-engine. Native-failure and delayed-completion tests cover Undo history restoration,
+OAuth registration. The website/startup migration passed 28 dev browser checks (including actual
+error capture, cancellation and editor entry) plus 25 checks against the production
+build for hydration, language negotiation, no-JavaScript HTML, Markdown, responsive
+layout and shared project creation. Its 11 editor startup/playback/lifecycle checks
+also passed with both server and browsers restricted to two CPU cores. Simply
+visiting loads no editor engine. Native-failure and delayed-completion tests cover Undo history restoration,
 audio resume, canceled imports, account switches and persistence after disposal.
 Clock subtraction matches an independent point-set model in 500 randomized cases.
 The proposal compiler/schema migration also passed 53 AI/chat/image/media browser

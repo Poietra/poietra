@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function open(page: Page, room: string) {
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
 }
 async function copy(page: Page, cut = false) {

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('arrow keys nudge a linked selection; key repeat is one undo and Shift moves ten pixels', async ({ page }) => {
   await page.goto(`/?room=${crypto.randomUUID()}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
   await page.getByRole('button', { name: 'Sigmoid path', exact: true }).click({ modifiers: ['Shift'] });
   await page.keyboard.press('Control+g');

@@ -10,7 +10,7 @@ const curve = { type: 'cubicBezier' as const, x1: 0, y1: 0, x2: 0, y2: 1 };
 async function fixture(page: Page) {
   const room = crypto.randomUUID();
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc(), provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
   await new Promise<void>(resolve => provider.on('sync', synced => { if (synced) resolve(); }));
@@ -88,7 +88,7 @@ test('a curve drag syncs, is one undo, cancels safely, and preserves a peer timi
   const room = await fixture(alice);
   try {
     await select(alice); await custom(alice, 'Easing');
-    await bob.goto(alice.url()); await expect(bob.getByText('Live', { exact: true })).toBeVisible(); await select(bob);
+    await bob.goto(alice.url()); await expect(bob.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 }); await select(bob);
     await expect(bob.getByRole('spinbutton', { name: 'Easing X1', exact: true })).toHaveValue('0');
     const handle = alice.locator('[aria-label="Easing control point 1"]');
     async function drag() {

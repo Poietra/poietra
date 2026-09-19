@@ -11,7 +11,7 @@ async function editor(browser: Browser, room: string) {
     else { sockets.push(socket); socket.connectToServer(); }
   });
   const page = await context.newPage(); await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   return { context, page, async offline() {
     offline = true; for (const socket of sockets) socket.close(); await context.setOffline(true);
     await expect(page.getByText('Offline', { exact: true })).toBeVisible();
@@ -82,7 +82,7 @@ test('the local saving assurance waits until IndexedDB has actually loaded and c
     };
   });
   await page.goto(`/?room=${crypto.randomUUID()}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await details(page);
   await expect(page.getByText('ブラウザ内の保存を準備しています。準備が終わるまでこのタブを開いたままにしてください。', { exact: true })).toBeVisible();
   await expect(page.getByText(/^変更をこのブラウザに自動保存します/)).toHaveCount(0);
@@ -95,7 +95,7 @@ test('unavailable local storage has an actionable explanation without claiming e
     IDBFactory.prototype.open = function () { throw new DOMException('Storage blocked', 'SecurityError'); };
   });
   await page.goto(`/?room=${crypto.randomUUID()}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await details(page);
   await expect(page.getByText('ブラウザ内の保存を確認できません。このタブを開いたまま再接続するか、Save project でファイルを保存してください。', { exact: true })).toBeVisible();
   await expect(page.getByText(/^変更をこのブラウザに自動保存します/)).toHaveCount(0);

@@ -4,7 +4,7 @@ import type { Project } from '../../shared/model';
 
 async function open(page: Page, room: string) {
   await page.goto(`/?room=${room}`);
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
 }
 async function state(page: Page): Promise<Project> {
   await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();

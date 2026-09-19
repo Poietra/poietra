@@ -16,10 +16,13 @@
   },
   "dependencies": {
     "react": "19.3.0",
+    "react-dom": "19.3.0",
     "zod": "4.6.5"
   },
   "imports": {
     "#poietra/ui-host": "./apps/studio/src/platform/ui-host.mjs",
-    "#poietra/media-host": "./apps/studio/src/platform/media-host.mjs"
+    "#poietra/media-host": "./apps/studio/src/platform/media-host.mjs",
+    "#poietra/site-shell-host": "./apps/studio/src/platform/site-shell-host.mjs",
+    "#poietra/site-host": "./apps/studio/src/platform/site-host.mjs"
   }
 }

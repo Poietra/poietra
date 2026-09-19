@@ -27,7 +27,7 @@ const operations: Operation[] = [
 async function open(page: Page, existing = false) {
   const room = crypto.randomUUID();
   await page.route('**/api/health', route => route.fulfill({ json: { ok: true, ai: true } }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
   const doc = new Y.Doc(), provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
   await new Promise<void>((resolve, reject) => {
@@ -64,7 +64,7 @@ async function request(page: Page) {
 test('a blank Scene becomes an editable animation in one Apply, shows new targets, and fully undoes/redoes', async ({ page, browser }, testInfo) => {
   const room = await open(page), peerContext = await browser.newContext(), peer = await peerContext.newPage();
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Chat', exact: true }).click();
     await expect(page.getByRole('button', { name: '円を作り、次の場面へ上向きの弧で動かして', exact: true })).toBeVisible();
     await request(page);
@@ -100,7 +100,7 @@ test('a blank Scene becomes an editable animation in one Apply, shows new target
 test('creation Undo retains the new Composition and animation after a peer edits its contents', async ({ page, browser }) => {
   const room = await open(page), peerContext = await browser.newContext(), peer = await peerContext.newPage();
   try {
-    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible();
+    await peer.goto(page.url()); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
     await request(page); await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
     await peer.getByRole('button', { name: 'Second beat', exact: true }).click();
     await peer.getByRole('button', { name: 'New ball', exact: true }).click();

@@ -9,7 +9,7 @@ const positionProposal = (x: number, expected = 245, message = '円の位置を�
 const fulfill = (route: Route, body: object, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 async function open(page: Page, room = crypto.randomUUID()) {
   await page.route('**/api/health', route => fulfill(route, { ok: true, ai: true }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
 }
 async function assistant(page: Page) { await page.getByRole('button', { name: 'Chat', exact: true }).click(); }

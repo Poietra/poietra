@@ -1,0 +1,25 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/npm_typed/react",
+  "mizchi/npm_typed/react_dom_client" @client,
+  "poietra/poietra/site",
+  "poietra/poietra/site_shell" @shell,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "landing_page:LandingPage",
+        "landing_copy:landingCopy",
+        "home:Home",
+        "home_tree:homeTree",
+        "open_home:openHome",
+        "render_markdown:renderMarkdown",
+      ],
+    },
+  },
+)
