@@ -81,7 +81,7 @@ node scripts/moon.mjs check --target js
   before writing; existing tracks change only intended leaves. A delayed
   completion cannot clear a newer gesture or another Scene.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
-  controls, Scene tabs, playback information and status displays retain the existing CSS and accessible Base UI
+  controls, Scene tabs, export dialog, playback information and status displays retain the existing CSS and accessible Base UI
   primitives. Canvas/video previews serialize work and retain one pending frame;
   lifetime checks prevent publication after switching views. Audio playback owns
   its timer, scheduled nodes and decoder together. Stable typed track identities
@@ -125,7 +125,9 @@ Five additional media browser checks passed after decoder, mixer and export migr
 seeks, mixed/trimmed audio and MP4/WebM video pixels. The preview migration also
 passed 13 browser checks for Canvas scheduling, stale-frame suppression, media
 import/sharing and project playback/export, plus real AudioContext cleanup and
-a regression check for serialization-free ticks and metadata/gain changes.
+a regression check for serialization-free ticks and metadata/gain changes. The export
+dialog passed all six stale-session/cancel/retry/download checks and the three
+project playback/export checks after moving to a typed state machine.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

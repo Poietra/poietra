@@ -4,6 +4,7 @@ import {
   "mizchi/js_builtin/collection",
   "poietra/poietra/audio",
   "poietra/poietra/browser_media",
+  "poietra/poietra/exporting",
   "poietra/poietra/scene",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
@@ -16,6 +17,8 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "export_dialog:ExportDialog",
+        "download_blob:download",
         "canvas_frame:CanvasFrame",
         "use_media_playback:useMediaPlayback",
         "use_prepared_stage_frame:usePreparedStageFrame",
