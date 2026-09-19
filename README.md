@@ -7,9 +7,9 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
-audio/video track editing and the animation timeline,
+audio/video track editing, the animation timeline and canvas interaction,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared AI waiting indicators and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. Most editor screens,
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
 higher-level editor/Undo commands, AI and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -88,6 +88,9 @@ node scripts/moon.mjs check --target js
   lifetime checks prevent publication after switching views. Audio playback owns
   its timer, scheduled nodes and decoder together. Stable typed track identities
   replace per-tick JSON serialization, and waveform-only changes do not restart audio.
+  Canvas gestures use typed modes and own their Undo entry; cancellation preserves
+  earlier edits and peer changes. Hit testing uses the published painted frame.
+  Ruler presses seek precisely even when the wide moving playhead overlaps them.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
@@ -135,6 +138,9 @@ back and forth across a Scene without video. Scene intervals are prepared once,
 and frames without video skip the decode queue and its snapshot copy. The typed
 easing editor passed 11 browser checks covering shared curves, one-gesture Undo,
 Esc/blur cancellation, peer replacements and independent timing edits.
+The canvas migration passed 35 browser checks for drawing, selection, group moves,
+corner resizing, rotation, text editing and preview scheduling. The timeline passed
+13 checks including a deterministic regression for clicks underneath the playhead.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

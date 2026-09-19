@@ -6,6 +6,7 @@ import {
   "poietra/poietra/browser_media",
   "poietra/poietra/exporting",
   "poietra/poietra/scene",
+  "poietra/poietra/geometry",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
 }
@@ -26,6 +27,7 @@ options(
         "inspector:Inspector",
         "media_timeline:MediaTimeline",
         "timeline:Timeline",
+        "stage:Stage",
         "object_icon:ObjectIcon",
         "use_editor:useEditor",
         "project_preview:ProjectPreview",

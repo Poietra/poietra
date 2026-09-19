@@ -134,6 +134,18 @@ test('a peer changing the same track during a drag keeps their timing', async ({
 
 const previewPosition = (page: Page) => page.getByRole('slider', { name: 'Transition preview position', exact: true });
 const seekHandle = (page: Page) => page.locator('.track-seek-thumb');
+test('a ruler press seeks precisely when the wide playhead overlaps the target', async ({ page }) => {
+  await open(page, crypto.randomUUID()); await transition(page);
+  await previewPosition(page).evaluate((element: HTMLInputElement) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, '393');
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expectSeek(page, 393);
+  const ruler = (await page.locator('.track-seek-control').boundingBox())!;
+  await page.mouse.click(ruler.x + ruler.width / 2, ruler.y + 3);
+  await expectSeek(page, 400);
+});
 async function expectSeek(page: Page, value: number) {
   await expect(previewPosition(page)).toHaveValue(String(value));
   await expect(page.getByRole('slider', { name: 'Transition の再生ヘッド', exact: true })).toHaveValue(String(value));

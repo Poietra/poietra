@@ -39,6 +39,18 @@ fn transition_ruler(input : @core.Any) -> @react.Element {
       [],
     ),
   )
+  // Keep the ruler's upper strip seekable when the wide, moving thumb overlaps it.
+  // A press here reaches Slider.Control; the lower thumb still preserves its grab offset.
+  marks.push(
+    h(
+      "span",
+      {
+        "className": @core.any("track-seek-ruler-hit"),
+        "aria-hidden": @core.any("true"),
+      },
+      [],
+    ),
+  )
   h("div", { "className": @core.any("track-ruler") }, [
     h("div", Map([]), []),
     ui(

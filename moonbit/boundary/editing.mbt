@@ -27,6 +27,11 @@ pub fn read_object_state(value : @core.Any) -> @scene.ObjectState {
 }
 
 ///|
+pub fn write_object_state(value : @scene.ObjectState) -> @core.Any {
+  encode_ObjectState(value)
+}
+
+///|
 pub fn read_timing(value : @core.Any) -> @scene.Timing {
   decode_Timing(value)
 }
