@@ -20,6 +20,7 @@ options(
       "exports": [
         "assistant_panel:AssistantPanel",
         "account_projects:AccountProjects",
+        "project_dialog:ProjectDialog",
         "use_account_projects:useAccountProjects",
         "login_url:loginUrl",
         "property_timing_inspector:PropertyTimingInspector",

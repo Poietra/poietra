@@ -59,3 +59,25 @@ it('initializes the audio parent when reopening old projects with no media', asy
   expect(restored.scenes['scene-1'].audioTracks).toEqual({});
   expect(original.scenes['scene-1'].audioTracks).toBeUndefined(); expect(media.uploadMedia).not.toHaveBeenCalled();
 });
+
+it('rejects conflicting metadata for one source before any transfer', async () => {
+  const original = project(); original.scenes['scene-1'].audioTracks!.sound.asset.duration += 100;
+  await expect(storeProjectImages(original, targetRoom)).rejects.toThrow('長さや形式');
+  expect(media.mediaBlob).not.toHaveBeenCalled(); expect(media.uploadMedia).not.toHaveBeenCalled();
+});
+
+it('does not partially rewrite a clipboard batch when a later transfer fails', async () => {
+  const first = project().scenes['scene-1'].objects.movie;
+  const second = structuredClone(first); second.id = 'second'; second.media!.src = `/api/rooms/${sourceRoom}/media/${'e'.repeat(64)}`;
+  const objects = [first, second], original = structuredClone(objects);
+  media.uploadMedia.mockResolvedValueOnce(`/api/rooms/${targetRoom}/media/${digest}`).mockRejectedValueOnce(new Error('offline'));
+  await expect(rehostImageAssets(objects, targetRoom)).rejects.toThrow('offline');
+  expect(media.uploadMedia).toHaveBeenCalledTimes(2); expect(objects).toEqual(original);
+});
+
+it('cancellation after an upload response does not publish its asset reference', async () => {
+  const controller = new AbortController(), objects = [project().scenes['scene-1'].objects.movie];
+  media.uploadMedia.mockImplementationOnce(async () => { controller.abort(); return `/api/rooms/${targetRoom}/media/${digest}`; });
+  await expect(rehostImageAssets(objects, targetRoom, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  expect(objects[0].media!.src).toBe(asset.src);
+});

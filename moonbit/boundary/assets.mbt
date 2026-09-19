@@ -32,3 +32,23 @@ pub fn image_mime(bytes : @core.Any) -> @core.Any {
     None => @core.null()
   }
 }
+
+///|
+pub fn read_image_asset(value : @core.Any) -> @scene.ImageAsset raise {
+  decode_ImageAsset(parse_file_field(value, Image))
+}
+
+///|
+pub fn read_media_asset(value : @core.Any) -> @scene.MediaAsset raise {
+  decode_MediaAsset(parse_file_field(value, Media))
+}
+
+///|
+pub fn write_image_asset(value : @scene.ImageAsset) -> @core.Any {
+  encode_ImageAsset(value)
+}
+
+///|
+pub fn write_media_asset(value : @scene.MediaAsset) -> @core.Any {
+  encode_MediaAsset(value)
+}

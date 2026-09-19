@@ -37,3 +37,31 @@ test('invalid files preserve the current room and a blank project starts with no
   await expect(page.getByText('Live', { exact: true })).toBeVisible();
   await expect(page.locator('[data-testid="stage-main"] [data-object-id]')).toHaveCount(0);
 });
+
+test('closing a pending file read permits another operation and ignores the old result', async ({ page }) => {
+  const room = crypto.randomUUID(); await page.goto(`/?room=${room}`);
+  await page.evaluate(() => {
+    const original = File.prototype.text;
+    File.prototype.text = function () {
+      if (this.name !== 'delayed.json') return original.call(this);
+      return new Promise(resolve => {
+        (window as unknown as { releaseProjectFile: () => Promise<void> }).releaseProjectFile = async () => resolve(await original.call(this));
+      });
+    };
+  });
+  const open = () => page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
+  await open();
+  await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'delayed.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(makeDemoProject())) });
+  await expect(page.locator('.project-progress')).toContainText('開いています');
+  await page.getByRole('button', { name: '閉じる', exact: true }).click(); await open();
+  await expect(page.getByRole('button', { name: 'Open project', exact: false })).toBeEnabled();
+  await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"version":2}') });
+  await expect(page.getByRole('alert')).toContainText('形式');
+  await page.evaluate(async () => {
+    await (window as unknown as { releaseProjectFile: () => Promise<void> }).releaseProjectFile();
+    await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame);
+  });
+  await expect(page).toHaveURL(new RegExp(room));
+  await expect(page.getByRole('alert')).toContainText('形式');
+  await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeEnabled();
+});

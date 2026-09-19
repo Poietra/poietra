@@ -8,9 +8,9 @@ CRDT structure projection, model defaults/validation, project timelines, shared 
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
 audio/video track editing, the animation timeline, canvas interaction,
-optional login/project bookmarks, sample project generation, portable-file validation and object clipboard plans,
+optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining screens,
 higher-level editor/Undo commands, AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -93,7 +93,7 @@ node scripts/moon.mjs check --target js
   UTF-8 size checks use a bounded scratch buffer; clipboard operations read only
   selected payloads and destination metadata, preserving unrelated shared states.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
-  controls, Scene tabs, export dialog, project preview, easing editor, playback information and status displays retain the existing CSS and accessible Base UI
+  controls, Scene tabs, project/export dialogs, project preview, easing editor, playback information and status displays retain the existing CSS and accessible Base UI
   primitives. Canvas/video previews serialize work and retain one pending frame;
   lifetime checks prevent publication after switching views. Audio playback owns
   its timer, scheduled nodes and decoder together. Stable typed track identities
@@ -104,6 +104,13 @@ node scripts/moon.mjs check --target js
   Account sessions own their list/save requests; switching identity aborts old
   work and rejects its late responses, including already received JSON.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
+- `moonbit/browser_projects`: typed asset metadata, deduplicated transfers and
+  staged reference publication. Contradictory metadata fails before I/O, and a
+  failed/canceled clipboard batch leaves all source references intact. Fresh rooms
+  stage and bound their Yjs update before sending it; an owned publication session
+  waits for the ordered server acknowledgment and closes all acquired resources.
+  The project dialog drops canceled requests immediately, so reopening can start
+  a new operation while an old file read finishes harmlessly.
 - `moonbit/browser_chat`: validated room messages, per-entry snapshot caching and
   owned Yjs subscriptions. Typed request sessions suppress canceled or stale AI
   replies; history limits and proposal-target labels live in the pure editor model.
@@ -132,7 +139,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 602 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 609 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -164,6 +171,9 @@ File/clipboard changes passed 21 browser checks for shared paste/Undo, independe
 room imports, embedded image/audio/video assets, and failed/canceled imports.
 The import migration passed 15 browser checks for image normalization, audio/video
 tracks, cancellation, shared assets, portable files and decoded output pixels.
+Project transfer changes passed those checks again with clipboard/new-room cases
+(21 browser checks). The project dialog passed 11 account/media/project checks
+and a regression for reopening while an earlier file read is still pending.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

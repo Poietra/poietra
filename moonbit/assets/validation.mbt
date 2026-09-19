@@ -89,3 +89,15 @@ pub fn valid_audio(track : @scene.AudioTrack) -> Bool {
   }) &&
   track.offset + track.duration <= track.asset.duration + 1.0
 }
+
+///|
+pub fn same_media_metadata(
+  a : @scene.MediaAsset,
+  b : @scene.MediaAsset,
+) -> Bool {
+  a.mime == b.mime &&
+  (a.duration - b.duration).abs() <= 1.0 &&
+  a.width == b.width &&
+  a.height == b.height &&
+  a.hasAudio == b.hasAudio
+}

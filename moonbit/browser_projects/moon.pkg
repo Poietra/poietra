@@ -1,0 +1,24 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/scene",
+  "poietra/poietra/assets",
+  "poietra/poietra/boundary",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "portable_project:portableProject",
+        "create_project_messages:createProjectMessages",
+        "create_project_room:createProjectRoom",
+        "store_project_images:storeProjectImages",
+        "rehost_image_assets:rehostImageAssets",
+      ],
+    },
+  },
+)
