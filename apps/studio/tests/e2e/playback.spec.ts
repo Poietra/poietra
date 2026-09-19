@@ -7,6 +7,33 @@ async function open(page: Page, room = crypto.randomUUID()) {
 }
 const circle = (page: Page, stage = 'main') => page.locator(`[data-testid="stage-${stage}"] [data-object-id="circle"]`);
 
+test('an old audio resume cannot start playback or clear a newer preparation after changing compositions', async ({ page }) => {
+  await page.addInitScript(() => {
+    const scope = window as typeof window & { studioResumes: (() => void)[] };
+    scope.studioResumes = [];
+    const resume = AudioContext.prototype.resume;
+    AudioContext.prototype.resume = function() {
+      const gate = new Promise<void>(resolve => scope.studioResumes.push(resolve));
+      return resume.call(this).then(() => gate);
+    };
+  });
+  await open(page);
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  await expect(page.getByText('音声を準備しています…', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+  await expect(page.getByText('音声を準備しています…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { studioResumes: unknown[] }).studioResumes.length)).toBe(2);
+  await page.evaluate(() => (window as typeof window & { studioResumes: (() => void)[] }).studioResumes[0]());
+  await expect(page.getByText('音声を準備しています…', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('slider', { name: '再生位置', exact: true })).toHaveValue('1800');
+  await page.evaluate(() => (window as typeof window & { studioResumes: (() => void)[] }).studioResumes[1]());
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  await expect(page.getByText('音声を準備しています…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+});
+
 test('a paused scene preview cannot edit a hidden composition and opens the displayed composition with the keyboard', async ({ browser }) => {
   const alice = await browser.newPage(), bob = await browser.newPage(); const room = crypto.randomUUID();
   try {

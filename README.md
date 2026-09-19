@@ -10,7 +10,7 @@ property timing controls, collaborative easing gestures, object/property inspect
 audio/video track editing, the animation timeline, canvas interaction and global keyboard/clipboard handling,
 optional login/project bookmarks, sample project generation, portable-file validation, asset embedding/rehoming and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining screens,
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export, live preview scheduling and the complete editor screen/controller. Landing/bootstrap,
 higher-level editor/Undo commands, AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -107,6 +107,11 @@ node scripts/moon.mjs check --target js
   Imports own their progress, cancellation and target. Mixed image/audio/video
   batches prepare every asset and validate all limits before one shared command,
   so failures leave no partial document edits and one Undo restores the batch.
+  The studio controller uses typed selections, cursor modes and stopped/preparing/
+  playing states. Scene segments and compiled frames stay cached across presence,
+  chat and local panel updates; an obsolete audio-resume request cannot start
+  playback or dismiss a newer request. Notifications and saves belong to the
+  mounted controller and release their timers/requests on exit.
   Account sessions own their list/save requests; switching identity aborts old
   work and rejects its late responses, including already received JSON.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
@@ -134,7 +139,7 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas include higher-level editing and Undo, UI screens,
+Remaining migration areas include higher-level editing and Undo, landing/bootstrap,
 AI proposal compilation, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
@@ -145,7 +150,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 609 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 609 regression/differential tests, 12 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -186,6 +191,9 @@ checks and a delayed-response test for switching the paste destination.
 The import controller passed 16 image/media browser checks, plus mixed-batch
 failure and one-step Undo/Redo checks. Its pure plan rejects full/missing audio
 maps and object limits before allocating any document identities.
+The complete MoonBit studio controller then passed all 152 browser checks in the
+CI editor selection, including offline collaboration, selective Undo, real encoded
+video and a deterministic race between two delayed audio-resume requests.
 Initial editor loading was also checked with both the dev server and browser tests
 restricted to two CPU cores: the 11 chat checks passed with a 15 s startup budget.
 WASM begins loading alongside the editor graph; the 10 homepage checks confirm
@@ -234,7 +242,11 @@ WebGL driver is currently a stub, so it is not a runtime dependency.
 [mayo](https://github.com/mizchi/mayo) and [converge](https://github.com/mizchi/converge)
 were also inspected. Canvas uses its own TTF rasterizer; image does not decode WebP;
 Mayo requires cross-origin isolation and explicit shared Int32 layouts. Converge's
-column-level CRDT needs a separate compatibility evaluation for selective Undo.
+column-level CRDT passed all 75 upstream JS tests with the pinned compiler, but
+needs a separate compatibility evaluation for selective Undo.
+[valtio](https://github.com/dowdiness/valtio/tree/9cdf37fa61ef656db2925035f1b42a31ec922d73)
+was reviewed too; its text-sequence synchronization does not replace the editor's
+nested-map document and selective Undo contract. Yjs remains the shared runtime.
 The [audio mixer/resampler](https://github.com/mizchi/audio-mbt/tree/f57bffe7dea9d41173784ea6abba13fd5a8454a2)
 was also reviewed. It uses interleaved PCM and a Float playback cursor; this editor
 keeps planar Web Audio buffers and absolute Double timestamps to preserve its

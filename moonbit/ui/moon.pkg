@@ -18,6 +18,7 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "studio:App",
         "assistant_panel:AssistantPanel",
         "account_projects:AccountProjects",
         "project_dialog:ProjectDialog",

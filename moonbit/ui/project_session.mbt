@@ -120,25 +120,7 @@ fn ProjectSession::start(
           if !self.owns(request) {
             return
           }
-          let global = @core.global_this()
-          let blob = @core.throwable(fn() {
-            let json = global
-              ._get("JSON")
-              ._call("stringify", [snapshot, @core.null(), @core.any(2)])
-            @core.new(global._get("Blob"), [
-              @core.any(([json] : FixedArray[@core.Any])),
-              @core.from_entries([("type", @core.any("application/json"))]),
-            ])
-          })
-          let bytes : Int = blob._get("size").cast()
-          if bytes > 134217728 {
-            project_action_error(
-              "保存する素材や Scene を減らして、128 MB 以下にしてください。",
-            )
-          }
-          @core.throwable(fn() {
-            download_blob(blob, project_filename(snapshot._get("name").cast()))
-          })
+          download_project_snapshot(snapshot)
         }
         _ => {
           let project = match action {
@@ -189,4 +171,27 @@ fn ProjectSession::start(
     }
   })
   |> ignore
+}
+
+///|
+fn download_project_snapshot(snapshot : @core.Any) -> Unit raise {
+  let global = @core.global_this()
+  let blob = @core.throwable(fn() {
+    let json = global
+      ._get("JSON")
+      ._call("stringify", [snapshot, @core.null(), @core.any(2)])
+    @core.new(global._get("Blob"), [
+      @core.any(([json] : FixedArray[@core.Any])),
+      @core.from_entries([("type", @core.any("application/json"))]),
+    ])
+  })
+  let bytes : Int = blob._get("size").cast()
+  if bytes > 134217728 {
+    project_action_error(
+      "保存する素材や Scene を減らして、128 MB 以下にしてください。",
+    )
+  }
+  @core.throwable(fn() {
+    download_blob(blob, project_filename(snapshot._get("name").cast()))
+  })
 }
