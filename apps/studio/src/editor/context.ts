@@ -1,4 +1,6 @@
-import { createContext, useContext } from 'react';
+import type { Context } from 'react';
+import { editorContext } from '../platform/ui-host.mjs';
+import { useEditor as moonUseEditor } from '../../../../_build/js/release/build/ui/ui.js';
 import type { ObjectKind, Scene, Selection } from '../../shared/model';
 import type { MotionKernel } from '../engine/kernel';
 import type { RendererContract } from '../engine/render-contract';
@@ -32,5 +34,5 @@ export interface EditorContextValue {
   peers: Peer[];
   notify: (message: string) => void;
 }
-export const EditorContext = createContext<EditorContextValue | null>(null);
-export function useEditor() { const editor = useContext(EditorContext); if (!editor) throw new Error('Editor context is missing'); return editor; }
+export const EditorContext: Context<EditorContextValue | null> = editorContext;
+export const useEditor: () => EditorContextValue = moonUseEditor;

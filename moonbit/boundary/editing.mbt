@@ -7,6 +7,16 @@ extern "js" fn strict_equal(a : @core.Any, b : @core.Any) -> Bool =
   #|(a, b) => a === b
 
 ///|
+pub fn read_easing(value : @core.Any) -> @scene.Easing {
+  decode_Easing(value)
+}
+
+///|
+pub fn write_easing(value : @scene.Easing) -> @core.Any {
+  encode_Easing(value)
+}
+
+///|
 pub fn is_valid_easing(value : @core.Any) -> Bool {
   if @core.typeof_(value) == "string" {
     let name : String = value.cast()

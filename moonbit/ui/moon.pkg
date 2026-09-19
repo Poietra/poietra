@@ -17,6 +17,8 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "easing_editor:EasingEditor",
+        "use_editor:useEditor",
         "project_preview:ProjectPreview",
         "export_dialog:ExportDialog",
         "download_blob:download",
