@@ -210,7 +210,48 @@ fn layer_paint(
   equation : PreparedEquation?,
   shape : @core.Any,
   text : PreparedText?,
+  video : @browser_media.VideoSurface?,
 ) -> ((@canvas.CanvasRenderingContext2D) -> Unit)? {
+  if video is Some(video) {
+    let drawable = @boundary.decode_drawable(item)
+    return Some(fn(context) {
+      let state = drawable.state
+      let width = @render.finite(state.width).abs()
+      let height = @render.finite(state.height).abs()
+      let radius = @render.finite(state.cornerRadius)
+        .max(0.0)
+        .min(width / 2.0)
+        .min(height / 2.0)
+      let x = -width / 2.0
+      let y = -height / 2.0
+      saved_canvas(context, fn() {
+        context.beginPath()
+        context.rect(x, y, width * @render.unit(drawable.progress), height)
+        context.clip()
+        let path = @core.new(@core.global_this()._get("Path2D"), [])
+        path._call("roundRect", [
+          @core.any(x),
+          @core.any(y),
+          @core.any(width),
+          @core.any(height),
+          @core.any(radius),
+        ])
+        |> ignore
+        saved_canvas(context, fn() {
+          context.as_any()._call("clip", [path]) |> ignore
+          context.drawImageScaled(video.canvas, x, y, width, height)
+        })
+        let stroke = @render.color(state.stroke)
+        let stroke_width = @render.finite(state.strokeWidth).max(0.0)
+        if stroke != "none" && stroke_width > 0.0 {
+          context.strokeStyle = stroke
+          context.lineWidth = stroke_width
+          round_caps(context)
+          context.as_any()._call("stroke", [path]) |> ignore
+        }
+      })
+    })
+  }
   if equation is Some({ source, drawing, }) && !@core.is_nullish(drawing) {
     return Some(fn(context) {
       let state = item._get("state")
@@ -351,10 +392,11 @@ async fn rasterize_layer(
   equation : PreparedEquation?,
   shape : @core.Any,
   text : PreparedText?,
+  video : @browser_media.VideoSurface?,
   glow : @core.Any,
   signal : @core.Any,
 ) -> @core.Any? {
-  if layer_paint(item, equation, shape, text) is Some(paint) {
+  if layer_paint(item, equation, shape, text, video) is Some(paint) {
     let source = match cache.source {
       Some(source) => source
       None => {
@@ -410,6 +452,7 @@ async fn RasterCache::get(
   scale : Double,
   glow : @core.Any,
   signal : @core.Any,
+  video? : @browser_media.VideoSurface? = None,
 ) -> @core.Any {
   image_check_abort(signal)
   let drawable = @boundary.decode_drawable(input)
@@ -428,7 +471,10 @@ async fn RasterCache::get(
     scale,
     glow: drawable.state.effect == @scene.Glow,
     media: optional_source(input._get("object")._get("media")),
-    video_time: optional_number(input._get("videoTimeMs")),
+    video_time: match video {
+      Some(v) => Some(v.timestamp)
+      None => optional_number(input._get("videoTimeMs"))
+    },
   }
   let previous = self.entries.get(id)
   if previous is Some(previous) && previous.identity == identity {
@@ -497,7 +543,7 @@ async fn RasterCache::get(
     return @core.null()
   }
   guard rasterize_layer(
-      self, plan, identity, item, equation, shape, text, glow, signal,
+      self, plan, identity, item, equation, shape, text, video, glow, signal,
     )
     is Some(canvas) else {
     return @core.null()

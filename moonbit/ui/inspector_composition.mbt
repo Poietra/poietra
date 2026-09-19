@@ -198,11 +198,7 @@ fn composition_properties(
   )
   if !(kind is Image) {
     let palette : Array[&@react.ReactNode] = []
-    for
-      color in [
-        "#d7d8e4", "#67c4d9", "#f4ce55", "#b5d396", "#ef8078", "#d5a3bd", "#8a8fe9",
-        "#ffffff",
-      ] {
+    for color in @scene.colors {
       palette.push(
         h(
           "button",

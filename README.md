@@ -19,6 +19,9 @@ servers—is written in typed MoonBit. The numerical motion kernel targets
 WebAssembly; browser and server packages target JavaScript. Native adapters retain
 React/Base UI, Yjs, MathJax, Mediabunny, OpenAI and platform APIs. Rust is needed
 only to rebuild the historical comparison oracle, not to run or build this app.
+There are no executable `.ts` or `.tsx` files in `src`, `shared`, `server` or
+`worker`. Public `.d.ts` contracts and TypeScript tests/tooling remain; native JS
+entry points run without a TypeScript loader.
 
 The rewrite is verified locally and in CI. **It has not been deployed to
 poietra.com**; that domain belongs to the original service.
@@ -69,7 +72,7 @@ The Node host saves data under `apps/studio/.data` by default.
 ```sh
 pnpm build                     # MoonBit JS/WASM, types, Vite, localized HTML/Markdown
 pnpm --dir apps/studio start    # serve the production build locally
-pnpm test                      # build MoonBit, then run regression/differential tests
+pnpm test                      # build, extension test, regression/differential tests
 pnpm typecheck
 node scripts/moon.mjs check --target js --deny-warn
 ```
@@ -92,7 +95,10 @@ Vite's native source watching does not compile MoonBit.
 The implementation lives in [moonbit/](moonbit/). [apps/studio/](apps/studio/)
 contains native adapters, styles, assets and regression tests. Generated release
 modules go to `_build/`; `scripts/generate-adapters.py` generates representation
-adapters from the typed model. Historical TypeScript/Rust implementations in
+adapters and public record types from the typed model. `scripts/bindings.json`
+generates 32 simple JS facades. Wrangler environment types are generated under
+ignored `.wrangler/`, rather than committed as 15,408 lines of application source.
+Historical TypeScript/Rust implementations in
 [tests/oracle/](apps/studio/tests/oracle/) are used only for comparison.
 
 The rewrite changes the data flow as well as the language:
@@ -106,6 +112,11 @@ The rewrite changes the data flow as well as the language:
 - **Own asynchronous work.** Renderers, decoders, imports and AI requests have
   explicit lifetimes. Stale completions cannot publish into a replacement view;
   cancellation releases resources. Uploads use bounded buffers and backpressure.
+- **Keep video frames as pixels.** A bounded decoder cursor follows actual
+  source timestamps, including variable frame intervals. Canvas painting bypasses
+  PNG/SVG conversion; shared-source objects retain independent owned frames.
+  Seeking resets the cursor and GPU failure retains the portable SVG path.
+  Media parsers/codecs load on demand, outside the editor's static entry graph.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -122,6 +133,30 @@ OpenAI clients—are not dependencies. Yjs retains the nested-map/selective-Undo
 contract; the official OpenAI SDK retains Responses and Images support. The
 [gfx source](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
 informed the separation between the pure Glow program and its browser driver.
+
+## Add a feature
+
+1. Define data and behavior in the appropriate typed MoonBit package. Document
+   fields belong in `moonbit/scene/model.mbt`; kind variants and names belong in
+   `moonbit/scene/kinds.mbt`. `pnpm build:moonbit` regenerates JS marshalling and
+   `apps/studio/shared/scene-types.d.ts`. Unknown representations fail generation.
+2. Implement validation, commands, evaluation/rendering and UI where the feature
+   needs them. A generated record does not automatically gain UI, persistence
+   validation or animation semantics. Use compiler errors and regression tests
+   to find affected constructors and exhaustive matches; keep old files readable.
+3. Export host-facing operations in the package's `moon.pkg`. Add a precise
+   adjacent `.d.ts` contract and, for direct forwarding, a `scripts/bindings.json`
+   entry. Native JS should only register platform objects, import assets or wire
+   dependencies. Editor components and orchestration belong in `moonbit/ui`.
+4. Run `pnpm test`, `pnpm typecheck` and the relevant browser/runtime checks.
+   `pnpm test:extensions` actually adds a nested optional record and callable API
+   in an isolated copy, builds it, round-trips values through generated JS and
+   compiles a consumer that rejects incorrect field types. The API gate checks
+   108 captured modules in both directions while permitting additional exports.
+
+Rebuild `.mbt` changes while the dev server is running with `pnpm build:moonbit`.
+Performance runs require a completed build and frozen sources. For a new external
+API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
 
@@ -271,14 +306,14 @@ pnpm bench --runs 3 --output test-results/benchmarks/cpu.json
 # Terminal 1: isolated production host, no real API calls
 cd apps/studio
 PORT=5188 NODE_ENV=production OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-perf \
-  node --import tsx server/index.ts
+  node server/index.js
 ```
 
 ```sh
 # Terminal 2, apps/studio; run each command to completion
 pnpm exec playwright install chromium
 POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-home.mjs
-POIETRA_PERF_URL=http://127.0.0.1:5188 node --import tsx scripts/measure-editor.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-editor.mjs
 node scripts/measure-bundle.mjs
 ```
 
@@ -294,7 +329,7 @@ for its generated 720p clip; `--skip-video` omits those scenarios.
 
 ```sh
 # apps/studio, separate terminal
-PORT=5189 OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-render node --import tsx server/index.ts
+PORT=5189 OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-render node server/index.js
 # apps/studio, measurement terminal; repeat three times with distinct outputs
 node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
   --output test-results/benchmarks/rendering-1.json

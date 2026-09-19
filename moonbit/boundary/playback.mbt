@@ -21,6 +21,29 @@ pub fn playback_frame(playback : Playback, time : Double) -> @core.Any {
 }
 
 ///|
+pub fn compile_scene(input : @core.Any, host : @core.Any) -> @core.Any {
+  let playback = prepare_playback(input, host)
+  @core.from_entries([
+    (
+      "evaluate",
+      @core.any(fn(time : Double) { playback_frame(playback, time) }),
+    ),
+    (
+      "composition",
+      @core.any(fn(id : String, time : @core.Any) {
+        playback_composition(playback, id, time)
+      }),
+    ),
+    (
+      "transition",
+      @core.any(fn(id : String, time : Double, scene_time : @core.Any) {
+        playback_transition(playback, id, time, scene_time)
+      }),
+    ),
+  ])
+}
+
+///|
 pub fn playback_composition(
   playback : Playback,
   id : String,

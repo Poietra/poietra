@@ -48,8 +48,10 @@ async fn import_waveform(
   progress : @core.Any,
 ) -> FixedArray[Double] {
   report_import(progress, Waveform, 0.0)
+  let runtime = audio_runtime().wait()
+  check_abort(signal)
   let sink = @core.throwable(fn() {
-    @core.new(audio_runtime()._get("AudioBufferSink"), [track])
+    @core.new(runtime._get("AudioBufferSink"), [track])
   })
   let times = FixedArray::makei(128, fn(i) { i.to_double() / 128.0 * seconds })
   let iterator = @core.throwable(fn() {
@@ -104,8 +106,9 @@ pub fn prepare_media(
         "音声・動画は 32 MB 以下にしてください。",
       )
     }
+    let runtime = media_runtime().wait()
+    check_abort(signal)
     let input = @core.throwable(fn() {
-      let runtime = media_runtime()
       @core.new(runtime._get("Input"), [
         @core.from_entries([
           ("source", @core.new(runtime._get("BlobSource"), [file])),
@@ -180,7 +183,7 @@ pub fn prepare_media(
         )
       }
       let sink = @core.throwable(fn() {
-        @core.new(media_runtime()._get("CanvasSink"), [
+        @core.new(runtime._get("CanvasSink"), [
           video,
           @core.from_entries([("width", @core.any(160))]),
         ])

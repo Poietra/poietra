@@ -5,15 +5,15 @@ for (const easing of ['linear', 'custom'] as const) test(`independent 2-second p
   await page.goto('/');
   const report = await page.evaluate(async easing => {
     // @ts-expect-error Vite serves source modules in this local integration harness.
-    const { exportScene } = await import('/src/engine/export.ts');
+    const { exportScene } = await import('/src/engine/export.js');
     // @ts-expect-error Vite source module.
-    const { evaluateScene } = await import('/src/engine/evaluate.ts');
+    const { evaluateScene } = await import('/src/engine/evaluate.js');
     // @ts-expect-error Vite source module.
-    const { createFramePainter } = await import('/src/engine/painter.ts');
+    const { createFramePainter } = await import('/src/engine/painter.js');
     // @ts-expect-error Vite source module.
-    const { loadKernel } = await import('/src/engine/kernel.ts');
+    const { loadKernel } = await import('/src/engine/kernel.js');
     // @ts-expect-error Vite source module.
-    const { defaultState, defaultTrack } = await import('/shared/model.ts');
+    const { defaultState, defaultTrack } = await import('/shared/model.js');
     // @ts-expect-error Vite resolves the same decoder dependency as the application.
     const { BlobSource, Input, ALL_FORMATS, CanvasSink } = await import('/tests/e2e/fixtures/media-dependencies.ts');
     const from = defaultState('rectangle', { x: 50, y: 90, width: 24, height: 24, fill: '#ffffff', strokeWidth: 0, cornerRadius: 0, opacity: 0 });
@@ -79,17 +79,17 @@ for (const format of ['webm', 'mp4'] as const) test(`video frames and independen
   await page.goto('/');
   const report = await page.evaluate(async format => {
     // @ts-expect-error Vite serves source modules in this local integration harness.
-    const { exportScene } = await import('/src/engine/export.ts');
+    const { exportScene } = await import('/src/engine/export.js');
     // @ts-expect-error Vite source module.
-    const { evaluateScene } = await import('/src/engine/evaluate.ts');
+    const { evaluateScene } = await import('/src/engine/evaluate.js');
     // @ts-expect-error Vite source module.
-    const { createFramePainter } = await import('/src/engine/painter.ts');
+    const { createFramePainter } = await import('/src/engine/painter.js');
     // @ts-expect-error Vite source module.
-    const renderer = await import('/src/engine/renderer.ts');
+    const renderer = await import('/src/engine/renderer.js');
     // @ts-expect-error Vite source module.
-    const { loadKernel } = await import('/src/engine/kernel.ts');
+    const { loadKernel } = await import('/src/engine/kernel.js');
     // @ts-expect-error Vite source module.
-    const { defaultState } = await import('/shared/model.ts');
+    const { defaultState } = await import('/shared/model.js');
     // @ts-expect-error Vite source module exposes Mediabunny through its dependency graph.
     const bunny = await import('/tests/e2e/fixtures/media-dependencies.ts');
     const { Output, BufferTarget, CanvasSource, WebMOutputFormat, BlobSource, Input, ALL_FORMATS, AudioBufferSink, CanvasSink, canEncodeAudio } = bunny;
@@ -113,6 +113,37 @@ for (const format of ['webm', 'mp4'] as const) test(`video frames and independen
     const painter = await createFramePainter(canvas);
     const preview = [];
     for (const time of [200, 1200, 2500, 200]) { await painter.render(evaluateScene(scene, time, kernel)); preview.push(Array.from(ctx.getImageData(80, 45, 1, 1).data)); }
+    // Two objects can share a decoder while presenting different source frames.
+    const paired = evaluateScene(scene, 200, kernel);
+    paired.objects[0].state = { ...paired.objects[0].state, x: 40, width: 80 };
+    const second = structuredClone(paired.objects[0]);
+    second.object.id = 'second'; second.state.x = 120; second.videoTimeMs = 1200;
+    paired.objects.push(second);
+    const originalPng = HTMLCanvasElement.prototype.toDataURL;
+    let pngConversions = 0;
+    HTMLCanvasElement.prototype.toDataURL = function (...args) { pngConversions++; return originalPng.apply(this, args); };
+    const directBackend = painter.backend;
+    const pairedPixels: number[][] = [];
+    try {
+      await painter.render(paired);
+      pairedPixels.push(Array.from(ctx.getImageData(40, 45, 1, 1).data), Array.from(ctx.getImageData(120, 45, 1, 1).data));
+    } finally { HTMLCanvasElement.prototype.toDataURL = originalPng; }
+    // Compare rounded clipping, reveal, opacity, rotation and border against the
+    // portable SVG reference. Tolerate edge antialiasing, never different frames.
+    const styled = evaluateScene(scene, 1200, kernel);
+    Object.assign(styled.objects[0].state, { width: 100, height: 60, cornerRadius: 15, opacity: .7, rotation: 12, stroke: '#ffffff', strokeWidth: 4 });
+    styled.objects[0].writeProgress = .7;
+    await painter.render(styled);
+    const directPixels = ctx.getImageData(0, 0, 160, 90).data;
+    const portable = structuredClone(styled); await renderer.prepareFrame(portable);
+    const image = new Image(); image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(renderer.frameToSvg(portable)); await image.decode();
+    ctx.clearRect(0, 0, 160, 90); ctx.drawImage(image, 0, 0);
+    const referencePixels = ctx.getImageData(0, 0, 160, 90).data;
+    let differentPixels = 0;
+    for (let i = 0; i < directPixels.length; i += 4) if ([0, 1, 2].some(channel => Math.abs(directPixels[i + channel] - referencePixels[i + channel]) > 24)) differentPixels++;
+    if (directBackend === 'webgl2' && pngConversions !== 0) throw new Error(`Direct painting encoded ${pngConversions} PNGs`);
+    if (pairedPixels[0][0] < 230 || pairedPixels[1][2] < 230) throw new Error('A shared decoder overwrote another object frame');
+    if (differentPixels > 160 * 90 * .02) throw new Error(`Direct/SVG pixel mismatch: ${differentPixels}`);
     painter.dispose();
     const svgFrame = evaluateScene(scene, 1200, kernel); await renderer.prepareFrame(svgFrame);
     const svg = renderer.frameToSvg(svgFrame);

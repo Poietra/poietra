@@ -3,6 +3,7 @@ fn shape_markup(
   item : Drawable,
   prefix : String,
   resources : Resources,
+  video_hits : Bool,
 ) -> String {
   let s = item.state
   let progress = unit(item.progress)
@@ -19,7 +20,6 @@ fn shape_markup(
       } else {
         (resources.image)(item.image)
       }
-      guard source is Some(source) && !source.is_empty() else { return "" }
       let width = finite(s.width).abs()
       let height = finite(s.height).abs()
       let x = -width / 2.0
@@ -28,6 +28,14 @@ fn shape_markup(
         .min(width / 2.0)
         .min(height / 2.0)
         .max(0.0)
+      guard source is Some(source) && !source.is_empty() else {
+        // The invisible SVG over a painted canvas still needs a selectable shape.
+        return if video_hits && item.kind == @scene.Video {
+          "<rect x=\"\{number(x)}\" y=\"\{number(y)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill=\"transparent\" stroke=\"none\"/>"
+        } else {
+          ""
+        }
+      }
       return "<defs><clipPath id=\"\{prefix}-image\"><rect x=\"\{number(x)}\" y=\"\{number(y)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\"/></clipPath><clipPath id=\"\{prefix}-reveal\"><rect x=\"\{number(x)}\" y=\"\{number(y)}\" width=\"\{number(width * progress)}\" height=\"\{number(height)}\"/></clipPath></defs><g clip-path=\"url(#\{prefix}-reveal)\"><image href=\"\{escape_xml(source)}\" x=\"\{number(x)}\" y=\"\{number(y)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" preserveAspectRatio=\"none\" clip-path=\"url(#\{prefix}-image)\"/><rect x=\"\{number(x)}\" y=\"\{number(y)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill=\"none\"/></g>"
     }
     Equation => {
@@ -67,6 +75,7 @@ pub fn frame_to_svg(
   prefix : String,
   background : Bool,
   resources : Resources,
+  video_hits? : Bool = false,
 ) -> String {
   let prefix = "poietra-" + safe_id(prefix)
   let width = finite(frame.width, fallback=1280.0).max(1.0)
@@ -102,7 +111,7 @@ pub fn frame_to_svg(
       objects.write_string(" filter=\"url(#\{id}-glow)\"")
     }
     objects.write_string(">")
-    objects.write_string(shape_markup(item, id, resources))
+    objects.write_string(shape_markup(item, id, resources, video_hits))
     objects.write_string("</g>")
   }
   let output = StringBuilder()

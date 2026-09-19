@@ -1,0 +1,334 @@
+{
+  "src/editor/accounts.js": {
+    "loginUrl": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "loginUrl"
+    },
+    "useAccountProjects": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "useAccountProjects"
+    }
+  },
+  "src/editor/animation-tracks.js": {
+    "visibleAnimation": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "visibleAnimation"
+    },
+    "visibleAnimations": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "visibleAnimations"
+    }
+  },
+  "src/editor/media.js": {
+    "prepareMedia": {
+      "module": "../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "prepareMedia"
+    },
+    "uploadMedia": {
+      "module": "../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "uploadMedia"
+    },
+    "mediaBlob": {
+      "module": "../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "mediaBlob"
+    }
+  },
+  "src/editor/useMediaPlayback.js": {
+    "useMediaPlayback": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "useMediaPlayback"
+    }
+  },
+  "src/engine/exporting/abort.js": {
+    "exportAbortError": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "exportAbortError"
+    },
+    "checkAbort": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "checkAbort"
+    },
+    "abortable": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "abortable"
+    }
+  },
+  "src/engine/exporting/codecs.js": {
+    "environmentReason": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "environmentReason"
+    },
+    "bitrateFor": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "bitrateFor"
+    },
+    "getExportCapabilities": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "getExportCapabilities"
+    },
+    "findExportCodec": {
+      "module": "../../../../../_build/js/release/build/browser_export/browser_export.js",
+      "name": "findExportCodec"
+    }
+  },
+  "src/engine/exporting/rasterize.js": {
+    "drawSvgFrame": {
+      "module": "../../../../../_build/js/release/build/browser_render/browser_render.js",
+      "name": "drawSvgFrame"
+    }
+  },
+  "src/engine/kernel.js": {
+    "trackProgress": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "trackProgress"
+    },
+    "loadKernel": {
+      "module": "../../../../_build/js/release/build/browser_kernel/browser_kernel.js",
+      "name": "loadKernel"
+    }
+  },
+  "src/engine/media-source.js": {
+    "openMedia": {
+      "module": "../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "openMedia"
+    }
+  },
+  "src/engine/rendering/equation-canvas.js": {
+    "prepareEquationDrawing": {
+      "module": "../../../../../_build/js/release/build/browser_render/browser_render.js",
+      "name": "prepareEquationDrawing"
+    }
+  },
+  "src/engine/rendering/image-source.js": {
+    "imageBlob": {
+      "module": "../../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "imageBlob"
+    },
+    "blobDataUrl": {
+      "module": "../../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "blobDataUrl"
+    }
+  },
+  "src/engine/rendering/images.js": {
+    "preparedImage": {
+      "module": "../../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "preparedImage"
+    },
+    "prepareImages": {
+      "module": "../../../../../_build/js/release/build/browser_media/browser_media.js",
+      "name": "prepareImages"
+    }
+  },
+  "src/engine/rendering/svg.js": {
+    "color": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgColor"
+    },
+    "escapeXml": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgEscape"
+    },
+    "finite": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgFinite"
+    },
+    "unit": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgUnit"
+    },
+    "number": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgNumber"
+    },
+    "safeId": {
+      "module": "../../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "svgId"
+    }
+  },
+  "src/engine/rendering/text-canvas.js": {
+    "textDrawingKey": {
+      "module": "../../../../../_build/js/release/build/browser_render/browser_render.js",
+      "name": "textDrawingKey"
+    },
+    "prepareTextDrawing": {
+      "module": "../../../../../_build/js/release/build/browser_render/browser_render.js",
+      "name": "prepareTextDrawing"
+    }
+  },
+  "src/navigation.js": {
+    "isEditorLocation": {
+      "module": "../../../_build/js/release/build/site_shell/site_shell.js",
+      "name": "isEditorLocation"
+    },
+    "lastRoom": {
+      "module": "../../../_build/js/release/build/site_shell/site_shell.js",
+      "name": "lastRoom"
+    },
+    "roomLink": {
+      "module": "../../../_build/js/release/build/site_shell/site_shell.js",
+      "name": "roomLink"
+    }
+  },
+  "src/ui/AccountProjects.js": {
+    "AccountProjects": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "AccountProjects"
+    }
+  },
+  "src/ui/CanvasFrame.js": {
+    "CanvasFrame": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "CanvasFrame"
+    }
+  },
+  "src/ui/ChatThinking.js": {
+    "ChatThinking": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "ChatThinking"
+    }
+  },
+  "src/ui/PlaybackPanel.js": {
+    "PlaybackPanel": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "PlaybackPanel"
+    }
+  },
+  "src/ui/usePreparedStageFrame.js": {
+    "usePreparedStageFrame": {
+      "module": "../../../../_build/js/release/build/ui/ui.js",
+      "name": "usePreparedStageFrame"
+    }
+  },
+  "shared/demo.js": {
+    "makeBlankScene": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "makeBlankScene"
+    },
+    "makeDemoProject": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "makeDemoProject"
+    }
+  },
+  "shared/locale.js": {
+    "resolveLocale": {
+      "module": "../../../_build/js/release/build/site_boundary/site_boundary.js",
+      "name": "resolveLocale"
+    }
+  },
+  "shared/project-timeline.js": {
+    "projectSegments": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "projectSegments"
+    },
+    "projectDuration": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "projectDuration"
+    },
+    "projectSegmentAt": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "projectSegmentAt"
+    }
+  },
+  "shared/public-site.js": {
+    "prefersMarkdown": {
+      "module": "../../../_build/js/release/build/http_runtime/http_runtime.js",
+      "name": "prefersMarkdown"
+    },
+    "publicPagePlan": {
+      "module": "../../../_build/js/release/build/http_runtime/http_runtime.js",
+      "name": "publicPagePlan"
+    },
+    "fetchPublicPage": {
+      "module": "../../../_build/js/release/build/http_runtime/http_runtime.js",
+      "name": "fetchPublicPage"
+    }
+  },
+  "shared/structure-view.js": {
+    "sceneStructureView": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "sceneStructureView"
+    },
+    "projectStructureView": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "projectStructureView"
+    }
+  },
+  "shared/templates.js": {
+    "makeCalculusProject": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "makeCalculusProject"
+    }
+  },
+  "server/images.js": {
+    "saveRoomImage": {
+      "module": "../../../_build/js/release/build/node_assets/node_assets.js",
+      "name": "saveRoomImage"
+    },
+    "handleImages": {
+      "module": "../../../_build/js/release/build/node_assets/node_assets.js",
+      "name": "handleImages"
+    }
+  },
+  "server/media.js": {
+    "handleMedia": {
+      "module": "../../../_build/js/release/build/node_assets/node_assets.js",
+      "name": "handleMedia"
+    }
+  },
+  "worker/assets.js": {
+    "assetValue": {
+      "module": "../../../_build/js/release/build/worker_assets/worker_assets.js",
+      "name": "assetValue"
+    },
+    "r2AssetResponse": {
+      "module": "../../../_build/js/release/build/worker_assets/worker_assets.js",
+      "name": "r2AssetResponse"
+    },
+    "handleAssetRequest": {
+      "module": "../../../_build/js/release/build/worker_assets/worker_assets.js",
+      "name": "handleAssetRequest"
+    }
+  },
+  "worker/presence.js": {
+    "readPresenceUpdate": {
+      "module": "../../../_build/js/release/build/server_presence/server_presence.js",
+      "name": "readPresenceUpdate"
+    },
+    "presenceMessage": {
+      "module": "../../../_build/js/release/build/server_presence/server_presence.js",
+      "name": "presenceMessage"
+    }
+  },
+  "worker/r2-upload.js": {
+    "uploadMediaToR2": {
+      "module": "../../../_build/js/release/build/r2_upload/r2_upload.js",
+      "name": "uploadMediaToR2"
+    },
+    "uploadImageRequestToR2": {
+      "module": "../../../_build/js/release/build/r2_upload/r2_upload.js",
+      "name": "uploadImageRequestToR2"
+    },
+    "uploadImageToR2": {
+      "module": "../../../_build/js/release/build/r2_upload/r2_upload.js",
+      "name": "uploadImageToR2"
+    }
+  },
+  "src/engine/evaluate.js": {
+    "compositionFrame": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "compositionFrame"
+    },
+    "transitionFrame": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "transitionFrame"
+    },
+    "evaluateScene": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "evaluateScene"
+    },
+    "compileScene": {
+      "module": "../../../../_build/js/release/build/boundary/boundary.js",
+      "name": "compileScene"
+    }
+  }
+}

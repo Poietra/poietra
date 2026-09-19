@@ -188,8 +188,10 @@ pub fn AudioMixer::prepare(self : AudioMixer) -> @core.Promise[Unit] {
       for clip in self.clips {
         check_abort(self.signal)
         let input = self.open(clip)
+        let runtime = audio_runtime().wait()
+        check_abort(self.signal)
         let sink = @core.throwable(fn() {
-          @core.new(audio_runtime()._get("AudioBufferSink"), [input.track])
+          @core.new(runtime._get("AudioBufferSink"), [input.track])
         })
         self.decoders.push({ clip, sink, iterator: None, packet: NeedPacket, })
       }

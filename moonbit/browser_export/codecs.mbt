@@ -39,8 +39,9 @@ fn supports(
 ) -> @core.Promise[Bool] {
   @core.from_async(async fn() {
     try {
+      let runtime = video_probe_runtime().wait()
       let pending : @core.Promise[Bool] = @core.throwable(fn() {
-        video_probe_runtime()
+        runtime
         ._call("canEncodeVideo", [
           @core.any(codec),
           @core.from_entries([

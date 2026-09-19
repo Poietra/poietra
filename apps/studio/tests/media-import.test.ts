@@ -3,7 +3,7 @@ import { prepareMedia, uploadMedia } from '../src/editor/media';
 import { normalizeImage } from '../src/editor/images';
 
 const runtime = vi.hoisted(() => ({ Input: vi.fn(), BlobSource: vi.fn(), CanvasSink: vi.fn(), AudioBufferSink: vi.fn(), ALL_FORMATS: [] }));
-vi.mock('../src/platform/media-host.mjs', () => ({ mediaRuntime: () => runtime, audioRuntime: () => runtime }));
+vi.mock('../src/platform/media-host.mjs', () => ({ mediaRuntime: async () => runtime, audioRuntime: async () => runtime }));
 const file = () => new File(['RIFF0000WAVEdata'], 'voice.wav', { type: 'audio/x-wav' });
 const deferred = <T>() => {
   let resolve!: (value: T) => void;

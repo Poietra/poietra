@@ -81,6 +81,7 @@ async fn paint_layers(
   layers : RasterCache,
   glow : @core.Any,
   signal : @core.Any,
+  videos : @browser_media.VideoSurfaces?,
 ) -> Bool {
   let context = surface.context
   let width : Double = surface.canvas._get("width").cast()
@@ -116,7 +117,13 @@ async fn paint_layers(
       @render.unit(item.progress) == 0.0 {
       continue
     }
-    let layer = layers.get(items[index], scale, glow, signal)
+    let layer = layers.get(
+      items[index],
+      scale,
+      glow,
+      signal,
+      video=videos.bind(fn(v) { v.get(item.id) }),
+    )
     image_check_abort(signal)
     if @core.is_nullish(layer) || glow_lost(glow) {
       return false
@@ -190,10 +197,16 @@ async fn FramePainter::render(
         self.target.canvas._get("height").cast(),
       )
     })
-    self.videos.prepare(input, signal).wait()
+    let videos = if self.backend is Gpu(glow) && !glow_lost(glow) {
+      Some(self.videos.prepare_canvas(input, signal).wait())
+    } else {
+      self.videos.prepare(input, signal).wait()
+      None
+    }
+    defer (if videos is Some(videos) { videos.dispose() })
     image_check_abort(signal)
     let items : FixedArray[@core.Any] = input._get("objects").cast()
-    let frame : @render.RenderFrame = {
+    let mut frame : @render.RenderFrame = {
       width: input._get("width").cast(),
       height: input._get("height").cast(),
       background: input._get("background").cast(),
@@ -205,11 +218,30 @@ async fn FramePainter::render(
       @core.throwable(fn() { self.use_svg() })
     }
     if self.backend is Gpu(glow) {
-      if !paint_layers(self.staging, frame, items, self.layers, glow, signal) {
+      if !paint_layers(
+          self.staging,
+          frame,
+          items,
+          self.layers,
+          glow,
+          signal,
+          videos,
+        ) {
         @core.throwable(fn() { self.use_svg() })
       }
     }
     if self.backend is Svg {
+      if videos is Some(_) {
+        // Context loss and raster budget fallback still produce the same portable SVG.
+        self.videos.prepare(input, signal).wait()
+        image_check_abort(signal)
+        frame = {
+          ..frame,
+          objects: Array::makei(items.length(), fn(i) {
+            @boundary.decode_drawable(items[i])
+          }),
+        }
+      }
       let svg = @core.throwable(fn() {
         @render.frame_to_svg(
           frame,

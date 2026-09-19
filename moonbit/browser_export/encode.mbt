@@ -55,7 +55,7 @@ async fn export_timeline(
         Mp4 => "aac"
         Webm => "opus"
       }
-      let runtime = @core.throwable(fn() { audio_encoder_runtime() })
+      let runtime = abortable(audio_encoder_runtime(), signal).wait()
       let pending : @core.Promise[@core.Any] = @core.throwable(fn() {
         runtime
         ._call("canEncodeAudio", [
@@ -105,7 +105,7 @@ async fn export_timeline(
     let painter = invoke(host, "createFramePainter", [canvas])
     resources.painter = Some(painter)
     check_signal(signal)
-    let runtime = @core.throwable(fn() { encoder_runtime() })
+    let runtime = abortable(encoder_runtime(), signal).wait()
     let target = @core.throwable(fn() {
       @core.new(runtime._get("BufferTarget"), [])
     })

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const runtime = vi.hoisted(() => ({ Input: vi.fn(), BlobSource: vi.fn(), CanvasSink: vi.fn(), ALL_FORMATS: [] }));
-vi.mock('../src/platform/media-host.mjs', () => ({ mediaRuntime: () => runtime }));
+vi.mock('../src/platform/media-host.mjs', () => ({ mediaRuntime: async () => runtime }));
 
 const imageSource = `/api/rooms/${'a'.repeat(16)}/images/${'b'.repeat(64)}`;
 const mediaSource = `/api/rooms/${'a'.repeat(16)}/media/${'b'.repeat(64)}`;
@@ -19,7 +19,7 @@ describe('MoonBit media streams and decoder lifetimes', () => {
   let moon: typeof import('../../../_build/js/release/build/browser_media/browser_media.js');
   let fetcher: ReturnType<typeof vi.fn>;
   let inputs: Array<{ dispose: ReturnType<typeof vi.fn>; getPrimaryVideoTrack: ReturnType<typeof vi.fn> }>;
-  let decoded: ReturnType<typeof vi.fn>;
+  let decoded: ReturnType<typeof vi.fn<(time: number) => Promise<any>>>;
   let track: { canDecode: ReturnType<typeof vi.fn> };
   let canvases: Array<{ width: number; height: number }>;
 
@@ -32,7 +32,15 @@ describe('MoonBit media streams and decoder lifetimes', () => {
       inputs.push(input); return input;
     });
     runtime.BlobSource.mockImplementation(function (blob: Blob) { return { blob }; });
-    runtime.CanvasSink.mockImplementation(function () { return { getCanvas: decoded }; });
+    runtime.CanvasSink.mockImplementation(function () { return { canvases(time: number) {
+      let done = false;
+      return { next: async () => {
+        if (done) return { done: true };
+        done = true;
+        const value = await decoded(time);
+        return { done: false, value: { ...value, timestamp: time } };
+      }, return: vi.fn(async () => ({ done: true })) };
+    } }; });
     fetcher = vi.fn(() => Promise.resolve(new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/png; charset=utf-8' } })));
     vi.stubGlobal('fetch', fetcher);
     vi.stubGlobal('document', { createElement: () => {
@@ -109,6 +117,43 @@ describe('MoonBit media streams and decoder lifetimes', () => {
     expect(first.objects[0]).toHaveProperty('videoFrame');
     expect(second.objects[0]).toHaveProperty('videoFrame');
     expect(inputs).toHaveLength(1);
+    videos.dispose();
+  });
+
+  it('uses actual timestamps for repeated, variable-rate and gapped frames and closes each seek iterator', async () => {
+    const opened: Array<{ time: number; close: ReturnType<typeof vi.fn> }> = [];
+    let conversions = 0;
+    vi.stubGlobal('document', { createElement: () => ({ width: 1, height: 1,
+      getContext: () => ({ drawImage: vi.fn() }), toDataURL: () => `frame:${++conversions}` }) });
+    runtime.CanvasSink.mockImplementation(function () { return { canvases(time: number) {
+      const timestamps = [0, .04, .08, .2, .24, .8];
+      let index = Math.max(0, timestamps.findLastIndex(t => t <= time));
+      const close = vi.fn(async () => ({ done: true })); opened.push({ time, close });
+      return { next: async () => index === timestamps.length ? { done: true } : {
+        done: false, value: { timestamp: timestamps[index++], canvas: { width: 128, height: 72 } },
+      }, return: close };
+    } }; });
+    const videos = moon.createVideoFrames();
+    const actual = [];
+    for (const time of [0, 20, 40, 79, 80, 150, 199, 200, 240, 810, 820, 20]) {
+      const frame = videoFrame(time);
+      await videos.prepare(frame);
+      actual.push((frame.objects[0] as { videoFrame?: string }).videoFrame);
+    }
+    expect(actual).toEqual(['frame:1', 'frame:1', 'frame:2', 'frame:2', 'frame:3', 'frame:3', 'frame:3',
+      'frame:4', 'frame:5', 'frame:6', 'frame:6', 'frame:7']);
+    expect(opened.map(x => x.time)).toEqual([0, .81, .02]);
+    videos.dispose();
+    expect(opened.every(x => x.close.mock.calls.length === 1)).toBe(true);
+  });
+
+  it('retries a decoder failure without keeping a broken iterator or poisoning the queue', async () => {
+    decoded.mockRejectedValueOnce(new Error('decoder failed'));
+    const videos = moon.createVideoFrames();
+    await expect(videos.prepare(videoFrame())).rejects.toThrow('decoder failed');
+    expect(inputs[0].dispose).toHaveBeenCalledOnce();
+    await videos.prepare(videoFrame());
+    expect(inputs).toHaveLength(2);
     videos.dispose();
   });
 

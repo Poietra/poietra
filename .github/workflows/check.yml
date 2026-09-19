@@ -38,9 +38,11 @@ jobs:
         run: |
           python3 scripts/generate-adapters.py
           moon fmt
-          git diff --exit-code -- moonbit
+          git diff --exit-code -- moonbit apps/studio/shared/scene-types.d.ts
           moon check --target js --deny-warn
       - run: pnpm test
+      - name: Check generated public bindings
+        run: git diff --exit-code -- apps/studio/src apps/studio/shared apps/studio/server apps/studio/worker
       - run: node scripts/moon.mjs test --target js
       - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan
       - run: pnpm build

@@ -37,7 +37,7 @@ for (const mode of modes) {
     const log = await open(join(root, `${mode}.log`), 'a');
     child = mode === 'worker'
       ? spawn('pnpm', ['exec', 'wrangler', 'dev', '--port', String(port), '--local', '--persist-to', directory], { cwd: snapshot, detached: true, stdio: ['ignore', log.fd, log.fd] })
-      : spawn('node', ['--import', 'tsx', 'server/index.ts'], { detached: true, env: { ...process.env, PORT: String(port), NODE_ENV: 'production', POIETRA_DATA_DIR: directory }, stdio: ['ignore', log.fd, log.fd] });
+      : spawn('node', ['server/index.js'], { detached: true, env: { ...process.env, PORT: String(port), NODE_ENV: 'production', POIETRA_DATA_DIR: directory }, stdio: ['ignore', log.fd, log.fd] });
     await log.close();
     const deadline = Date.now() + 30000;
     while (Date.now() < deadline) {

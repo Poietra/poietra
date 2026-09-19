@@ -22,8 +22,14 @@ and measurements belong in [README.md](README.md).
 
 ## Implementation
 
-- Write application/domain logic in typed MoonBit. JS/TS adapters serve native
-  browser/runtime/npm interoperability, declarations and build/test tooling.
+- Write application/domain logic in typed MoonBit. Runtime TS/TSX was removed on
+  2026-09-19. Native JS serves browser/runtime/npm interoperability; TypeScript
+  remains for public declarations and build/test tooling.
+- Generate document adapters and public record types from `moonbit/scene` with
+  `scripts/generate-adapters.py`. `scripts/bindings.json` generates simple public
+  JS facades. Do not manually duplicate domain records or edit generated output.
+  `pnpm typecheck` checks the captured public API; `pnpm test:extensions` compiles
+  and runs a new MoonBit record/API in an isolated directory.
 - Keep pure domain packages independent of UI/host types. Compile motion
   primitives to WASM and host integrations to JS. Use the pinned `.moon-version`
   through `node scripts/moon.mjs`; verify generated release artifacts.

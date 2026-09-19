@@ -100,15 +100,15 @@ pub fn abortable(
 
 ///|
 #module("#poietra/media-host")
-extern "js" fn video_probe_runtime() -> @core.Any = "videoProbeRuntime"
+extern "js" fn video_probe_runtime() -> @core.Promise[@core.Any] = "videoProbeRuntime"
 
 ///|
 #module("#poietra/media-host")
-extern "js" fn encoder_runtime() -> @core.Any = "encoderRuntime"
+extern "js" fn encoder_runtime() -> @core.Promise[@core.Any] = "encoderRuntime"
 
 ///|
 #module("#poietra/media-host")
-extern "js" fn audio_encoder_runtime() -> @core.Any = "audioEncoderRuntime"
+extern "js" fn audio_encoder_runtime() -> @core.Promise[@core.Any] = "audioEncoderRuntime"
 
 ///|
 extern "js" fn snapshot(value : @core.Any) -> @core.Any =

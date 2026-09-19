@@ -1,0 +1,27 @@
+import * as moonbit from "../../../_build/js/release/build/boundary/boundary.js";
+export { DEFAULT_CUSTOM_EASING, isValidEasing, easingsEqual } from "./easing.js";
+const catalog = moonbit.modelCatalog();
+export const PROPERTY_CHANNELS = catalog.channels;
+export const PROPERTY_CHANNEL_LABELS = catalog.labels;
+export const propertyTimingKey = moonbit.propertyTimingKey;
+export const COLORS = catalog.colors;
+export const KINDS = catalog.kinds;
+export const EASINGS = catalog.easings;
+export const ANIMATIONS = catalog.animations;
+// Typed host signatures for MoonBit's document and timeline implementation.
+export const newId = moonbit.newId;
+export const defaultState = moonbit.defaultState;
+export const defaultTrack = moonbit.defaultTrack;
+export const getPropertyTiming = moonbit.getPropertyTiming;
+export const hasPropertyTiming = moonbit.hasPropertyTiming;
+export const resolveTrack = moonbit.resolveTrack;
+export const implicitTracks = moonbit.implicitTracks;
+export const trackTimingEnd = moonbit.trackTimingEnd;
+export const validateAnimationTiming = moonbit.validateAnimationTiming;
+export const validateAnimationTrack = moonbit.validateAnimationTrack;
+export const sceneSegments = moonbit.sceneSegments;
+export const sceneDuration = moonbit.sceneDuration;
+export const orderedObjects = moonbit.orderedObjects;
+export const stateFor = moonbit.stateFor;
+export const clamp = moonbit.clamp;
+export const ms = moonbit.formatMilliseconds;

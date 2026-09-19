@@ -6,8 +6,8 @@ import { WebsocketProvider } from 'y-websocket';
 import WebSocket from 'ws';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { applyChanges } from '../shared/document.ts';
-import { defaultState } from '../shared/model.ts';
+import { applyChanges } from '../shared/document.js';
+import { defaultState } from '../shared/model.js';
 import { environment } from './benchmark-environment.mjs';
 
 const url = new URL(process.env.POIETRA_PERF_URL || 'http://127.0.0.1:5188');

@@ -216,7 +216,7 @@ async fn AccountController::mutate_async(
         self.saved = Some({ account: identity, room, name, })
         let projects = [project]
         for item in self.view.projects {
-          if item.room_id != room {
+          if item.room_id != project.room_id {
             projects.push(item)
           }
         }

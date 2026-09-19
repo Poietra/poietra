@@ -48,7 +48,7 @@ let temporary, browser;
 const measuredEnvironment = environment();
 try {
   try {
-    const response = await fetch(new URL('/src/engine/evaluate.ts', base), { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(new URL('/src/engine/evaluate.js', base), { signal: AbortSignal.timeout(5000) });
     if (!response.ok || !response.headers.get('content-type')?.includes('javascript')) throw new Error('Source modules are not served.');
   } catch (error) { throw new Error(`Start a Vite dev server at ${base.origin} before running this benchmark.`, { cause: error }); }
   let media;
@@ -66,11 +66,11 @@ try {
   if (media) await page.route(`**${mediaPath}`, route => route.fulfill({ contentType: 'video/mp4', body: media }));
   await page.goto(new URL('/__poietra_render_bench', base).href);
   const result = await page.evaluate(async ({ frameCount, video, mediaPath }) => {
-    const renderer = await import('/src/engine/renderer.ts');
-    const { compileScene, compositionFrame } = await import('/src/engine/evaluate.ts');
-    const { defaultState } = await import('/shared/model.ts');
-    const { loadKernel } = await import('/src/engine/kernel.ts');
-    const { createFramePainter } = await import('/src/engine/painter.ts');
+    const renderer = await import('/src/engine/renderer.js');
+    const { compileScene, compositionFrame } = await import('/src/engine/evaluate.js');
+    const { defaultState } = await import('/shared/model.js');
+    const { loadKernel } = await import('/src/engine/kernel.js');
+    const { createFramePainter } = await import('/src/engine/painter.js');
     // Resolve through Vite, sharing the application's exact Mediabunny instance.
     const bunny = await import('/tests/e2e/fixtures/media-dependencies.ts');
     const kernel = await loadKernel();
@@ -94,12 +94,22 @@ try {
       }
       return value;
     }
-    const marks = { decode: [], png: [], pngBytes: [], fetches: 0 };
+    const marks = { decode: [], sequentialDecode: [], png: [], pngBytes: [], fetches: 0 };
     const originalGetCanvas = bunny.CanvasSink.prototype.getCanvas;
     bunny.CanvasSink.prototype.getCanvas = async function (...args) {
       const start = performance.now();
       try { return await originalGetCanvas.apply(this, args); }
       finally { marks.decode.push(performance.now() - start); }
+    };
+    const originalCanvases = bunny.CanvasSink.prototype.canvases;
+    bunny.CanvasSink.prototype.canvases = function (...args) {
+      const iterator = originalCanvases.apply(this, args), next = iterator.next.bind(iterator);
+      iterator.next = async (...nextArgs) => {
+        const start = performance.now();
+        try { return await next(...nextArgs); }
+        finally { marks.sequentialDecode.push(performance.now() - start); }
+      };
+      return iterator;
     };
     const originalPng = HTMLCanvasElement.prototype.toDataURL;
     HTMLCanvasElement.prototype.toDataURL = function (...args) {
@@ -108,9 +118,9 @@ try {
     };
     const originalFetch = window.fetch;
     window.fetch = async (...args) => { if (String(args[0]).includes('/media/')) marks.fetches++; return originalFetch(...args); };
-    function reset() { for (const key of ['decode', 'png', 'pngBytes']) marks[key] = []; marks.fetches = 0; }
+    function reset() { for (const key of ['decode', 'sequentialDecode', 'png', 'pngBytes']) marks[key] = []; marks.fetches = 0; }
     function reportMarks() {
-      return { ...Object.fromEntries(['decode', 'png', 'pngBytes'].map(key => [key, marks[key].length ? stats(marks[key]) : null])), fetches: marks.fetches };
+      return { ...Object.fromEntries(['decode', 'sequentialDecode', 'png', 'pngBytes'].map(key => [key, marks[key].length ? stats(marks[key]) : null])), fetches: marks.fetches };
     }
     const shapes = [];
     for (const count of [100, 500]) {
@@ -179,10 +189,10 @@ try {
     return { userAgent: navigator.userAgent, gpu, headless: true, units: 'milliseconds (except counts and pngBytes/svgBytes)', shapes, preparations, video: videos, decodeOnly };
   }, { frameCount: options.frames, video: options.video, mediaPath });
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode, PNG and drawing; evaluation excluded', ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
+  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode and drawing (PNG only on SVG fallback); evaluation excluded', ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
   console.log(`Saved ${outputPath}\nGPU: ${result.gpu}\nMean milliseconds; asynchronous microbench timings, not user-visible FPS:`);
   console.table(result.shapes.map(value => ({ objects: value.count, evaluate: value.evaluation.mean, clone: value.cloning.mean, svg: value.svg.mean, domReplace: value.dom.mean, moveAndPaint: value.moving.mean })));
-  if (options.video) console.table(result.video.map(value => ({ scenario: value.name, paint: value.paint.mean, canvasRequests: value.marks.decode?.n ?? 0, pngEncodes: value.marks.png?.n ?? 0 })));
+  if (options.video) console.table(result.video.map(value => ({ scenario: value.name, paint: value.paint.mean, randomRequests: value.marks.decode?.n ?? 0, sequentialReads: value.marks.sequentialDecode?.n ?? 0, pngEncodes: value.marks.png?.n ?? 0 })));
 } finally {
   try { await browser?.close(); }
   finally { if (temporary) await rm(temporary, { recursive: true, force: true }); }

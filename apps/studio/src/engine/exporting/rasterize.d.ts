@@ -1,0 +1,1 @@
+export declare const drawSvgFrame: (svg: string, context: CanvasRenderingContext2D, width: number, height: number, sceneWidth: number, sceneHeight: number, background: string, signal?: AbortSignal) => Promise<void>;

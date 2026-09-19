@@ -1,0 +1,22 @@
+import * as http from "../../../_build/js/release/build/http_runtime/http_runtime.js";
+import * as moon from "../../../_build/js/release/build/boundary/boundary.js";
+import * as schemas from "../../../_build/js/release/build/schemas/schemas.js";
+export const MEDIA_FILE_LIMIT = 32 * 1024 * 1024;
+export const MEDIA_ROOM_BYTES_LIMIT = 128 * 1024 * 1024;
+export const MEDIA_CHUNK_BYTES = 128 * 1024;
+export const MEDIA_MIMES = ['video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/flac', 'audio/mp4', 'audio/webm'];
+export const MEDIA_ACCEPT = MEDIA_MIMES.join(',') + ',audio/x-wav,audio/x-flac,audio/x-m4a,.mp3,.wav,.ogg,.flac,.m4a,.mp4,.webm';
+export const MEDIA_ASSET_PATH = /^\/api\/rooms\/([a-zA-Z0-9_-]{16,80})\/media\/([a-f0-9]{64})$/;
+export const MEDIA_UPLOAD_PATH = /^\/api\/rooms\/([a-zA-Z0-9_-]{16,80})\/media$/;
+export const MEDIA_DATA_URL = /^data:(video\/(?:mp4|webm)|audio\/(?:mpeg|wav|ogg|flac|mp4|webm));base64,[A-Za-z0-9+/]+={0,2}$/;
+export const MediaAssetSchema = schemas.mediaAssetSchema();
+export const MediaPlaybackSchema = schemas.mediaPlaybackSchema();
+export const AudioTrackSchema = schemas.audioTrackSchema();
+export const canonicalMediaMime = moon.canonicalMediaMime;
+export const mediaMime = moon.mediaMime;
+export const mediaByteRange = http.mediaByteRange;
+export const mediaHeaders = http.mediaHeaders;
+export const MediaUploadError = http.mediaErrorType();
+/** The sink must consume each chunk before resolving; the buffer is then reused. */
+export const writeMediaChunks = http.writeMediaChunks;
+export const mediaResponsePlan = http.mediaResponsePlan;

@@ -132,7 +132,27 @@ test('MP4 import creates a visible video object and a separate soundtrack', asyn
     const scene = watch.project().scenes['scene-1'], video = Object.values(scene.objects).find(object => object.kind === 'video')!;
     expect(video.media).toMatchObject({ width: 160, height: 90, hasAudio: true });
     expect(Object.values(scene.audioTracks!)[0].asset.src).toBe(video.media!.src);
-    await expect(page.locator('.scene-svg image').first()).toHaveAttribute('href', /^data:image\//);
+    const surface = page.locator('.stage-surface').first();
+    const hit = surface.locator(`[data-object-id="${video.id}"] rect`);
+    await expect(hit).toBeVisible();
+    await expect.poll(() => surface.evaluate((element, id) => {
+      const canvas = element.querySelector('canvas.scene-canvas') as HTMLCanvasElement;
+      if (!canvas || getComputedStyle(canvas).visibility !== 'visible') return 0;
+      const hit = element.querySelector(`[data-object-id="${id}"]`)!.getBoundingClientRect();
+      const bounds = canvas.getBoundingClientRect(), ctx = canvas.getContext('2d')!;
+      const colors = new Set<string>();
+      for (const x of [.2, .4, .6, .8]) for (const y of [.2, .4, .6, .8]) {
+        const pixel = ctx.getImageData((hit.left - bounds.left + hit.width * x) * canvas.width / bounds.width,
+          (hit.top - bounds.top + hit.height * y) * canvas.height / bounds.height, 1, 1).data;
+        colors.add([...pixel].map(value => Math.round(value / 32)).join(','));
+      }
+      return colors.size;
+    }, video.id)).toBeGreaterThan(4);
+    // Deselect, then select the visible video through its transparent hit region.
+    await page.keyboard.press('Escape');
+    await hit.click();
+    await expect(page.getByRole('textbox', { name: 'Object name', exact: true })).toHaveValue('Clip');
+    await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '動画クリップ Clip', exact: true }).click();
     await field(page, '素材のトリム開始', '500'); await field(page, '素材の再生時間', '1000');
     await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();

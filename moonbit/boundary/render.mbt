@@ -175,6 +175,7 @@ pub fn frame_to_svg(
     prefix,
     !strict_equal(options._get("background"), @core.any(false)),
     render_resources(host),
+    video_hits=strict_equal(options._get("hitVideo"), @core.any(true)),
   )
 }
 

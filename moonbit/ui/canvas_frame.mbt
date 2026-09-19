@@ -14,6 +14,8 @@ pub fn canvas_frame(input : @core.Any) -> @react.Element {
   let session = @react.use_ref((None : CanvasSession?))
   let callback = @react.use_ref(Some(input._get("onPresent")))
   callback.set_current(Some(input._get("onPresent")))
+  let failure_callback = @react.use_ref(Some(input._get("onFailure")))
+  failure_callback.set_current(Some(input._get("onFailure")))
   let (density, set_density) = @react.use_state_lazy(pixel_density)
   let width : Double = input._get("width").cast()
   let height : Double = input._get("height").cast()
@@ -80,7 +82,14 @@ pub fn canvas_frame(input : @core.Any) -> @react.Element {
         callback.get_current().unwrap()._invoke([value]) |> ignore
       }
       publish(@core.null())
+      let fail = fn() {
+        let callback = failure_callback.get_current().unwrap()
+        if truthy(callback) {
+          callback._invoke([]) |> ignore
+        }
+      }
       if @core.is_nullish(display) {
+        fail()
         return fn() { () }
       }
       let target = @core.global_this()
@@ -94,6 +103,7 @@ pub fn canvas_frame(input : @core.Any) -> @react.Element {
         lifetime: new_controller(),
         latest: fn() { latest.get_current().unwrap() },
         publish,
+        fail,
         state: Opening,
         pending: latest.get_current(),
         busy: false,

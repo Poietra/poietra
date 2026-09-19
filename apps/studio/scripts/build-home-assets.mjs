@@ -1,5 +1,5 @@
 // Rebuild the committed homepage assets after changing its copy or studio screenshot.
-// Run: node --import tsx scripts/build-home-assets.mjs
+// Run: node scripts/build-home-assets.mjs
 // Requires fonttools with Brotli support (pyftsubset) and ffmpeg with libwebp.
 // These tools are only needed to regenerate assets, never to build or serve the app.
 import { execFileSync } from 'node:child_process';
@@ -7,8 +7,8 @@ import { copyFile, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LANDING_COPY } from '../src/ui/landing-copy.ts';
-import { pageCopy } from '../src/locale.ts';
+import { LANDING_COPY } from '../src/ui/landing-copy.js';
+import { pageCopy } from '../src/locale.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const assets = join(root, 'src/assets');

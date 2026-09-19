@@ -1,0 +1,10 @@
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import * as encoding from "lib0/encoding";
+import * as decoding from "lib0/decoding";
+import * as sync from "y-protocols/sync";
+import { storeProjectImages } from "./images.js";
+import * as moon from "../../../../_build/js/release/build/browser_projects/browser_projects.js";
+const runtime = { Y, WebsocketProvider, encoding, decoding, sync, storeProjectImages };
+export const createProjectMessages = (source, project) => moon.createProjectMessages(source, project, runtime);
+export const createProjectRoom = (project, signal) => moon.createProjectRoom(project, signal, runtime);

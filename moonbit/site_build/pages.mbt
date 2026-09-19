@@ -150,7 +150,7 @@ pub fn render_files(
   render_home : @core.Any,
   markdown : @core.Any,
 ) -> @core.Any {
-  let home = manifest._get("src/home.tsx")
+  let home = manifest._get("src/home.js")
   if @core.is_nullish(home) {
     @core.throw_error("Homepage entry is missing from the build manifest")
   }

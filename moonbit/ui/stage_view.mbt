@@ -12,6 +12,7 @@ fn stage_view(
   key : String,
   svg : String,
   canvas_visible : Bool,
+  on_failure : () -> Unit,
 ) -> @react.Element {
   let objects : FixedArray[@core.Any] = controller.frame._get("objects").cast()
   let selection = objects
@@ -98,6 +99,7 @@ fn stage_view(
           "width": @core.any(size.width),
           "height": @core.any(size.height),
           "visible": @core.any(canvas_visible),
+          "onFailure": @core.any(on_failure),
           "onPresent": @core.any(fn(value : @core.Any) {
             on_present(
               if @core.is_nullish(value) {

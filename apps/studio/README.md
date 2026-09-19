@@ -8,6 +8,8 @@ AI に頼んだ編集も、同じオブジェクトの位置・色・時間と�
 
 このリポジトリでは UI・編集エンジン・サーバーのアプリケーションロジックを MoonBit で実装しています。
 数値カーネルは WASM、ブラウザ・サーバーとの接続は JavaScript ターゲットです。
+`src`・`shared`・`server`・`worker` の実行用 TS/TSX は削除しました。
+公開 API の型宣言とテスト用 TypeScript は維持し、Node サーバーは TS ローダーなしで起動します。
 **MoonBit 版は本番未配置です。`poietra.com` で公開されている元サービスとは区別してください。**
 
 [セットアップ・構成・最新の性能計測](../../README.md) · [開発方針](AGENTS.md) · [不具合の報告](https://github.com/Poietra/poietra/issues)
@@ -194,7 +196,7 @@ Node はローカルファイル、Worker は SQLite Durable Objects と非公�
 
 公開ページは `Accept: text/markdown` に対応し、`robots.txt`・`sitemap.xml`・`llms.txt` も生成します。
 編集画面と共有ルームは `noindex` ですが、これはアクセス制御ではありません。
-文言・画像を変更したときの素材再生成は `node --import tsx scripts/build-home-assets.mjs` で行います。
+文言・画像を変更したときの素材再生成は `node scripts/build-home-assets.mjs` で行います。
 その場合だけ FontTools/Brotli の `pyftsubset` と libwebp 対応 FFmpeg が追加で必要です。
 
 ## 検証と性能
@@ -203,9 +205,23 @@ Node はローカルファイル、Worker は SQLite Durable Objects と非公�
 [Performance](../../README.md#performance) に 2026-09-19 の再計測結果・条件・全試行データをまとめています。
 数値評価、Yjs snapshot、AI 提案コンパイル、実際の 2/4 人編集、トップページ、描画、配信サイズを区別して測っています。
 
+2026-09-19 に、動画の連続デコードと Canvas への直接描画を導入しました。
+実際のフレーム時刻で再利用を判断し、通常の Canvas 描画では PNG への変換を省きます。
+シーク・中断・同じ素材の異なる時刻の同時表示を検証し、SVG への代替経路も維持しています。
+動画・音声のライブラリは素材操作や書き出し時に読み込むよう変更しました。
 CPU の高速化率を UI 全体の速度や再生 fps として説明しないでください。
-動画のデコード・PNG 変換と編集開始時の JavaScript サイズには改善余地が残っています。
 描画計測は SwiftShader を使う環境の値であり、実機 GPU や本番ネットワークでの値ではありません。
+
+## 機能を追加する
+
+ドキュメントの型は `moonbit/scene`、編集操作や画面は各 MoonBit パッケージに追加します。
+`pnpm build:moonbit` で変換コード・公開レコード型・単純な JS の公開窓口を再生成します。
+型を追加するだけで UI や保存時の検証が自動実装されるわけではありません。
+[拡張手順](../../README.md#add-a-feature)に、各層の役割と必要な確認をまとめています。
+
+`pnpm test:extensions` は隔離したコピーへ入れ子の型と API を追加し、生成・コンパイル・JS からの呼び出し・型の誤用検出まで実行します。
+`pnpm typecheck` は既存 108 モジュールの公開契約との互換性も確認します。
+これらはリポジトリルートから実行してください。
 
 ## 現在の制限
 

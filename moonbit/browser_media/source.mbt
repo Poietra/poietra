@@ -186,8 +186,9 @@ pub fn open_media(
   @core.from_async(async fn() {
     let blob = download(source, signal, media_policy)
     check_abort(signal)
+    let runtime = media_runtime().wait()
+    check_abort(signal)
     @core.throwable(fn() {
-      let runtime = media_runtime()
       let source = @core.new(runtime._get("BlobSource"), [blob])
       @core.new(runtime._get("Input"), [
         @core.from_entries([

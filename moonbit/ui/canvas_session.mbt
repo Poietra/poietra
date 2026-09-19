@@ -26,6 +26,7 @@ priv struct CanvasSession {
   lifetime : @core.Any
   latest : () -> PaintJob
   publish : (@core.Any) -> Unit
+  fail : () -> Unit
   mut state : PaintLifecycle
   mut pending : PaintJob?
   mut busy : Bool
@@ -63,6 +64,7 @@ fn CanvasSession::stop(self : CanvasSession, failed : Bool) -> Unit {
   resize_preview(self.target, 0.0, 0.0)
   if failed {
     (self.publish)(@core.null())
+    (self.fail)()
   }
 }
 

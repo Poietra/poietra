@@ -36,6 +36,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     (None : @scene.ObjectState?),
   )
   let (painted, set_painted) = @react.use_state((None : StagePresentation?))
+  let (failed_canvas, set_failed_canvas) = @react.use_state((None : String?))
   let (hover_id, set_hover_id) = @react.use_state("")
   let feedback = use_operation_feedback(
     "\{scene_id}:\{composition_id}:\{prefix}",
@@ -106,8 +107,13 @@ pub fn stage(input : @core.Any) -> @react.Element {
     string_value(@core.any(state_editing)) +
     ":" +
     drawing_kind.map(@scene.object_kind_name).unwrap_or("idle")
-  let prepared = use_prepared_stage_frame(drawn_frame, renderer, key)
   let factory = editor._get("createFramePainter")
+  let prepared = use_prepared_stage_frame(
+    drawn_frame,
+    renderer,
+    key,
+    enabled=!truthy(factory) || failed_canvas == Some(key),
+  )
   let canvas_visible = truthy(factory) &&
     painted
     .map(fn(value) {
@@ -126,11 +132,14 @@ pub fn stage(input : @core.Any) -> @react.Element {
       renderer
       ._call("frameToSvg", [
         displayed,
-        host_record({ "idPrefix": @core.any(prefix) }),
+        host_record({
+          "idPrefix": @core.any(prefix),
+          "hitVideo": @core.any(canvas_visible),
+        }),
       ])
       .cast()
     },
-    [displayed, renderer, @core.any(prefix)],
+    [displayed, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )
   let selected : FixedArray[String] = editor._get("selectedIds").cast()
   let controller : StageController = {
@@ -214,5 +223,6 @@ pub fn stage(input : @core.Any) -> @react.Element {
     key,
     svg,
     canvas_visible,
+    fn() { set_failed_canvas(Some(key)) },
   )
 }

@@ -17,8 +17,116 @@ fn InputOwner::dispose(self : InputOwner) -> Unit {
 priv struct VideoEntry {
   owner : InputOwner
   sink : @core.Any
+  mut iterator : @core.Any?
+  mut current : @core.Any?
+  mut next : @core.Any?
   mut time : Double?
   mut image : String
+}
+
+///|
+/// Two decoder canvases form a bounded lookahead window. The next timestamp,
+/// rather than a nominal frame rate, also covers variable rates and timestamp gaps.
+async fn VideoEntry::seek(
+  self : VideoEntry,
+  time : Double,
+  signal : @core.Any,
+) -> @core.Any {
+  let restart = self.time
+    .map(fn(previous) { time < previous || time - previous > 0.25 })
+    .unwrap_or(true)
+  if restart {
+    if self.iterator is Some(iterator) {
+      let closed : @core.Promise[@core.Any] = @core.throwable(fn() {
+        iterator._call("return", []).cast()
+      })
+      closed.wait() |> ignore
+      check_abort(signal)
+    }
+    self.iterator = Some(
+      @core.throwable(fn() { self.sink._call("canvases", [@core.any(time)]) }),
+    )
+    self.current = None
+    self.next = None
+    self.image = ""
+    self.next = self.read_next(signal)
+  }
+  while self.next is Some(next) {
+    let timestamp : Double = next._get("timestamp").cast()
+    if timestamp > time {
+      break
+    }
+    self.current = Some(next)
+    self.image = ""
+    self.next = self.read_next(signal)
+  }
+  self.time = Some(time)
+  match self.current {
+    Some(current) => current
+    None => @core.null()
+  }
+}
+
+///|
+async fn VideoEntry::read_next(
+  self : VideoEntry,
+  signal : @core.Any,
+) -> @core.Any? {
+  let iterator = self.iterator.unwrap()
+  let result : @core.Promise[@core.Any] = @core.throwable(fn() {
+    iterator._call("next", []).cast()
+  })
+  let result = result.wait()
+  check_abort(signal)
+  let done : Bool = result._get("done").cast()
+  if done {
+    None
+  } else {
+    Some(result._get("value"))
+  }
+}
+
+///|
+fn VideoEntry::dispose(self : VideoEntry) -> Unit {
+  self.owner.dispose()
+  if self.iterator is Some(iterator) {
+    // return() closes the decoder's prefetched samples, including a pending next().
+    let closed : @core.Promise[@core.Any] = iterator._call("return", []).cast()
+    closed.catch_(fn(_) { @core.Promise::resolve(@core.undefined()) }) |> ignore
+  }
+  self.iterator = None
+  self.current = None
+  self.next = None
+}
+
+///|
+/// Each result owns its canvas. A later seek or another object sharing the same
+/// source cannot overwrite a frame while the painter is using it.
+pub(all) struct VideoSurface {
+  canvas : @core.Any
+  timestamp : Double
+}
+
+///|
+pub struct VideoSurfaces {
+  priv entries : Map[String, VideoSurface]
+  priv sources : Map[String, Array[VideoSurface]]
+}
+
+///|
+pub fn VideoSurfaces::get(self : VideoSurfaces, id : String) -> VideoSurface? {
+  self.entries.get(id)
+}
+
+///|
+pub fn VideoSurfaces::dispose(self : VideoSurfaces) -> Unit {
+  for _, frames in self.sources {
+    for frame in frames {
+      release_canvas(frame.canvas)
+    }
+  }
+  self.entries.clear()
+  self.sources.clear()
 }
 
 ///|
@@ -141,21 +249,40 @@ async fn VideoFrames::open(
     )
   }
   check_abort(signal)
+  let runtime = media_runtime().wait()
+  check_abort(signal)
   let sink = @core.throwable(fn() {
-    @core.new(media_runtime()._get("CanvasSink"), [
+    @core.new(runtime._get("CanvasSink"), [
       track,
-      @core.from_entries([("poolSize", @core.any(1))]),
+      @core.from_entries([("poolSize", @core.any(2))]),
     ])
   })
-  let entry : VideoEntry = { owner, sink, time: None, image: "", }
+  let entry : VideoEntry = {
+    owner,
+    sink,
+    iterator: None,
+    current: None,
+    next: None,
+    time: None,
+    image: "",
+  }
   self.inputs.set(source, entry) |> ignore
   entry
 }
 
 ///|
 fn portable_frame(decoded : @core.Any) -> String raise {
-  let canvas = @core.throwable(new_canvas)
+  let canvas = copy_frame(decoded)
   defer release_canvas(canvas)
+  @core.throwable(fn() {
+    canvas._call("toDataURL", [@core.any("image/png")]).cast()
+  })
+}
+
+///|
+fn copy_frame(decoded : @core.Any) -> @core.Any raise {
+  let canvas = @core.throwable(new_canvas)
+  errdefer release_canvas(canvas)
   @core.throwable(fn() {
     let source = decoded._get("canvas")
     canvas._set("width", source._get("width"))
@@ -167,7 +294,7 @@ fn portable_frame(decoded : @core.Any) -> String raise {
       )
     }
     context._call("drawImage", [source, @core.any(0), @core.any(0)]) |> ignore
-    canvas._call("toDataURL", [@core.any("image/png")]).cast()
+    canvas
   })
 }
 
@@ -176,6 +303,7 @@ async fn VideoFrames::prepare_frame(
   self : VideoFrames,
   frame : @core.Any,
   signal : @core.Any,
+  surfaces : VideoSurfaces?,
 ) -> Unit {
   check_abort(signal)
   let requests = video_requests(frame)
@@ -190,7 +318,7 @@ async fn VideoFrames::prepare_frame(
     for source in self.inputs.keys().iter() {
       if !sources.has(source) {
         if self.inputs.get(source) is Some(entry) {
-          entry.owner.dispose()
+          entry.dispose()
         }
         self.inputs.delete(source) |> ignore
       }
@@ -207,7 +335,7 @@ async fn VideoFrames::prepare_frame(
       None => self.open(source, request.name, signal)
     }
     let cancel = fn() {
-      entry.owner.dispose()
+      entry.dispose()
       if self.inputs.get(source) is Some(current) &&
         physical_equal(current, entry) {
         self.inputs.delete(source) |> ignore
@@ -227,23 +355,38 @@ async fn VideoFrames::prepare_frame(
       ])
       |> ignore
     check_abort(signal)
-    if entry.time != Some(request.time) {
-      let decoded : @core.Promise[@core.Any] = @core.throwable(fn() {
-        entry.sink._call("getCanvas", [@core.any(request.time)]).cast()
-      })
-      let decoded = decoded.wait()
-      check_abort(signal)
-      if @core.is_nullish(decoded) {
-        raise MediaFailure(
-          "動画「\{request.name}」のフレームを読み込めませんでした。",
-        )
-      }
-      let image = portable_frame(decoded)
-      check_abort(signal)
-      entry.image = image
-      entry.time = Some(request.time)
+    errdefer cancel()
+    let decoded = entry.seek(request.time, signal)
+    check_abort(signal)
+    if @core.is_nullish(decoded) {
+      raise MediaFailure(
+        "動画「\{request.name}」のフレームを読み込めませんでした。",
+      )
     }
-    request.target._set("videoFrame", @core.any(entry.image))
+    if surfaces is Some(surfaces) {
+      let timestamp : Double = decoded._get("timestamp").cast()
+      let frames = surfaces.sources.get_or_init(source, fn() { [] })
+      let surface = match
+        frames.iter().find_first(fn(v) { v.timestamp == timestamp }) {
+        Some(surface) => surface
+        None => {
+          let surface : VideoSurface = {
+            canvas: copy_frame(decoded),
+            timestamp,
+          }
+          frames.push(surface)
+          surface
+        }
+      }
+      let id : String = request.target._get("object")._get("id").cast()
+      surfaces.entries[id] = surface
+    } else {
+      if entry.image.is_empty() {
+        entry.image = portable_frame(decoded)
+      }
+      request.target._set("videoFrame", @core.any(entry.image))
+    }
+    check_abort(signal)
   }
 }
 
@@ -261,10 +404,34 @@ pub fn VideoFrames::prepare(
       previous.wait() catch {
         _ => ()
       }
-      self.prepare_frame(frame, signal)
+      self.prepare_frame(frame, signal, None)
     })
     |> native_errors
   self.queue = task
+  task
+}
+
+///|
+pub fn VideoFrames::prepare_canvas(
+  self : VideoFrames,
+  frame : @core.Any,
+  signal : @core.Any,
+) -> @core.Promise[VideoSurfaces] {
+  let signal = join_signal(self.lifetime._get("signal"), signal)
+  let previous = self.queue
+  let task = @core.from_async(async fn() {
+      previous.wait() catch {
+        _ => ()
+      }
+      let surfaces : VideoSurfaces = { entries: Map([]), sources: Map([]), }
+      errdefer surfaces.dispose()
+      self.prepare_frame(frame, signal, Some(surfaces))
+      surfaces
+    })
+    |> native_errors
+  self.queue = task.then(fn(_) { @core.Promise::resolve(()) })
+  // Consumers observe task; the internal queue must not cause an unhandled rejection.
+  self.queue.catch_(fn(_) { @core.Promise::resolve(()) }) |> ignore
   task
 }
 
@@ -280,7 +447,7 @@ pub fn VideoFrames::dispose(self : VideoFrames) -> Unit {
   }
   self.opening = None
   for entry in self.inputs.values().iter() {
-    entry.owner.dispose()
+    entry.dispose()
   }
   self.inputs.clear()
 }

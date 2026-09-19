@@ -6,7 +6,7 @@ import { renderFiles } from '../../../_build/js/release/build/site_build/site_bu
 
 const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
 try {
-  const { renderHome, renderMarkdown } = await vite.ssrLoadModule('/src/prerender.tsx');
+  const { renderHome, renderMarkdown } = await vite.ssrLoadModule('/src/prerender.js');
   const shell = await readFile('dist/index.html', 'utf8');
   const manifest = JSON.parse(await readFile('dist/.vite/manifest.json', 'utf8'));
   for (const file of renderFiles(shell, manifest, renderHome, renderMarkdown)) {

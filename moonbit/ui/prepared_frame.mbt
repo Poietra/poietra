@@ -76,12 +76,14 @@ pub fn use_prepared_stage_frame(
   source : @core.Any,
   renderer : @core.Any,
   scope : String,
+  enabled? : Bool = true,
 ) -> @core.Any {
   let (prepared, set_prepared) = @react.use_state((None : PreparedFrame?))
   let (failure, set_failure) = @react.use_state((None : PreparationFailure?))
   let owner = @react.use_ref((None : FramePreparation?))
   let objects : FixedArray[@core.Any] = source._get("objects").cast()
-  let needs_preparation = truthy(renderer._get("prepareFrame")) &&
+  let needs_preparation = enabled &&
+    truthy(renderer._get("prepareFrame")) &&
     objects
     .iter()
     .any(fn(item) {

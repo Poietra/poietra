@@ -40,11 +40,11 @@ fn join_signal(lifetime : @core.Any, request : @core.Any) -> @core.Any {
 
 ///|
 #module("#poietra/media-host")
-extern "js" fn media_runtime() -> @core.Any = "mediaRuntime"
+extern "js" fn media_runtime() -> @core.Promise[@core.Any] = "mediaRuntime"
 
 ///|
 #module("#poietra/media-host")
-extern "js" fn audio_runtime() -> @core.Any = "audioRuntime"
+extern "js" fn audio_runtime() -> @core.Promise[@core.Any] = "audioRuntime"
 
 ///|
 extern "js" fn copy_bytes(value : @core.Any) -> @core.Any =

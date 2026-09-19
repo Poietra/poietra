@@ -25,7 +25,7 @@ function closure(keys) {
 const result = {
   measuredAt: new Date().toISOString(), environment: environment(),
   method: 'Vite production output. JS groups include static imports, exclude dynamic imports/CSS/fonts/media. Home includes its dynamically selected entry. Compression computed per file: gzip level 9, Brotli Node defaults; server may serve identity.',
-  groups: { homeJavascript: closure(['index.html', 'src/home.tsx']), editorStaticJavascript: closure(['src/editor/bootstrap.tsx']) },
+  groups: { homeJavascript: closure(['index.html', 'src/home.js']), editorStaticJavascript: closure(['src/editor/bootstrap.js']) },
   files: files.sort((a, b) => b.rawBytes - a.rawBytes),
 };
 await mkdir(dirname(output), { recursive: true });

@@ -90,6 +90,8 @@ for (const delayedMethod of ['GET', 'PUT']) test(`a delayed ${delayedMethod} res
   const room = crypto.randomUUID();
   let account = 'google:alice';
   const writes: string[] = [];
+  let bobLists = 0, releaseBobList!: () => void;
+  const bobRefresh = new Promise<void>(resolve => { releaseBobList = resolve; });
   await page.addInitScript(method => {
     const original = window.fetch.bind(window);
     let release!: () => void;
@@ -108,10 +110,11 @@ for (const delayedMethod of ['GET', 'PUT']) test(`a delayed ${delayedMethod} res
     };
   }, delayedMethod);
   await page.route('**/api/auth/session', route => route.fulfill({ json: { user: { id: account, name: account === 'google:alice' ? 'Alice' : 'Bob', provider: 'google' }, providers: { google: true, github: true } } }));
-  await page.route('**/api/projects**', route => {
+  await page.route('**/api/projects**', async route => {
     const owner = route.request().headers()['x-poietra-account'];
     const project = { roomId: owner === 'google:alice' ? 'alice-private-room' : 'bob-private-room', name: owner === 'google:alice' ? 'Alice private work' : 'Bob private work', updatedAt: Date.now() };
     if (route.request().method() === 'PUT') { writes.push(owner); return route.fulfill({ json: { project } }); }
+    if (owner === 'google:bob' && ++bobLists > 1) await bobRefresh;
     return route.fulfill({ json: { projects: [project] } });
   });
   await page.goto(`/?room=${room}&projects=1`);
@@ -122,6 +125,10 @@ for (const delayedMethod of ['GET', 'PUT']) test(`a delayed ${delayedMethod} res
   await expect(page.getByText('Bob', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: /Bob private work/ })).toBeVisible();
   await expect.poll(() => writes.includes('google:bob')).toBe(true);
+  // Hold the refresh after PUT so optimistic reconciliation is observable.
+  await expect.poll(() => bobLists).toBeGreaterThan(1);
+  try { await expect(page.getByRole('link', { name: /Bob private work/ })).toHaveCount(1); }
+  finally { releaseBobList(); }
   await page.evaluate(() => (window as unknown as { releaseAccountResponse(): void }).releaseAccountResponse());
   await expect(page.getByRole('link', { name: /Alice private work/ })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Bob private work/ })).toBeVisible();

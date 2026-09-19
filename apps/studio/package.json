@@ -8,14 +8,14 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "node --env-file-if-exists=.env --import tsx server/index.ts",
+    "dev": "node --env-file-if-exists=.env server/index.js",
     "dev:worker": "wrangler dev --port 8787 --local",
-    "start": "NODE_ENV=production node --env-file-if-exists=.env --import tsx server/index.ts",
+    "start": "NODE_ENV=production node --env-file-if-exists=.env server/index.js",
     "build:wasm": "node scripts/build-wasm.mjs",
     "build": "pnpm build:wasm && pnpm build:web",
     "build:web": "node ../../scripts/build.mjs && pnpm typecheck && vite build && node scripts/prerender.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
-    "cf:types": "wrangler types worker/worker-configuration.d.ts",
+    "typecheck": "pnpm cf:types && tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && node ../../scripts/check-contracts.mjs",
+    "cf:types": "wrangler types .wrangler/worker-configuration.d.ts",
     "deploy": "pnpm build:web && wrangler deploy --dry-run",
     "test": "vitest run",
     "test:core": "node ../../scripts/moon.mjs test --target wasm moonbit/motion",

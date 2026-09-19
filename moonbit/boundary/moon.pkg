@@ -11,6 +11,7 @@ import {
 
 options(
   targets: {
+    "catalog.mbt": [ "js" ],
     "assets.mbt": [ "js" ],
     "chat.mbt": [ "js" ],
     "samples.mbt": [ "js" ],
@@ -36,6 +37,9 @@ options(
   link: {
     "js": {
       "exports": [
+        "compile_scene:compileScene",
+        "model_catalog:modelCatalog",
+        "default_custom_easing:defaultCustomEasing",
         "canonical_media_mime:canonicalMediaMime",
         "media_mime:mediaMime",
         "image_mime:imageMime",
@@ -87,7 +91,7 @@ options(
         "group_animation_targets:groupAnimationTargets",
         "group_animation_changes:groupAnimationChanges",
         "common_track_value:commonTrackValue",
-        "new_id:newId",
+        "new_id_default:newId",
         "format_milliseconds:formatMilliseconds",
         "project_segments:projectSegments",
         "project_duration:projectDuration",
@@ -101,7 +105,7 @@ options(
         "property_timing_key:propertyTimingKey",
         "get_property_timing:getPropertyTiming",
         "has_property_timing:hasPropertyTiming",
-        "track_timing_end:trackTimingEnd",
+        "track_timing_end_default:trackTimingEnd",
         "validate_animation_timing:validateAnimationTiming",
         "validate_animation_track:validateAnimationTrack",
         "clamp:clamp",
