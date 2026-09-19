@@ -17,7 +17,7 @@ pub(all) enum Easing {
   EaseIn
   EaseOut
   CubicBezier(Double, Double, Double, Double)
-}
+} derive(Eq)
 
 ///|
 pub impl @json.FromJson for Easing with fn from_json(json, path) {

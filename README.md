@@ -5,7 +5,7 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
-controls, connection status and operation feedback. Most editor screens, higher-level
+controls, connection status, operation feedback and group animation commands. Most editor screens, higher-level
 editor/Undo commands, AI, media renderer, and service orchestration still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -44,8 +44,10 @@ node scripts/moon.mjs check --target js
   Seeking uses binary search; preview and export share this same evaluator.
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
-- `moonbit/editor`: typed connection/persistence states and operation feedback
-  reducer. A delayed completion cannot clear a newer gesture or another Scene.
+- `moonbit/editor`: typed connection/persistence states, operation feedback,
+  group membership and animation edit plans. Complete batches are validated
+  before writing; existing tracks change only intended leaves. A delayed
+  completion cannot clear a newer gesture or another Scene.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
   controls and status displays retain the existing CSS and accessible Base UI
   primitives. `src/platform/ui-host.mjs` only exposes npm runtime values.

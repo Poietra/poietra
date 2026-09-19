@@ -2,6 +2,7 @@ import {
   "mizchi/js_core" @core,
   "poietra/poietra/scene",
   "poietra/poietra/geometry",
+  "poietra/poietra/editor",
   "poietra/poietra/collaboration",
 }
 
@@ -13,6 +14,7 @@ options(
     "document.mbt": [ "js" ],
     "shared.mbt": [ "js" ],
     "editing.mbt": [ "js" ],
+    "groups.mbt": [ "js" ],
     "timeline.mbt": [ "js" ],
     "adapters.mbt": [ "js" ],
     "geometry.mbt": [ "js" ],
@@ -20,6 +22,13 @@ options(
   link: {
     "js": {
       "exports": [
+        "group_members:groupMembers",
+        "editable_group_members:editableGroupMembers",
+        "visible_animation:visibleAnimation",
+        "visible_animations:visibleAnimations",
+        "group_animation_targets:groupAnimationTargets",
+        "group_animation_changes:groupAnimationChanges",
+        "common_track_value:commonTrackValue",
         "new_id:newId",
         "format_milliseconds:formatMilliseconds",
         "project_segments:projectSegments",
