@@ -76,7 +76,7 @@ try {
     const kernel = await loadKernel();
     function stats(values) {
       const sorted = [...values].sort((a, b) => a - b), sum = sorted.reduce((a, b) => a + b, 0);
-      return { n: sorted.length, mean: sum / sorted.length, p50: sorted[Math.floor(sorted.length * .5)], p95: sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * .95) - 1)], sum, samples: values };
+      return { n: sorted.length, mean: sum / sorted.length, p50: sorted[Math.floor(sorted.length * .5)], p95: sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * .95) - 1)], sum, samples: [...values] };
     }
     async function measure(count, callback) {
       const samples = [];
