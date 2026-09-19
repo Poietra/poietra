@@ -205,9 +205,9 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 145 | 15,925 |
+| Regression/browser tests, fixtures and test configurations | 145 | 15,926 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,906 |
-| Benchmark scripts and root tool configurations | 5 | 138 |
+| Benchmark scripts and root tool configurations | 5 | 139 |
 
 The same inventory has **55,557 application MoonBit lines** and **782 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
@@ -261,6 +261,74 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Parent transforms and value curves — 2026-09-20
+
+The application measured here is [`4392255`](https://github.com/Poietra/poietra/commit/4392255b5d335c58e86f7a13354c62b74bb20662).
+Use the benchmark harness stored alongside these result files; that hash identifies
+application code, before the harness's snapshot-identity assertion was corrected.
+All application sources and release artifacts stayed byte-identical across the
+runs. Node 24.13.0, MoonBit `0.10.13+cbb11c36f`, Chromium 153.0.8010.12 and the
+Intel Core Ultra 7 255H/WSL2 host match the preceding measurement environment.
+Measurement processes used CPUs `0–3`, local servers `4–5`. Other host activity
+was not isolated. These are local measurements, not physical FPS or field INP.
+
+The CPU fixture has 100 or 500 rectangles. Hierarchy cases attach all remaining
+objects to one rotated, nonuniformly scaled parent. Six points per object means
+three X points and three opacity points. Preparation resolves hierarchy and
+sorts curves; timed evaluation includes the native JS frame representation.
+Each of three fresh processes performs two warmup and seven measured batches:
+20 preparations, 240 transition frames or 100 parent edits per batch. Values are
+medians of process medians; parentheses span those three medians.
+
+| Objects / features | Prepare | Evaluate one frame | Parent edit + snapshot + Composition frame |
+| --- | ---: | ---: | ---: |
+| 100, flat | 0.507 ms (0.501–0.532) | 0.016 ms (0.016–0.017) | — |
+| 100, hierarchy | 0.590 ms (0.586–0.627) | 0.093 ms (0.092–0.095) | 0.284 ms (0.266–0.335) |
+| 100, hierarchy + 600 points | 1.211 ms (1.191–1.348) | 0.101 ms (0.096–0.106) | 0.250 ms (0.246–0.266) |
+| 500, flat | 2.457 ms (2.408–2.757) | 0.098 ms (0.096–0.103) | — |
+| 500, hierarchy | 3.092 ms (2.906–3.282) | 0.500 ms (0.497–0.532) | 1.222 ms (1.201–1.364) |
+| 500, hierarchy + 3,000 points | 6.095 ms (5.858–6.534) | 0.549 ms (0.540–0.554) | 1.222 ms (1.222–1.260) |
+
+Parent edits include real Yjs writes, Undo capture, immutable snapshot reads and
+current-frame evaluation. Every child's snapshot must retain identity after the
+parent edit. DOM, painting, encoding and network synchronization are excluded.
+[Raw CPU results](benchmarks/2026-09-20-primitives/cpu.json) contain every batch;
+run `pnpm bench --suite primitives --runs 3` after building to reproduce them.
+
+The existing browser workloads below were remeasured with the same fixtures and
+instrumentation described in the next section. They contain no hierarchy or
+intermediate points and check the cost to existing projects. Parent/keyframe
+rendering is separately verified against SVG in decoded MP4/WebM frames.
+
+| Existing workload | Current median (min–max) |
+| --- | ---: |
+| 100-object drag, DOM change + two rAF callbacks | 38.5 ms (31.7–41.4) |
+| 500-object drag, DOM change + two rAF callbacks | 33.5 ms (31.4–61.4) |
+| Playback rAF interval, 100 / 500 objects | 16.7 ms (16.5–50.0) / 16.7 ms (16.6–116.6) |
+| Demo MP4, 102 frames at 720p/30 fps | 236.1 ms (235.1–238.1) |
+| Demo WebM, 102 frames at 720p/30 fps | 269.6 ms (268.8–270.8) |
+| 100-shape MP4, 90 frames | 243.2 ms (242.5–244.9) |
+| 500-shape MP4, 90 frames | 356.2 ms (355.8–368.9) |
+
+[Interaction samples](benchmarks/2026-09-20-primitives/interaction.json) include
+180 drag observations per size; [export samples](benchmarks/2026-09-20-primitives/export.json)
+include one full warmup and three timed exports per case, stage timings and
+packet-count/decoding checks. SwiftShader and instrumented warmed modules were
+used. Exports exclude file download and source media; long playback intervals
+remain. Previous measurements are historical references, not a freshly rebuilt
+baseline for attributing these differences to this feature change.
+
+The added model/editor functionality increases initial editor JS from 1,761,845
+to **1,864,514 B raw**, and from 492,567 to **518,632 B gzip** (+26,065 B, 5.3%).
+The homepage JS gzip sum is 91,076 B. [Bundle inventory](benchmarks/2026-09-20-primitives/bundle.json)
+excludes CSS, fonts, dynamic modules and media. In three fresh mobile contexts
+with 150 ms HTTP latency, 200,000 B/s download and 4× CPU slowdown, FCP was
+1,652 ms (1,644–1,652), LCP 11,148 ms (11,136–11,172), and circle DOM plus two
+rAF callbacks 11,579 ms (11,574–11,620). That last median is 300 ms above the
+previous recorded run. The local host serves uncompressed files; these are
+not production load times. [Startup samples and conditions](benchmarks/2026-09-20-primitives/startup.json)
+retain all observations. Public delivery is checked separately after deployment.
 
 ### Startup, dragging, playback and WebCodecs — 2026-09-20
 
@@ -710,6 +778,8 @@ checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
 explicitly enables the prerender checks, including when CI starts its own server.
+The default development run excludes those three production-only suites; the
+production configuration selects them explicitly.
 The [workflow definition](.github/workflows/check.yml) is the authoritative command
 selection.
 
@@ -754,20 +824,27 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
-The performance release [`e9eacce`](https://github.com/Poietra/poietra/commit/e9eacceec56131addc231a93586dd0c8c30b68e3)
-is deployed at 100% as `0aa7fa1f-ac38-46b8-bc8a-8ea4b1fea4b9` since
-2026-09-20 03:37 JST. Binding/runtime metadata and asset routing match the prior
-version. The production smoke again verified existing room/image persistence,
-two-browser edits and Undo, GitHub authorization start, and release JS/WASM hashes.
-It also played a Scene and downloaded a real MP4 whose full frame count decoded
-successfully. Rollback target for this update: `b9df5edd-9b0c-44f3-a488-1db05f9b8049`.
-No user room was used for verification. Local checks passed 675 unit tests and
-82 distinct browser checks covering editor, export/media, project/image I/O and
-production pages, plus the MoonBit JS/WASM tests, public contracts and extension
-check described above. Provider callbacks and paid AI requests remain outside
-these checks. The [full CI run for the deployed application](https://github.com/Poietra/poietra/actions/runs/35461447083)
-also passed, including all 154 main browser checks and actual workerd persistence,
-R2 recovery and account integrations.
+The primitives release [`4392255`](https://github.com/Poietra/poietra/commit/4392255b5d335c58e86f7a13354c62b74bb20662)
+is deployed at 100% as `7cc7168f-e149-4170-9078-b245c3cde006` since
+**2026-09-20 05:34 JST**. Every binding and runtime setting matches the preceding
+performance release `e9eacce` / `0aa7fa1f-ac38-46b8-bc8a-8ea4b1fea4b9`.
+The [application CI run](https://github.com/Poietra/poietra/actions/runs/35467081415)
+passed all checks listed above, including actual workerd recovery, R2 fault/migration
+and account integrations. Local validation also passed all 167 development-browser
+checks, seven export checks, six media checks and 25 production-page checks.
+
+Production checks verified the release JS/WASM hashes, restoration of a pre-update
+room/image, upload deduplication, two-browser editing, selective Undo, GitHub's
+authorization start and reconnection. Parent transforms and intermediate values
+then synchronized and persisted as version 2; a real MP4 decoded all 102 frames.
+All three primitive UI tests also passed against production, including transformed
+drag/resize, normalized timing, endpoint edits, reload and save/open into a new room.
+Only dedicated verification rooms were used. Provider callbacks and paid AI calls
+remain outside these checks. Reload older open editors before using the new features.
+
+The preceding Worker version is recorded for audit, but does not understand the
+new version 2 model. Any rollback must use compatible code and preserve the new
+document data: [Worker versions do not roll back stored data](https://developers.cloudflare.com/workers/versions-and-deployments/).
 
 The initial cutover deployed source [`7b8c903`](https://github.com/Poietra/poietra/commit/7b8c903c9b50926829014565d1c73ff9d385a094)
 as Worker version `b9df5edd-9b0c-44f3-a488-1db05f9b8049` at 100% on

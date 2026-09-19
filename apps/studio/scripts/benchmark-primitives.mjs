@@ -37,15 +37,18 @@ for (const count of [100, 500]) for (const variant of ['flat', 'hierarchy', 'hie
   if (variant !== 'flat') {
     const doc = new Y.Doc(); initializeDocument(doc, project);
     const store = Object.assign(Object.create(EditorStore.prototype), { doc, undoManager: new EditorUndoManager(doc) });
-    const before = store.scene('scene-1').compositions['comp-1'].states.o1;
+    // Compare snapshots from the same public reader/cache on both sides.
+    const before = readProject(doc).scenes['scene-1'].compositions['comp-1'].states;
     let next = 0;
     editAndFrame = measure(() => {
       store.updateState('scene-1', 'comp-1', 'o0', { x: next++ % 100 });
       const current = readProject(doc).scenes['scene-1'];
-      assert.equal(current.compositions['comp-1'].states.o1, before);
+      assert.equal(current.compositions['comp-1'].states.o1, before.o1);
       const frame = compositionFrame(current, current.compositions['comp-1']);
       checksum += frame.objects[1].world.e;
     }, 100);
+    const after = readProject(doc).scenes['scene-1'].compositions['comp-1'].states;
+    for (const [id, state] of Object.entries(before)) if (id !== 'o0') assert.equal(after[id], state);
     doc.destroy();
   }
   results.push({ objects: count, variant, prepareMs: preparation.median, msPerFrame: evaluation.median, parentEditAndFrameMs: editAndFrame?.median ?? 0, samples: { prepareMs: preparation.samples, msPerFrame: evaluation.samples, parentEditAndFrameMs: editAndFrame?.samples ?? [] } });
