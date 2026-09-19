@@ -43,6 +43,10 @@ fn join_signal(lifetime : @core.Any, request : @core.Any) -> @core.Any {
 extern "js" fn media_runtime() -> @core.Any = "mediaRuntime"
 
 ///|
+#module("#poietra/media-host")
+extern "js" fn audio_runtime() -> @core.Any = "audioRuntime"
+
+///|
 extern "js" fn copy_bytes(value : @core.Any) -> @core.Any =
   #|value => new Uint8Array(value)
 

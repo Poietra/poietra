@@ -7,8 +7,8 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands,
 Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading and video decoding. Most editor screens,
-higher-level editor/Undo commands, AI, audio/export orchestration, and services still contain
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding and audio mixing. Most editor screens,
+higher-level editor/Undo commands, AI, export orchestration, and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -67,6 +67,11 @@ node scripts/moon.mjs check --target js
   Inactive decoders are released on Scene changes, including Scenes without video.
   Native `JsMap` bindings avoid rehashing large embedded sources in MoonBit; inline
   image validation has a bounded memo. The actual codecs remain Mediabunny/WebCodecs.
+- `moonbit/audio`: pure planar PCM mixing with shared stereo phase calculations.
+  The browser mixer owns one decoded packet per track, shares each source input,
+  serializes chunk requests, and releases partial preparation on failure or abort.
+  Differential tests compare Float32 bits with the original at 16/44.1/48 kHz,
+  including packet gaps, trims, overlaps and one-hour timeline positions.
 - `moonbit/editor`: typed connection/persistence states, operation feedback,
   group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
   before writing; existing tracks change only intended leaves. A delayed
@@ -89,7 +94,7 @@ node scripts/moon.mjs check --target js
   differential testing, not runtime imports.
 
 Remaining migration areas include higher-level editing and Undo, UI screens,
-audio/export, shared chat/AI, and Workers/Node services.
+export, shared chat/AI, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -99,7 +104,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 577 regression/differential tests, 8 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 587 regression/differential tests, 8 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -108,7 +113,7 @@ replacement, cancellation and resource release. The Scene/chat migration passed
 the core suite and editor selection with a pinned compiler.
 The GPU migration also passed eight production-bundle browser checks for buffer
 resizing, device-limit fallback, and actual 399-frame MP4/WebM export and decoding.
-Five additional media browser checks passed after the decoder migration, including
+Five additional media browser checks passed after both decoder and mixer migrations, including
 seeks, mixed/trimmed audio and MP4/WebM video pixels.
 
 ```sh
@@ -155,6 +160,10 @@ WebGL driver is currently a stub, so it is not a runtime dependency.
 were also inspected. Canvas uses its own TTF rasterizer; image does not decode WebP;
 Mayo requires cross-origin isolation and explicit shared Int32 layouts. Converge's
 column-level CRDT needs a separate compatibility evaluation for selective Undo.
+The [audio mixer/resampler](https://github.com/mizchi/audio-mbt/tree/f57bffe7dea9d41173784ea6abba13fd5a8454a2)
+was also reviewed. It uses interleaved PCM and a Float playback cursor; this editor
+keeps planar Web Audio buffers and absolute Double timestamps to preserve its
+sample-level trim/export contract.
 These remain candidates, not adopted or production-verified replacements.
 
 ## Repository and deployment

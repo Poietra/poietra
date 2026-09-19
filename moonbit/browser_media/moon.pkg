@@ -2,6 +2,7 @@ import {
   "mizchi/js_core" @core,
   "mizchi/js_builtin/collection",
   "poietra/poietra/assets",
+  "poietra/poietra/audio",
 }
 
 supported_targets = "js"
@@ -11,6 +12,8 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "create_audio_mixer:createAudioMixer",
+        "audible_tracks:audibleTracks",
         "create_video_frames:createVideoFrames",
         "prepare_video_frame:prepareVideoFrame",
         "prepared_image:preparedImage",
