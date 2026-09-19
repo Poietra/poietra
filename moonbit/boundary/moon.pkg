@@ -15,6 +15,7 @@ options(
     "shared.mbt": [ "js" ],
     "editing.mbt": [ "js" ],
     "groups.mbt": [ "js" ],
+    "scene_commands.mbt": [ "js" ],
     "timeline.mbt": [ "js" ],
     "adapters.mbt": [ "js" ],
     "geometry.mbt": [ "js" ],
@@ -22,6 +23,12 @@ options(
   link: {
     "js": {
       "exports": [
+        "rename_scene:renameScene",
+        "duplicate_scene:duplicateScene",
+        "delete_scene:deleteScene",
+        "move_scene:moveScene",
+        "duplicate_composition:duplicateComposition",
+        "delete_composition:deleteComposition",
         "group_members:groupMembers",
         "editable_group_members:editableGroupMembers",
         "visible_animation:visibleAnimation",

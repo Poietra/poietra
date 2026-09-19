@@ -44,6 +44,21 @@ pub fn object_kind(value : String) -> ObjectKind? {
 }
 
 ///|
+pub fn object_kind_name(kind : ObjectKind) -> String {
+  match kind {
+    Circle => "circle"
+    Rectangle => "rectangle"
+    Text => "text"
+    Equation => "equation"
+    Path => "path"
+    Arrow => "arrow"
+    NumberLine => "numberline"
+    Image => "image"
+    Video => "video"
+  }
+}
+
+///|
 pub fn animation_kind(value : String) -> AnimationKind? {
   match value {
     "move" => Some(Move)

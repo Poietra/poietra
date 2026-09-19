@@ -57,7 +57,7 @@ pub fn number_input(input : @core.Any) -> @react.Element {
   let commit = fn() {
     if dirty.get_current() == Some(true) &&
       draft is Editing(text) &&
-      !text.trim().is_empty() {
+      !@editor.trim_text(text).is_empty() {
       let number = number_value(text)
       if !number.is_nan() && !number.is_inf() {
         on_change(@scene.clamp(number, low, high))

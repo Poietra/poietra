@@ -439,3 +439,177 @@ fn encode_Track(value : @scene.Track) -> @core.Any {
   }
   result
 }
+
+///|
+fn[T] encode_array(value : Array[T], convert : (T) -> @core.Any) -> @core.Any {
+  @core.any(FixedArray::makei(value.length(), fn(i) { convert(value[i]) }))
+}
+
+///|
+fn[T] encode_map(
+  value : Map[String, T],
+  convert : (T) -> @core.Any,
+) -> @core.Any {
+  let result = @core.new_object()
+  for key, item in value {
+    put_own(result, key, convert(item))
+  }
+  result
+}
+
+///|
+fn encode_ImageAsset(value : @scene.ImageAsset) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "src", @core.any(value.src))
+  put_own(result, "width", @core.any(value.width))
+  put_own(result, "height", @core.any(value.height))
+  result
+}
+
+///|
+fn encode_MediaAsset(value : @scene.MediaAsset) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "src", @core.any(value.src))
+  put_own(result, "mime", @core.any(value.mime))
+  put_own(result, "duration", @core.any(value.duration))
+  if value.width is Some(item) {
+    put_own(result, "width", @core.any(item))
+  }
+  if value.height is Some(item) {
+    put_own(result, "height", @core.any(item))
+  }
+  put_own(result, "hasAudio", @core.any(value.hasAudio))
+  if value.waveform is Some(item) {
+    put_own(
+      result,
+      "waveform",
+      encode_array(item, fn(item) { @core.any(item) }),
+    )
+  }
+  result
+}
+
+///|
+fn encode_MediaPlayback(value : @scene.MediaPlayback) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "start", @core.any(value.start))
+  put_own(result, "offset", @core.any(value.offset))
+  put_own(result, "duration", @core.any(value.duration))
+  result
+}
+
+///|
+fn encode_SceneObject(value : @scene.SceneObject) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "id", @core.any(value.id))
+  put_own(result, "name", @core.any(value.name))
+  put_own(result, "kind", @core.any(@scene.object_kind_name(value.kind)))
+  put_own(result, "order", @core.any(value.order))
+  if value.groupId is Some(item) {
+    put_own(result, "groupId", @core.any(item))
+  } else {
+    put_own(result, "groupId", @core.null())
+  }
+  put_own(result, "locked", @core.any(value.locked))
+  if value.image is Some(item) {
+    put_own(result, "image", encode_ImageAsset(item))
+  }
+  if value.media is Some(item) {
+    put_own(result, "media", encode_MediaAsset(item))
+  }
+  if value.playback is Some(item) {
+    put_own(result, "playback", encode_MediaPlayback(item))
+  }
+  result
+}
+
+///|
+fn encode_Composition(value : @scene.Composition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "id", @core.any(value.id))
+  put_own(result, "name", @core.any(value.name))
+  put_own(result, "duration", @core.any(value.duration))
+  put_own(result, "accent", @core.any(value.accent))
+  put_own(
+    result,
+    "states",
+    encode_map(value.states, fn(item) { encode_ObjectState(item) }),
+  )
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  if value.incomingTransitionId is Some(item) {
+    put_own(result, "incomingTransitionId", @core.any(item))
+  }
+  result
+}
+
+///|
+fn encode_Transition(value : @scene.Transition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "id", @core.any(value.id))
+  put_own(result, "fromId", @core.any(value.fromId))
+  put_own(result, "toId", @core.any(value.toId))
+  put_own(result, "duration", @core.any(value.duration))
+  put_own(
+    result,
+    "tracks",
+    encode_map(value.tracks, fn(item) { encode_Track(item) }),
+  )
+  result
+}
+
+///|
+fn encode_AudioTrack(value : @scene.AudioTrack) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "id", @core.any(value.id))
+  put_own(result, "name", @core.any(value.name))
+  put_own(result, "asset", encode_MediaAsset(value.asset))
+  put_own(result, "volume", @core.any(value.volume))
+  put_own(result, "muted", @core.any(value.muted))
+  put_own(result, "start", @core.any(value.start))
+  put_own(result, "offset", @core.any(value.offset))
+  put_own(result, "duration", @core.any(value.duration))
+  result
+}
+
+///|
+fn encode_Scene(value : @scene.Scene) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "id", @core.any(value.id))
+  put_own(result, "name", @core.any(value.name))
+  put_own(result, "width", @core.any(value.width))
+  put_own(result, "height", @core.any(value.height))
+  put_own(result, "background", @core.any(value.background))
+  put_own(
+    result,
+    "objects",
+    encode_map(value.objects, fn(item) { encode_SceneObject(item) }),
+  )
+  put_own(
+    result,
+    "compositionOrder",
+    encode_array(value.compositionOrder, fn(item) { @core.any(item) }),
+  )
+  put_own(
+    result,
+    "compositions",
+    encode_map(value.compositions, fn(item) { encode_Composition(item) }),
+  )
+  put_own(
+    result,
+    "transitions",
+    encode_map(value.transitions, fn(item) { encode_Transition(item) }),
+  )
+  if value.audioTracks is Some(item) {
+    put_own(
+      result,
+      "audioTracks",
+      encode_map(item, fn(item) { encode_AudioTrack(item) }),
+    )
+  }
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}

@@ -1,5 +1,7 @@
 # Poietra
 
+> このアプリは MoonBit への移行中です。移行範囲・セットアップ・検証状況は [ルートの README](../../README.md) を参照してください。以下の `poietra.com` は元の公開サービスです。
+
 **友人と、AI と。動きを一緒につくる。**
 
 Poietra は、同じ URL を開いたメンバーがリアルタイムで共同編集できる、ブラウザの動画編集環境です。
@@ -137,12 +139,12 @@ Undo は自分の操作を対象とし、共同制作者が変更した新規オ
 
 ## ローカルで開発する
 
-必要なものは **Node.js 24 以上**と **pnpm 10** です。WASM を同梱しているため、通常の UI 開発に Rust は不要です。
+必要なものは **Node.js 24 以上**、**pnpm 10.23.0**、**Python 3.12 以上**、[指定版の MoonBit](../../README.md#run-locally) です。Rust は不要です。
 
 ```bash
-git clone https://github.com/Poietra/poietra-hackathon.git
-cd poietra-hackathon
-pnpm install
+git clone https://github.com/Poietra/poietra.git
+cd poietra
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
@@ -150,7 +152,10 @@ pnpm dev
 
 ### AI を有効にする
 
+以降のアプリ固有のコマンドは `apps/studio` で実行します。
+
 ```bash
+cd apps/studio
 cp .env.example .env
 ```
 
@@ -193,22 +198,16 @@ pnpm exec wrangler secret put GITHUB_CLIENT_SECRET
 
 認証・一覧 API と Node HTTP のテストは `pnpm exec vitest run tests/auth.test.ts tests/auth-node.test.ts`、実 Worker の保存・再起動・セッション失効は `node tests/accounts-worker.integration.mjs` で確認します。これらは外部プロバイダーの応答をテスト用に置き換えており、設定した実アカウントでのログイン確認は別です。
 
-### ビルドと Rust コア
+### ビルドと MoonBit コア
 
 ```bash
-pnpm build:web  # 型検査と UI ビルド。同梱 WASM を使用
+pnpm build:web  # MoonBit JS/WASM、型検査、UI ビルド
 pnpm start     # ビルド済み UI を Node.js サーバーで配信
+pnpm test:core # MoonBit の WASM カーネルテスト
 ```
 
-Rust コアを変更する場合は、Rust ツールチェーンを用意して次を実行します。
-
-```bash
-rustup target add wasm32-unknown-unknown
-pnpm build:wasm
-pnpm test:core
-```
-
-`pnpm build` は WASM の再ビルド・型検査・UI ビルドをまとめて実行します。
+コア・共通 UI の MoonBit コードは [moonbit/](../../moonbit/) にあります。
+元の Rust バイナリは差分検証用の [tests/oracle/](tests/oracle/) にだけ残しています。
 
 ### トップページの配信・検索対応
 
@@ -232,8 +231,8 @@ POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-home.mjs
 
 ## Cloudflare で動かす
 
-共有環境は Cloudflare Workers に配置しています。UI・WASM・フォントを Static Assets、共同編集と素材の参照・容量管理を部屋ごとの SQLite Durable Object、画像・音声・動画の本体を非公開の R2 バケットで扱います。
-公開ドメインは **https://poietra.com** です。`wrangler.jsonc` の Custom Domain 設定で既存 Worker に接続し、新旧 URL で同じ部屋と素材を共有します。
+元アプリの共有環境は Cloudflare Workers に配置されています。移行版は未配置です。UI・WASM・フォントを Static Assets、共同編集と素材の参照・容量管理を部屋ごとの SQLite Durable Object、画像・音声・動画の本体を非公開の R2 バケットで扱います。
+移行版の `wrangler.jsonc` は独立した Worker・R2 名を使い、本番ドメインの route を持ちません。
 
 素材 URL は従来の `/api/rooms/{room}/images|media/{sha256}` を維持し、Worker が R2 のデータを配信します。音声・動画は Range・HEAD・ETag に対応します。新規アップロードは部屋の外でストリーミング保存し、保存が終わった参照だけを部屋に登録します。同じ素材の重複と容量上限は部屋内で確定するため、同時アップロードでも上限を超えません。
 
@@ -253,20 +252,8 @@ R2 もローカルでエミュレートされ、実バケットへの接続は�
 
 ### デプロイ
 
-`wrangler.jsonc` の `account_id` は現在の Yumaboda アカウントを指定しています。自分の環境へ配置する場合は、自分のアカウント ID と必要に応じて Worker 名へ変更してください。
-
-```bash
-pnpm exec wrangler login
-# 新しい環境のみ: R2 を有効化し、wrangler.jsonc と同じ名前で作成
-CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID pnpm exec wrangler r2 bucket create poietra-assets-prod --location apac --update-config=false
-CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID pnpm exec wrangler r2 bucket lifecycle add poietra-assets-prod abort-incomplete-room-uploads rooms/ --abort-multipart-days 1
-pnpm run deploy
-# AI を使う場合のみ、対話入力でキーを登録
-pnpm exec wrangler secret put OPENAI_API_KEY
-```
-
-`pnpm run deploy` は UI をビルドして Worker を配置します。Rust コアを変更した場合は先に `pnpm build:wasm` を実行してください。
-本番の `poietra-assets-prod` と未完了 multipart を 1 日経過後に回収するルールは設定済みです。バケットは公開せず、`MEDIA_BUCKET` binding 経由で使います。通常の失敗・中断は直ちに後始末し、クラッシュで残った未公開オブジェクトは 15 分の予約期限後に Durable Object の alarm で回収します。未完了 multipart の回収は上記ライフサイクルが担当し、完成した素材は削除しません。
+この移行版の `pnpm run deploy` はビルドと `wrangler deploy --dry-run` を実行します。
+本番サービス・本番ストレージの移行や変更は行っていません。公開先の構成を別途決めてから配置してください。
 
 ## 構成
 
@@ -275,7 +262,7 @@ UI と独立した編集データ・時間評価・描画を持ち、人間の�
 | 場所 | 役割 |
 | --- | --- |
 | [shared/](shared/) | プロジェクトモデル、Yjs の同期データ、AI・チャットのスキーマ |
-| [core/](core/) | Rust / WASM による補間・ベジェ計算 |
+| [moonbit/](../../moonbit/) | MoonBit の数値・時間評価・編集コア・共通 UI。数値カーネルは WASM へコンパイル |
 | [src/editor/](src/editor/) | 編集操作、Undo、共同編集、プロジェクトと素材の管理 |
 | [src/ui/](src/ui/) | React の編集 UI、タイムライン、プロパティ、チャット |
 | [src/engine/](src/engine/) | 時刻からの状態評価、MathJax 数式、SVG / Canvas 描画、WebGL2 Glow、WebCodecs 書き出し |
@@ -308,7 +295,7 @@ UI と独立した編集データ・時間評価・描画を持ち、人間の�
 ```bash
 pnpm typecheck
 pnpm exec vitest run --maxWorkers=2
-pnpm test:core  # Rust が必要
+pnpm test:core  # MoonBit の WASM テスト
 ```
 
 ブラウザテストには Playwright の Chromium を用意します。`test:e2e` の動画検証には **FFmpeg / ffprobe**、専用の `test:export` には **Corepack** も必要です。

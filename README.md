@@ -5,7 +5,7 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
-controls, connection status, operation feedback and group animation commands. Most editor screens, higher-level
+controls, connection status, operation feedback, group animation commands and Scene/Composition management. Most editor screens, higher-level
 editor/Undo commands, AI, media renderer, and service orchestration still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -45,7 +45,7 @@ node scripts/moon.mjs check --target js
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
 - `moonbit/editor`: typed connection/persistence states, operation feedback,
-  group membership and animation edit plans. Complete batches are validated
+  group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
   before writing; existing tracks change only intended leaves. A delayed
   completion cannot clear a newer gesture or another Scene.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
@@ -76,7 +76,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 529 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 531 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
 
@@ -125,6 +125,5 @@ at `Poietra/poietra-hackathon`.
 
 The copied Worker configuration has an independent Worker/bucket name and no
 production domain route. The deploy command currently bundles with `--dry-run`.
-No production migration or deployment has been performed. Historical deployment
-instructions under `apps/studio` describe the source application and must not be
-used to target its production storage from this rewrite.
+No production migration or deployment has been performed. The app guide under `apps/studio` distinguishes the source service from this
+rewrite; its setup and build instructions now use MoonBit.

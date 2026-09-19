@@ -123,4 +123,41 @@ for field, kind in structs['Track']:
     expression = '@core.any(item)' if kind == 'Bool?' else f'encode_{kind[:-1]}(item)'
     source += f'  if value.{field} is Some(item) {{ put_own(result, "{field}", {expression}) }}\n'
 source += '  result\n}\n'
+
+# Document copies use direct adapters too, so inline media is never stringified.
+def encode_value(kind, expression):
+    if kind in ['Double', 'Int', 'String', 'Bool']:
+        return f'@core.any({expression})'
+    if kind == 'ObjectKind':
+        return f'@core.any(@scene.object_kind_name({expression}))'
+    if kind.startswith('Array['):
+        return f'encode_array({expression}, fn(item) {{ {encode_value(kind[6:-1], "item")} }})'
+    if kind.startswith('Map[String, '):
+        return f'encode_map({expression}, fn(item) {{ {encode_value(kind[12:-1], "item")} }})'
+    if kind in structs:
+        return f'encode_{kind}({expression})'
+    raise ValueError(kind)
+
+source += """///|
+fn[T] encode_array(value : Array[T], convert : (T) -> @core.Any) -> @core.Any {
+  @core.any(FixedArray::makei(value.length(), fn(i) { convert(value[i]) }))
+}
+///|
+fn[T] encode_map(value : Map[String, T], convert : (T) -> @core.Any) -> @core.Any {
+  let result = @core.new_object()
+  for key, item in value { put_own(result, key, convert(item)) }
+  result
+}
+"""
+for name in ['ImageAsset', 'MediaAsset', 'MediaPlayback', 'SceneObject', 'Composition', 'Transition', 'AudioTrack', 'Scene']:
+    source += f'///|\nfn encode_{name}(value : @scene.{name}) -> @core.Any {{\n  let result = @core.new_object()\n'
+    for field, kind in structs[name]:
+        if kind.endswith('?'):
+            source += f'  if value.{field} is Some(item) {{ put_own(result, "{field}", {encode_value(kind[:-1], "item")}) }}'
+            if field == 'groupId':
+                source += ' else { put_own(result, "groupId", @core.null()) }'
+            source += '\n'
+        else:
+            source += f'  put_own(result, "{field}", {encode_value(kind, f"value.{field}")})\n'
+    source += '  result\n}\n'
 (root / 'moonbit/boundary/adapters.mbt').write_text(source)
