@@ -22,6 +22,11 @@ pub fn read_track(value : @core.Any) -> @scene.Track {
 }
 
 ///|
+pub fn read_object_state(value : @core.Any) -> @scene.ObjectState {
+  decode_ObjectState(value)
+}
+
+///|
 pub fn read_timing(value : @core.Any) -> @scene.Timing {
   decode_Timing(value)
 }

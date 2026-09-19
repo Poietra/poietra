@@ -23,6 +23,8 @@ options(
         "easing_editor:EasingEditor",
         "tex_textarea:TexTextarea",
         "sidebar:Sidebar",
+        "inspector:Inspector",
+        "media_timeline:MediaTimeline",
         "object_icon:ObjectIcon",
         "use_editor:useEditor",
         "project_preview:ProjectPreview",

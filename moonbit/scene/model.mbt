@@ -100,7 +100,7 @@ pub(all) struct MediaPlayback {
   start : Double
   offset : Double
   duration : Double
-} derive(FromJson, ToJson)
+} derive(Eq, Debug, FromJson, ToJson)
 
 ///|
 pub(all) struct SceneObject {
