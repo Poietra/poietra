@@ -21,3 +21,7 @@
   Do not copy its documents or history into this public repository.
 - Keep documentation in README. Do not deploy to the existing production domain
   or reuse its production storage while validating the rewrite locally.
+- 2026-09-19: Shared reads now return immutable, structurally shared snapshots.
+  Invalidate changed branches before Yjs observers, and bypass caches during
+  unobserved writes. Keep the tests for nested and observer-queued transactions.
+  Mutable consumers must explicitly clone; commands write only intended fields.

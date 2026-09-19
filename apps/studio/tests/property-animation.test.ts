@@ -152,7 +152,7 @@ describe('stable parents, copy, timing bounds and collaborative Undo', () => {
   });
   test('saved project round-trip retains every override and rejects timing outside its Transition', () => {
     const f = replicas(); for (const channel of PROPERTY_CHANNELS) f.alice.setPropertyTiming(sid, tid, 'sigmoid', channel, timing(300, 100)); f.sync();
-    const project = readProject(f.alice.doc)!; project.scenes[sid].transitions[tid].tracks.sigmoid.opacityTiming!.duration = 701;
+    const project = structuredClone(readProject(f.alice.doc)!); project.scenes[sid].transitions[tid].tracks.sigmoid.opacityTiming!.duration = 701;
     expect(() => parseProjectFile(JSON.stringify(project))).toThrow();
   });
 });

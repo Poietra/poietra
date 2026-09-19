@@ -3,9 +3,9 @@
 MoonBit rewrite of [Poietra's collaborative browser motion editor](https://github.com/Poietra/poietra-hackathon).
 
 **Migration in progress.** The running editor currently uses MoonBit for its
-motion kernel, scene evaluation, and canvas geometry. The React UI, collaboration,
-AI, media renderer, and service integrations are still the original TypeScript
-implementation. Keeping those running preserves the original regression suite
+motion kernel, scene evaluation, canvas geometry, shared-document operations and
+CRDT structure projection. The React UI, higher-level editor/Undo commands, AI,
+media renderer, and service orchestration still contain TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
 ## Run locally
@@ -40,6 +40,12 @@ node scripts/moon.mjs check --target js
   Seeking uses binary search; preview and export share this same evaluator.
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
+- `moonbit/collaboration`: typed edit batches, full target validation before a
+  transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
+- Shared snapshots invalidate only changed branches before observers run.
+  Unchanged Scenes retain identity, avoiding needless playback compilation.
+  Cached snapshots are immutable; clone before editing outside the command API.
+  Nested/observer-queued transactions read live data until their writes settle.
 - `moonbit/boundary`: representation-only adapters for existing JS consumers.
   `scripts/generate-adapters.py` generates field marshalling from the MoonBit model.
   Frames do not serialize embedded media to JSON.
@@ -59,9 +65,9 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 519 regression/differential tests, 3 kernel tests on each of
-JS and WASM, typechecking and the production build. A 19-test browser selection
-also passed, including collaborative editing/Undo, custom curves, seeking, and
+Locally verified: 526 regression/differential tests, 3 kernel tests on each of
+JS and WASM, typechecking and the production build. A 39-test browser selection
+also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
 
 ```sh
@@ -84,6 +90,19 @@ encoding and display. Node 24.13.0 on Linux x64; medians of seven alternating
 These are synthetic evaluator measurements, not a claim about end-to-end browser
 fps. The main savings come from preparing reusable typed playback data, parsing
 colors once, and avoiding temporary arrays when returning frames to JavaScript.
+
+A separate 2026-09-19 benchmark measures one Yjs leaf edit plus a full project
+snapshot (three Scenes, five Compositions each). It excludes UI, drawing and
+networking. Seven alternating batches of 50 edits after warmup:
+
+| Objects per Scene | Original ms/edit + read | MoonBit ms/edit + read | Speedup |
+| ---: | ---: | ---: | ---: |
+| 100 | 1.130 | 0.0593 | 19.0× |
+| 500 | 7.839 | 0.1747 | 44.9× |
+
+```sh
+pnpm --dir apps/studio exec node --import tsx scripts/benchmark-snapshots.ts
+```
 
 The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) are being evaluated for the UI/build migration; they are not yet the active UI.
 

@@ -2,17 +2,33 @@ import {
   "mizchi/js_core" @core,
   "poietra/poietra/scene",
   "poietra/poietra/geometry",
+  "poietra/poietra/collaboration",
 }
 
 options(
   targets: {
     "scene.mbt": [ "js" ],
+    "playback.mbt": [ "js" ],
+    "structure.mbt": [ "js" ],
+    "document.mbt": [ "js" ],
+    "shared.mbt": [ "js" ],
     "adapters.mbt": [ "js" ],
     "geometry.mbt": [ "js" ],
   },
   link: {
     "js": {
       "exports": [
+        "to_shared:toShared",
+        "initialize_document:initializeDocument",
+        "get_shared:getShared",
+        "get_value:getValue",
+        "apply_changes:applyChanges",
+        "changes_for:changesFor",
+        "ensure_scene_audio_tracks:ensureSceneAudioTracks",
+        "ensure_scene_animation_tracks:ensureSceneAnimationTracks",
+        "read_project:readProject",
+        "scene_structure_view:sceneStructureView",
+        "project_structure_view:projectStructureView",
         "prepare_playback:preparePlayback",
         "playback_frame:playbackFrame",
         "playback_composition:playbackComposition",

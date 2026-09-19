@@ -45,5 +45,7 @@ jobs:
       - run: node scripts/moon.mjs test --target wasm moonbit/motion
       - run: pnpm build
       - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
+      - name: Install video verification tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Check collaborative editing, custom easing and actual video output
-        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts
+        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts

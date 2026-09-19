@@ -23,13 +23,13 @@ beforeEach(() => {
 afterEach(() => { for (const store of stores.splice(0)) store.doc.destroy(); vi.unstubAllGlobals(); });
 function store() { const store = new EditorStore(crypto.randomUUID()); stores.push(store); initializeDocument(store.doc, makeDemoProject()); return store; }
 
-it('reuses completed snapshots and materializes the project once for a pointer edit', () => {
+it('reuses completed snapshots and updates a pointer edit without serializing the whole project', () => {
   const editor = store(), root = editor.doc.getMap('project'), serialize = vi.spyOn(root, 'toJSON');
   const before = editor.project();
   expect(editor.project()).toBe(before); editor.scene('scene-1'); editor.scene('scene-1');
   expect(serialize).not.toHaveBeenCalled();
   editor.translate('scene-1', 'comp-1', { circle: { x: 245, y: 520 } }, 10, 0);
-  expect(serialize).toHaveBeenCalledTimes(1);
+  expect(serialize).not.toHaveBeenCalled();
   expect(editor.project()).toBe(editor.snapshot().project);
   expect(editor.scene('scene-1').compositions['comp-1'].states.circle.x).toBe(255);
   expect(before.scenes['scene-1'].compositions['comp-1'].states.circle.x).toBe(245);
