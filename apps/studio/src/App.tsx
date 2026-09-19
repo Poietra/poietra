@@ -3,7 +3,7 @@ import { Tooltip } from '@base-ui/react/tooltip';
 import { ArrowRight, BookOpen, ChartNoAxesColumnIncreasing, Check, ChevronDown, Circle, Copy, Download, Film, LoaderCircle, MousePointer2, Pause, Play, Plus, Redo2, Send, Share2, Sigma, SlidersHorizontal, MessageCircle, ImagePlus, Spline, Square, Type, Undo2, X, ArrowUpRight, Minus, Keyboard, Link2 } from 'lucide-react';
 import { EditorContext, type Tool } from './editor/context';
 import { EditorStore } from './editor/store';
-import { compositionFrame, evaluateScene, transitionFrame } from './engine/evaluate';
+import { compileScene } from './engine/evaluate';
 import type { MotionKernel } from './engine/kernel';
 import type { ExporterContract, RendererContract } from './engine/render-contract';
 import type { PainterContract } from './engine/painter-contract';
@@ -389,11 +389,12 @@ export function App({ store, kernel, renderer, exporter, createFramePainter }: {
   // Cursor, selection and dialog updates do not change the scene's visual frame.
   // Preparation revision also invalidates frames when fonts/equations become ready.
   const viewingPlayback = transportView;
-  const currentFrame = useMemo(() => scene ? viewingPlayback ? evaluateScene(scene, playhead, kernel) : compositionFrame(scene, scene.compositions[compositionId]) : null, [scene, viewingPlayback, playhead, kernel, compositionId, renderRevision]);
-  const fromFrame = useMemo(() => scene && transition ? compositionFrame(scene, scene.compositions[transition.fromId]) : null, [scene, transition, renderRevision]);
-  const toFrame = useMemo(() => scene && transition ? compositionFrame(scene, scene.compositions[transition.toId]) : null, [scene, transition, renderRevision]);
+  const playbackProgram = useMemo(() => scene ? compileScene(scene, kernel) : null, [scene, kernel]);
+  const currentFrame = useMemo(() => scene ? viewingPlayback ? playbackProgram!.evaluate(playhead) : playbackProgram!.composition(compositionId) : null, [scene, playbackProgram, viewingPlayback, playhead, compositionId, renderRevision]);
+  const fromFrame = useMemo(() => scene && transition ? playbackProgram!.composition(transition.fromId) : null, [scene, playbackProgram, transition, renderRevision]);
+  const toFrame = useMemo(() => scene && transition ? playbackProgram!.composition(transition.toId) : null, [scene, playbackProgram, transition, renderRevision]);
   const showTransitionPreview = !!transition && (transitionSeeking || playing && previewScope === 'transition' || localTime > 0);
-  const transitionPreview = useMemo(() => scene && transition && showTransitionPreview ? transitionFrame(scene, transition, localTime, kernel) : null, [scene, transition, showTransitionPreview, localTime, kernel, renderRevision]);
+  const transitionPreview = useMemo(() => scene && transition && showTransitionPreview ? playbackProgram!.transition(transition.id, localTime) : null, [scene, playbackProgram, transition, showTransitionPreview, localTime, renderRevision]);
 
   if (!project || !scene) return <div className="loading-screen"><img src="/poietra.svg" alt="Poietra"/><span>Opening your studio</span><div className="loading-line"/><ConnectionStatus snapshot={snapshot} onRetry={store.retryConnection} expanded/></div>;
 

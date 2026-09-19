@@ -20,7 +20,7 @@ fn progress(
     duration: track.duration,
     easing: track.easing,
   })
-  if track.type_ == "none" {
+  if track.type_ == Cut {
     return if time >= timing.start + timing.duration { 1.0 } else { 0.0 }
   }
   match timing.easing {
@@ -83,26 +83,36 @@ fn parse_rgb(value : String) -> Array[Double]? {
 }
 
 ///|
-fn color(from : String, to : String, t : Double) -> String {
+fn prepare_color(from : String, to : String) -> ColorProgram {
   match (parse_rgb(from), parse_rgb(to)) {
-    (Some(a), Some(b)) => {
-      let digits = "0123456789abcdef"
-      let result = StringBuilder()
-      result.write_string("#")
-      for i in 0..<3 {
-        let value = (a[i] * (1.0 - t) + b[i] * t + 0.5).to_int()
-        result.write_string(digits[value / 16:value / 16 + 1].to_owned())
-        result.write_string(digits[value % 16:value % 16 + 1].to_owned())
+    (Some(a), Some(b)) =>
+      if from == to {
+        Constant(from.to_lower())
+      } else {
+        Rgb(a[0], a[1], a[2], b[0], b[1], b[2])
       }
-      result.to_string()
+    _ => if from == to { Constant(from) } else { Discrete(from, to) }
+  }
+}
+
+///|
+fn color(program : ColorProgram, t : Double) -> String {
+  match program {
+    Constant(value) => value
+    Discrete(from, to) => if t < 0.5 { from } else { to }
+    Rgb(ar, ag, ab, br, bg, bb) => {
+      let r = (ar * (1.0 - t) + br * t + 0.5).to_int()
+      let g = (ag * (1.0 - t) + bg * t + 0.5).to_int()
+      let b = (ab * (1.0 - t) + bb * t + 0.5).to_int()
+      let hex = ((r << 16) | (g << 8) | b).to_string(radix=16)
+      "#" + "000000"[0:6 - hex.length()].to_owned() + hex
     }
-    _ => if t < 0.5 { from } else { to }
   }
 }
 
 ///|
 fn playback(object : SceneObject) -> MediaPlayback? {
-  if object.kind != "video" {
+  if object.kind != Video {
     return None
   }
   object.media.map(fn(media) {
@@ -180,24 +190,19 @@ pub fn composition_frame(
 }
 
 ///|
-pub fn transition_frame(
+pub fn prepare_transition(
   scene : Scene,
   transition : Transition,
-  time : Double,
-  scene_time : Double,
   kernel : Kernel,
-) -> Frame {
+) -> PreparedTransition {
   guard scene.compositions.get(transition.fromId) is Some(from) else {
-    return frame(scene, [])
+    return PreparedTransition::{ items: [], }
   }
   guard scene.compositions.get(transition.toId) is Some(to) else {
-    return frame(scene, [])
+    return PreparedTransition::{ items: [], }
   }
-  let objects : Array[RenderObject] = []
+  let items : Array[AnimatedObject] = []
   for object in ordered_objects(scene, kernel.compare_ids) {
-    if !video_active(object, scene_time) {
-      continue
-    }
     let a_state = from.states.get(object.id)
     let b_state = to.states.get(object.id)
     let a_visible = a_state.map(fn(s) { s.visible }).unwrap_or(false)
@@ -216,8 +221,52 @@ pub fn transition_frame(
       object.id,
       transition.duration,
     )
+    items.push({
+      object,
+      a,
+      b,
+      track,
+      presence: if !a_visible {
+        Entering
+      } else if !b_visible {
+        Leaving
+      } else {
+        Persistent
+      },
+      animation: track.type_,
+      fill: prepare_color(a.fill, b.fill),
+      stroke: prepare_color(a.stroke, b.stroke),
+    })
+  }
+  PreparedTransition::{ items, }
+}
+
+///|
+pub fn evaluate_transition(
+  prepared : PreparedTransition,
+  time : Double,
+  scene_time : Double,
+  kernel : Kernel,
+) -> Array[RenderObject] {
+  let objects : Array[RenderObject] = []
+  for item in prepared.items {
+    let { object, a, b, track, presence: visibility, animation, fill, stroke, } = item
+    let (a_visible, b_visible) = match visibility {
+      Persistent => (true, true)
+      Entering => (false, true)
+      Leaving => (true, false)
+    }
+    if !video_active(object, scene_time) {
+      continue
+    }
     let base = progress(track, None, time, kernel)
-    let channel = fn(timing : Timing?) { progress(track, timing, time, kernel) }
+    let channel = fn(timing : Timing?) {
+      if timing is None {
+        base
+      } else {
+        progress(track, timing, time, kernel)
+      }
+    }
     let position = channel(track.positionTiming)
     let size = channel(track.sizeTiming)
     let shape_path = channel(track.pathTiming)
@@ -242,8 +291,8 @@ pub fn transition_frame(
       ),
       opacity: interpolate(a.opacity, b.opacity, opacity),
       visible: true,
-      fill: color(a.fill, b.fill, channel(track.fillTiming)),
-      stroke: color(a.stroke, b.stroke, channel(track.strokeTiming)),
+      fill: color(fill, channel(track.fillTiming)),
+      stroke: color(stroke, channel(track.strokeTiming)),
       strokeWidth: interpolate(
         a.strokeWidth,
         b.strokeWidth,
@@ -305,7 +354,7 @@ pub fn transition_frame(
           opacity,
         ),
       }
-    } else if track.type_ != "write" {
+    } else if animation != Write {
       state = {
         ..state,
         opacity: state.opacity *
@@ -318,10 +367,10 @@ pub fn transition_frame(
         }),
       }
     }
-    if track.type_ == "write" && presence == 0.0 {
+    if animation == Write && presence == 0.0 {
       state = { ..state, opacity: 0.0, }
     }
-    if track.type_ == "grow" && (!a_visible || !b_visible) {
+    if animation == Grow && (!a_visible || !b_visible) {
       state = {
         ..state,
         width: state.width * presence,
@@ -333,7 +382,7 @@ pub fn transition_frame(
       object,
       state,
       videoTimeMs: video_time(object, scene_time),
-      writeProgress: if track.type_ == "write" {
+      writeProgress: if animation == Write {
         if !b_visible {
           1.0 - reveal
         } else {
@@ -345,7 +394,26 @@ pub fn transition_frame(
       order: track.order,
     })
   }
-  frame(scene, objects)
+  objects
+}
+
+///|
+pub fn transition_frame(
+  scene : Scene,
+  transition : Transition,
+  time : Double,
+  scene_time : Double,
+  kernel : Kernel,
+) -> Frame {
+  frame(
+    scene,
+    evaluate_transition(
+      prepare_transition(scene, transition, kernel),
+      time,
+      scene_time,
+      kernel,
+    ),
+  )
 }
 
 ///|

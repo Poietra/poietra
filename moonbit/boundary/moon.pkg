@@ -13,6 +13,10 @@ options(
   link: {
     "js": {
       "exports": [
+        "prepare_playback:preparePlayback",
+        "playback_frame:playbackFrame",
+        "playback_composition:playbackComposition",
+        "playback_transition:playbackTransition",
         "rotate_vector:rotateVector",
         "world_to_local:worldToLocal",
         "local_to_world:localToWorld",

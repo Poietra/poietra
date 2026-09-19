@@ -9,7 +9,7 @@ pub fn default_track(object_id : String, duration : Double) -> Track {
   {
     implicit: None,
     objectId: object_id,
-    type_: "move",
+    type_: Move,
     start: 0.0,
     duration,
     easing: EaseInOut,
@@ -87,7 +87,7 @@ pub fn scene_duration(scene : Scene) -> Double {
     }
   }
   for object in scene.objects.values() {
-    if object.kind == "video" && object.playback is Some(playback) {
+    if object.kind == Video && object.playback is Some(playback) {
       if scene.compositions
         .values()
         .any(fn(comp) {

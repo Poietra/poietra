@@ -3,7 +3,7 @@ import { LoaderCircle, Pause, PencilLine, Play, RotateCcw } from 'lucide-react';
 import { clamp, sceneSegments, type Project, type Selection } from '../../shared/model';
 import { projectSegments, projectSegmentAt } from '../../shared/project-timeline';
 import { useMediaPlayback } from '../editor/useMediaPlayback';
-import { evaluateScene, type Frame } from '../engine/evaluate';
+import { compileScene, type Frame } from '../engine/evaluate';
 import type { MotionKernel } from '../engine/kernel';
 import type { RendererContract } from '../engine/render-contract';
 import type { PainterContract } from '../engine/painter-contract';
@@ -36,7 +36,8 @@ function ProjectPlayback({ project, renderer, kernel, createFramePainter, onEdit
   const current = projectSegmentAt(segments, time), scene = current?.scene;
   const first = segments[0]?.scene;
   const local = current ? clamp(time - current.start, 0, current.duration) : 0;
-  const frame = useMemo(() => scene ? evaluateScene(scene, local, kernel) : null, [scene, local, kernel]);
+  const program = useMemo(() => scene ? compileScene(scene, kernel) : null, [scene, kernel]);
+  const frame = useMemo(() => program?.evaluate(local) ?? null, [program, local]);
   const media = useMediaPlayback(scene ?? null, local, playing, failure => { setPlaying(false); setError(failure.message); });
   const key = `project-preview:${scene?.id}:${first?.width}:${first?.height}`;
   const ready = prepared === project;

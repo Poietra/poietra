@@ -3,7 +3,7 @@ import { sceneDuration, type Project, type Scene } from '../../shared/model';
 import { projectSegments, projectSegmentAt } from '../../shared/project-timeline';
 import type { AudioTrack } from '../../shared/media';
 import { AudioMixer, AUDIO_SAMPLE_RATE, audibleTracks } from './audio';
-import { evaluateScene, type Frame } from './evaluate';
+import { compileScene, type Frame } from './evaluate';
 import type { MotionKernel } from './kernel';
 import type { FramePainter } from './painter-contract';
 import type { ExportOptions, ExportResult } from './render-contract';
@@ -44,9 +44,10 @@ interface VideoTimeline {
 /** Capture before asynchronous work so collaboration cannot alter this export. */
 export async function exportScene(scene: Scene, kernel: MotionKernel, options: ExportOptions): Promise<ExportResult> {
   const snapshot = structuredClone(scene);
+  const program = compileScene(snapshot, kernel);
   return exportTimeline({
     size: snapshot, durations: [sceneDuration(snapshot)], audio: audibleTracks(snapshot.audioTracks),
-    prepare: () => prepareScene(snapshot), frameAt: time => evaluateScene(snapshot, time, kernel),
+    prepare: () => prepareScene(snapshot), frameAt: time => program.evaluate(time),
   }, options);
 }
 
@@ -56,6 +57,7 @@ export async function exportProject(project: Project, kernel: MotionKernel, opti
   const settings = { ...options };
   checkAbort(settings.signal);
   const segments = projectSegments(snapshot);
+  const programs = new Map(segments.map(({ scene }) => [scene.id, compileScene(scene, kernel)]));
   const first = segments[0]?.scene;
   if (!first) throw new Error('書き出す Scene がありません。');
   for (const { scene } of segments) {
@@ -67,7 +69,7 @@ export async function exportProject(project: Project, kernel: MotionKernel, opti
     prepare: async () => { for (const { scene } of segments) { checkAbort(settings.signal); await prepareScene(scene); } },
     frameAt: time => {
       const segment = projectSegmentAt(segments, time)!;
-      return evaluateScene(segment.scene, Math.max(0, time - segment.start), kernel);
+      return programs.get(segment.scene.id)!.evaluate(Math.max(0, time - segment.start));
     },
   }, settings);
 }

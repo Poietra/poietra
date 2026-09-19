@@ -15,6 +15,8 @@ used here is `moonc v0.10.13+cbb11c36f`, released 2026-09-15).
 
 ```sh
 pnpm --dir apps/studio install --frozen-lockfile
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
+bash /tmp/install-moonbit.sh "$(cat .moon-version)"
 moon update
 pnpm dev
 ```
@@ -33,6 +35,10 @@ node scripts/moon.mjs check --target js
 
 - `moonbit/motion`: pure numerical kernel, compiled to JS and WebAssembly.
 - `moonbit/scene`: typed document, timeline and frame evaluation; no JS types.
+- Playback compiles an owned snapshot into `Hold` / `Change` programs. Preparation
+  resolves implicit tracks, matches objects, sorts layers and parses colors once.
+  Seeking uses binary search; preview and export share this same evaluator.
+  Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
 - `moonbit/boundary`: representation-only adapters for existing JS consumers.
   `scripts/generate-adapters.py` generates field marshalling from the MoonBit model.
@@ -46,6 +52,38 @@ Next migration areas are shared editing operations and CRDT projections, UI,
 rendering/media/export, shared chat/AI, and Workers/Node service orchestration.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
+
+The founder explicitly requested architectural improvements on 2026-09-18.
+Compatibility adapters are temporary migration scaffolding; old internal APIs
+do not constrain the MoonBit design.
+
+## Checks and performance
+
+Locally verified: 519 regression/differential tests, 3 kernel tests on each of
+JS and WASM, typechecking and the production build. A 19-test browser selection
+also passed, including collaborative editing/Undo, custom curves, seeking, and
+actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
+
+```sh
+pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts
+```
+
+This measures **CPU scene evaluation only**, excluding rendering, media decoding,
+encoding and display. Node 24.13.0 on Linux x64; medians of seven alternating
+240-frame batches after warmup. Local 2026-09-18 results:
+
+| Objects | Easing | Original ms/frame | MoonBit ms/frame | Speedup | Preparation ms |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 10 | Preset | 0.0253 | 0.00434 | 5.8× | 0.262 |
+| 100 | Preset | 0.193 | 0.0226 | 8.5× | 0.770 |
+| 500 | Preset | 0.995 | 0.129 | 7.7× | 2.572 |
+| 10 | Custom cubic | 0.0202 | 0.00403 | 5.0× | 0.100 |
+| 100 | Custom cubic | 0.204 | 0.0349 | 5.8× | 0.516 |
+| 500 | Custom cubic | 1.061 | 0.188 | 5.6× | 2.464 |
+
+These are synthetic evaluator measurements, not a claim about end-to-end browser
+fps. The main savings come from preparing reusable typed playback data, parsing
+colors once, and avoiding temporary arrays when returning frames to JavaScript.
 
 The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) are being evaluated for the UI/build migration; they are not yet the active UI.
 

@@ -1,0 +1,49 @@
+name: Check MoonBit rewrite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.0
+          cache: pnpm
+          cache-dependency-path: apps/studio/pnpm-lock.yaml
+      - name: Install the pinned MoonBit compiler and core library
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
+          bash /tmp/install-moonbit.sh "$(cat .moon-version)"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon version --all
+      - run: moon update
+      - run: pnpm --dir apps/studio install --frozen-lockfile
+      - name: Check generated adapters and MoonBit types
+        run: |
+          python3 scripts/generate-adapters.py
+          moon fmt
+          git diff --exit-code -- moonbit
+          moon check --target js --deny-warn
+      - run: pnpm test
+      - run: node scripts/moon.mjs test --target js moonbit/motion
+      - run: node scripts/moon.mjs test --target wasm moonbit/motion
+      - run: pnpm build
+      - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
+      - name: Check collaborative editing, custom easing and actual video output
+        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts

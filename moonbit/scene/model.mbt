@@ -73,7 +73,7 @@ pub(all) struct ObjectState {
   text : String
   fontSize : Double
   cornerRadius : Double
-  effect : String
+  effect : Effect
   path : Bezier
 } derive(FromJson, ToJson)
 
@@ -106,7 +106,7 @@ pub(all) struct MediaPlayback {
 pub(all) struct SceneObject {
   id : String
   name : String
-  kind : String
+  kind : ObjectKind
   order : Double
   groupId : String?
   locked : Bool
@@ -137,7 +137,7 @@ pub(all) struct Timing {
 pub(all) struct Track {
   implicit : Bool?
   objectId : String
-  type_ : String
+  type_ : AnimationKind
   start : Double
   duration : Double
   easing : Easing

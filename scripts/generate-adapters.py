@@ -28,7 +28,7 @@ def decode(kind, value):
         return f'decode_array({value}, fn(v) {{ {decode(kind[6:-1], "v")} }})'
     if kind.startswith('Map[String, '):
         return f'decode_map({value}, fn(v) {{ {decode(kind[12:-1], "v")} }})'
-    if kind == 'Easing' or kind in structs:
+    if kind in ['Easing', 'ObjectKind', 'AnimationKind', 'Effect'] or kind in structs:
         return f'decode_{kind}({value})'
     raise ValueError(kind)
 
@@ -63,6 +63,16 @@ fn decode_Easing(value : @core.Any) -> @scene.Easing {
   }
 }
 '''
+for name, parser in [('ObjectKind', 'object_kind'), ('AnimationKind', 'animation_kind'), ('Effect', 'effect_kind')]:
+    source += f'''///|
+fn decode_{name}(value : @core.Any) -> @scene.{name} {{
+  if @core.typeof_(value) != "string" {{ @core.throw_error("Expected {name} string"); panic() }}
+  match @scene.{parser}(value.cast()) {{
+    Some(kind) => kind
+    None => {{ @core.throw_error("Invalid {name}"); panic() }}
+  }}
+}}
+'''
 for name, fields in structs.items():
     if name in ['RenderObject', 'Frame', 'Segment', 'Project']:
         continue
@@ -71,20 +81,14 @@ for name, fields in structs.items():
         key = 'type' if field == 'type_' else field
         source += f'    {field}: {decode(kind, f"value._get(\"{key}\")")},\n'
     source += '  }\n}\n'
-source += '''///|
-fn encode_Point(value : @scene.Point) -> @core.Any {
-  @core.from_entries([("x", @core.any(value.x)), ("y", @core.any(value.y))])
-}
-///|
-fn encode_Bezier(value : @scene.Bezier) -> @core.Any {
-  @core.from_entries([("c1", encode_Point(value.c1)), ("c2", encode_Point(value.c2))])
-}
-///|
-fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
-  @core.from_entries([
-'''
-for field, kind in structs['ObjectState']:
-    value = f'encode_Bezier(value.{field})' if kind == 'Bezier' else f'@core.any(value.{field})'
-    source += f'    ("{field}", {value}),\n'
-source += '  ])\n}\n'
+for name in ['Point', 'Bezier', 'ObjectState']:
+    fields = structs[name]
+    arguments = ', '.join(f'{field} : {"String" if kind == "Effect" else kind if kind in ["Double", "Int", "String", "Bool"] else "@core.Any"}' for field, kind in fields)
+    keys = ', '.join(field for field, _ in fields)
+    source += f'///|\nextern "js" fn make_{name}({arguments}) -> @core.Any =\n  #|({keys}) => ({{{keys}}})\n'
+    source += f'///|\nfn encode_{name}(value : @scene.{name}) -> @core.Any {{\n  make_{name}(\n'
+    for field, kind in fields:
+        expression = f'@scene.effect_name(value.{field})' if kind == 'Effect' else f'value.{field}' if kind in ['Double', 'Int', 'String', 'Bool'] else f'encode_{kind}(value.{field})'
+        source += f'    {expression},\n'
+    source += '  )\n}\n'
 (root / 'moonbit/boundary/adapters.mbt').write_text(source)

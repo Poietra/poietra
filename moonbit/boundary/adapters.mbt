@@ -48,6 +48,51 @@ fn decode_Easing(value : @core.Any) -> @scene.Easing {
 }
 
 ///|
+fn decode_ObjectKind(value : @core.Any) -> @scene.ObjectKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected ObjectKind string")
+    panic()
+  }
+  match @scene.object_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid ObjectKind")
+      panic()
+    }
+  }
+}
+
+///|
+fn decode_AnimationKind(value : @core.Any) -> @scene.AnimationKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected AnimationKind string")
+    panic()
+  }
+  match @scene.animation_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid AnimationKind")
+      panic()
+    }
+  }
+}
+
+///|
+fn decode_Effect(value : @core.Any) -> @scene.Effect {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected Effect string")
+    panic()
+  }
+  match @scene.effect_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid Effect")
+      panic()
+    }
+  }
+}
+
+///|
 fn decode_Point(value : @core.Any) -> @scene.Point {
   { x: value._get("x").cast(), y: value._get("y").cast(), }
 }
@@ -73,7 +118,7 @@ fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     text: value._get("text").cast(),
     fontSize: value._get("fontSize").cast(),
     cornerRadius: value._get("cornerRadius").cast(),
-    effect: value._get("effect").cast(),
+    effect: decode_Effect(value._get("effect")),
     path: decode_Bezier(value._get("path")),
   }
 }
@@ -116,7 +161,7 @@ fn decode_SceneObject(value : @core.Any) -> @scene.SceneObject {
   {
     id: value._get("id").cast(),
     name: value._get("name").cast(),
-    kind: value._get("kind").cast(),
+    kind: decode_ObjectKind(value._get("kind")),
     order: value._get("order").cast(),
     groupId: optional(value._get("groupId"), fn(v) { v.cast() }),
     locked: value._get("locked").cast(),
@@ -155,7 +200,7 @@ fn decode_Track(value : @core.Any) -> @scene.Track {
   {
     implicit: optional(value._get("implicit"), fn(v) { v.cast() }),
     objectId: value._get("objectId").cast(),
-    type_: value._get("type").cast(),
+    type_: decode_AnimationKind(value._get("type")),
     start: value._get("start").cast(),
     duration: value._get("duration").cast(),
     easing: decode_Easing(value._get("easing")),
@@ -242,35 +287,60 @@ fn decode_Scene(value : @core.Any) -> @scene.Scene {
 }
 
 ///|
+extern "js" fn make_Point(x : Double, y : Double) -> @core.Any =
+  #|(x, y) => ({x, y})
+
+///|
 fn encode_Point(value : @scene.Point) -> @core.Any {
-  @core.from_entries([("x", @core.any(value.x)), ("y", @core.any(value.y))])
+  make_Point(value.x, value.y)
 }
+
+///|
+extern "js" fn make_Bezier(c1 : @core.Any, c2 : @core.Any) -> @core.Any =
+  #|(c1, c2) => ({c1, c2})
 
 ///|
 fn encode_Bezier(value : @scene.Bezier) -> @core.Any {
-  @core.from_entries([
-    ("c1", encode_Point(value.c1)),
-    ("c2", encode_Point(value.c2)),
-  ])
+  make_Bezier(encode_Point(value.c1), encode_Point(value.c2))
 }
 
 ///|
+extern "js" fn make_ObjectState(
+  x : Double,
+  y : Double,
+  width : Double,
+  height : Double,
+  rotation : Double,
+  opacity : Double,
+  visible : Bool,
+  fill : String,
+  stroke : String,
+  strokeWidth : Double,
+  text : String,
+  fontSize : Double,
+  cornerRadius : Double,
+  effect : String,
+  path : @core.Any,
+) -> @core.Any =
+  #|(x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => ({x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path})
+
+///|
 fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
-  @core.from_entries([
-    ("x", @core.any(value.x)),
-    ("y", @core.any(value.y)),
-    ("width", @core.any(value.width)),
-    ("height", @core.any(value.height)),
-    ("rotation", @core.any(value.rotation)),
-    ("opacity", @core.any(value.opacity)),
-    ("visible", @core.any(value.visible)),
-    ("fill", @core.any(value.fill)),
-    ("stroke", @core.any(value.stroke)),
-    ("strokeWidth", @core.any(value.strokeWidth)),
-    ("text", @core.any(value.text)),
-    ("fontSize", @core.any(value.fontSize)),
-    ("cornerRadius", @core.any(value.cornerRadius)),
-    ("effect", @core.any(value.effect)),
-    ("path", encode_Bezier(value.path)),
-  ])
+  make_ObjectState(
+    value.x,
+    value.y,
+    value.width,
+    value.height,
+    value.rotation,
+    value.opacity,
+    value.visible,
+    value.fill,
+    value.stroke,
+    value.strokeWidth,
+    value.text,
+    value.fontSize,
+    value.cornerRadius,
+    @scene.effect_name(value.effect),
+    encode_Bezier(value.path),
+  )
 }

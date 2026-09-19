@@ -21,28 +21,37 @@ fn kernel(value : @core.Any) -> @scene.Kernel {
 ///|
 /// Preserve the public object reference, including optional metadata and nulls.
 fn frame_value(frame : @scene.Frame, input : @core.Any) -> @core.Any {
-  let objects = frame.objects.map(fn(item) {
-    let value = @core.from_entries([
-      ("object", input._get("objects")._get(item.object.id)),
-      ("state", encode_ObjectState(item.state)),
-      ("writeProgress", @core.any(item.writeProgress)),
-      ("order", @core.any(item.order)),
-    ])
-    if item.videoTimeMs is Some(time) {
-      value._set("videoTimeMs", @core.any(time))
-    }
-    value
+  let objects = FixedArray::makei(frame.objects.length(), fn(i) {
+    let item = frame.objects[i]
+    make_render_object(
+      input._get("objects")._get(item.object.id),
+      encode_ObjectState(item.state),
+      item.writeProgress,
+      item.order,
+      @core.from_option(item.videoTimeMs),
+    )
   })
-  @core.from_entries([
-    (
-      "objects",
-      @core.any(FixedArray::makei(objects.length(), fn(i) { objects[i] })),
-    ),
-    ("background", @core.any(frame.background)),
-    ("width", @core.any(frame.width)),
-    ("height", @core.any(frame.height)),
-  ])
+  make_frame(objects, frame.background, frame.width, frame.height)
 }
+
+///|
+extern "js" fn make_render_object(
+  object : @core.Any,
+  state : @core.Any,
+  write : Double,
+  order : String,
+  video : @core.Any,
+) -> @core.Any =
+  #|(object, state, writeProgress, order, videoTimeMs) => videoTimeMs == null ? {object, state, writeProgress, order} : {object, state, writeProgress, order, videoTimeMs}
+
+///|
+extern "js" fn make_frame(
+  objects : FixedArray[@core.Any],
+  background : String,
+  width : Double,
+  height : Double,
+) -> @core.Any =
+  #|(objects, background, width, height) => ({objects, background, width, height})
 
 ///|
 pub fn evaluate_scene(

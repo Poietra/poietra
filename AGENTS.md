@@ -12,6 +12,11 @@
   regression tests at commit `3f49040ee4bcf06bfcf02e269712833f3729c536`.
   Replace implementations incrementally and test the actual generated artifacts.
 - Do not describe unported features as migrated or untested behavior as verified.
+- 2026-09-18: The founder explicitly requested using MoonBit's strengths for bold
+  performance and reliability improvements, not a mechanical translation. Existing
+  APIs are temporary migration adapters, not constraints on the internal design.
+  Prefer typed state machines, enums, compiled playback data, explicit ownership,
+  and shared evaluators. Measure optimizations against the original implementation.
 - Historical design work lives in the separate private `poietra-design-archive`.
   Do not copy its documents or history into this public repository.
 - Keep documentation in README. Do not deploy to the existing production domain

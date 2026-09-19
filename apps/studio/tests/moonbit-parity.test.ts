@@ -43,8 +43,11 @@ test('the original evaluator is an oracle for every animation and independently 
       Object.assign(b, { width: 600, height: 60, opacity: .9, fill: '#fd1901', stroke: '#112233', rotation: 70 });
       for (const [fromVisible, toVisible] of [[true, true], [true, false], [false, true], [false, false]]) {
         a.visible = fromVisible; b.visible = toVisible;
+        const program = migrated.compileScene(scene, moon);
         for (const time of [-1, 0, 49, 50, 100, 125, 300, 350, 500, 699, 700, 800, 1000]) {
           expect(migrated.transitionFrame(scene, transition, time, moon)).toEqual(original.transitionFrame(scene, transition, time, rust));
+          expect(program.transition(transition.id, time)).toEqual(original.transitionFrame(scene, transition, time, rust));
+          expect(program.evaluate(time + 1000)).toEqual(original.evaluateScene(scene, time + 1000, rust));
         }
       }
       track[`${channel}Timing`] = null;
@@ -58,8 +61,33 @@ test('scene holds, boundaries, missing states and video clocks match the origina
   const scene = makeDemoProject().scenes['scene-1'];
   scene.objects.circle = { ...scene.objects.circle, kind: 'video', media: { src: '/api/rooms/abcdefghijklmnop/media/' + 'a'.repeat(64), mime: 'video/mp4', duration: 5000, width: 640, height: 360, hasAudio: true }, playback: { start: 1250, duration: 500, offset: 100 } };
   delete scene.compositions['comp-1'].states.equation;
+  const program = migrated.compileScene(scene, moon);
   for (const time of [-1, 0, 999, 1000, 1249, 1250, 1400, 1749, 1750, 1800, 3400, 10000]) {
     expect(migrated.evaluateScene(scene, time, moon)).toEqual(original.evaluateScene(scene, time, rust));
     expect(migrated.compositionFrame(scene, scene.compositions['comp-1'], time)).toEqual(original.compositionFrame(scene, scene.compositions['comp-1'], time));
+    expect(program.evaluate(time)).toEqual(original.evaluateScene(scene, time, rust));
   }
+});
+
+test('compiled playback owns a snapshot and replacement programs see edits', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  const before = structuredClone(original.evaluateScene(scene, 1300, rust));
+  const program = migrated.compileScene(scene, moon);
+  scene.compositions['comp-1'].states.circle.x = 1000;
+  scene.objects.circle.name = 'A changed name';
+  scene.transitions['transition-1'].tracks.circle.duration = 200;
+  expect(program.evaluate(1300)).toEqual(before);
+  expect(migrated.compileScene(scene, moon).evaluate(1300)).toEqual(original.evaluateScene(scene, 1300, rust));
+  expect(migrated.compileScene(scene, moon).evaluate(1300)).not.toEqual(before);
+});
+
+test('compiled programs retain earlier frames across seeks and zero-duration cuts', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  scene.compositions['comp-1'].duration = 0;
+  scene.transitions['transition-1'].duration = 0;
+  const program = migrated.compileScene(scene, moon);
+  const earlier = program.evaluate(-1);
+  const frozen = structuredClone(earlier);
+  for (const time of [0, 3000, 10, -100, 0]) expect(program.evaluate(time)).toEqual(original.evaluateScene(scene, time, rust));
+  expect(earlier).toEqual(frozen);
 });
