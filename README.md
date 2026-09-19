@@ -10,7 +10,7 @@ property timing controls, collaborative easing gestures, object/property inspect
 audio/video track editing, the animation timeline, canvas interaction,
 optional login/project bookmarks, sample project generation, portable-file validation and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image normalization, media import/upload, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
 higher-level editor/Undo commands, AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -72,6 +72,10 @@ node scripts/moon.mjs check --target js
   Inactive decoders are released on Scene changes, including Scenes without video.
   Native `JsMap` bindings avoid rehashing large embedded sources in MoonBit; inline
   image validation has a bounded memo. The actual codecs remain Mediabunny/WebCodecs.
+  Import owns each decoder and waveform iterator, probes only 32 container bytes,
+  and scans native Float32 audio channels directly. Cancellation and synchronous
+  host failures release acquired inputs; upload handlers are detached on completion.
+  Image normalization releases its canvas and object URL even when encoding fails.
 - `moonbit/audio`: pure planar PCM mixing with shared stereo phase calculations.
   The browser mixer owns one decoded packet per track, shares each source input,
   serializes chunk requests, and releases partial preparation on failure or abort.
@@ -128,7 +132,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 595 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 602 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -158,6 +162,8 @@ guarded peer conflicts and selective Undo. Account/project screens passed seven
 browser checks, including delayed read/write responses across account switches.
 File/clipboard changes passed 21 browser checks for shared paste/Undo, independent
 room imports, embedded image/audio/video assets, and failed/canceled imports.
+The import migration passed 15 browser checks for image normalization, audio/video
+tracks, cancellation, shared assets, portable files and decoded output pixels.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

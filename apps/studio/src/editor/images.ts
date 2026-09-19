@@ -1,4 +1,5 @@
-import { IMAGE_ASSET_PATH, IMAGE_BYTES_LIMIT, IMAGE_DATA_URL, IMAGE_EDGE_LIMIT, ImageAssetSchema, type ImageAsset } from '../../shared/images';
+import * as moon from '../../../../_build/js/release/build/browser_media/browser_media.js';
+import { IMAGE_ASSET_PATH, IMAGE_DATA_URL, ImageAssetSchema, type ImageAsset } from '../../shared/images';
 import { blobDataUrl, imageBlob } from '../engine/rendering/image-source';
 import type { Project, SceneObject } from '../../shared/model';
 import { MEDIA_ASSET_PATH, MEDIA_DATA_URL, MediaAssetSchema, type MediaAsset } from '../../shared/media';
@@ -8,37 +9,8 @@ import { mediaBlob, prepareMedia, uploadMedia } from './media';
 export const IMAGE_FILE_LIMIT = 20 * 1024 * 1024;
 export const IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp';
 
-export async function normalizeImage(file: File): Promise<{ blob: Blob; width: number; height: number }> {
-  if (!IMAGE_ACCEPT.split(',').includes(file.type)) throw new Error('PNG・JPEG・WebP の画像を選択してください。');
-  if (file.size > IMAGE_FILE_LIMIT) throw new Error('元の画像は 20 MB 以下にしてください。');
-  const source = URL.createObjectURL(file), image = new Image();
-  try {
-    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('この画像を読み取れませんでした。')); image.src = source; });
-    if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 40_000_000) throw new Error('画像の画素数が大きすぎます。4,000万画素以下にしてください。');
-    let scale = Math.min(1, IMAGE_EDGE_LIMIT / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement('canvas');
-    try {
-      for (let attempt = 0; attempt < 8; attempt++) {
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-        const context = canvas.getContext('2d'); if (!context) throw new Error('画像を準備できませんでした。');
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, attempt === 0 ? 'image/png' : 'image/webp', 0.9));
-        if (blob && blob.size <= IMAGE_BYTES_LIMIT) return { blob, width: canvas.width, height: canvas.height };
-        if (attempt > 0) scale *= 0.75;
-      }
-      throw new Error('画像を小さくして、もう一度追加してください。');
-    } finally { canvas.width = canvas.height = 0; }
-  } finally { image.src = ''; URL.revokeObjectURL(source); }
-}
-
-export async function uploadImage(room: string, blob: Blob, signal?: AbortSignal): Promise<string> {
-  const response = await fetch(`/api/rooms/${room}/images`, { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000) });
-  let data: { src?: string; error?: string };
-  try { data = await response.json(); } catch { throw new Error('画像を保存できませんでした。接続を確認して再試行してください。'); }
-  if (!response.ok || !data.src || !IMAGE_ASSET_PATH.test(data.src)) throw new Error(data.error || '画像を保存できませんでした。');
-  return data.src;
-}
-
+export const normalizeImage: (file: File) => Promise<{ blob: Blob; width: number; height: number }> = moon.normalizeImage;
+export const uploadImage: (room: string, blob: Blob, signal?: AbortSignal) => Promise<string> = moon.uploadImage;
 
 /** Portable files embed asset bytes; live documents keep only immutable references. */
 export async function portableProject(project: Project, signal?: AbortSignal): Promise<Project> {

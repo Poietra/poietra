@@ -98,23 +98,26 @@ async fn download(
     chunks.push(@core.throwable(fn() { copy_bytes(value) }))
   }
   check_abort(active)
-  let mime : String = if policy.kind == @assets.Image {
+  let mime : String = {
     let content_type = @core.throwable(fn() {
       response._get("headers")._call("get", [@core.any("Content-Type")])
     })
-    if @core.is_nullish(content_type) {
+    let fallback = if policy.kind == @assets.Image {
       "image/png"
+    } else {
+      "application/octet-stream"
+    }
+    if @core.is_nullish(content_type) {
+      fallback
     } else {
       let value : String = content_type.cast()
       let value = value.split(";").next().unwrap().to_owned()
       if value.is_empty() {
-        "image/png"
+        fallback
       } else {
         value
       }
     }
-  } else {
-    ""
   }
   @core.throwable(fn() {
     @core.new(global._get("Blob"), [
@@ -130,6 +133,15 @@ pub fn image_blob(
   signal : @core.Any,
 ) -> @core.Promise[@core.Any] {
   @core.from_async(async fn() { download(source, signal, image_policy) })
+  |> native_errors
+}
+
+///|
+pub fn media_blob(
+  source : String,
+  signal : @core.Any,
+) -> @core.Promise[@core.Any] {
+  @core.from_async(async fn() { download(source, signal, media_policy) })
   |> native_errors
 }
 

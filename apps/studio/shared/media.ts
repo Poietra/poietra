@@ -1,3 +1,4 @@
+import * as moon from '../../../_build/js/release/build/boundary/boundary.js';
 import { z } from 'zod';
 
 export const MEDIA_FILE_LIMIT = 32 * 1024 * 1024;
@@ -26,23 +27,8 @@ export const AudioTrackSchema = MediaPlaybackSchema.extend({
 }).refine(track => track.asset.hasAudio && track.offset + track.duration <= track.asset.duration + 1);
 export interface AudioTrack extends MediaPlayback { id: string; name: string; asset: MediaAsset; volume: number; muted: boolean }
 
-export function canonicalMediaMime(mime: string): string {
-  const value = mime.split(';', 1)[0].trim().toLowerCase();
-  return ({ 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav', 'audio/x-flac': 'audio/flac', 'audio/x-m4a': 'audio/mp4', 'audio/mp3': 'audio/mpeg' } as Record<string, string>)[value] ?? value;
-}
-
-/** Container signatures limit uploads to inert media; the browser checks decodability. */
-export function mediaMime(bytes: Uint8Array, declared = ''): string | null {
-  const text = (start: number, end: number) => new TextDecoder().decode(bytes.subarray(start, end));
-  if (bytes.length >= 12 && text(0, 4) === 'RIFF' && text(8, 12) === 'WAVE') return 'audio/wav';
-  if (bytes.length >= 4 && text(0, 4) === 'fLaC') return 'audio/flac';
-  if (bytes.length >= 4 && text(0, 4) === 'OggS') return 'audio/ogg';
-  if (bytes.length >= 4 && (text(0, 3) === 'ID3' || bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0 && (bytes[1] & 0x06) !== 0 && (bytes[1] & 0x18) !== 0x08)) return 'audio/mpeg';
-  const mime = canonicalMediaMime(declared);
-  if (bytes.length >= 12 && text(4, 8) === 'ftyp' && /^(?:isom|iso[2-9]|mp4[12]|avc1|dash|M4[ABVP] |MSNV)$/.test(text(8, 12))) return mime === 'audio/mp4' ? mime : 'video/mp4';
-  if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return mime === 'audio/webm' ? mime : 'video/webm';
-  return null;
-}
+export const canonicalMediaMime: (mime: string) => string = moon.canonicalMediaMime;
+export const mediaMime: (bytes: Uint8Array, declared?: string) => string | null = moon.mediaMime;
 
 export type ByteRange = { start: number; end: number };
 /** Single RFC byte range. Multiple/invalid/unsatisfiable ranges return null (416). */

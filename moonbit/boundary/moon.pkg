@@ -11,6 +11,7 @@ import {
 
 options(
   targets: {
+    "assets.mbt": [ "js" ],
     "chat.mbt": [ "js" ],
     "samples.mbt": [ "js" ],
     "file_codec.mbt": [ "js" ],
@@ -35,6 +36,9 @@ options(
   link: {
     "js": {
       "exports": [
+        "canonical_media_mime:canonicalMediaMime",
+        "media_mime:mediaMime",
+        "image_mime:imageMime",
         "codex_prompt:codexPrompt",
         "make_blank_scene:makeBlankScene",
         "parse_project_file:parseProjectFile",

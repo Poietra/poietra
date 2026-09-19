@@ -1,3 +1,4 @@
+import * as moon from '../../../_build/js/release/build/boundary/boundary.js';
 import { z } from 'zod';
 
 export const IMAGE_BYTES_LIMIT = 1024 * 1024;
@@ -11,12 +12,7 @@ export const ImageAssetSchema = z.object({ src: imageSource, width: z.number().i
 export type ImageAsset = z.infer<typeof ImageAssetSchema>;
 
 /** Uploaded assets are immutable, raster-only, and content addressed. */
-export function imageMime(bytes: Uint8Array): string | null {
-  if (bytes.length >= 24 && [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => bytes[index] === value)) return 'image/png';
-  if (bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'image/jpeg';
-  if (bytes.length >= 16 && new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8, 12)) === 'WEBP') return 'image/webp';
-  return null;
-}
+export const imageMime: (bytes: Uint8Array) => string | null = moon.imageMime;
 export async function imageDigest(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(value => value.toString(16).padStart(2, '0')).join('');
 }
