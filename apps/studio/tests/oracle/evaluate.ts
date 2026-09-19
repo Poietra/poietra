@@ -1,4 +1,4 @@
-import { getPropertyTiming, hasPropertyTiming, resolveTrack, type PropertyChannel, clamp, orderedObjects, sceneSegments, type AnimationTrack, type Composition, type ObjectState, type Scene, type SceneObject, type Transition } from '../../shared/model';
+import { getPropertyTiming, hasPropertyTiming, resolveTrack, type PropertyChannel, clamp, orderedObjects, sceneSegments, type AnimationTrack, type Composition, type ObjectState, type Scene, type SceneObject, type Transition } from './model';
 import { trackProgress, type MotionKernel } from './kernel';
 
 export interface RenderObject { object: SceneObject; state: ObjectState; writeProgress: number; order: 'together' | 'sequential'; videoTimeMs?: number; videoFrame?: string }

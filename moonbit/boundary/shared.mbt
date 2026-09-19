@@ -333,8 +333,7 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
           for id in map_keys(objects) {
             if !map_has(tracks, id) {
               let track = @scene.default_track(id, duration.cast())
-              let value = encode({ ..track, implicit: Some(true), })
-              put_own(value, "path", @core.null())
+              let value = encode_Track({ ..track, implicit: Some(true), })
               map_set(tracks, id, to_shared(value, host))
               changed = true
             }

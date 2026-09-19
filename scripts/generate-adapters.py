@@ -91,4 +91,36 @@ for name in ['Point', 'Bezier', 'ObjectState']:
         expression = f'@scene.effect_name(value.{field})' if kind == 'Effect' else f'value.{field}' if kind in ['Double', 'Int', 'String', 'Bool'] else f'encode_{kind}(value.{field})'
         source += f'    {expression},\n'
     source += '  )\n}\n'
+# Additional sparse records use the same canonical model fields.
+source += '\n'+"""///|
+extern "js" fn make_curve(x1 : Double, y1 : Double, x2 : Double, y2 : Double) -> @core.Any =
+  #|(x1, y1, x2, y2) => ({type: 'cubicBezier', x1, y1, x2, y2})
+///|
+fn encode_Easing(value : @scene.Easing) -> @core.Any {
+  match value {
+    Linear => @core.any("linear")
+    EaseInOut => @core.any("easeInOut")
+    EaseIn => @core.any("easeIn")
+    EaseOut => @core.any("easeOut")
+    CubicBezier(x1, y1, x2, y2) => make_curve(x1, y1, x2, y2)
+  }
+}
+///|
+fn encode_Timing(value : @scene.Timing) -> @core.Any {
+  make_timing(@core.any(value.start), @core.any(value.duration), encode_Easing(value.easing))
+}
+///|
+extern "js" fn make_track(object_id : String, kind : String, start : Double, duration : Double, easing : @core.Any, order : String, path : @core.Any) -> @core.Any =
+  #|(objectId, type, start, duration, easing, order, path) => ({objectId, type, start, duration, easing, order, path})
+///|
+fn encode_Track(value : @scene.Track) -> @core.Any {
+  let path = match value.path { Some(path) => encode_Bezier(path); None => @core.null() }
+  let result = make_track(value.objectId, @scene.animation_name(value.type_), value.start, value.duration, encode_Easing(value.easing), value.order, path)
+"""
+for field, kind in structs['Track']:
+    if not kind.endswith('?') or field == 'path':
+        continue
+    expression = '@core.any(item)' if kind == 'Bool?' else f'encode_{kind[:-1]}(item)'
+    source += f'  if value.{field} is Some(item) {{ put_own(result, "{field}", {expression}) }}\n'
+source += '  result\n}\n'
 (root / 'moonbit/boundary/adapters.mbt').write_text(source)

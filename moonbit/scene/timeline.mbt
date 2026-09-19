@@ -1,7 +1,27 @@
 ///|
 pub fn clamp(value : Double, low : Double, high : Double) -> Double {
   let value = if value.is_nan() || value.is_inf() { low } else { value }
-  value.max(low).min(high)
+  minimum(high, maximum(low, value))
+}
+
+///|
+/// Preserve invalid-number propagation at saved-document boundaries. MoonBit's
+/// Double.max/min deliberately ignore a single NaN, unlike the source contract.
+pub fn maximum(a : Double, b : Double) -> Double {
+  if a.is_nan() {
+    a
+  } else if b.is_nan() {
+    b
+  } else if a == 0.0 && b == 0.0 {
+    a + b
+  } else {
+    a.max(b)
+  }
+}
+
+///|
+pub fn minimum(a : Double, b : Double) -> Double {
+  -maximum(-a, -b)
 }
 
 ///|
@@ -48,56 +68,12 @@ pub fn resolve_track(
 
 ///|
 pub fn scene_segments(scene : Scene) -> Array[Segment] {
-  let segments : Array[Segment] = []
-  let mut start = 0.0
-  for index, id in scene.compositionOrder {
-    guard scene.compositions.get(id) is Some(composition) else { continue }
-    segments.push({
-      kind: "composition",
-      id,
-      start,
-      duration: composition.duration,
-    })
-    start += composition.duration
-    let next_id = scene.compositionOrder.get(index + 1)
-    for transition in scene.transitions.values() {
-      if transition.fromId == id && Some(transition.toId) == next_id {
-        segments.push({
-          kind: "transition",
-          id: transition.id,
-          start,
-          duration: transition.duration,
-        })
-        start += transition.duration
-        break
-      }
-    }
-  }
-  segments
+  timeline_segments(scene_timeline(scene))
 }
 
 ///|
 pub fn scene_duration(scene : Scene) -> Double {
-  let mut duration = scene_segments(scene).fold(init=0.0, fn(total, segment) {
-    total + segment.duration
-  })
-  if scene.audioTracks is Some(tracks) {
-    for track in tracks.values() {
-      duration = duration.max(track.start + track.duration)
-    }
-  }
-  for object in scene.objects.values() {
-    if object.kind == Video && object.playback is Some(playback) {
-      if scene.compositions
-        .values()
-        .any(fn(comp) {
-          comp.states.get(object.id).map(fn(s) { s.visible }).unwrap_or(false)
-        }) {
-        duration = duration.max(playback.start + playback.duration)
-      }
-    }
-  }
-  duration
+  timeline_duration(scene_timeline(scene))
 }
 
 ///|

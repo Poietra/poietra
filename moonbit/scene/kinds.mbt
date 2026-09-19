@@ -73,6 +73,17 @@ pub fn effect_name(value : Effect) -> String {
 }
 
 ///|
+pub fn animation_name(value : AnimationKind) -> String {
+  match value {
+    Move => "move"
+    Write => "write"
+    Fade => "fade"
+    Grow => "grow"
+    Cut => "none"
+  }
+}
+
+///|
 pub impl ToJson for ObjectKind with fn to_json(self) {
   match self {
     Circle => "circle"

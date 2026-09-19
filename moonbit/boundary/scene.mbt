@@ -1,9 +1,4 @@
 ///|
-fn[T : ToJson] encode(value : T) -> @core.Any {
-  @core.json_parse(value.to_json().stringify())
-}
-
-///|
 extern "js" fn compare_ids(a : String, b : String) -> Int =
   #|(a, b) => a.localeCompare(b)
 
@@ -107,10 +102,25 @@ pub fn transition_frame(
 
 ///|
 pub fn scene_segments(input : @core.Any) -> @core.Any {
-  encode(@scene.scene_segments(decode_Scene(input)))
+  let segments = @scene.timeline_segments(decode_timeline(input))
+  @core.any(
+    FixedArray::makei(segments.length(), fn(i) {
+      let segment = segments[i]
+      make_segment(segment.kind, segment.id, segment.start, segment.duration)
+    }),
+  )
 }
 
 ///|
+extern "js" fn make_segment(
+  kind : String,
+  id : String,
+  start : Double,
+  duration : Double,
+) -> @core.Any =
+  #|(kind, id, start, duration) => ({kind, id, start, duration})
+
+///|
 pub fn scene_duration(input : @core.Any) -> Double {
-  @scene.scene_duration(decode_Scene(input))
+  @scene.timeline_duration(decode_timeline(input))
 }

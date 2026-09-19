@@ -344,3 +344,98 @@ fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     encode_Bezier(value.path),
   )
 }
+
+///|
+extern "js" fn make_curve(
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+) -> @core.Any =
+  #|(x1, y1, x2, y2) => ({type: 'cubicBezier', x1, y1, x2, y2})
+
+///|
+fn encode_Easing(value : @scene.Easing) -> @core.Any {
+  match value {
+    Linear => @core.any("linear")
+    EaseInOut => @core.any("easeInOut")
+    EaseIn => @core.any("easeIn")
+    EaseOut => @core.any("easeOut")
+    CubicBezier(x1, y1, x2, y2) => make_curve(x1, y1, x2, y2)
+  }
+}
+
+///|
+fn encode_Timing(value : @scene.Timing) -> @core.Any {
+  make_timing(
+    @core.any(value.start),
+    @core.any(value.duration),
+    encode_Easing(value.easing),
+  )
+}
+
+///|
+extern "js" fn make_track(
+  object_id : String,
+  kind : String,
+  start : Double,
+  duration : Double,
+  easing : @core.Any,
+  order : String,
+  path : @core.Any,
+) -> @core.Any =
+  #|(objectId, type, start, duration, easing, order, path) => ({objectId, type, start, duration, easing, order, path})
+
+///|
+fn encode_Track(value : @scene.Track) -> @core.Any {
+  let path = match value.path {
+    Some(path) => encode_Bezier(path)
+    None => @core.null()
+  }
+  let result = make_track(
+    value.objectId,
+    @scene.animation_name(value.type_),
+    value.start,
+    value.duration,
+    encode_Easing(value.easing),
+    value.order,
+    path,
+  )
+  if value.implicit is Some(item) {
+    put_own(result, "implicit", @core.any(item))
+  }
+  if value.positionTiming is Some(item) {
+    put_own(result, "positionTiming", encode_Timing(item))
+  }
+  if value.opacityTiming is Some(item) {
+    put_own(result, "opacityTiming", encode_Timing(item))
+  }
+  if value.sizeTiming is Some(item) {
+    put_own(result, "sizeTiming", encode_Timing(item))
+  }
+  if value.rotationTiming is Some(item) {
+    put_own(result, "rotationTiming", encode_Timing(item))
+  }
+  if value.fillTiming is Some(item) {
+    put_own(result, "fillTiming", encode_Timing(item))
+  }
+  if value.strokeTiming is Some(item) {
+    put_own(result, "strokeTiming", encode_Timing(item))
+  }
+  if value.strokeWidthTiming is Some(item) {
+    put_own(result, "strokeWidthTiming", encode_Timing(item))
+  }
+  if value.fontSizeTiming is Some(item) {
+    put_own(result, "fontSizeTiming", encode_Timing(item))
+  }
+  if value.cornerRadiusTiming is Some(item) {
+    put_own(result, "cornerRadiusTiming", encode_Timing(item))
+  }
+  if value.pathTiming is Some(item) {
+    put_own(result, "pathTiming", encode_Timing(item))
+  }
+  if value.revealTiming is Some(item) {
+    put_own(result, "revealTiming", encode_Timing(item))
+  }
+  result
+}

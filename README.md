@@ -4,7 +4,7 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
-CRDT structure projection. The React UI, higher-level editor/Undo commands, AI,
+CRDT structure projection, model defaults/validation and project timelines. The React UI, higher-level editor/Undo commands, AI,
 media renderer, and service orchestration still contain TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -34,7 +34,9 @@ node scripts/moon.mjs check --target js
 ## Layout and migration
 
 - `moonbit/motion`: pure numerical kernel, compiled to JS and WebAssembly.
-- `moonbit/scene`: typed document, timeline and frame evaluation; no JS types.
+- `moonbit/scene`: typed document, defaults, easing/timing validation, structural
+  projection, timelines and frame evaluation; no JS types. Timeline queries pass
+  only structural metadata and media endpoints, not object state payloads.
 - Playback compiles an owned snapshot into `Hold` / `Change` programs. Preparation
   resolves implicit tracks, matches objects, sorts layers and parses colors once.
   Seeking uses binary search; preview and export share this same evaluator.
@@ -65,7 +67,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 526 regression/differential tests, 3 kernel tests on each of
+Locally verified: 529 regression/differential tests, 3 kernel tests on each of
 JS and WASM, typechecking and the production build. A 39-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
