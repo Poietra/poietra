@@ -39,7 +39,26 @@ fn h(
   props : Map[String, @core.Any],
   nodes : Array[&@react.ReactNode],
 ) -> @react.Element {
-  @react.h(tag, nodes, props~)
+  keyed_element(@core.any(tag), props, nodes)
+}
+
+///|
+fn keyed_element(
+  tag : @core.Any,
+  props : Map[String, @core.Any],
+  nodes : Array[&@react.ReactNode],
+) -> @react.Element {
+  // React's JSX runtime receives keys separately from the component's props.
+  // Copy only keyed records; callers can safely reuse their original props.
+  match props.get("key") {
+    Some(value) => {
+      let key : String = @core.global_this()._call("String", [value]).cast()
+      let props = props.copy()
+      props.remove("key")
+      @react.jsx(tag, nodes, props~, key~)
+    }
+    None => @react.jsx(tag, nodes, props~)
+  }
 }
 
 ///|
@@ -49,7 +68,7 @@ fn ui(
   props : Map[String, @core.Any],
   nodes : Array[&@react.ReactNode],
 ) -> @react.Element {
-  @react.jsx(ui_component(library, name), nodes, props~)
+  keyed_element(ui_component(library, name), props, nodes)
 }
 
 ///|
@@ -59,7 +78,7 @@ fn icon(
   props? : Map[String, @core.Any] = Map([]),
 ) -> @react.Element {
   props["size"] = @core.any(size)
-  @react.jsx(icon_component(name), [], props~)
+  keyed_element(icon_component(name), props, [])
 }
 
 ///|
@@ -136,7 +155,7 @@ fn component(
   props : Map[String, @core.Any],
   nodes : Array[&@react.ReactNode],
 ) -> @react.Element {
-  @react.jsx(@core.any(render), nodes, props~)
+  keyed_element(@core.any(render), props, nodes)
 }
 
 ///|

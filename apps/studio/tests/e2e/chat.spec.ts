@@ -8,7 +8,10 @@ const distanceFromBottom = (page: Page) => log(page).evaluate(element => element
 async function open(page: Page, room: string, name: string, ai = true) {
   await page.addInitScript(name => localStorage.setItem('poietra-user-name', name), name);
   await page.route('**/api/health', route => fulfill(route, { ok: true, ai }));
-  await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.goto(`/?room=${room}`);
+  // Two independent contexts per test also load the development module graph.
+  // Keep this startup budget separate from the 5 s chat interaction assertions.
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
 }
 async function send(page: Page, text: string) {

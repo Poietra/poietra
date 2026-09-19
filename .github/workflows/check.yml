@@ -51,3 +51,14 @@ jobs:
         run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/connection.spec.ts tests/e2e/painter-preview.spec.ts tests/e2e/export-dialog.spec.ts tests/e2e/text-editing.spec.ts tests/e2e/ime.spec.ts tests/e2e/layers.spec.ts tests/e2e/dogfood-property-timing.spec.ts tests/e2e/dogfood-media.spec.ts tests/e2e/dogfood-feedback.spec.ts tests/e2e/timeline.spec.ts tests/e2e/playback.spec.ts tests/e2e/chat.spec.ts tests/e2e/ai.spec.ts tests/e2e/ai-create.spec.ts tests/e2e/ai-compositions.spec.ts tests/e2e/ai-paths.spec.ts tests/e2e/ai-dogfood.spec.ts tests/e2e/dogfood-accounts.spec.ts tests/e2e/projects.spec.ts
       - name: Check media decoding, stereo mixing and actual browser audio playback
         run: pnpm --dir apps/studio exec playwright test --config tests/e2e/media-export.config.ts
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-failure-evidence
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/studio/test-results/**/error-context.md
+            apps/studio/test-results/**/trace.zip
+            apps/studio/test-results/**/test-failed-*.png

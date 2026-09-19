@@ -15,8 +15,12 @@ if (root) {
 async function openPage() {
   // Keep the imports in separate awaited branches so each entry retains its own CSS preload dependencies.
   if (editor) {
-    const module = await import('./editor/bootstrap');
-    await module.openEditor(root!);
+    // Start the small WASM request before the full editor dependency graph loads.
+    const [module, kernel] = await Promise.all([
+      import('./editor/bootstrap'),
+      import('./engine/kernel').then(module => module.loadKernel()),
+    ]);
+    await module.openEditor(root!, kernel);
   } else {
     const module = await import('./home');
     module.openHome(container);
