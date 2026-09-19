@@ -25,6 +25,7 @@ options(
         "sidebar:Sidebar",
         "inspector:Inspector",
         "media_timeline:MediaTimeline",
+        "timeline:Timeline",
         "object_icon:ObjectIcon",
         "use_editor:useEditor",
         "project_preview:ProjectPreview",

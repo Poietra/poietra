@@ -7,7 +7,7 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
-audio/video track editing,
+audio/video track editing and the animation timeline,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared AI waiting indicators and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. Most editor screens,
 higher-level editor/Undo commands, AI and services still contain

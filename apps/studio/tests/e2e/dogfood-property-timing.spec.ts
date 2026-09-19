@@ -50,6 +50,23 @@ async function drag(page: Page, row: Locator, delta: number, edge?: 'start' | 'e
 
 const undo = (page: Page) => page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
 
+test('cancelling a timing drag consumed by a peer preserves the earlier easing action', async ({ page }) => {
+  const room = await setup(page);
+  try {
+    await property(page, 'opacity', 'Opacity', 300);
+    const row = page.locator(`[data-property-object-id="${room.objectId}"][data-property-channel="opacity"]`);
+    await drag(page, row, 200);
+    await expect.poll(() => room.track().opacityTiming?.start).toBe(200);
+    applyChanges(room.doc, [{ path: ['scenes', room.sceneId, 'transitions', room.transitionId, 'tracks', room.objectId, 'opacityTiming', 'start'], value: 650 }], 'peer');
+    await expect(row.locator('.animation-bar')).toHaveAttribute('aria-label', 'Circle 1 Opacity: 650–950 ms');
+    await page.keyboard.press('Escape'); await page.mouse.up();
+    expect(room.track().opacityTiming).toEqual({ start: 650, duration: 300, easing: 'linear' });
+    await undo(page);
+    await expect.poll(() => room.track().opacityTiming?.easing).toBe('easeInOut');
+    expect(room.track().opacityTiming?.start).toBe(650);
+  } finally { room.close(); }
+});
+
 test('a custom object moves over two seconds while opacity finishes in 300 ms; reset and undo restore inherited timing', async ({ page }, info) => {
   const room = await setup(page);
   try {
