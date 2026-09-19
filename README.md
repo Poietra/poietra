@@ -117,6 +117,9 @@ The rewrite changes the data flow as well as the language:
   PNG/SVG conversion; shared-source objects retain independent owned frames.
   Seeking resets the cursor and GPU failure retains the portable SVG path.
   Media parsers/codecs load on demand, outside the editor's static entry graph.
+  This uses Mediabunny 1.56.2's
+  [sequential canvas iterator](https://mediabunny.dev/guide/reading-media-files),
+  with explicit ownership and cancellation around the host binding.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -160,137 +163,161 @@ API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
 
-Remeasured **2026-09-19**, application revision
-[`0602d6b`](https://github.com/Poietra/poietra/commit/0602d6bebc26c96bcbdaf88fb40f2c6050036948).
-[Raw results](benchmarks/2026-09-19/) include samples, versions, machine metadata
-and WASM hashes. Measurements ran sequentially, without this project's tests or
-builds running alongside them. The machine was an Intel Core Ultra 7 255H, 16
-logical CPUs, 31.1 GiB RAM, Linux x64 under WSL2. Benchmark processes were limited
-to CPUs `0-3`; local servers used `4-5`. Other host activity was not isolated.
-Node was 24.13.0; browser measurements used headless Chromium 153.0.8010.12.
+Remeasured **2026-09-19**. The new video pipeline reduced the median 720p/30 Hz
+painting time from **53.0 to 12.8 ms (4.1×)** in the software-GPU workload below.
+Deferring media libraries reduced the editor's static JavaScript by **19.7% raw**
+and **18.2% gzip**. Shape-only editing did not show an improvement in this run.
+
+Application changes are at
+[`b29ee2a`](https://github.com/Poietra/poietra/commit/b29ee2a21caa399b3f2b7fd8bf85c27f32d9b4af).
+[All new results](benchmarks/2026-09-19-optimized/) record the exact checkout,
+samples, toolchain, machine and WASM hashes. The renderer uses the sample-capture
+fix at [`2c71303`](https://github.com/Poietra/poietra/commit/2c7130310336ce08f3f0d45cc8ef1e9170f73fd3);
+the application artifacts are unchanged. [Previous results](benchmarks/2026-09-19/)
+from `0602d6b` are retained for the video/payload comparison.
+
+Measurements ran sequentially with frozen sources and artifacts, without local
+builds, tests or other encoders. Hardware: Intel Core Ultra 7 255H, 16 logical
+CPUs, 31.1 GiB RAM, Linux x64 under WSL2. Benchmark processes used CPUs `0-3`;
+servers used `4-5`. Other host activity was not isolated. Node was 24.13.0;
+headless Chromium was 153.0.8010.12.
 
 ### CPU comparisons
 
-Each benchmark ran in **three fresh Node processes**. Each process warmed up,
-then alternated old/new implementations for seven batches. Tables use the median
-of the three process medians; speedup is the ratio of those medians. All units are
-milliseconds. These compare implementation strategies as well as languages.
+These compare the original TypeScript/Rust algorithms against prepared MoonBit
+implementations, including architectural changes. Each suite ran in **three fresh
+Node processes**, each warming up and alternating old/new for seven batches.
+Tables use the median of process medians; speedup is their ratio. Units are ms.
 
-**Scene evaluation** — 240 frames per batch, two Compositions and a Transition.
-The baseline uses the pinned TypeScript evaluator and Rust WASM; the rewrite uses
-prepared MoonBit playback and MoonBit WASM. Preparation is measured separately.
-Its value is the median of seven compile calls per process, not first-use browser
-startup latency.
+**Scene evaluation** — 240 frames/batch, two Compositions and a Transition.
+Baseline: pinned TypeScript evaluator and Rust WASM. Rewrite: prepared MoonBit
+playback and MoonBit WASM. Preparation is measured separately with seven compile
+calls/process; it is not first-use browser startup latency.
 
 | Objects | Easing | Baseline / frame | MoonBit / frame | Speedup | Preparation |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 10 | Preset | 0.02659 | 0.00406 | 6.5× | 0.202 |
-| 100 | Preset | 0.19980 | 0.02058 | 9.7× | 0.799 |
-| 500 | Preset | 1.00074 | 0.11571 | 8.6× | 2.475 |
-| 10 | Custom Bézier | 0.02036 | 0.00382 | 5.3× | 0.080 |
-| 100 | Custom Bézier | 0.20380 | 0.03344 | 6.1× | 0.572 |
-| 500 | Custom Bézier | 1.03174 | 0.18261 | 5.6× | 2.298 |
+| 10 | Preset | 0.02753 | 0.00471 | 5.8× | 0.229 |
+| 100 | Preset | 0.20739 | 0.02242 | 9.2× | 0.986 |
+| 500 | Preset | 1.11129 | 0.13249 | 8.4× | 2.429 |
+| 10 | Custom Bézier | 0.02391 | 0.00404 | 5.9× | 0.066 |
+| 100 | Custom Bézier | 0.23300 | 0.03830 | 6.1× | 0.506 |
+| 500 | Custom Bézier | 1.18585 | 0.20165 | 5.9× | 2.512 |
 
-At 500 objects/preset easing, the three MoonBit process medians ranged from
-**0.11391–0.11588 ms/frame**. These timings exclude drawing, decoding, encoding,
-UI and networking; they are not browser FPS.
+At 500 objects/preset easing, MoonBit process medians ranged from
+**0.13101–0.14502 ms/frame**. This excludes drawing,
+decoding, encoding, UI and networking; these are not browser FPS.
 
 **Snapshots** — one Yjs leaf edit plus a complete project read; three Scenes,
-five Compositions per Scene, 50 edits per batch. Baseline: `toJSON()` and the
-pinned structural projection. MoonBit: immutable snapshots with branch reuse.
+five Compositions/Scene, 50 edits/batch. Baseline: `toJSON()` and the pinned
+structural projection. MoonBit: immutable snapshots with branch reuse.
 
 | Objects / Scene | Baseline / edit + read | MoonBit / edit + read | Speedup |
 | ---: | ---: | ---: | ---: |
-| 100 | 1.1970 | 0.05866 | 20.4× |
-| 500 | 7.7229 | 0.18806 | 41.1× |
+| 100 | 1.6438 | 0.06565 | 25.0× |
+| 500 | 9.8254 | 0.21039 | 46.7× |
 
 **AI proposal compilation** — one existing object's `x` edit, including guards
-and preflight, from an already-read snapshot; 10 compilations per batch. The
-baseline is the retained TypeScript compiler from `afbd6b3`, using current shared
-bindings. This excludes model calls, image generation, network and applying edits.
+and preflight, from an already-read snapshot; ten compilations/batch. Baseline:
+retained TypeScript compiler from `afbd6b3`, using current shared bindings. This
+excludes model calls, image generation, networking and applying edits.
 
 | Objects | Compositions | Baseline / proposal | MoonBit / proposal | Speedup |
 | ---: | ---: | ---: | ---: | ---: |
-| 100 | 10 | 1.6121 | 0.23705 | 6.8× |
-| 500 | 10 | 7.7065 | 0.24599 | 31.3× |
-| 500 | 40 | 32.7689 | 0.52098 | 62.9× |
+| 100 | 10 | 1.9389 | 0.24037 | 8.1× |
+| 500 | 10 | 8.3654 | 0.27324 | 30.6× |
+| 500 | 40 | 37.0487 | 0.60375 | 61.4× |
 
 ### Browser editing and loading
 
-The **production UI** was measured with 2/4 isolated browser contexts sharing
-one local Node room. Each scene had one Composition and 100/500 circles. After
-three warmup nudges, 30 trusted ArrowRight inputs were measured from `keydown`
-to the matching stage transform plus two animation-frame callbacks. Peers use
-the same timestamp origin convention; the peer column reports the slowest peer
-for each input. [Raw editor results](benchmarks/2026-09-19/editor.json).
+The **production UI** used 2/4 isolated contexts sharing one local Node room,
+with one Composition and 100/500 circles. After three warmup nudges, 30 trusted
+ArrowRight inputs were timed from `keydown` to the matching stage transform plus
+two animation-frame callbacks. The peer column selects the slowest peer per input.
+[Raw editor results](benchmarks/2026-09-19-optimized/editor.json).
 
 | Objects | Participants | Local p50 / p95 | Slowest peer p50 / p95 |
 | ---: | ---: | ---: | ---: |
-| 100 | 2 | 28.4 / 31.6 ms | 29.1 / 32.9 ms |
-| 100 | 4 | 35.0 / 43.3 ms | 40.1 / 50.9 ms |
-| 500 | 2 | 59.6 / 71.6 ms | 60.2 / 75.9 ms |
-| 500 | 4 | 75.3 / 95.2 ms | 79.9 / 102.4 ms |
+| 100 | 2 | 27.9 / 39.4 ms | 29.5 / 45.6 ms |
+| 100 | 4 | 38.2 / 45.1 ms | 42.7 / 57.3 ms |
+| 500 | 2 | 70.9 / 98.9 ms | 71.2 / 92.5 ms |
+| 500 | 4 | 87.0 / 149.1 ms | 91.6 / 130.3 ms |
 
-This measures a **presentation opportunity**, not physical display latency or
-field INP. All participants share one machine/browser process, with no artificial
-network or CPU slowdown. It does not measure WAN latency, workerd performance,
-video-heavy projects or long-session memory growth.
+This is a **presentation opportunity**, not physical display latency or field INP.
+All participants share one machine/browser process, without artificial network
+or CPU slowdown. The 500-object/four-participant local p95 rose from **95.2 to
+149.1 ms** compared with the previous run. Shape-only drawing was also slower
+in the table below. These measurements do not establish the cause; this update
+has not demonstrated faster editing of large shape-only scenes. WAN latency,
+workerd performance and long-session memory growth remain unmeasured.
 
-The **production homepage** was loaded five times per locale in new contexts,
-with cache disabled, a 390×844 viewport, CDP CPU slowdown ×4, configured latency
+The **production homepage** was loaded five times/locale in new contexts with
+cache disabled, a 390×844 viewport, CDP CPU slowdown ×4, configured latency
 150 ms and download throughput 200,000 bytes/s. Medians, with LCP min–max in
-parentheses; [raw page results](benchmarks/2026-09-19/home.json).
+parentheses; [raw page results](benchmarks/2026-09-19-optimized/home.json).
 
 | Locale | FCP | LCP | CLS | Observed long-task blocking |
 | --- | ---: | ---: | ---: | ---: |
-| English | 780 ms | 1,724 ms (1,716–1,760) | 0.00019 | 21 ms |
-| Japanese | 820 ms | 1,784 ms (1,776–1,784) | 0.00097 | 74 ms |
+| English | 788 ms | 1,724 ms (1,724–1,724) | 0.00019 | 39 ms |
+| Japanese | 884 ms | 1,792 ms (1,784–1,800) | 0.00097 | 135 ms |
 
 Observation ends after network idle, font readiness and two animation frames.
-Long-task blocking sums `max(0, duration − 50 ms)` over that window; it is **not
-Lighthouse TBT**. The local Node server served uncompressed assets. Homepage
-visits loaded no editor/WASM and opened no collaboration socket. These are local
-lab measurements, not production field data or an old/new homepage comparison.
+Blocking sums `max(0, duration − 50 ms)` across observed long tasks; it is **not
+Lighthouse TBT**. The local server served uncompressed assets. Homepage visits
+loaded no editor/WASM and opened no collaboration socket. These are local lab
+measurements, not production field data or evidence of a homepage speedup.
 
 ### Rendering and payload
 
-The renderer was measured in three fresh Chromium runs with **SwiftShader**
-(software GPU), release MoonBit modules served by Vite, and a 1280×720 canvas.
-Shape scenarios move one object and include cloning plus `painter.render` (30
-samples/run). Video scenarios call the real painter, including its owned media
-preparation, for 60 timestamps/run after warmup. They are **unpaced component
-measurements**, with no GPU completion fence or physical-display measurement.
+Three fresh Chromium runs used **SwiftShader** (software GPU), release MoonBit
+modules served by Vite, and a 1280×720 canvas. Shape workloads move one object
+and include cloning plus `painter.render` (30 samples/run). Video workloads call
+the real painter, including its owned media preparation, for 60 timestamps/run
+after warmup. These are **unpaced component measurements**, without a GPU
+completion fence or physical-display measurement. Previous/current p50 columns
+are the medians of the three run p50s.
 
-| Scenario | Median of run p50s | Range of run p50s | Range of run p95s |
-| --- | ---: | ---: | ---: |
-| Move/paint, 100 circles | 3.1 ms | 3.0–3.1 ms | 10.5–10.8 ms |
-| Move/paint, 500 circles | 7.0 ms | 6.8–7.3 ms | 14.4–16.2 ms |
-| 720p video, timestamps at 30 Hz | 53.0 ms | 52.7–54.1 ms | 66.4–68.2 ms |
-| Same 30 fps source, timestamps at 60 Hz | 48.1 ms | 47.5–82.1 ms | 60.8–156.3 ms |
-| Video, alternating two still timestamps | 47.5 ms | 46.5–48.6 ms | 53.5–94.4 ms |
+| Scenario | Previous p50 | Current p50 | Current run p50 range | Current run p95 range |
+| --- | ---: | ---: | ---: | ---: |
+| Move/paint, 100 circles | 3.1 ms | 3.7 ms | 3.6–4.2 ms | 11.2–13.3 ms |
+| Move/paint, 500 circles | 7.0 ms | 8.1 ms | 7.9–8.6 ms | 17.3–19.4 ms |
+| 720p video, timestamps at 30 Hz | 53.0 ms | 12.8 ms | 12.7–13.7 ms | 18.1–22.3 ms |
+| Same 30 fps source, timestamps at 60 Hz | 48.1 ms | 9.1 ms | 5.8–10.6 ms | 15.2–18.2 ms |
+| Video, alternating two still timestamps | 47.5 ms | 43.6 ms | 41.8–44.2 ms | 56.0–63.9 ms |
 
-All runs are retained: [run 1](benchmarks/2026-09-19/rendering-1.json),
-[run 2](benchmarks/2026-09-19/rendering-2.json),
-[run 3](benchmarks/2026-09-19/rendering-3.json). Run 2 was much slower in the 60 Hz
-scenario; three runs on a shared WSL host do not establish its cause or a stable
-device-wide percentile. The video path still made 60 `CanvasSink.getCanvas`
-requests and 60 PNG conversions for 60 timestamps in both sequential scenarios.
-The raw `marks.decode` field times the whole `getCanvas` call, not isolated codec
-execution. These findings identify remaining work; they do not predict hardware
-GPU playback FPS or prove a video speedup over the old application.
+All final runs are retained: [run 1](benchmarks/2026-09-19-optimized/rendering-1.json),
+[run 2](benchmarks/2026-09-19-optimized/rendering-2.json),
+[run 3](benchmarks/2026-09-19-optimized/rendering-3.json). The 60 Hz scenario mixes
+reused source frames with newly decoded frames, so its p50 varies across that
+boundary. These results do not predict playback FPS on a hardware GPU.
+
+The previous sequential scenarios made 60 `CanvasSink.getCanvas` calls and
+60 PNG conversions per 60 timestamps. The new WebGL2 painting path made **zero**
+random-frame requests and **zero PNG conversions**; it used 59 iterator reads at
+30 Hz and 29 at 60 Hz after warmup. Iterator reads include lookahead/EOF, not just
+new pictures. `marks.decode` times complete `getCanvas` calls and
+`marks.sequentialDecode` times complete iterator `next()` calls; neither isolates
+the codec. Seeking still resets the cursor, explaining the smaller gain for
+alternating still frames. Canvas pixels are copied into owned surfaces before a
+shared source advances, and the portable SVG fallback remains available.
+
+The old recorder retained references to mutable decoder-mark sample arrays;
+some old arrays include later work after the first `n` samples. Its captured
+counts/summaries and painter samples were unaffected. The new recorder snapshots
+arrays before proceeding, and retained sample counts/sums have been checked.
 
 Production JavaScript sizes, including static imports:
 
 | Entry | Raw | gzip level 9 | Brotli |
 | --- | ---: | ---: | ---: |
-| Homepage, including its selected entry | 290,273 B | 91,031 B | 78,360 B |
-| Editor bootstrap | 2,524,629 B | 685,047 B | 526,080 B |
+| Homepage, including its selected entry | 290,332 B | 91,053 B | 78,434 B |
+| Editor bootstrap | 2,027,223 B | 560,586 B | 424,495 B |
 
-The editor group excludes dynamically loaded MathJax/font modules, CSS, fonts and
-media. Compression is computed per file, not measured network transfer.
-[Bundle inventory](benchmarks/2026-09-19/bundle.json) records all emitted JS and
-the motion WASM. The large editor payload and video conversion path remain
-concrete targets for further work; faster evaluation alone does not remove them.
+Editor static JS fell from **2,524,629 to 2,027,223 B**; gzip fell from **685,047
+to 560,586 B**. Mediabunny loads when media/export needs it and remains part of the
+full application. The static group excludes dynamic media/MathJax/font modules,
+CSS, fonts and user media. Compression is calculated per file, not measured
+network transfer. [Bundle inventory](benchmarks/2026-09-19-optimized/bundle.json)
+records every emitted JS file and the motion WASM.
 
 ### Reproduce the measurements
 
@@ -337,10 +364,11 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 
 ## Checks
 
-The [completed implementation CI run](https://github.com/Poietra/poietra/actions/runs/35410225885)
-passed 640 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
+The [completed implementation CI run](https://github.com/Poietra/poietra/actions/runs/35416192419)
+passed 642 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
-checks. It also ran actual Node/workerd persistence, hibernation, restart, R2
+checks. It also verified a newly generated feature/API, 108 captured public API
+contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The
 [workflow](.github/workflows/check.yml) is the authoritative command selection.
 

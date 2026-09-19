@@ -1,0 +1,1654 @@
+{
+  "url": "http://127.0.0.1:5231",
+  "measuredAt": "2026-09-19T02:35:39.042Z",
+  "environment": {
+    "applicationRevision": "b29ee2a21caa399b3f2b7fd8bf85c27f32d9b4af",
+    "trackedModifications": [],
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-3",
+    "memoryBytes": 33384747008,
+    "loadAverage": [
+      1.29,
+      1.03,
+      1.41
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "rustOracleSha256": "5ee3fd8d5d44786a7fd34448cf58475aec3029672907a7bb94afc1fd9277f54c"
+  },
+  "browser": "153.0.8010.12",
+  "conditions": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "deviceScaleFactor": 1,
+    "isMobile": true,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "uploadBytesPerSecond": 93750,
+    "cpuSlowdown": 4,
+    "cache": "New browser context per navigation; HTTP cache disabled",
+    "observation": "Until network idle, fonts ready and two animation frames; no input or scrolling",
+    "longTasks": "Sum of max(0, duration-50ms) across observed long tasks; not Lighthouse TBT",
+    "cls": "Maximum session window: <1s between shifts, <5s total; recent-input shifts excluded"
+  },
+  "summary": [
+    {
+      "locale": "en-US",
+      "lcpMs": {
+        "n": 5,
+        "median": 1724,
+        "min": 1724,
+        "max": 1724
+      },
+      "fcpMs": {
+        "n": 5,
+        "median": 788,
+        "min": 776,
+        "max": 792
+      },
+      "cls": {
+        "n": 5,
+        "median": 0.00018945566382099142,
+        "min": 0.00018945566382099142,
+        "max": 0.00018945566382099142
+      },
+      "ttfbMs": {
+        "n": 5,
+        "median": 3.5999999940395355,
+        "min": 3.0999999940395355,
+        "max": 5.0999999940395355
+      },
+      "longTaskBlockingMs": {
+        "n": 5,
+        "median": 39,
+        "min": 29,
+        "max": 50
+      },
+      "resourceTransferBytes": {
+        "n": 5,
+        "median": 437587,
+        "min": 437587,
+        "max": 437587
+      },
+      "javascriptDecodedBytes": {
+        "n": 5,
+        "median": 290332,
+        "min": 290332,
+        "max": 290332
+      }
+    },
+    {
+      "locale": "ja-JP",
+      "lcpMs": {
+        "n": 5,
+        "median": 1792,
+        "min": 1784,
+        "max": 1800
+      },
+      "fcpMs": {
+        "n": 5,
+        "median": 884,
+        "min": 856,
+        "max": 912
+      },
+      "cls": {
+        "n": 5,
+        "median": 0.0009728915020799749,
+        "min": 0.0009728915020799749,
+        "max": 0.0009728915020799749
+      },
+      "ttfbMs": {
+        "n": 5,
+        "median": 3.800000011920929,
+        "min": 3.600000023841858,
+        "max": 5.100000023841858
+      },
+      "longTaskBlockingMs": {
+        "n": 5,
+        "median": 135,
+        "min": 110,
+        "max": 159
+      },
+      "resourceTransferBytes": {
+        "n": 5,
+        "median": 481019,
+        "min": 481019,
+        "max": 481019
+      },
+      "javascriptDecodedBytes": {
+        "n": 5,
+        "median": 290332,
+        "min": 290332,
+        "max": 290332
+      }
+    }
+  ],
+  "samples": [
+    {
+      "run": 1,
+      "locale": "en-US",
+      "lcpMs": 1724,
+      "lcpElement": "IMG",
+      "cls": 0.00018945566382099142,
+      "longTaskBlockingMs": 39,
+      "observedUntilMs": 3293.0999999940395,
+      "language": "en",
+      "fcpMs": 776,
+      "ttfbMs": 5.0999999940395355,
+      "documentTransferBytes": 15733,
+      "documentDecodedBytes": 15433,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 175.7999999821186,
+          "durationMs": 2338.800000011921
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 176.40000000596046,
+          "durationMs": 156.59999999403954
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 176.40000000596046,
+          "durationMs": 178.5
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 177.19999998807907,
+          "durationMs": 506.90000000596046
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 177.2999999821186,
+          "durationMs": 417.40000000596046
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 177.2999999821186,
+          "durationMs": 1129.9000000059605
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 195,
+          "durationMs": 1517
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 695.9000000059605,
+          "durationMs": 716.5
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 697.2999999821186,
+          "durationMs": 744.6000000238419
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2589.9000000059605,
+          "durationMs": 179.69999998807907
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 437587,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 1,
+      "locale": "ja-JP",
+      "lcpMs": 1792,
+      "lcpElement": "IMG",
+      "cls": 0.0009728915020799749,
+      "longTaskBlockingMs": 127,
+      "observedUntilMs": 3520.5999999940395,
+      "language": "ja",
+      "fcpMs": 884,
+      "ttfbMs": 3.800000011920929,
+      "documentTransferBytes": 16322,
+      "documentDecodedBytes": 16022,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 181.69999998807907,
+          "durationMs": 2557.100000023842
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 181.90000000596046,
+          "durationMs": 165.59999999403954
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 182,
+          "durationMs": 157.30000001192093
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 183.19999998807907,
+          "durationMs": 515.4000000059605
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 183.30000001192093,
+          "durationMs": 417.69999998807907
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 183.30000001192093,
+          "durationMs": 1138
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 204.40000000596046,
+          "durationMs": 1574.699999988079
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 711.3000000119209,
+          "durationMs": 722.5
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 711.5999999940395,
+          "durationMs": 744.4000000059605
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "transferBytes": 43432,
+          "decodedBytes": 43132,
+          "startMs": 1441,
+          "durationMs": 653.0999999940395
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2812.5999999940395,
+          "durationMs": 181.09999999403954
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 481019,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 2,
+      "locale": "ja-JP",
+      "lcpMs": 1788,
+      "lcpElement": "IMG",
+      "cls": 0.0009728915020799749,
+      "longTaskBlockingMs": 141,
+      "observedUntilMs": 3502.9000000059605,
+      "language": "ja",
+      "fcpMs": 900,
+      "ttfbMs": 3.600000023841858,
+      "documentTransferBytes": 16322,
+      "documentDecodedBytes": 16022,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 177.60000002384186,
+          "durationMs": 2555.0999999940395
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 177.7000000178814,
+          "durationMs": 162.69999998807907
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 177.80000001192093,
+          "durationMs": 185.5
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 178.2000000178814,
+          "durationMs": 423.5
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 178.2000000178814,
+          "durationMs": 522
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 178.2000000178814,
+          "durationMs": 1114.5999999940395
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 197.2000000178814,
+          "durationMs": 1574.7999999821186
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 714.7000000178814,
+          "durationMs": 712.5
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 715.7000000178814,
+          "durationMs": 741.5
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "transferBytes": 43432,
+          "decodedBytes": 43132,
+          "startMs": 1434.1000000238419,
+          "durationMs": 652.5999999940395
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2799.800000011921,
+          "durationMs": 179.90000000596046
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 481019,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 2,
+      "locale": "en-US",
+      "lcpMs": 1724,
+      "lcpElement": "IMG",
+      "cls": 0.00018945566382099142,
+      "longTaskBlockingMs": 41,
+      "observedUntilMs": 3286.800000011921,
+      "language": "en",
+      "fcpMs": 788,
+      "ttfbMs": 3.5999999940395355,
+      "documentTransferBytes": 15733,
+      "documentDecodedBytes": 15433,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 178.80000001192093,
+          "durationMs": 2336.5999999940395
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.80000001192093,
+          "durationMs": 153.40000000596046
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 179.80000001192093,
+          "durationMs": 176.69999998807907
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 179.80000001192093,
+          "durationMs": 505.40000000596046
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 180.30000001192093,
+          "durationMs": 1127.699999988079
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 196,
+          "durationMs": 399.40000000596046
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 199.2000000178814,
+          "durationMs": 1513.5999999940395
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 698.4000000059605,
+          "durationMs": 722
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 699.0999999940395,
+          "durationMs": 744
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2582.5,
+          "durationMs": 180.80000001192093
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 437587,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 3,
+      "locale": "en-US",
+      "lcpMs": 1724,
+      "lcpElement": "IMG",
+      "cls": 0.00018945566382099142,
+      "longTaskBlockingMs": 37,
+      "observedUntilMs": 3290.5999999940395,
+      "language": "en",
+      "fcpMs": 780,
+      "ttfbMs": 3.0999999940395355,
+      "documentTransferBytes": 15733,
+      "documentDecodedBytes": 15433,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 176.59999999403954,
+          "durationMs": 2338.199999988079
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 177.89999997615814,
+          "durationMs": 177.80000001192093
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 178,
+          "durationMs": 155.5
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 178.5,
+          "durationMs": 506.09999999403954
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 178.5,
+          "durationMs": 1136.699999988079
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 178.59999999403954,
+          "durationMs": 416.09999999403954
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 197.09999999403954,
+          "durationMs": 1515.0999999940395
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 701.3999999761581,
+          "durationMs": 718.6000000238419
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 702.0999999940395,
+          "durationMs": 748.1999999880791
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2582.399999976158,
+          "durationMs": 179.7000000178814
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 437587,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 3,
+      "locale": "ja-JP",
+      "lcpMs": 1784,
+      "lcpElement": "IMG",
+      "cls": 0.0009728915020799749,
+      "longTaskBlockingMs": 110,
+      "observedUntilMs": 3506.9000000059605,
+      "language": "ja",
+      "fcpMs": 856,
+      "ttfbMs": 5.100000023841858,
+      "documentTransferBytes": 16322,
+      "documentDecodedBytes": 16022,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 178.80000001192093,
+          "durationMs": 2554.0999999940395
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 179,
+          "durationMs": 176.7000000178814
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.80000001192093,
+          "durationMs": 153.5
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 180,
+          "durationMs": 513
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 180,
+          "durationMs": 1128.2000000178814
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 180.10000002384186,
+          "durationMs": 414.89999997615814
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 201.30000001192093,
+          "durationMs": 1571.199999988079
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 705.2000000178814,
+          "durationMs": 722.7999999821186
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 705.3000000119209,
+          "durationMs": 745.3000000119209
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "transferBytes": 43432,
+          "decodedBytes": 43132,
+          "startMs": 1434.300000011921,
+          "durationMs": 646.0999999940395
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2807.100000023842,
+          "durationMs": 180.5
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 481019,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 4,
+      "locale": "ja-JP",
+      "lcpMs": 1792,
+      "lcpElement": "IMG",
+      "cls": 0.0009728915020799749,
+      "longTaskBlockingMs": 135,
+      "observedUntilMs": 3509.5999999940395,
+      "language": "ja",
+      "fcpMs": 872,
+      "ttfbMs": 3.7999999821186066,
+      "documentTransferBytes": 16322,
+      "documentDecodedBytes": 16022,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 177.7999999821186,
+          "durationMs": 2554.800000011921
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 179.19999998807907,
+          "durationMs": 184.2000000178814
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.2999999821186,
+          "durationMs": 154.10000002384186
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 179.2999999821186,
+          "durationMs": 505.90000000596046
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 180.09999999403954,
+          "durationMs": 1127.300000011921
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 180.19999998807907,
+          "durationMs": 415.2000000178814
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 198.5,
+          "durationMs": 1581.699999988079
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 699.5,
+          "durationMs": 721.1999999880791
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 699.5999999940395,
+          "durationMs": 750.0999999940395
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "transferBytes": 43432,
+          "decodedBytes": 43132,
+          "startMs": 1426,
+          "durationMs": 654.4000000059605
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2803.2999999821186,
+          "durationMs": 177.2000000178814
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 481019,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 4,
+      "locale": "en-US",
+      "lcpMs": 1724,
+      "lcpElement": "IMG",
+      "cls": 0.00018945566382099142,
+      "longTaskBlockingMs": 29,
+      "observedUntilMs": 3291.5999999940395,
+      "language": "en",
+      "fcpMs": 792,
+      "ttfbMs": 4.4000000059604645,
+      "documentTransferBytes": 15733,
+      "documentDecodedBytes": 15433,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 178.40000000596046,
+          "durationMs": 2336.699999988079
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 179.40000000596046,
+          "durationMs": 168.5
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.5,
+          "durationMs": 154.30000001192093
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 179.5,
+          "durationMs": 513
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 179.59999999403954,
+          "durationMs": 1128
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 180.30000001192093,
+          "durationMs": 414.69999998807907
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 198.5,
+          "durationMs": 1513.9000000059605
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 706.0999999940395,
+          "durationMs": 714.5
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 707.0999999940395,
+          "durationMs": 743.0999999940395
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2574.300000011921,
+          "durationMs": 195.89999997615814
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 437587,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 5,
+      "locale": "en-US",
+      "lcpMs": 1724,
+      "lcpElement": "IMG",
+      "cls": 0.00018945566382099142,
+      "longTaskBlockingMs": 50,
+      "observedUntilMs": 3302.399999976158,
+      "language": "en",
+      "fcpMs": 792,
+      "ttfbMs": 3.399999976158142,
+      "documentTransferBytes": 15733,
+      "documentDecodedBytes": 15433,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 178.59999999403954,
+          "durationMs": 2337.0999999940395
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.09999999403954,
+          "durationMs": 155.09999999403954
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 179.09999999403954,
+          "durationMs": 184.09999999403954
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 179.19999998807907,
+          "durationMs": 513.8000000119209
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 180.19999998807907,
+          "durationMs": 415.69999998807907
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 180.19999998807907,
+          "durationMs": 1127.800000011921
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 198.19999998807907,
+          "durationMs": 1514.800000011921
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 705.5999999940395,
+          "durationMs": 714.5999999940395
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 705.7999999821186,
+          "durationMs": 744.9000000059605
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2588.399999976158,
+          "durationMs": 182.10000002384186
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 437587,
+      "javascriptDecodedBytes": 290332
+    },
+    {
+      "run": 5,
+      "locale": "ja-JP",
+      "lcpMs": 1800,
+      "lcpElement": "IMG",
+      "cls": 0.0009728915020799749,
+      "longTaskBlockingMs": 159,
+      "observedUntilMs": 3524.100000023842,
+      "language": "ja",
+      "fcpMs": 912,
+      "ttfbMs": 4.4000000059604645,
+      "documentTransferBytes": 16322,
+      "documentDecodedBytes": 16022,
+      "resources": [
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "transferBytes": 239676,
+          "decodedBytes": 239376,
+          "startMs": 178.5,
+          "durationMs": 2560.9000000059605
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 178.7000000178814,
+          "durationMs": 175.90000000596046
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 179.90000000596046,
+          "durationMs": 160.40000000596046
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "transferBytes": 17183,
+          "decodedBytes": 16883,
+          "startMs": 180.60000002384186,
+          "durationMs": 518.5
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "transferBytes": 45857,
+          "decodedBytes": 45557,
+          "startMs": 181.5,
+          "durationMs": 1140.7000000178814
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 181.60000002384186,
+          "durationMs": 420.5
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "transferBytes": 75788,
+          "decodedBytes": 75488,
+          "startMs": 205,
+          "durationMs": 1582.1000000238419
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 712.7000000178814,
+          "durationMs": 714.2999999821186
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 713.6000000238419,
+          "durationMs": 742.8999999761581
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "transferBytes": 43432,
+          "decodedBytes": 43132,
+          "startMs": 1432.800000011921,
+          "durationMs": 653.4000000059605
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 2810.800000011921,
+          "durationMs": 175.30000001192093
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-wQdOPbKK.css",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/studio-preview-720.webp",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-DSxLat-e.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/home-noto-ja-qRnrnWvs.woff2",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-zGof8MNj.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-DZcKkM0z.js",
+          "status": 200,
+          "contentEncoding": "identity"
+        }
+      ],
+      "sockets": [],
+      "resourceTransferBytes": 481019,
+      "javascriptDecodedBytes": 290332
+    }
+  ]
+}

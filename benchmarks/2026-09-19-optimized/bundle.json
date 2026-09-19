@@ -1,0 +1,219 @@
+{
+  "measuredAt": "2026-09-19T02:36:04.571Z",
+  "environment": {
+    "applicationRevision": "b29ee2a21caa399b3f2b7fd8bf85c27f32d9b4af",
+    "trackedModifications": [],
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-3",
+    "memoryBytes": 33384747008,
+    "loadAverage": [
+      1.67,
+      1.18,
+      1.43
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "rustOracleSha256": "5ee3fd8d5d44786a7fd34448cf58475aec3029672907a7bb94afc1fd9277f54c"
+  },
+  "method": "Vite production output. JS groups include static imports, exclude dynamic imports/CSS/fonts/media. Home includes its dynamically selected entry. Compression computed per file: gzip level 9, Brotli Node defaults; server may serve identity.",
+  "groups": {
+    "homeJavascript": {
+      "files": [
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-DZcKkM0z.js",
+        "assets/index-zGof8MNj.js",
+        "assets/home-DSxLat-e.js"
+      ],
+      "rawBytes": 290332,
+      "gzipBytes": 91053,
+      "brotliBytes": 78434
+    },
+    "editorStaticJavascript": {
+      "files": [
+        "assets/boundary-kNQLT9pK.js",
+        "assets/projects-idZZYbX9.js",
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-DZcKkM0z.js",
+        "assets/index-zGof8MNj.js",
+        "assets/bootstrap-LODpcnN8.js"
+      ],
+      "rawBytes": 2027223,
+      "gzipBytes": 560586,
+      "brotliBytes": 424495
+    }
+  },
+  "files": [
+    {
+      "file": "assets/bootstrap-LODpcnN8.js",
+      "rawBytes": 1472057,
+      "gzipBytes": 399295,
+      "brotliBytes": 288212
+    },
+    {
+      "file": "assets/svg-CSxnQDNt.js",
+      "rawBytes": 1261698,
+      "gzipBytes": 481037,
+      "brotliBytes": 363209
+    },
+    {
+      "file": "assets/src-CNFfMlGs.js",
+      "rawBytes": 676937,
+      "gzipBytes": 168671,
+      "brotliBytes": 136247
+    },
+    {
+      "file": "assets/projects-idZZYbX9.js",
+      "rawBytes": 244097,
+      "gzipBytes": 65233,
+      "brotliBytes": 53592
+    },
+    {
+      "file": "assets/index-zGof8MNj.js",
+      "rawBytes": 239376,
+      "gzipBytes": 74165,
+      "brotliBytes": 63813
+    },
+    {
+      "file": "assets/font-assets-BJ7Z_-qR.js",
+      "rawBytes": 127162,
+      "gzipBytes": 34138,
+      "brotliBytes": 20006
+    },
+    {
+      "file": "assets/ParseMethods-D9QpEsAn.js",
+      "rawBytes": 90736,
+      "gzipBytes": 21788,
+      "brotliBytes": 18990
+    },
+    {
+      "file": "assets/boundary-kNQLT9pK.js",
+      "rawBytes": 66294,
+      "gzipBytes": 19294,
+      "brotliBytes": 16552
+    },
+    {
+      "file": "assets/mo-CL9jhJJP.js",
+      "rawBytes": 57859,
+      "gzipBytes": 13244,
+      "brotliBytes": 9924
+    },
+    {
+      "file": "assets/TeXAtom-ChjANZhH.js",
+      "rawBytes": 54382,
+      "gzipBytes": 6637,
+      "brotliBytes": 5719
+    },
+    {
+      "file": "assets/home-DSxLat-e.js",
+      "rawBytes": 45557,
+      "gzipBytes": 14289,
+      "brotliBytes": 12295
+    },
+    {
+      "file": "assets/html-rxswSoWg.js",
+      "rawBytes": 44317,
+      "gzipBytes": 9451,
+      "brotliBytes": 8297
+    },
+    {
+      "file": "assets/tex-DM5UKA0F.js",
+      "rawBytes": 38086,
+      "gzipBytes": 11075,
+      "brotliBytes": 9592
+    },
+    {
+      "file": "assets/AmsConfiguration-B0_lW0fd.js",
+      "rawBytes": 23409,
+      "gzipBytes": 7692,
+      "brotliBytes": 6729
+    },
+    {
+      "file": "assets/liteAdaptor-Czvn_E1C.js",
+      "rawBytes": 22411,
+      "gzipBytes": 6052,
+      "brotliBytes": 5362
+    },
+    {
+      "file": "assets/Styles-PW13H2Ha.js",
+      "rawBytes": 8216,
+      "gzipBytes": 2853,
+      "brotliBytes": 2532
+    },
+    {
+      "file": "assets/Entities-MsPZmrvo.js",
+      "rawBytes": 7277,
+      "gzipBytes": 3406,
+      "brotliBytes": 2843
+    },
+    {
+      "file": "assets/kernel-u8nst82x.js",
+      "rawBytes": 4851,
+      "gzipBytes": 1726,
+      "brotliBytes": 1518
+    },
+    {
+      "file": "assets/sliders-horizontal-DZcKkM0z.js",
+      "rawBytes": 4683,
+      "gzipBytes": 2171,
+      "brotliBytes": 1945
+    },
+    {
+      "file": "assets/Factory-BKN6GMEE.js",
+      "rawBytes": 4287,
+      "gzipBytes": 1641,
+      "brotliBytes": 1464
+    },
+    {
+      "file": "assets/Options-D0viYWpE.js",
+      "rawBytes": 4275,
+      "gzipBytes": 1758,
+      "brotliBytes": 1545
+    },
+    {
+      "file": "wasm/poietra_core.wasm",
+      "rawBytes": 3769,
+      "gzipBytes": 1967,
+      "brotliBytes": 1839
+    },
+    {
+      "file": "assets/mathjax-BLw5IVDd.js",
+      "rawBytes": 2506,
+      "gzipBytes": 1079,
+      "brotliBytes": 951
+    },
+    {
+      "file": "assets/lengths-gKqLRlcS.js",
+      "rawBytes": 1716,
+      "gzipBytes": 825,
+      "brotliBytes": 727
+    },
+    {
+      "file": "assets/InputJax-Br4_JPsm.js",
+      "rawBytes": 1108,
+      "gzipBytes": 534,
+      "brotliBytes": 450
+    },
+    {
+      "file": "assets/rolldown-runtime-hePW80VL.js",
+      "rawBytes": 716,
+      "gzipBytes": 428,
+      "brotliBytes": 381
+    },
+    {
+      "file": "assets/PrioritizedList-CI0xZ2Me.js",
+      "rawBytes": 693,
+      "gzipBytes": 399,
+      "brotliBytes": 347
+    },
+    {
+      "file": "assets/demo-ClQJNV0J.js",
+      "rawBytes": 99,
+      "gzipBytes": 105,
+      "brotliBytes": 86
+    }
+  ]
+}
