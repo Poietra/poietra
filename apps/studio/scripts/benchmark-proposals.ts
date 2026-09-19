@@ -37,7 +37,7 @@ for (const [objects, compositions] of [[100, 10], [500, 10], [500, 40]]) {
     if (batch % 2) { moonbit.push(measure(compileProposal)); previous.push(measure(original)); }
     else { previous.push(measure(original)); moonbit.push(measure(compileProposal)); }
   }
-  results.push({ objects, compositions, originalMs: median(previous), moonbitMs: median(moonbit), speedup: median(previous) / median(moonbit) });
+  results.push({ objects, compositions, originalMs: median(previous), moonbitMs: median(moonbit), speedup: median(previous) / median(moonbit), samples: { originalMs: previous, moonbitMs: moonbit } });
   doc.destroy();
 }
-console.log(JSON.stringify({ scope: 'One-field AI proposal compilation including guards/preflight, from an already-read immutable project; excludes model/network/UI/application', node: process.version, results, checksum }, null, 2));
+console.log(JSON.stringify({ scope: 'One-field AI proposal compilation including guards/preflight, from an already-read immutable project; excludes model/network/UI/application', iterations: '7 alternating batches × 10 compilations after warmup', node: process.version, results, checksum }, null, 2));

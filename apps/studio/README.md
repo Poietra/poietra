@@ -1,132 +1,119 @@
-# Poietra
-
-> このアプリは MoonBit への移行中です。移行範囲・セットアップ・検証状況は [ルートの README](../../README.md) を参照してください。以下の `poietra.com` は元の公開サービスです。
+# Poietra Studio
 
 **友人と、AI と。動きを一緒につくる。**
 
-Poietra は、同じ URL を開いたメンバーがリアルタイムで共同編集できる、ブラウザの動画編集環境です。
-図形・文字・数式・画像・動画素材を配置し、独立した音声トラックと組み合わせて動画を書き出せます。
-共有チャットで `@codex` に編集を頼んだ後も、位置や色、動きのタイミングを人間が調整できます。
+Poietra は、同じ URL を開いたメンバーで動画を共同編集するブラウザアプリです。
+図形・文字・数式・画像・動画を配置し、属性ごとの動きと音声を組み合わせて書き出せます。
+AI に頼んだ編集も、同じオブジェクトの位置・色・時間として残り、人間が調整できます。
 
-**[ブラウザで使う →](https://poietra.com)**
+このリポジトリでは UI・編集エンジン・サーバーのアプリケーションロジックを MoonBit で実装しています。
+数値カーネルは WASM、ブラウザ・サーバーとの接続は JavaScript ターゲットです。
+**MoonBit 版は本番未配置です。`poietra.com` で公開されている元サービスとは区別してください。**
 
-![Poietra の編集画面。ベジェ曲線と AI が生成した星をキャンバスに配置し、右側の共有チャットで編集案を適用している。](docs/assets/studio.png)
+[セットアップ・構成・最新の性能計測](../../README.md) · [開発方針](AGENTS.md) · [不具合の報告](https://github.com/Poietra/poietra/issues)
 
-2026-09-15 の OpenAI ハッカソンで開発したプロトタイプです。実装済みの機能と使い方を以下にまとめています。
+## 制作を始める
 
-## できること
+[ルートの手順](../../README.md#run-locally)でツールチェーンを用意し、リポジトリのルートで `pnpm dev` を実行します。
+`http://localhost:5173` のトップページから、新しいプロジェクトまたは編集可能なサンプルを開いてください。
+トップページの閲覧だけでは部屋を作成せず、編集エンジンも読み込みません。
 
-- **同じ制作物を一緒に編集** — URL で参加し、配置・動き・素材・チャットを共有。再接続時にも編集を同期します。
-- **オブジェクトごとにアニメーション** — 図形、テキスト、LaTeX 数式、ベジェ曲線、矢印、数直線、画像を扱えます。
-- **属性ごとに時間を調整** — 位置を 2 秒で移動し、透明度だけ最初の 0.3 秒で変えるなど、開始・長さ・イージングを分けられます。
-- **任意ログインと自分の一覧** — Google / GitHub の認証設定後に利用できます。ログイン中に開いたプロジェクトを自分の一覧に残し、共有リンクからはゲストも参加できます。
-- **チャットから AI に依頼** — `@codex` でオブジェクトの作成、配置や動きの変更、次の場面の追加、画像生成を頼めます。
-- **細部を手で調整** — 複数選択、整列、グループ、レイヤー操作、ベジェの移動パス、開始時刻・長さ・イージングを編集できます。
-- **音声・動画素材を取り込み** — 動画をキャンバスに配置し、音声は波形付きの専用トラックでトリミング・音量調整できます。
-- **ブラウザで動画を書き出し** — 全 Scene または現在の Scene を MP4 / WebM に出力できます。
+編集画面の左上にある Poietra ロゴが **New project / Open project / Save project** の入口です。
+共有リンクを別のブラウザで開くと同じ部屋に参加できます。リンクを知っている人は編集可能で、ログインは必須ではありません。
 
-## はじめて使う
+## 場面と動きを組み立てる
 
-1. [Poietra のトップページ](https://poietra.com)を開く。
-2. **New project（新しいプロジェクト）** から、空のキャンバスと新しい部屋を作ります。編集画面でも一番左上の **Poietra ロゴ → New project** から作れます。
-3. **Share → Copy link** で URL を送り、別の PC やブラウザから参加します。
-4. オブジェクトを配置し、下部の Composition と Transition で動きを組みます。
-5. **Preview** で全体を確認し、**Export** から動画を保存します。
-
-例から始める場合はトップページの **Edit the example（サンプルを編集）**、または編集画面の Poietra ロゴから **Try the example**（ベジェ曲線と数式）か **Follow the gradient**（微分と連鎖律）を選んでください。例も新しい部屋で開き、自由に編集できます。
-
-トップページの **Open previous project（前のプロジェクトを開く）** は、このブラウザで最後に開いた部屋を再開します。[スタジオへの直接入口](https://poietra.com/studio)も利用できます。従来の `/?room=...` という共有 URL は、そのまま編集画面を開きます。トップページを見ただけでは部屋を作成せず、共同編集に接続しません。
-
-トップページは[英語](https://poietra.com/?lang=en)と[日本語](https://poietra.com/ja/)に対応しています。ブラウザの優先言語から表示を選び、対応言語がない場合は英語になります。優先順位は URL の `lang` 指定 → `/ja/` の明示指定 → 以前に保存した選択 → ブラウザの優先言語 → 英語です。編集画面と共有プロジェクトの内容は、この切り替えの対象には含みません。
-
-リンクを知っている人は、ログインせずに編集できます。Poietra ロゴのメニューから任意でログインすると、開いたプロジェクトが本人用の **My projects** に残ります。一覧から外しても共有リンクは残ります。Google と GitHub は現在は別アカウントで、相互の紐づけや閲覧専用権限はありません。共同編集の表示名は Share から変更できます。
-
-ログインボタンは、運用者が各サービスの OAuth 認証を設定すると表示されます。未設定でも、ゲストの制作・共同編集・書き出しは利用できます。
-
-以前の `workers.dev` の共有リンクも利用できます。既存の部屋を `poietra.com` で開く場合は、URL の `?room=...` を残してホスト名だけ変更してください。ブラウザ内の履歴・未同期の編集はドメインごとに保存されるため、旧ドメインで同期が完了してから移動します。
-
-### Scene・Composition・Transition
-
-| 用語 | 役割 |
+| 単位 | 役割 |
 | --- | --- |
-| **Scene** | 独立したキャンバスと、その中の場面・動きのまとまり。動画では Scene の並び順に再生します。 |
-| **Composition** | オブジェクトの配置や見た目を決めた静止状態。継続時間の間、その状態を保ちます。 |
-| **Transition** | 隣り合う Composition の間の変化。オブジェクトごとにアニメーションを設定します。 |
+| Scene | キャンバスと、その中のオブジェクト・場面・音声。プロジェクト内の順番で再生する。 |
+| Composition | オブジェクトの配置や見た目を持つ静止状態。指定した時間、その状態を保つ。 |
+| Transition | 隣り合う Composition 間の変化。オブジェクトや属性ごとに動きを設定する。 |
 
-例えば「円が左にある Composition → 円を動かす Transition → 円が右にある Composition」で、移動を作れます。
-同じオブジェクトでも、位置・色・大きさ・表示の有無は Composition ごとに設定できます。
+例えば「円が左にある Composition → 移動する Transition → 円が右にある Composition」で移動を作れます。
+オブジェクトの識別は Scene 共通ですが、位置・色・大きさ・表示状態は Composition ごとに独立しています。
 
-- Composition の **＋** は、最後の状態を複製して次の場面を追加します。
-- Transition では **Move / Write / Fade / Grow / Cut** と、開始時刻・長さ・イージングを設定できます。
-- **Easing → Custom Bézier** で、速度の変化を曲線で調整できます。2つの制御点をドラッグするか、X1・Y1・X2・Y2 を数値入力します。横軸は時間、縦軸は進行率で、いずれも `0〜1` の範囲です。共通の Timing・属性別・複数選択で利用でき、1回のドラッグは1回の Undo で戻せます。Cut にはイージングを適用しません。
-- **Property timing** で属性を選んで値を変更すると、その属性だけの開始・長さ・イージングを設定できます。例えば Transition を `2,000 ms` にして Position を `2,000 ms`、Opacity を `300 ms` に設定します。透明度の変化自体は前後の Composition の Opacity で指定します。設定済みの属性は Timeline の子行にも表示され、バーをドラッグして調整できます。**共通の時間に戻す** で全体の設定へ戻ります。
-- Move の **Edit Bézier path** から、曲線の移動パスを編集できます。
-- Scene は追加・複製・名前変更・削除・並べ替えに対応しています。
+Composition の **＋** は最後の状態を複製して次の場面を追加します。
+Transition では **Move / Write / Fade / Grow / Cut**、開始時刻・長さ・イージングを設定します。
+Scene は追加・複製・名前変更・削除・並べ替えに対応しています。
 
-### 編集と画像素材
+**Property timing** では、位置を 2,000 ms で動かし、透明度だけ最初の 300 ms で変える、といった設定ができます。
+透明度の始点・終点は前後の Composition で指定します。属性別のバーはタイムラインにも表示され、ドラッグで調整できます。
+個別設定がない属性は共通 Timing を継承し、**共通の時間に戻す** で個別設定を解除します。
 
-キャンバスのツールからオブジェクトを追加し、右側の **Design** でプロパティを調整します。
-空白のドラッグで範囲選択、Shift で追加選択、Group / Ungroup で連結できます。連結したメンバーをドラッグすると、表示中・未ロックのメンバーも一緒に動きます。
+**Easing → Custom Bézier** は速度変化の曲線です。制御点の座標は `0〜1`、オーバーシュートは対象外です。
+Move の **Edit Bézier path** は空間上の移動経路です。速度の曲線と移動経路は別に編集します。
+
+## キャンバスを編集する
+
+ツールからオブジェクトを追加し、右側の **Design** で位置・大きさ・外観を調整します。
 テキストと数式はダブルクリックで内容を編集できます。
+空白をドラッグすると範囲選択、Shift で選択追加、Group / Ungroup で連結します。
+連結したメンバーをドラッグすると、表示中でロックされていないメンバーも一緒に動きます。
 
-画像は **Add image**、ドロップ、クリップボードからの貼り付けで追加します。PNG・JPEG・WebP に対応し、透明部分を保持します。
-角のドラッグで縦横比を保って拡大縮小し、Shift を押すと比率を変えられます。画像にも回転・不透明度・枠線・角丸・Glow やアニメーションを設定できます。
+角のドラッグは縦横比を保った拡大縮小、Shift を押しながらのドラッグは自由な比率の変更です。
+選択候補・ロック・ドラッグ中の値・操作の完了や中止を画面で確認できます。
 
 | 操作 | ショートカット |
 | --- | --- |
-| 元に戻す / やり直す | Ctrl/⌘ + Z / Ctrl/⌘ + Shift + Z |
+| Undo / Redo | Ctrl/⌘ + Z / Ctrl/⌘ + Shift + Z |
 | コピー / 貼り付け / 切り取り | Ctrl/⌘ + C / V / X |
 | 元の位置に貼り付け | Ctrl/⌘ + Shift + V |
-| 現在の Composition から非表示にする | Delete / Backspace |
-| 1 px 移動 / 10 px 移動 | 矢印キー / Shift + 矢印キー |
+| 現在の Composition で非表示にする | Delete / Backspace |
+| 1 px / 10 px 移動 | 矢印キー / Shift + 矢印キー |
 
-### 音声・動画素材
+キーボードアイコンからショートカット一覧を開けます。文字入力中や IME 変換中は編集用ショートカットと区別します。
 
-**Add media** またはタイムラインの **音声を追加 / 動画を追加** から素材を読み込みます。キャンバスへのドロップにも対応しています。
-MP4・WebM の動画と、MP3・WAV・OGG・FLAC・M4A・WebM の音声を扱えます。コンテナ内のコーデックはブラウザの対応範囲によります。
+## 画像・音声・動画を使う
 
-- **動画**はキャンバス上のオブジェクトとして配置・サイズ・見た目を編集できます。
-- **音声**は Composition をまたぐ独立トラックに配置します。動画に含まれる音声も別トラックとして追加されます。
-- 下部の **Audio & video** に波形・サムネイル・再生位置を表示します。クリップをドラッグすると移動、両端をドラッグするとトリミングできます。
-- クリップを選ぶと、開始位置・素材のトリム開始・長さを数値でも編集できます。音声は音量・ミュート・削除にも対応し、動画と音声のタイミングを独立して調整できます。
-- プレビューと書き出しに音声を反映します。素材が最後の Composition より長い場合は Scene の再生時間も延びます。
+画像は **Add image**、ドロップ、クリップボードから追加できます。PNG・JPEG・WebP の静止画像に対応します。
+位置・サイズ・回転・不透明度・枠線・角丸・Glow と、他のオブジェクトと同じアニメーションを設定できます。
 
-素材は部屋に保存され、共同制作者も同じ URL から利用できます。プロジェクトファイルには素材本体を含めて保存します。
-読み込み・波形作成・アップロードの進捗を表示し、中止や失敗もその場で確認できます。キャンバスとアニメーショントラックでは、選択候補・ロック・ドラッグ中の値・操作完了を表示します。
+音声・動画は **Add media**、タイムラインの **音声を追加 / 動画を追加**、またはドロップから読み込みます。
+MP4・WebM の動画と MP3・WAV・OGG・FLAC・M4A・WebM の音声が対象ですが、内包するコーデックの対応は端末に依存します。
 
-### 共有チャットと `@codex`
+- 動画はキャンバス上のオブジェクトになります。動画内の音声は独立した音声トラックへ分けます。
+- 音声は Scene 時間を基準に配置します。動画と音声はそれぞれ開始位置やトリミングを変更できます。
+- **Audio & video** のクリップをドラッグすると移動、両端をドラッグするとトリミングできます。選択後の数値入力も利用できます。
+- 音声は音量・ミュート・削除に対応します。素材が最後の Composition より長い場合は Scene の再生時間も延びます。
 
-右側の **Chat** は部屋のメンバー全員に共有されます。通常のメッセージは人間同士の会話になり、`@codex` を付けると AI に依頼できます。
+取り込み・波形作成・転送には進捗と中止操作があります。素材は部屋へ保存され、共同制作者も同じ素材を使います。
+保存ファイルには素材本体を埋め込むので、別の部屋へ読み込んでも元の素材 URL に依存しません。
+
+## 共有チャットと AI
+
+右側の **Chat** は部屋全体の会話です。通常のメッセージは人間同士の会話、`@codex` を付けた発言は AI への依頼になります。
+AI を使うにはサーバーの API キー設定が必要です。
 
 ```text
 @codex 選択した円を黄色にして
 @codex 次の場面を追加して、円をベジェ曲線で右上へ動かして
 @codex 数式を次の場面に追加して、Write で登場させて
-@codex 透明背景の黄色い星のイラストを生成して右上に置いて
+@codex 透明背景の黄色い星を生成して右上に置いて
 ```
 
-- **Enter** で送信し、返ってきた編集案を依頼者が **Apply edits** で適用します。
-- **Ctrl/⌘ + Enter** で送ると、検証を通った編集案を自動で適用します。
-- **Shift + Enter** で改行できます。
-- 提案・返答・適用状況も共有されます。適用した編集は Undo で戻せます。
-- 会話を始めると導入の見出し・説明が消え、履歴が広く表示されます。Codex の待機表示は依頼ごとにメンバー全員へ共有され、依頼したブラウザから停止できます。
-- 履歴をさかのぼっている間は新着でスクロールを移動しません。「最新のメッセージへ」で末尾に戻れます。
+**Enter** で送ると提案を受け取り、依頼者が **Apply edits** で適用します。
+**Ctrl/⌘ + Enter** は検証後に自動適用、**Shift + Enter** は改行です。
+適用した編集は Undo で戻せます。提案・返答・適用状況・待機状態も共同制作者へ共有します。
+実行の停止は依頼したブラウザから操作します。
 
-選択中のオブジェクトは依頼の文脈になります。同じ Scene 内なら、別の Composition や Transition を明示して編集を頼むこともできます。
-適用前には対象の変更・削除やロックを再確認し、古くなった提案の適用を防ぎます。
+選択中の対象が依頼の文脈になります。AI は現在の Scene 内を編集し、適用時に対象の変更・削除・ロックを再確認します。
+画像は提案を返す前に生成・保存されます。Undo はオブジェクトの追加を取り消しますが、画像生成の API 利用や保存済み素材は取り消しません。
+画素そのものの編集には対応していません。
 
-生成画像は、編集案を返す前に生成・保存されます。Apply はキャンバスへの追加を行い、Undo は編集を取り消します。生成済みの画像保存や API 利用は取り消されません。
-画像は配置や動きを編集できるオブジェクトとして扱い、画素そのものの編集には対応していません。
+不正な編集案は検証結果を添えて一度だけ修復します。API エラー・拒否・途中終了はこの修復の対象外です。
+テキスト生成・修復・画像生成・画像保存は **全体で 170 秒**の期限を共有します。部屋の AI ロックは 180 秒です。
+SDK の再試行も全体期限内に収めます。履歴は動画の Undo やプロジェクトファイルから分離しています。
 
-### 保存・再接続・動画書き出し
+## 保存・再接続・書き出し
 
-編集内容はサーバーとブラウザ内に保存され、再接続時に同期されます。再生位置と選択は各自で操作できます。
-Undo は自分の操作を対象とし、共同制作者が変更した新規オブジェクトなどは保持する場合があります。未同期の変更は検知できないため、接続が切れた場合は再接続してから取り消してください。
+編集内容はサーバーとブラウザ内へ保存し、再接続時に同期します。再生位置は各自で独立しています。
+Undo は自分の編集を対象としますが、共同制作者の変更を守るため、新しく作ったオブジェクトを保持する場合があります。
+オフラインの相手による未受信の編集まで検知できるわけではありません。
 
-**Poietra ロゴ → Save project** で、素材を含む `.poietra.json` を保存できます。
-**Open project** は新しい部屋へ読み込むため、元の共同編集プロジェクトを上書きしません。チャット履歴はプロジェクトファイルに含みません。
+**Save project** は素材を含む `.poietra.json` を保存します。
+**Open project** は新しい部屋に読み込み、同期の応答を待って開きます。現在の共同編集を上書きせず、チャット履歴も読み込みません。
 
-**Export** では範囲・形式・解像度・フレームレートを選びます。
+**Export** は開始時の編集状態を固定し、処理中の共同編集に影響されず書き出します。
 
 | 項目 | 選択肢 |
 | --- | --- |
@@ -135,209 +122,102 @@ Undo は自分の操作を対象とし、共同制作者が変更した新規オ
 | 解像度 | 原寸 / 720p / 1080p |
 | フレームレート | 24 / 30 / 60 fps |
 
-利用できるコーデックはブラウザと端末に依存します。音声付き MP4 には AAC エンコーダーが必要です。非対応の場合はエラーを表示するので、WebM（Opus 音声）を選んでください。書き出しは開始時の編集状態を使い、処理中の共同編集に影響されません。Cancel で中断、完了後の **Download again** で再ダウンロードできます。
+音声付き MP4 には端末の AAC エンコード対応が必要です。利用できない場合は WebM（Opus 音声）を選んでください。
+**Cancel** で中断、完了後は **Download again** で再ダウンロードできます。
 
-## ローカルで開発する
+## 設定
 
-必要なものは **Node.js 24 以上**、**pnpm 10.23.0**、**Python 3.12 以上**、[指定版の MoonBit](../../README.md#run-locally) です。Rust は不要です。
+以下のコマンドは **`apps/studio`** で実行します。
 
-```bash
-git clone https://github.com/Poietra/poietra.git
-cd poietra
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-[localhost:5173](http://localhost:5173) を開きます。Node.js サーバーが UI・API・共同編集を提供し、データは既定で `.data/` に保存します。
-
-### AI を有効にする
-
-以降のアプリ固有のコマンドは `apps/studio` で実行します。
-
-```bash
-cd apps/studio
+```sh
 cp .env.example .env
 ```
 
-`.env` に `OPENAI_API_KEY` を設定してサーバーを起動します。キーはサーバー側でのみ使います。キーがなくても、通常の編集・人間同士のチャット・動画書き出しは使えます。
+ローカル Node は `.env` を読みます。キーなしでも編集・通常のチャット・書き出しを利用できます。
+設定のサンプルは [.env.example](.env.example)、Worker の変数は [wrangler.jsonc](wrangler.jsonc) が基準です。
 
-| 環境変数 | リポジトリの初期設定 | 用途 |
+| 環境変数 | サンプル設定・既定値 | 用途 |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | 未設定 | 編集提案と画像生成に使うキー |
-| `OPENAI_MODEL` | `gpt-6-astra` | 構造化された編集案の生成 |
+| `OPENAI_API_KEY` | 未設定 | サーバー側の AI 認証 |
+| `OPENAI_MODEL` | `gpt-6-astra` | 編集案の生成 |
 | `OPENAI_IMAGE_MODEL` | `gpt-image-1` | 画像素材の生成 |
-| `OPENAI_IMAGE_QUALITY` | `medium` | 画像品質。`low` / `medium` / `high` |
-| `OPENAI_REASONING_EFFORT` | `medium` | 文章モデルの推論量。`none` / `minimal` / `low` / `medium` / `high`。`default` で送らない |
-| `OPENAI_SERVICE_TIER` | `fast` | 処理の優先度。`fast` / `ultrafast` / `priority` / `flex`。`default` で送らない。モデルや契約が未対応の場合は自動で外して再送します |
-| `PORT` | `5173` | Node.js サーバーのポート |
-| `POIETRA_DATA_DIR` | `.data` | Node.js サーバーの保存先 |
+| `OPENAI_IMAGE_QUALITY` | `medium` | 画像品質 |
+| `OPENAI_REASONING_EFFORT` | `medium` | 推論量。`default` でパラメータを送らない |
+| `OPENAI_SERVICE_TIER` | `fast` | 優先度。`default` でパラメータを送らない |
+| `PORT` | `5173` | Node の HTTP/WebSocket ポート |
+| `POIETRA_DATA_DIR` | `.data` | Node の保存先。アプリの作業ディレクトリからの相対パス |
+| `AUTH_ORIGIN` | `http://localhost:5173` | OAuth 復帰先の origin |
 
-### Google / GitHub の任意ログインを設定する
+モデル・契約が推論量や優先度の指定を 400 で拒否した場合は、その指定を外して再送します。
+ここに記載したモデル名はリポジトリの設定値であり、利用アカウントでの提供可否を検証したものではありません。
 
-両方に対応していますが、片方だけの設定でも動作します。各サービスで OAuth アプリを登録し、Client ID と Client secret をサーバー側だけに保存します。Google は Web application、GitHub は OAuth App を使います。
+### 任意ログイン
 
-| サービス | 本番で登録するコールバック URL | 設定する変数 |
+Google / GitHub は片方だけでも設定できます。各プロバイダーに OAuth アプリを用意し、次の値をサーバーへ設定します。
+
+| プロバイダー | 変数 | ローカル Node の callback |
 | --- | --- | --- |
-| Google | `https://poietra.com/api/auth/callback/google` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| GitHub | `https://poietra.com/api/auth/callback/github` | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
+| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `http://localhost:5173/api/auth/callback/google` |
+| GitHub | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | `http://localhost:5173/api/auth/callback/github` |
 
-手順は [Google の Web サーバー向け OAuth ガイド](https://developers.google.com/identity/protocols/oauth2/web-server)と [GitHub の OAuth App 登録ガイド](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)を参照してください。必要な情報は本人の識別とプロフィールだけで、リポジトリへの権限やメールアドレスは求めません。
+ブラウザの URL、`AUTH_ORIGIN`、登録した callback のホスト・ポートを一致させます。
+ローカル Worker では `http://localhost:8787` に置き換えて `.dev.vars` に設定します。
+配置する場合は、その環境専用の origin と秘密情報を用意してください。
 
-ローカル Node は `.env`、ローカル Worker は `.dev.vars` に保存します。`AUTH_ORIGIN` とブラウザの URL、登録したコールバックのホスト・ポートを一致させてください。例はそれぞれ `http://localhost:5173` / `http://localhost:8787` です。本番用と開発用の OAuth アプリを分けると設定が混ざりません。
+セッションと本人用プロジェクト一覧は共同編集ドキュメントから分離しています。一覧から外しても部屋は削除しません。
+Google と GitHub をメールアドレスで自動統合せず、共有リンクの編集権限もログインでは制限しません。
+認証テストはプロバイダー HTTP を模擬しています。MoonBit 版での実プロバイダー接続は未検証です。
 
-Cloudflare 本番では、以下を対話入力で登録します。秘密の値をリポジトリやチャットに貼らないでください。
+## 実行と配置
 
-```bash
-pnpm exec wrangler secret put GOOGLE_CLIENT_ID
-pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
-pnpm exec wrangler secret put GITHUB_CLIENT_ID
-pnpm exec wrangler secret put GITHUB_CLIENT_SECRET
-```
+リポジトリルートの `pnpm build` を実行した後、次を利用できます。
 
-本番の `AUTH_ORIGIN` は `https://poietra.com` です。旧 `workers.dev` ドメインではゲスト編集を継続できます。ログイン用セッションと本人用の一覧は共有ドキュメントの外に保存し、セッションは 7 日で期限切れになります。Google と GitHub は、メールアドレスなどによる自動統合をしません。
-
-認証・一覧 API と Node HTTP のテストは `pnpm exec vitest run tests/auth.test.ts tests/auth-node.test.ts`、実 Worker の保存・再起動・セッション失効は `node tests/accounts-worker.integration.mjs` で確認します。これらは外部プロバイダーの応答をテスト用に置き換えており、設定した実アカウントでのログイン確認は別です。
-
-### ビルドと MoonBit コア
-
-```bash
-pnpm build:web  # MoonBit JS/WASM、型検査、UI ビルド
-pnpm start     # ビルド済み UI を Node.js サーバーで配信
-pnpm test:core # MoonBit の WASM カーネルテスト
-```
-
-コア・共通 UI の MoonBit コードは [moonbit/](../../moonbit/) にあります。
-元の Rust バイナリは差分検証用の [tests/oracle/](tests/oracle/) にだけ残しています。
-
-### トップページの配信・検索対応
-
-`build:web` は英日それぞれの本文を HTML と Markdown に事前生成します。Cloudflare Worker と Node の本番サーバーが URL・`Accept-Language` から初期表示を選び、React は届いた本文に操作を接続します。編集用コードと全字形フォントは編集開始時に読み込みます。トップページ用の日本語フォントは表示文言の字形だけを含み、画像は画面幅に合う WebP を使います。
-
-公開ページには canonical・hreflang・WebApplication 構造化データを付け、`robots.txt`・`sitemap.xml`・`llms.txt` を配信します。`Accept: text/markdown` を指定した公開ページへのリクエストには、表示文言と同じ情報を Markdown で返します。編集画面・共有ルームは `noindex` にし、サイトマップに含めません。これは検索除外であり、共有リンクの参加権限を変更するものではありません。
-
-Cloudflare の [Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/) は有料プラン向けの別機能です。この実装は Free プランでも動く静的 Markdown 配信で、Cloudflare の AI Crawl Control や Crawler Hints を自動で有効化するものではありません。AI による採用や検索順位を保証しません。
-
-```bash
-pnpm build:web
-PORT=5188 pnpm start
-# 別ターミナルで、本番ビルドの HTTP とブラウザを検証
-POIETRA_TEST_URL=http://127.0.0.1:5188 node tests/public-site-http.integration.mjs
-POIETRA_TEST_URL=http://127.0.0.1:5188 pnpm exec playwright test dogfood-home-seo dogfood-landing
-# 同じ端末・回線条件で比較するための低速回線/CPU制限付きラボ計測
-POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-home.mjs
-```
-
-文言やスクリーンショットを変更した場合は `node --import tsx scripts/build-home-assets.mjs` で同梱フォント・画像を更新します。再生成時だけ FontTools/Brotli の `pyftsubset` と libwebp 対応 `ffmpeg` が必要です。通常のビルドには不要です。
-
-## Cloudflare で動かす
-
-元アプリの共有環境は Cloudflare Workers に配置されています。移行版は未配置です。UI・WASM・フォントを Static Assets、共同編集と素材の参照・容量管理を部屋ごとの SQLite Durable Object、画像・音声・動画の本体を非公開の R2 バケットで扱います。
-移行版の `wrangler.jsonc` は独立した Worker・R2 名を使い、本番ドメインの route を持ちません。
-
-素材 URL は従来の `/api/rooms/{room}/images|media/{sha256}` を維持し、Worker が R2 のデータを配信します。音声・動画は Range・HEAD・ETag に対応します。新規アップロードは部屋の外でストリーミング保存し、保存が終わった参照だけを部屋に登録します。同じ素材の重複と容量上限は部屋内で確定するため、同時アップロードでも上限を超えません。
-
-旧 SQLite 素材は初回読み込み時にそのまま配信し、裏で R2 にコピーします。ハッシュとサイズを照合した後に参照を切り替え、失敗したコピーは次の読み込みで再試行します。初回の移行では旧データを残すため、既存素材を一括移行・削除した状態ではありません。部屋の同時アップロードは移行を含め 4 件までです。
-
-### ローカルの Worker
-
-```bash
+```sh
+# apps/studio
+pnpm start             # Node で本番ビルドを配信
 cp .dev.vars.example .dev.vars
-# AI を使う場合は .dev.vars に OPENAI_API_KEY を設定
-pnpm build:web
-pnpm dev:worker
+pnpm dev:worker        # localhost:8787、ローカル workerd/SQLite/R2
+pnpm run deploy        # ビルドと wrangler deploy --dry-run のみ
 ```
 
-[localhost:8787](http://localhost:8787) を開きます。モデル・品質の初期設定は [wrangler.jsonc](wrangler.jsonc) にあります。
-R2 もローカルでエミュレートされ、実バケットへの接続は不要です。Node.js の `pnpm dev` は従来どおりローカルファイルへ素材を保存します。
+Node はローカルファイル、Worker は SQLite Durable Objects と非公開 R2 を使います。
+編集データ・素材の参照・容量管理は部屋に、素材本体は R2 に置きます。アップロード完了後に参照を確定し、途中の素材を公開しません。
+旧 SQLite 素材を読む経路と、ハッシュ・サイズ確認後に R2 へ切り替える経路もありますが、本番データの移行は実施していません。
 
-### デプロイ
+設定には独立した `poietra-moonbit` Worker・バケット名を使い、本番 domain route はありません。
+実配置の前にはコピー元の account ID、`AUTH_ORIGIN`、SEO の canonical、保存先を配置環境に合わせて確認する必要があります。
+この作業で既存サービスへの配置やストレージ変更はしていません。
 
-この移行版の `pnpm run deploy` はビルドと `wrangler deploy --dry-run` を実行します。
-本番サービス・本番ストレージの移行や変更は行っていません。公開先の構成を別途決めてから配置してください。
+トップページは英日 HTML と Markdown をビルド時に生成します。言語は明示 URL、保存済み設定、ブラウザ設定の順で扱い、未対応言語は英語へ戻します。
+サーバーの初期 HTML は URL と `Accept-Language`、操作接続後はブラウザ保存済み設定も使います。`/ja/` で日本語を明示できます。
+編集画面全体の翻訳は含みません。
 
-## 構成
+公開ページは `Accept: text/markdown` に対応し、`robots.txt`・`sitemap.xml`・`llms.txt` も生成します。
+編集画面と共有ルームは `noindex` ですが、これはアクセス制御ではありません。
+文言・画像を変更したときの素材再生成は `node --import tsx scripts/build-home-assets.mjs` で行います。
+その場合だけ FontTools/Brotli の `pyftsubset` と libwebp 対応 FFmpeg が追加で必要です。
 
-UI と独立した編集データ・時間評価・描画を持ち、人間の操作と AI の編集案を同じデータへ反映します。
+## 検証と性能
 
-| 場所 | 役割 |
-| --- | --- |
-| [shared/](shared/) | プロジェクトモデル、Yjs の同期データ、AI・チャットのスキーマ |
-| [moonbit/](../../moonbit/) | MoonBit の数値・時間評価・編集コア・共通 UI。数値カーネルは WASM へコンパイル |
-| [src/editor/](src/editor/) | 編集操作、Undo、共同編集、プロジェクトと素材の管理 |
-| [src/ui/](src/ui/) | React の編集 UI、タイムライン、プロパティ、チャット |
-| [src/engine/](src/engine/) | 時刻からの状態評価、MathJax 数式、SVG / Canvas 描画、WebGL2 Glow、WebCodecs 書き出し |
-| [worker/](worker/) | Cloudflare の API、WebSocket 同期、SQLite の編集データ・素材参照、R2 の素材本体 |
-| [server/](server/) | Node.js の開発サーバー、共通の OpenAI 呼び出しと画像処理 |
-| [tests/](tests/) | 単体テスト、ブラウザ操作、共同編集の復元、動画出力の検証 |
+[ルートの Checks](../../README.md#checks) に確認済み範囲と実行コマンド、
+[Performance](../../README.md#performance) に 2026-09-19 の再計測結果・条件・全試行データをまとめています。
+数値評価、Yjs snapshot、AI 提案コンパイル、実際の 2/4 人編集、トップページ、描画、配信サイズを区別して測っています。
 
-### 共同編集と描画を長く使える構成へ（2026-09-16）
-
-別々の対象を編集しても値が戻るという報告から、Transition の長さ変更が、変更不要な各オブジェクトの時間まで書き直す競合を再現しました。変更していない値の書き込みを省き、相手の変更を競合へ巻き込まないようにしています。同じプロパティを二人が同時変更する場合の意図の調停は、別の課題として残ります。また、同じ Bézier の別ハンドルを同時編集すると path 全体の置換で一方が戻る問題を [Issue #39](https://github.com/Poietra/poietra-hackathon/issues/39) で追跡しています。
-
-また、カーソル・選択の更新では描画済みのフレームと SVG を再利用します。図形・素材・時刻・描画準備の更新は再描画します。カーソル更新だけで Canvas の描画が増えないことと、実際の編集が反映されることをブラウザテストで確認します。編集操作が参照するプロジェクトも、完了済みの更新なら同じ snapshot を再利用し、ドラッグ 1 更新での全体読み直しを 3 回から 1 回へ減らしています。更新処理の途中では最新データを直接読み、古い値を使い回しません。
-
-次の改善は以下の順で進める方針です。**以下の分離は今後の実装対象**です。
-
-| 優先 | 分離する責務 | 完了を判断する検証 |
-| --- | --- | --- |
-| 1 | **編集データと購読**。Yjs の変更から必要な Scene / オブジェクトだけ更新し、在室者・カーソル・接続状態は別の購読にする。 | 別 Scene の編集やカーソル移動で、現在の Scene の再構築・再描画が増えない。削除・Undo・オフライン再接続でも両者の変更を保持する。 |
-| 2 | **再生時計と編集 UI**。時刻の更新を専用スケジューラーが評価器と描画器へ渡し、サイドバーや Inspector の更新周期から独立させる。 | 再生中の不要な UI 更新を減らし、シーク・中断・Scene 切替後に古いフレームを出さない。 |
-| 3 | **素材のデコードと描画**。動画の PNG 化・SVG 経由の再デコードを減らし、デコード済みフレームを直接描画する。Canvas 用の当たり判定も SVG 全体の差し替えから分離する。順再生とランダムシークを分け、使用量に上限のあるキャッシュと解放責任を持たせる。 | 音声同期・トリミング・Write / Glow・書き出しを維持し、反復再生や素材交換でメモリ使用量が増え続けない。 |
-
-購読側は、変更がない間は同じ immutable snapshot を返す [React の外部ストア契約](https://react.dev/reference/react/useSyncExternalStore) に従います。描画へ直接渡す動画フレームは、所有者と利用終了のタイミングを明確にし、[使用済みフレームの資源を解放](https://developer.mozilla.org/en-US/docs/Web/API/VideoFrame/close)します。
-
-初期調査では、720p 動画の 1 フレームあたり PNG 化が平均約 15 ms、その後の SVG レイヤー再生成が約 27 ms でした。Headless Chromium / SwiftShader、20 フレームの部品計測であり、実機の再生 fps や本番環境の応答時間ではありません。通常図形では既存のレイヤーキャッシュが機能しており、数値補間よりも SVG の DOM 差し替えが重いケースを確認しました。
-
-継続計測では同じ端末・同じ素材を使い、2 / 4 人、100 / 500 オブジェクト、音声付き 720p 動画で、入力から表示までの遅延・相手への反映時間・フレーム時間の p95・送信量・反復再生後のメモリを記録します。CRDT や描画方式の全面変更、Worker / OffscreenCanvas への移動は、この計測と正しさの回帰テストを基に判断します。
-
-## 検証
-
-```bash
-pnpm typecheck
-pnpm exec vitest run --maxWorkers=2
-pnpm test:core  # MoonBit の WASM テスト
-```
-
-ブラウザテストには Playwright の Chromium を用意します。`test:e2e` の動画検証には **FFmpeg / ffprobe**、専用の `test:export` には **Corepack** も必要です。
-
-```bash
-pnpm exec playwright install chromium
-pnpm test:e2e            # 編集・チャット・画像・Scene 再生・動画出力
-pnpm test:ai             # AI の提案・検証・適用・共同編集
-pnpm test:export         # 専用ページでのエンコード・中断・資源解放
-pnpm test:collaboration  # workerd の再起動・休止を含む同期と保存
-node tests/image-worker.integration.mjs  # Worker の画像保存と復元
-node tests/media-storage.integration.mjs  # Node/Worker の素材保存・容量制限・再起動
-node tests/r2-assets-worker.integration.mjs  # 実 workerd/R2 の保存先、旧素材移行、障害復旧・同時アップロード
-pnpm exec playwright test --config tests/e2e/media-export.config.ts  # 動画フレーム・音声付き出力・同期再生
-pnpm exec playwright test dogfood-custom-easing.spec.ts  # 曲線編集・共同編集・Undo・保存と再読み込み
-```
-
-描画の部品計測は通常のテストと分けて実行します。`pnpm dev` を起動し、他のテスト・ビルドを止めてから次を実行してください。生成した短い動画は終了時に削除します。
-
-```bash
-node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5173 --output test-results/benchmarks/rendering.json
-# 動画用の FFmpeg がない場合: --skip-video
-pnpm exec playwright test painter-preview.spec.ts  # カーソル更新時の再描画、遅延・失敗・切替
-```
-
-`test:e2e` と `test:ai` は Node.js サーバーを自動で起動します。既に起動した Worker に対しては、別ターミナルで次を実行します。
-
-```bash
-POIETRA_TEST_URL=http://127.0.0.1:8787 pnpm test:e2e
-```
-
-AI の自動テストは API 応答をスタブに置き換えるため、実 API の疎通確認とは別です。
-2026-09-15 の公開環境では、実 API による編集提案と画像生成、別ブラウザへの同期、Apply と Undo まで確認しています。
-描画性能の専用テストは [tests/e2e/](tests/e2e/) にあります。開発方針と判断理由は [AGENTS.md](AGENTS.md) を参照してください。
+CPU の高速化率を UI 全体の速度や再生 fps として説明しないでください。
+動画のデコード・PNG 変換と編集開始時の JavaScript サイズには改善余地が残っています。
+描画計測は SwiftShader を使う環境の値であり、実機 GPU や本番ネットワークでの値ではありません。
 
 ## 現在の制限
 
-- デスクトップの Chrome / Edge を主な検証対象としています。短い動画向けのプロトタイプで、長時間・大量素材での動作は保証していません。
-- 画像の画素編集とユーザー持ち込みシェーダーには対応していません。
-- 画像は一度に 8 枚まで。元画像は 20 MiB・4,000 万画素までで、追加時に長辺 2,048 px・1 MiB 以下へ整えます。部屋の画像保存は計 64 MiB、読み込むプロジェクトファイルは 128 MiB までです。Undo などの参照を保つため、保存済み画像は自動削除しません。
-- 音声・動画素材は 1 ファイル 32 MiB・10 分以内、部屋あたり計 128 MiB までです。動画と音声のタイミングは独立しており、一方を動かしても他方は移動しません。
-- AI は現在の Scene 内を編集します。1 提案での Composition 追加は末尾へ 4 個まで、画像生成は 2 枚までです。Scene 新設や既存 Composition 間への挿入は未対応です。API 処理には期限がありますが、画像保存の待機は期限の対象外です。
-- Glow は WebGL2 を使い、利用できない場合は SVG / Canvas2D に戻ります。初回の描画待ちや端末ごとの性能差は継続改善中です。
+| 対象 | 制限 |
+| --- | --- |
+| プロジェクトファイル | 128 MiB。1 Scene あたり 500 オブジェクト、100 Compositions |
+| 画像の取り込み | 一度に 8 枚、元画像 20 MiB・4,000 万画素まで |
+| 保存する画像 | 長辺 2,048 px・1 MiB 以下へ正規化、部屋合計 64 MiB |
+| 音声・動画 | 32 MiB/ファイル、元素材 10 分以内、部屋合計 128 MiB |
+| AI | 現在の Scene 内。1 提案で末尾への Composition 追加 4 個、画像生成 2 枚まで |
 
-不具合や未完了の作業は [Issues](https://github.com/Poietra/poietra-hackathon/issues) で管理しています。
+保存済み素材は Undo などの参照を保持するため自動削除しません。
+デスクトップ Chromium を主な検証対象とし、長時間・大量素材・WAN 上の多数参加者での性能は未計測です。
+画像の画素編集、任意シェーダーの持ち込み、課金・テナント管理・複雑な権限管理は対象に含みません。
+Glow は WebGL2 を使い、利用できない場合は SVG / Canvas2D に戻ります。

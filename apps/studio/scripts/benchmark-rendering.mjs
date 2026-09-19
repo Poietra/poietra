@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { environment } from './benchmark-environment.mjs';
 
 const options = {
   url: process.env.POIETRA_BENCH_URL || 'http://127.0.0.1:5173',
@@ -44,6 +45,7 @@ if (!['http:', 'https:'].includes(base.protocol)) throw new Error('--url must be
 const outputPath = resolve(options.output);
 const mediaPath = `/api/rooms/poietra_performance_x/media/${'a'.repeat(64)}`;
 let temporary, browser;
+const measuredEnvironment = environment();
 try {
   try {
     const response = await fetch(new URL('/src/engine/evaluate.ts', base), { signal: AbortSignal.timeout(5000) });
@@ -65,18 +67,16 @@ try {
   await page.goto(new URL('/__poietra_render_bench', base).href);
   const result = await page.evaluate(async ({ frameCount, video, mediaPath }) => {
     const renderer = await import('/src/engine/renderer.ts');
-    const { evaluateScene, compositionFrame } = await import('/src/engine/evaluate.ts');
+    const { compileScene, compositionFrame } = await import('/src/engine/evaluate.ts');
     const { defaultState } = await import('/shared/model.ts');
     const { loadKernel } = await import('/src/engine/kernel.ts');
     const { createFramePainter } = await import('/src/engine/painter.ts');
-    const { LayerCache } = await import('/src/engine/rendering/layers.ts');
-    const { VideoFrames } = await import('/src/engine/rendering/videos.ts');
     // Resolve through Vite, sharing the application's exact Mediabunny instance.
     const bunny = await import('/tests/e2e/fixtures/media-dependencies.ts');
     const kernel = await loadKernel();
     function stats(values) {
       const sorted = [...values].sort((a, b) => a - b), sum = sorted.reduce((a, b) => a + b, 0);
-      return { n: sorted.length, mean: sum / sorted.length, p50: sorted[Math.floor(sorted.length * .5)], p95: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * .95))], sum };
+      return { n: sorted.length, mean: sum / sorted.length, p50: sorted[Math.floor(sorted.length * .5)], p95: sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * .95) - 1)], sum, samples: values };
     }
     async function measure(count, callback) {
       const samples = [];
@@ -94,7 +94,7 @@ try {
       }
       return value;
     }
-    const marks = { decode: [], png: [], layer: [], hits: 0, misses: 0, pngBytes: [], fetches: 0 };
+    const marks = { decode: [], png: [], pngBytes: [], fetches: 0 };
     const originalGetCanvas = bunny.CanvasSink.prototype.getCanvas;
     bunny.CanvasSink.prototype.getCanvas = async function (...args) {
       const start = performance.now();
@@ -106,37 +106,29 @@ try {
       const start = performance.now(), image = originalPng.apply(this, args);
       marks.png.push(performance.now() - start); marks.pngBytes.push(image.length); return image;
     };
-    const originalLayer = LayerCache.prototype.get;
-    LayerCache.prototype.get = async function (...args) {
-      // Benchmark-only observation of cache identity; no production instrumentation.
-      const previous = this.entries.get(args[0].object.id), start = performance.now();
-      const result = await originalLayer.apply(this, args);
-      marks.layer.push(performance.now() - start);
-      if (result === previous) marks.hits++; else marks.misses++;
-      return result;
-    };
     const originalFetch = window.fetch;
     window.fetch = async (...args) => { if (String(args[0]).includes('/media/')) marks.fetches++; return originalFetch(...args); };
-    function reset() { for (const key of ['decode', 'png', 'layer', 'pngBytes']) marks[key] = []; marks.hits = marks.misses = marks.fetches = 0; }
+    function reset() { for (const key of ['decode', 'png', 'pngBytes']) marks[key] = []; marks.fetches = 0; }
     function reportMarks() {
-      return { ...Object.fromEntries(['decode', 'png', 'layer', 'pngBytes'].map(key => [key, marks[key].length ? stats(marks[key]) : null])), hits: marks.hits, misses: marks.misses, fetches: marks.fetches };
+      return { ...Object.fromEntries(['decode', 'png', 'pngBytes'].map(key => [key, marks[key].length ? stats(marks[key]) : null])), fetches: marks.fetches };
     }
     const shapes = [];
     for (const count of [100, 500]) {
       const value = scene(count), frame = compositionFrame(value, value.compositions.c0);
+      const program = compileScene(value, kernel);
       await renderer.prepareScene(value);
       const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; document.body.append(canvas);
       const painter = await createFramePainter(canvas);
       try {
         await painter.render(frame); reset(); // Exclude initialization/raster warmup.
-        const evaluation = await measure(100, index => evaluateScene(value, 1200 + index, kernel));
+        const evaluation = await measure(100, index => program.evaluate(1200 + index));
         const cloning = await measure(100, () => structuredClone(frame));
         const svg = await measure(30, () => renderer.frameToSvg(frame));
         const container = document.getElementById('svg'), markup = renderer.frameToSvg(frame);
         const dom = await measure(15, () => { container.innerHTML = markup; void container.getBoundingClientRect().width; }); container.innerHTML = '';
-        // Moving only one object must leave all local appearance rasters reusable.
+        // Includes the explicit frame clone and asynchronous publication by the painter.
         const moving = await measure(30, index => { const next = structuredClone(frame); next.objects[0].state.x += index; return painter.render(next); });
-        shapes.push({ count, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, cache: reportMarks() });
+        shapes.push({ count, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, marks: reportMarks() });
       } finally { painter.dispose(); canvas.remove(); }
     }
     const preparations = [];
@@ -150,6 +142,7 @@ try {
       const value = scene(1);
       Object.assign(value.objects.o0, { kind: 'video', media: { src: mediaPath, mime: 'video/mp4', duration: 2000, width: 1280, height: 720, hasAudio: false }, playback: { start: 0, offset: 0, duration: 2000 } });
       for (const composition of Object.values(value.compositions)) composition.states.o0 = defaultState('video', { x: 640, y: 360, width: 1280, height: 720, strokeWidth: 0 });
+      const program = compileScene(value, kernel);
       const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; document.body.append(canvas);
       const scenarios = [
         ['30fps', Array.from({ length: frameCount }, (_, index) => (index + 0.1) * 1000 / 30)],
@@ -158,18 +151,16 @@ try {
       ];
       try {
         for (const [name, times] of scenarios) {
-          const decoder = new VideoFrames(), painter = await createFramePainter(canvas);
+          const painter = await createFramePainter(canvas);
           try {
-            await decoder.prepare(evaluateScene(value, 0, kernel)); reset();
-            const prepare = [], clone = [], paint = [], svg = [];
+            await painter.render(program.evaluate(0)); reset();
+            const paint = [];
             for (const time of times) {
-              let start = performance.now(); const frame = structuredClone(evaluateScene(value, time, kernel)); clone.push(performance.now() - start);
-              start = performance.now(); await decoder.prepare(frame); prepare.push(performance.now() - start);
-              start = performance.now(); renderer.frameToSvg(frame); svg.push(performance.now() - start);
-              start = performance.now(); await painter.render(frame); paint.push(performance.now() - start);
+              const frame = program.evaluate(time);
+              const start = performance.now(); await painter.render(frame); paint.push(performance.now() - start);
             }
-            videos.push({ name, backend: painter.backend, prepare: stats(prepare), clone: stats(clone), paint: stats(paint), svg: stats(svg), marks: reportMarks() });
-          } finally { painter.dispose(); decoder.dispose(); }
+            videos.push({ name, backend: painter.backend, paint: stats(paint), marks: reportMarks() });
+          } finally { painter.dispose(); }
         }
       } finally { canvas.remove(); }
       const input = new bunny.Input({ source: new bunny.BlobSource(await (await fetch(mediaPath)).blob()), formats: bunny.ALL_FORMATS });
@@ -188,10 +179,10 @@ try {
     return { userAgent: navigator.userAgent, gpu, headless: true, units: 'milliseconds (except counts and pngBytes/svgBytes)', shapes, preparations, video: videos, decodeOnly };
   }, { frameCount: options.frames, video: options.video, mediaPath });
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), ...result }, null, 2) + '\n');
+  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode, PNG and drawing; evaluation excluded', ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
   console.log(`Saved ${outputPath}\nGPU: ${result.gpu}\nMean milliseconds; asynchronous microbench timings, not user-visible FPS:`);
-  console.table(result.shapes.map(value => ({ objects: value.count, evaluate: value.evaluation.mean, clone: value.cloning.mean, svg: value.svg.mean, domReplace: value.dom.mean, moveAndPaint: value.moving.mean, cacheMisses: value.cache.misses })));
-  if (options.video) console.table(result.video.map(value => ({ scenario: value.name, prepare: value.prepare.mean, paint: value.paint.mean, decodes: value.marks.decode?.n ?? 0, pngEncodes: value.marks.png?.n ?? 0 })));
+  console.table(result.shapes.map(value => ({ objects: value.count, evaluate: value.evaluation.mean, clone: value.cloning.mean, svg: value.svg.mean, domReplace: value.dom.mean, moveAndPaint: value.moving.mean })));
+  if (options.video) console.table(result.video.map(value => ({ scenario: value.name, paint: value.paint.mean, canvasRequests: value.marks.decode?.n ?? 0, pngEncodes: value.marks.png?.n ?? 0 })));
 } finally {
   try { await browser?.close(); }
   finally { if (temporary) await rm(temporary, { recursive: true, force: true }); }

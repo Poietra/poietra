@@ -38,6 +38,6 @@ for (const easing of ['preset', 'custom']) for (const count of [10, 100, 500]) {
     if (round % 2) { preparedTimes.push(run(program.evaluate)); originalTimes.push(run(old)); }
     else { originalTimes.push(run(old)); preparedTimes.push(run(program.evaluate)); }
   }
-  results.push({ easing, objects: count, prepareMs: median(preparations), originalMsPerFrame: median(originalTimes), moonbitMsPerFrame: median(preparedTimes), speedup: median(originalTimes) / median(preparedTimes) });
+  results.push({ easing, objects: count, prepareMs: median(preparations), originalMsPerFrame: median(originalTimes), moonbitMsPerFrame: median(preparedTimes), speedup: median(originalTimes) / median(preparedTimes), samples: { prepareMs: preparations, originalMsPerFrame: originalTimes, moonbitMsPerFrame: preparedTimes } });
 }
 console.log(JSON.stringify({ runtime: process.version, platform: `${process.platform}/${process.arch}`, measurement: 'CPU scene evaluation only; excludes rendering, encoding and browser display', iterations: '7 alternating batches × 240 frames after warmup', results, checksum }, null, 2));

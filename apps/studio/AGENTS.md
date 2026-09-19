@@ -1,263 +1,118 @@
-# Poietra — 開発方針と意思決定
-
-> 2026-09-19: このディレクトリは公開 `poietra-hackathon` から移行したアプリです。
-> 発案者の 2026-09-18 の依頼により、現在は全体を MoonBit へ書き直しています。
-> 現在の構成と実行・検証方法は [ルートの方針](../../AGENTS.md) と [README](../../README.md) に従います。
-> 以下の Rust / TypeScript 採用・配置先の記述は元アプリの経緯です。この移行版は本番へ配置していません。
-
-- 最終更新: 2026-09-16
-- 適用範囲: このリポジトリ全体
-
-この文書は、Poietra の現在の方針、その判断理由、未決定事項をまとめたものです。
-2026-09-15 の発案者との対話をもとに整理しています。
-決定事項、技術候補、将来の構想を区別して読み、未決定事項を既存の合意として扱わないでください。
-
-## 目指す体験
-
-Poietra は、友人同士がブラウザ上で同じ動画を同時編集し、AI の編集支援も受けながら、美しい動画を一緒に作れる軽量な動画編集環境を目指します。
-
-オブジェクトごとの表示期間、見た目、動きなどを編集可能な構造として保持し、人間が細部まで意図を反映できることを重視します。
-編集エンジンはヘッドレスなコアとして分離し、その上に美しく使いやすい UI を提供します。
-
-OpenAI 主催の 1 日のハッカソンで使うプロジェクトです。
-最優先は UI の美しさと、制作上の重要な課題に効く機能です。
-短い時間で実際に触れる体験を成立させることを重視します。
-
-## 判断の背景
-
-### 友人同士の制作で、共有と依存管理が負担だった
-
-発案者は AviUtl を使っていたころ、友人と共同制作するためにファイルごと共有し、支援するツールチェーンがないまま依存関係を管理していました。
-その経験を強い負担として捉えています。
-After Effects や manim でも、友人同士で同じ制作物を共同編集することが難しいと感じています。
-
-この経験が、ブラウザで参加でき、同じ制作物を一緒に触れる環境を求める理由です。
-編集状態の同期に加えて、共同制作者が同じ素材や実行環境を扱えることも課題として意識します。
-素材の共有方法や依存関係の扱いは、今後決める必要があります。
-
-発案者は Adobe の公式資料で競合に関する説明を読んだと述べています。
-今回確認した [After Effects の Team Projects 公式ガイド](https://helpx.adobe.com/uk/after-effects/desktop/collaboration-with-others/team-projects/collaborate-using-team-projects.html) は、変更を公開し、共同制作者が同期する手順を説明しています。
-「競合しやすい」という発生頻度や、発案者が読んだ記述そのものは今回確認できていません。
-製品比較で使う場合は、対象の資料・バージョン・操作条件を改めて確認します。
-
-### 作り手の意図を保ちながら AI の恩恵を受けたい
-
-発案者には、AI が動画そのものを生成することへの、クリエイターとしての抵抗があります。
-同時に、AI に制作を手伝ってもらう価値は感じています。
-欲しいのは、After Effects のようにオブジェクトごとに表示期間やプロパティがあり、人間が編集できる構造を持った動画編集ソフトと、そこに組み込まれた AI です。
-
-AI には、編集ソフトを操作する共同制作者のように、その構造を操作してもらいます。
-この意味で「computer use 的な発想」です。
-AI が触った後も、人間が意図した箇所を編集できることが重要です。
-例えば、特定の文字の位置や、ある動きの開始時刻だけを変更できる体験を求めています。
-
-AI の具体的な操作経路、モデル、入力 UI は未決定です。
-GUI 操作や編集用 API など、どの方法でこの役割を実現するかは別途決めます。
-
-## 決定事項
-
-以下は 2026-09-15 時点で確認できた方針です。
-採用方針と、実装・検証が完了していることは区別します。
-
-| 項目 | 方針 | 理由・適用範囲 |
-| --- | --- | --- |
-| 共同編集 | 複数人が同じ動画を同時に編集できることを必須にする。 | ファイルの受け渡しや共同制作の負担が出発点。具体的な人数・同期する操作は未決定。 |
-| 編集対象 | オブジェクト、表示期間、プロパティ、動きなどを編集可能な構造として扱う。 | 意図した箇所を部分編集でき、AI の操作後も人間が制作を続けられるようにする。保存形式は未決定。 |
-| AI の役割 | 構造化された編集対象を操作する制作支援を組み込む。 | 作り手が細部を制御しながら AI の恩恵を受けたい。人間の共同編集と AI の実行が共存する体験を目指す。 |
-| コアと UI | ヘッドレスなコアを残し、編集 UI と責務を分ける。 | UI と独立して動画を扱えるエンジンという構想を維持する。美しい UI の提供と両立させる。 |
-| 編集 UI | 発案者が提供した 2 枚の画面を UI の基準とする。 | 編集体験の具体像として提示されたため（2026-09-15 確認）。構成は「UI の基準」を参照。 |
-| 個別アニメーション | Transition 内でオブジェクトごとにアニメーションを組めるようにする。 | 個々の動きを調整できることが、提供された Transition 編集画面とともに明示されたため（2026-09-15 確認）。 |
-| ブラウザ実行 | WebAssembly を使う方針とする。 | ブラウザで利用するコアを実現するため。実装言語とホスト側との具体的な分担は未決定。 |
-| 基本表現 | manim の表現を参考にする。 | 発案者は manim の基本的な表現を好んでいる。具体的に対応する表現や操作は未決定。 |
-| 整列 | オブジェクトを整列する機能を求める。 | 空間的な配置を制作上重要とするため（2026-09-15 確認）。整列を常時維持するか、1 日で対応する範囲は未決定。 |
-| 連結中の移動 | 連結した図形の片方を選んでドラッグしても、連結した図形が一緒に移動する。 | 図形間の相対的な配置を保って動かしたいという操作上の希望（2026-09-15 確認）。実装方式、回転・サイズ変更・個別アニメーション時の挙動は未決定。 |
-| シェーダー | まずエフェクトとして利用できる範囲を目指す。 | 美しい動画表現のため。ユーザーによる持ち込みは将来構想とし、1 日の実装範囲から外す。 |
-| 動画書き出し | ブラウザで WebCodecs を使って動画をエンコードする方針とする。 | ブラウザで制作から出力まで行いたい。出力形式や対象環境は未決定。 |
-
-動画の実体をソースコードにすることは必須ではありません。
-「プログラマブルに扱えること」と、保存・共同編集するデータの形式は分けて検討します。
-
-WebCodecs は音声・映像などのエンコード／デコードを扱う API です。
-Scene からフレームを描画する処理と、エンコード結果を MP4 や WebM などのコンテナにまとめる処理は、別に設計する必要があります。
-描画方式、コーデック、コンテナ、対象ブラウザはまだ決まっていません。
-この区別は [WebCodecs 仕様](https://www.w3.org/TR/webcodecs/) と [Chrome の公式解説](https://developer.chrome.com/docs/web-platform/best-practices/webcodecs) に基づく技術上の補足です。
-
-## UI の基準
-
-2026-09-15 に発案者から提供された、以下の 2 枚を参照します。
-構造化された編集対象と個別アニメーションをどう操作するか、その具体像を共有するための基準です。
-このリポジトリでの実装・動作検証が完了していることを示すものではありません。
-
-- [全体編集画面](docs/assets/ui-editor-reference.png): ダークテーマ。左にプロジェクト・Scene・レイヤー階層、上部に Scene タブ、中央にキャンバスとツール、右に選択対象のプロパティ、下部に Composition と Transition を並べる。位置・サイズ・外観・塗り・線などを編集する構成。
-- [Transition 編集画面](docs/assets/ui-transition-reference.png): 遷移元・遷移先の Composition を左右に表示し、プレビューとオブジェクト別のアニメーショントラックを持つ。右側でアニメーションの種類・順序・開始時刻・継続時間・イージングなどを調整する。画面例では Circle の Move と Equation の Write に別々の時間範囲を設定している。
-
-画像中の数式・オブジェクト・時間の値は画面例です。対応する表現の全範囲やデモの固定仕様とはしません。
-
-画面の時間表示、状態変更の影響範囲、移動経路の意味を明確にするため、2026-09-15 に以下を確認しました。
-
-- **Composition と Transition**: Composition は配置や見た目を決めた静止状態を表し、その継続時間はその状態を保つ長さとする。Composition 間の変化は Transition 内の個別アニメーションで組む。
-- **オブジェクトの識別と状態**: 同じオブジェクトの識別は Scene 全体で共通にし、遷移前後でも対応する。位置・色・大きさなどの状態は Composition ごとに持ち、ある Composition での状態変更は他の Composition の状態には反映しない。
-- **移動パス**: ベジェ曲線で描く方針とする。
-
-Composition・Transition の具体的な保存形式や、ベジェ曲線の編集操作の詳細は未決定です。
-
-ロゴは `studio-lab` の既存 SVG を再利用します。
-同リポジトリの `src/studio/poietra-brand.tsx` が使用している `src/assets/poietra-symbol-05b.svg` を確認し、[参照用 SVG](docs/assets/poietra-symbol-05b.svg) として内容を変えずに保存しています（2026-09-15）。
-
-## 1 日のハッカソンで成立させたい範囲
-
-次の体験が完成目標です。
-デモに使う動画や操作、成功条件の数値はまだ決まっていません。
-
-- 複数人がブラウザで同じ制作物に参加し、一緒に編集できる。
-- 人間が共同編集している制作物に対して、AI の編集支援も実行できる。
-- オブジェクトや動きの必要な部分を、人間が意図どおり調整できる。
-- 共同制作した美しい動画をプレビューでき、動画として書き出せる。
-- 美しく使いやすい UI を通じて、この制作体験をデモできる。
-
-### 今回の対象外
-
-- 決済機能。
-- テナント管理。
-- 複雑な権限管理。
-- ユーザーによるシェーダーの持ち込みや、そのための拡張機構。
-
-参加方法や最低限のアクセス制御は未決定です。
-「複雑な権限管理は不要」という方針だけで、その具体的な仕様まで決まったものとしないでください。
-
-## 実装開始時の判断（2026-09-15）
-
-15:00 JST までにデモできる体験を成立させるため、以下の構成で実装を開始しました。実装済みと検証済みの範囲は README と実際のチェック結果で区別します。
-
-- UI は React・TypeScript・Vite、同期は Yjs と WebSocket を使う。オブジェクトの各プロパティを別々に更新し、人と AI が同じ編集対象を扱えるようにする。
-- ブラウザでの動きの数値計算は Rust の WASM とし、型付きの編集データと時刻からフレームを評価する処理を UI から分離する。利用できる Rust ツールチェーンで直ちにビルドでき、短時間で実行・検証できることを優先した。
-- AI は OpenAI Responses API で構造化された編集案を返し、人間が適用する。API キーはサーバー側に置く。2026-09-15 に共有環境で実 API の提案、共同編集への適用、他者の変更を残した Undo を確認した。
-- 別の PC からも共同編集に参加できる共有 URL を用意する（発案者が確認）。
-- 共有環境は Cloudflare Workers に配置し、画面・WASM・フォントを Static Assets、API を Worker、Yjs の同期と保存を部屋ごとの SQLite Durable Object で扱う。開発 PC の起動に依存せず、別の PC から同じリンクで参加できる構成を優先した（2026-09-15）。Node.js サーバーはローカル開発用に残す。
-- 配置先は Yumaboda の Cloudflare アカウントとする（2026-09-15、発案者の指定）。`wrangler.jsonc` の `account_id` をこのアカウントに固定する。
-- 公開 URL は `https://poietra.com` とする（2026-09-16、発案者の指定）。同じアカウントの既存ドメインを、既存 Worker の Custom Domain に接続する。旧共有リンクと未同期のブラウザ内データへのアクセスを保つため `workers_dev: true` を維持し、部屋と素材の保存先は共用する。
-- 参加は推測困難なルーム ID を含む共有リンクを使う。リンクを知っている人は編集できる。選択・カーソルは在室者の表示に使い、再生位置は各ブラウザで独立させる。変更はプロパティ単位で同期し、取り消しは自分の操作を対象にする。
-- Furukawa（GitHub: `furukawa1020`）に描画・数式 Write・WebCodecs 書き出しを分担する。UI・同期との並行作業を可能にするため、`src/engine/render-contract.ts` に呼び出し口を固定する。担当範囲と完了条件は GitHub Issue に記載する。
-- Furukawa の WebGL2 Glow と共通 Canvas 描画を PR #4 で統合した（2026-09-15）。既存の `effect: 'none' | 'glow'` と `src/engine/painter-contract.ts` を使い、GPU非対応時はSVGとCanvas2Dへ戻る。MP4/WebMの保存・復号、中断と資源解放を検証した。UIへの接続は Hosi121 / Codex が担当し、次の独立作業として数式Writeの描画速度改善を Issue #5 でFurukawaに割り当てた。
-
-- AI Assist を部屋全体の共有チャットに変更する（2026-09-15、発案者の指定）。人間同士が会話し、`@codex` を付けた発言から AI の編集支援を呼ぶ。返答・編集案・適用状況も共有し、チャット履歴は動画の編集 Undo と保存用プロジェクトデータから分離する。
-- チャットの待機表示と会話中の余白を改善したいという要望を受け、導入見出し・説明は空の会話だけに表示する（2026-09-17）。AI の待機状態は依頼ごとに共同制作者にも表示し、停止は実行中のブラウザだけに許可する。履歴を読んでいる位置を新着で動かさず、明示的な末尾への移動を用意する。待機の動きはパネル非表示・画面外・動きを減らす設定で止める。
-- AI の編集案が検証で退けられた場合は、その出力と検証エラーを添えて 1 回だけ再生成する（2026-09-15）。API エラー・出力の途中終了・拒否は再生成しない。1 回の呼び出しは 60 秒で SDK の再試行は 1 回、部屋の AI ロックは 180 秒。SDK の Retry-After 待機がロックを超える場合を確認したため、修復と再試行待機を含む処理全体を170秒で中断する（2026-09-15、公開前検証で追記）。処理時間・試行回数・トークン量をログに残す。⌘/Ctrl + Enter で送った `@codex` の依頼は、検証を通れば確認なしに適用し、Undo で戻せる。
-
-- 応答速度のため、Responses API に `reasoning.effort=medium` と `service_tier=fast` を既定で送る（2026-09-15、発案者の指定で low から medium に変更）。モデルや契約が 400 で拒否した場合は同じ依頼内で既定値に戻し、以降のリクエストでは送らない。画像 2 枚は並列に生成する。`OPENAI_REASONING_EFFORT` / `OPENAI_SERVICE_TIER` で変更する。
-- AI が画像を生成して配置できるようにする（2026-09-15、発案者の指定）。モデルが `generateImage` を返した場合、提案を仮の画像で検証・修正してから Images API で生成し、部屋の画像ストアに保存して画像オブジェクトとして提案に組み込む。1 提案 2 枚まで、生成は時間予算内のみ、生成後の画素は編集しない。モデルと品質は `OPENAI_IMAGE_MODEL` / `OPENAI_IMAGE_QUALITY` で指定する。
-- 画像オブジェクトを追加する（2026-09-15、発案者の指定）。PNG・JPEG・WebP をブラウザで静止画像へ整え、画像本体を部屋の Durable Object に保存し、編集データには参照と寸法を保持する。共同制作者が同じ画像を使い、既存の配置・動き・動画出力へ接続するため。保存ファイルには画像を埋め込み、新しい部屋への読み込みでも元の部屋に依存しないようにする。
-- 保存ファイルの読み込みは新しい部屋を作り、既存の共同編集データを置き換えない（2026-09-15、共同制作者の作業を保護するため）。サーバー同期の応答後に新しいリンクを開く。
-- 共同編集の信頼性は、別ブラウザでのオフライン編集・再接続・取り消しに加え、実 workerd の強制休止とプロセス終了後の復元で検証する（2026-09-15）。受信順が前後してまだ適用できない Yjs 更新も保存する必要があることを再現テストで確認した。
-- Composition と Scene の削除は同期データ上に印を残し、表示と保存ファイルに使う構造を計算する（2026-09-15）。別々のブラウザで最後の2つを同時削除しても1つを保持し、取り消しで共同制作者のプロパティ変更を保つため。AI提案はこの構造と対象を適用前に再確認する。
-
-## 音声・動画素材と操作フィードバック（2026-09-16）
-
-- 発案者の「音声・動画素材を入れたい」「音声は別トラック」「操作の Visual Feedback が不足している」という要望を受け、動画はキャンバス上のオブジェクト、音声は Scene 時間を基準にした独立トラックとして扱う。動画内の音声も独立トラックへ分ける。
-- 素材の開始位置・トリミング、音声の音量・ミュートを編集データに保持し、共同編集、保存・読み込み、プレビュー、動画書き出しで共用する。既存の Mediabunny と WebCodecs を使い、端末で音声エンコードできない形式は明示する。
-- 読み込み・波形作成・保存の進捗、素材の波形・サムネイル、選択候補、ロック、ドラッグ中の数値、完了・中止・エラーを画面に表示する。操作の結果と処理待ちを見分けられることを重視する。
-- 素材は部屋の SQLite に分割保存し、音声・動画は 32 MiB/ファイル・128 MiB/部屋、取り込み時は 10 分以内とする。旧プロジェクトはサーバー側で音声トラックの空マップを補い、互換性を維持する。手順と検証範囲は README とテストに記載する。
-
-## 共同編集・描画の耐久性（2026-09-16）
-
-- 発案者から別々の対象を編集しても変更が戻ることと、操作・描画の遅さが報告された。Transition の時間変更が、変えていないオブジェクトの時間まで書き直す競合を再現したため、編集は変更した値だけを同期する。CRDT の収束と、利用者の編集意図を保つことは区別する。
-- カーソルや選択だけの更新で同じ描画を作り直さない。共同編集データ、在室者情報、ローカルの再生時計、描画用素材の寿命を分離する方向で改善し、まず再現テストと限定修正を入れる。具体的な段階と未実装の範囲は README の構成欄にまとめる。
-- 描画方式の変更は、プレビューと動画出力の一致、シーク・中断・素材交換時の資源解放を保ったうえで判断する。ソフトウェア GPU の部品計測を実機の fps として説明しない。
-- 新規作成・開く・保存は左端の Poietra ロゴを入口とする。重複する P ボタンとロゴから開く導入説明を廃止し、キーボードアイコンはショートカット一覧だけを開く（発案者の指定）。
-
-## 属性別アニメーションと任意ログイン（2026-09-16）
-
-- 「移動は 2 秒、フェードは最初の 0.3 秒」のように、同じオブジェクトの属性ごとに開始時刻・長さ・イージングを設定する（発案者の要望）。個別設定がない属性は既存のオブジェクト全体の設定を継承し、既存作品の動きを保つ。プレビューと書き出しは同じ評価器を使う。
-- カスタムイージングを追加する（2026-09-16、発案者の要望）。時間と進行率を結ぶ3次ベジェ曲線を2つの制御点で編集し、既存4種類の文字列形式と計算結果を維持する。制御座標はまず `0〜1` とし、オーバーシュートは対象外。曲線全体を1つの編集値として同期し、共通・属性別の時間設定、保存、AI の編集、プレビューと動画出力で共用する。
-- Google と GitHub の両方で任意ログインに対応する（発案者の指定）。共有 URL からの参加・編集・新規作成はログイン不要のまま維持する。認証サービスへの実接続は OAuth アプリの登録・設定後に検証し、未設定状態と区別する。
-- プロジェクト一覧はログインした本人だけが見られる個人の一覧とし、共同編集するドキュメントとは分けて保存する。一覧から外しても部屋を削除しない。プロジェクトへの参加権限をアカウント所有者だけに制限する変更ではない。
-- 最初は Google と GitHub を別のログインとして扱い、メールアドレスの一致で自動統合しない。複数のログイン方法を同一アカウントに紐づける機能、閲覧専用権限、テナント管理はこの追加の範囲に含めない。
-
-## トップページと編集の入口（2026-09-16）
-
-- `poietra.com/` は、発案者の依頼によりサービスの紹介と制作開始のページにする。`/?room=...` の既存共有リンクとログイン後の復帰は編集画面へ直接接続し、`/studio` からも編集を再開できるようにする。
-- トップページの閲覧だけでは部屋を作成せず、共同編集へ参加しない。編集 UI・WASM・描画・動画処理は編集開始時に読み込む。空の制作物とサンプルは、明示的な操作で新しい部屋へ作成する。
-- 紹介には既存の SVG ロゴと実際の編集画面を使い、提供している共同編集・属性別の時間調整・AI 支援・素材と書き出しの体験を説明する。編集画面の Poietra ロゴは引き続きプロジェクト操作の入口にする。
-- 発案者の英語版・自動言語選択・英語を既定とする要望に対応し、トップページを英日対応にする（2026-09-16）。地域ごとの表示にはブラウザの優先言語を使い、対応言語がなければ英語へ戻す。明示的な URL の `lang=en|ja`、手動で保存した選択、ブラウザの順に優先する。文言・読み上げラベル・エラー・ページの言語情報を一緒に切り替え、言語設定を共同編集データに保存しない。編集画面全体の翻訳は今回のトップページ対応とは分ける。
-- 同日、発案者の見た目に関する要望を受け、ヘッダーの英日切り替えタブを削除する。自動言語選択と URL による指定、以前の言語選択の読み込みは維持する。
-- トップページの表示待ちと SEO・AI 向け配信の不足を受け、英日それぞれの本文をビルド時に HTML・Markdown へ生成する（2026-09-16）。初期表示は URL と Accept-Language で選び、ブラウザ保存済みの言語は操作接続後に反映する。`/ja/` は日本語の明示 URL とし、`lang` 指定を最優先に保つ。公開本文の canonical・hreflang・構造化データ・サイトマップを整備し、共有ルームと編集画面は noindex とする。Cloudflare Free でも動く Markdown 配信を用意し、AI の学習許諾や有料機能を自動変更しない。
-
-## 素材の R2 分離（2026-09-16）
-
-- 発案者の R2 導入依頼を受け、画像（AI 生成を含む）・音声・動画の本体を非公開 R2、編集データと素材の参照・容量管理を従来の部屋の SQLite Durable Object に分離する。転送と multipart 処理を外側の Worker で行い、部屋では短い RPC とトランザクションで公開を確定する。
-- 既存の素材 URL と部屋単位の重複排除・容量上限を維持する。物理キーは部屋内の一意な UUID とし、競合したアップロードや中断の後始末で他者の確定済み素材を消さない。未公開キーの期限切れは alarm、クラッシュで残った未完了 multipart は R2 の 1 日ライフサイクルで回収する。
-- 旧素材は従来の SQLite から読み出しながら R2 にコピーし、ハッシュとサイズの一致後に参照を切り替える。初回の移行では旧素材を削除せず、読み出し時の代替経路を残す。全素材の一括移行や容量上限の引き上げは今回の変更に含めない。
-
-## 技術候補と着想
-
-以下は設計段階の候補と着想です。実装開始時の採用判断は上記に従います。
-
-| 候補・着想 | 検討している理由 | まだ決まっていないこと |
-| --- | --- | --- |
-| MoonBit | WASM を使うため、コアの実装言語として検討している。 | Poietra に必要な機能の実装方法、使うライブラリ、採用判断。 |
-| Rust | 元のメモにあった実装言語の候補。 | MoonBit との比較結果や役割分担。併用するかどうかも未決定。 |
-| CRDT、MoonBit の CRDT 関連実装 | 同時編集の実現方法として関心がある。 | CRDT が必要か、適用するデータ、使う実装。発案者自身も理解を深めながら判断する段階。 |
-| 宣言的 UI・宣言的な記述 | 発案者が関心を持つ設計上の着想。 | UI フレームワークや動画の記述形式への具体的な採用。 |
-
-旧メモには Remotion の React ベースの計算・表現に対する懸念もあります。
-具体的に扱いづらい操作や計算の例はまだ説明されておらず、検証済みの技術的制約や採用不可の決定として扱わないでください。
-manim を参考にすることも、manim 自体の採用や互換性の約束を意味するものではありません。
-
-## 未決定事項
-
-発案者から追加の説明が出ていない部分は、現時点では意思決定できていないものとして扱います。
-以下は、次に具体化すべき論点です。
-
-1. **最初に成立させる編集操作と動画の例**
-   最初に何を一緒に作るか。対応するオブジェクト、表示期間の調整、動き、エフェクト、数式・音声・素材の必要範囲。
-2. **編集データと時間のモデル**
-   静止状態を保つ Composition、変化を組む Transition、Scene 共通のオブジェクト識別と Composition ごとの状態という方針は確認済み。具体的なスキーマ、個別アニメーションとベジェ移動パスのデータ表現、時刻からの状態評価、コードを扱う場合の位置づけは未決定。
-3. **共同編集の単位と競合時の動作**
-   何を同期するか。同じ対象を人間同士または人間と AI が変更したとき、削除したとき、操作を取り消したときの結果。再生位置や選択状態を共有する範囲。
-4. **AI の操作方法と編集への反映**
-   AI に何を頼めるか、どの構造・操作を公開するか、結果をどう適用するか。GUI 操作か API か、モデルや入力 UI も含む。
-5. **参加・保存・素材共有**
-   共同制作者の参加方法、保存先、再接続時の扱い、素材・フォント・エフェクトなどの依存関係を共有する方法。バックエンドも未選定。
-6. **描画・書き出しの具体化**
-   WASM とブラウザ側の分担、描画方式、シェーダーの扱い、WebCodecs のコーデック、コンテナ形式、対象ブラウザ。
-7. **1 日での完成条件**
-   開発人数と分担、デモ参加人数、動画の長さ・解像度・フレームレート、許容する同期遅延、最小限のデモ手順。
-
-## 応募文との関係と方針の整理
-
-[応募文の原文](docs/hackathon-application.md) は、主催者が読んで採択した当時の記録として保存しています。
-急いで書かれた説明であり、現在の詳細仕様はこの文書の決定事項に従います。
-
-2026-09-15 の対話で、以下のように位置づけを整理しました。
-
-- 共同編集を求める背景として、AviUtl でのファイル共有と依存管理の原体験が明らかになった。
-- AI による支援は、作り手が編集可能な構造を保ち、その構造を操作してもらう体験として具体化した。
-- ヘッドレスなコアと WASM の方針は維持する。
-- 応募文の「動画を、生成物からプログラムへ」は、編集・操作できる構造を持つという方向性として引き継ぐ。動画の実体をソースコードに限定する条件にはしない。
-- 応募文にある決定的な時間評価、コード入力、数式動画、大量生成などの具体的な設計・利用例は、今回の必須機能として確定していない。
-- シェーダーは初期にはエフェクトとして扱い、ユーザーによる持ち込みは将来に回す。
-
-## ハッカソンの評価基準
-
-以下は元のメモに記載されていた評価基準です。
-
-| 配点 | 評価項目 | 内容 |
-| --- | --- | --- |
-| 25% | Codex の効果的な活用 | コード生成、試行、デバッグ、改善まで、開発プロセスの中で効果的に活用できているか。 |
-| 25% | 実社会へのインパクト | 誰のどんな課題を解くのかが明確で、実用につながる説得力があるか。 |
-| 25% | 再利用・展開可能性 | イベント後の継続利用や、他のユーザー・場面への展開が見込めるか。 |
-| 25% | デモとピッチ | 何を作り、なぜ重要なのか、Codex をどう活用したのかを明確に伝えられているか。 |
-
-技術力を示すことへの期待もありますが、実装を複雑にすること自体を目的にしません。
-開発に Codex を活用することと、プロダクト内で提供する AI の編集支援は、それぞれ説明できるようにします。
-
-## 開発と記録の進め方
-
-- 2026-09-15 に実装を開始しました。実装途中・未検証の機能を、動作検証済みとして記述しないでください。セットアップと検証の手順は README に記載します。
-- 文書は必要最小限に保ち、まず既存の文書を更新してください。議論や調査のたびに docs や ADR を増やさないでください。Codex が読む量と時間を抑えるためです（2026-09-15 決定）。
-- ADR を作る場合は、決まったこととその理由だけを簡潔に記録してください。未決定の案、議論の途中経過、網羅的な調査ログは ADR に蓄積しないでください。
-- 新しい判断には、日付、決定内容、そのきっかけになった課題・経験・制約を添えてください。検証結果や後回しにした項目は、決定の理解に必要な要点に絞ってください。
-- 方針を変えるときは、何が変わって見直したのかを追記してください。過去の経緯は応募資料と Git の履歴で追えるようにしてください。
-- 作業に必要な文書だけを読んでください。応募資料や過去の履歴は、経緯の確認が必要になったときに参照してください。
-- Codex の開発上の利用は、試行・デバッグ・改善も含め、ピッチで説明するための要点に絞って記録してください。
-- 実装を追加した段階で、実際に使うセットアップ・実行・検証の手順を追記してください。
+# Poietra Studio — product and runtime rules
+
+Updated 2026-09-19. Applies to `apps/studio`; also follow the
+[root rules](../../AGENTS.md). The current implementation, setup, checks and
+measurements are in the [root README](../../README.md) and
+[studio guide](README.md). Earlier Rust/TypeScript implementation decisions are
+history in Git, not instructions to reintroduce that architecture.
+
+## Product intent
+
+Poietra lets friends make beautiful motion together in the browser, with an AI
+collaborator that edits the same structured objects. Preserve the creator's
+control over individual positions, appearances and timings. Keep the engine usable
+without the UI. UI quality and a usable end-to-end creative workflow matter more
+than architectural complexity.
+
+The original motivation was the difficulty of sharing project files and managing
+media/dependencies while collaborating. Do not reduce collaboration to exchanging
+files or flatten AI edits into an uneditable generated video.
+
+## Document and animation semantics
+
+- Scene owns object identities. Composition owns each object's independent state
+  and its hold duration. Transition owns the animation between neighboring states.
+  Editing one Composition must not modify another's state.
+- Object-level timing is the fallback for optional per-property timing. Preserve
+  old projects' motion when adding timing features. Custom easing is a cubic
+  Bézier with control coordinates in `0..1`; spatial Bézier paths are separate.
+- Preview and export use the same time evaluation. Export captures its project at
+  start so concurrent edits cannot change an in-progress output.
+- Moving a grouped member moves its visible, unlocked peers. Preserve group
+  behavior and local gesture Undo. Canceling a gesture must preserve earlier work
+  and peer edits.
+- Structural deletion uses retained CRDT data and an effective document view.
+  Concurrent deletion must leave at least one usable Scene/Composition. Undo
+  must preserve collaborators' changes to newly created or restored structures.
+
+## Collaboration and persistence
+
+- An unguessable shared room link grants editing access. Guest participation,
+  project creation and editing remain available without login.
+- Sync property-level edits through Yjs. Never rewrite untouched values while
+  resizing a Transition or changing another property. CRDT convergence alone
+  does not prove the user's edit intent was preserved.
+- Playback time is local. Selection/cursors are presence; presence and chat changes
+  must not rebuild unchanged scene playback or redraw unchanged content.
+- Undo targets local edits, including the existing selective preservation rules.
+  Test offline/reconnect, independent edits and nested/observer transactions.
+- Persist unresolved Yjs dependencies as well as visible changes. Keep actual
+  workerd hibernation, compaction, forced process restart and journal recovery tests.
+- Opening a portable project creates a fresh room, waits for server acknowledgment
+  and keeps the existing collaboration intact. Include media bytes in saved files;
+  exclude chat and account data.
+
+## AI and accounts
+
+- Shared Chat is the human conversation; `@codex` requests structured AI edits.
+  The requester applies a validated proposal, or Ctrl/⌘+Enter requests automatic
+  application after validation. Recheck targets, locks and guards at application.
+- Share pending/reply/application status. Only the requesting browser can stop its
+  request. Preserve the reader's scroll position; pause decorative motion when
+  hidden or reduced motion is requested.
+- Repair a validation-rejected proposal once. Do not repair transport failures,
+  refusal or incomplete output. Text, repair, image generation and image storage
+  share the 170 s total deadline; the room lock is 180 s. Old requests cannot
+  release a successor's lock. Failed parallel image work cancels its siblings.
+- Generate at most two images per proposal. Validate placeholder edits before
+  generation; publish stored image references afterward. Images remain objects
+  with editable transforms; pixel editing is outside scope.
+- API credentials stay on the server. Automated provider simulations must not be
+  described as paid API or live OAuth verification.
+- Google and GitHub logins are optional, independent identities. Do not merge by
+  email. Private project lists and sessions are separate from rooms; removing a
+  list entry does not delete the room or restrict shared-link access.
+
+## Media and hosts
+
+- Video is a canvas object; audio is a separate Scene-time track. Extract video
+  audio into its own track. Preserve trims, gain/mute, waveform feedback and
+  matching preview/export behavior.
+- Keep published file/room limits, deduplication and portable-file compatibility.
+  For Worker storage, put bytes in private R2 and references/quotas in SQLite DOs.
+  Publish references atomically only after upload completion. An interrupted
+  upload's cleanup must not delete another upload's committed object.
+- Keep the legacy SQLite read path during R2 migration; verify hash and size
+  before switching the reference and preserve the original bytes.
+- Own render/decode/encode resources through failure, cancellation and Scene
+  changes. Preserve WebGL2 Glow with SVG/Canvas2D fallback and export decoding tests.
+- Local Node and workerd are separate validation hosts. The copied Worker account
+  ID and SEO origin do not authorize changing the original production service.
+
+## UI and scope
+
+- Keep the established dark editor layout, logo/project menu, Scene tabs, canvas,
+  properties, Composition/Transition timeline and per-object animation tracks.
+  [Editor reference](docs/assets/ui-editor-reference.png) and
+  [Transition reference](docs/assets/ui-transition-reference.png) record the design
+  baseline. Reuse the [original SVG logo](docs/assets/poietra-symbol-05b.svg).
+- The Poietra logo opens project operations; the keyboard icon opens shortcuts.
+  Show progress, completion, cancellation and errors for asynchronous operations.
+- Homepage visits must not create a room or load the editor/media engine. Keep
+  English/Japanese prerendering, language negotiation, Markdown and lazy entry.
+  Shared rooms/editor pages are noindex; that is not access control.
+- Billing, tenant administration, complex permissions and user-supplied shaders
+  are outside the agreed scope. Do not treat examples in the original
+  [hackathon application](docs/hackathon-application.md) as additional requirements.
+
+## Decision history
+
+- 2026-09-15: Composition/Transition semantics, shared links, Yjs, structured AI,
+  browser export and the initial Cloudflare/Node host split were established.
+- 2026-09-16–17: Media tracks, property timing, optional accounts, localized public
+  pages, R2 storage and shared chat feedback were added to address creator needs.
+- 2026-09-18: The founder requested the full MoonBit rewrite and substantial
+  performance/reliability improvements while preserving those behaviors.
+- 2026-09-19: Documentation was consolidated after completion and remeasurement;
+  historical implementation choices and unfulfilled investigation notes no longer
+  describe the current architecture. Keep future decisions concise and dated.

@@ -40,7 +40,7 @@ for (const count of [100, 500]) {
     if (i % 2) { after.push(measure(newTarget, readMoonbit)); before.push(measure(oldTarget, readLegacy)); }
     else { before.push(measure(oldTarget, readLegacy)); after.push(measure(newTarget, readMoonbit)); }
   }
-  results.push({ scenes: 3, compositionsPerScene: 5, objectsPerScene: count, originalMsPerEditAndRead: median(before), moonbitMsPerEditAndRead: median(after), speedup: median(before) / median(after) });
+  results.push({ scenes: 3, compositionsPerScene: 5, objectsPerScene: count, originalMsPerEditAndRead: median(before), moonbitMsPerEditAndRead: median(after), speedup: median(before) / median(after), samples: { originalMsPerEditAndRead: before, moonbitMsPerEditAndRead: after } });
   legacy.destroy(); moonbit.destroy();
 }
-console.log(JSON.stringify({ scope: 'One Yjs leaf edit and a complete project snapshot; excludes UI/rendering/network', results, checksum }, null, 2));
+console.log(JSON.stringify({ scope: 'One Yjs leaf edit and a complete project snapshot; excludes UI/rendering/network', iterations: '7 alternating batches × 50 edits after warmup', results, checksum }, null, 2));

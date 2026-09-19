@@ -1,402 +1,360 @@
 # Poietra
 
-MoonBit rewrite of [Poietra's collaborative browser motion editor](https://github.com/Poietra/poietra-hackathon).
+**Make motion together, with friends and AI.**
 
-Application logic is implemented in typed MoonBit: the editor UI, document model,
-collaboration, animation evaluation, rendering, media processing, export, AI,
-authentication, asset storage and Worker/Node servers. The numeric motion kernel
-compiles to WebAssembly; browser and server integrations use the JavaScript target.
+Poietra is a collaborative motion editor that runs in the browser. Arrange shapes,
+text, equations, images and video; animate their properties; mix audio; and export
+MP4 or WebM. Everyone edits the same structured project, including the AI assistant.
+Its changes remain editable and can be undone.
 
-JavaScript/TypeScript files retain native imports, runtime registration, package
-bindings and declarations. React, Yjs, OpenAI, MathJax and Mediabunny remain host
-libraries. The original regression tests and pinned comparison oracles are retained;
-the running application does not require Rust. This repository has not been deployed
-to the existing production domain.
+![Poietra's studio, with a canvas, timeline, properties and shared chat](apps/studio/docs/assets/studio.png)
+
+[日本語の使い方・設定](apps/studio/README.md) · [Performance](#performance) ·
+[Checks](#checks) · [Issues](https://github.com/Poietra/poietra/issues)
+
+This is the **MoonBit implementation** of the original
+[Poietra hackathon application](https://github.com/Poietra/poietra-hackathon).
+Application logic—including the UI, collaboration, rendering, media, AI and
+servers—is written in typed MoonBit. The numerical motion kernel targets
+WebAssembly; browser and server packages target JavaScript. Native adapters retain
+React/Base UI, Yjs, MathJax, Mediabunny, OpenAI and platform APIs. Rust is needed
+only to rebuild the historical comparison oracle, not to run or build this app.
+
+The rewrite is verified locally and in CI. **It has not been deployed to
+poietra.com**; that domain belongs to the original service.
+
+## What you can make
+
+- Share a room link and edit together, with presence, offline reconnection and
+  Undo scoped to your own edits.
+- Compose circles, rectangles, text, LaTeX, Bézier paths, arrows, number lines,
+  images and video. Align or group objects and edit their geometry.
+- Set a separate start, duration and easing for position, opacity and other
+  properties. Use Move, Write, Fade, Grow and Cut, including custom Bézier easing.
+- Import audio/video, trim clips, adjust volume and preview the same timeline
+  used for export. Save a portable project file with its media embedded.
+- Ask `@codex` in shared chat for structured edits or generated image assets.
+  Apply a proposal manually or send with Ctrl/⌘+Enter to apply after validation.
+- Optionally sign in with Google or GitHub to keep a private project list.
+  Guest editing through a shared link still works.
+
+A **Scene** owns the canvas and object identities. A **Composition** is a still
+state with a hold duration. A **Transition** animates between adjacent
+Compositions; changing a state in one Composition does not change another.
 
 ## Run locally
 
-Requires Node.js 24+, pnpm 10.23.0, Python 3.12+, and MoonBit v0.10.13 (the compiler
-used here is `moonc v0.10.13+cbb11c36f`, released 2026-09-15).
+Use Node.js **24+** (tested: 24.13.0), pnpm **10.23.0**, Python **3.12+** for
+adapter generation, and the exact MoonBit version in [.moon-version](.moon-version)
+(`moonc v0.10.13+cbb11c36f`).
 
 ```sh
+git clone https://github.com/Poietra/poietra.git
+cd poietra
 pnpm install --frozen-lockfile
+
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
 bash /tmp/install-moonbit.sh "$(cat .moon-version)"
-moon update
+export PATH="$HOME/.moon/bin:$PATH"
+node scripts/moon.mjs update
+
 pnpm dev
 ```
 
-Open `http://localhost:5173`. AI and OAuth require your own local configuration;
-the repository contains no credentials. `POIETRA_MOON` can select a particular
-MoonBit executable. Local tooling under `.tools/moon` is also detected.
+Open **http://localhost:5173**. Editing, collaboration, media and export work
+without an API key. Optional AI/OAuth settings belong in `apps/studio/.env`;
+see the [configuration guide](apps/studio/README.md#設定).
+The Node host saves data under `apps/studio/.data` by default.
 
 ```sh
-pnpm test       # builds MoonBit JS/WASM, then runs the original regression suite
-pnpm build     # typecheck, production assets, English/Japanese prerendering
-node scripts/moon.mjs check --target js
+pnpm build                     # MoonBit JS/WASM, types, Vite, localized HTML/Markdown
+pnpm --dir apps/studio start    # serve the production build locally
+pnpm test                      # build MoonBit, then run regression/differential tests
+pnpm typecheck
+node scripts/moon.mjs check --target js --deny-warn
 ```
 
-## Layout and migration
+`node scripts/moon.mjs` selects `POIETRA_MOON`, then `.tools/moon/bin/moon`, then
+`moon` on PATH. Rebuild with `pnpm build:moonbit` after editing `.mbt` files;
+Vite's native source watching does not compile MoonBit.
 
-- `moonbit/motion`: pure numerical kernel, compiled to JS and WebAssembly.
-- `moonbit/scene`: typed document, defaults, easing/timing validation, structural
-  projection, timelines and frame evaluation; no JS types. Timeline queries pass
-  only structural metadata and media endpoints, not object state payloads.
-- Playback compiles an owned snapshot into `Hold` / `Change` programs. Preparation
-  resolves implicit tracks, matches objects, sorts layers and parses colors once.
-  Seeking uses binary search; preview and export share this same evaluator.
-  Object/animation/effect kinds are enums, not arbitrary strings in the core.
-- `moonbit/samples`: immutable scene builders for the blank canvas and both editable
-  examples. Every state, track and metadata field matches the original examples.
-- `moonbit/geometry`: selection, rotation and constrained corner resizing.
-- `moonbit/render`: typed shape geometry, exact cubic bounds, text/equation Write,
-  and self-contained SVG generation. Prepared MathJax trees are decoded once per
-  resource lifetime. The pure renderer receives explicit font/image resources.
-- `moonbit/browser_render`: font subset selection/loading and measurements,
-  MathJax conversion, Canvas paths/glyphs/text atlases, SVG image decoding,
-  and atomic frame publication. Raster cache keys compare typed
-  appearance without serializing embedded images; pending replacements lease their
-  text masks, and invalidated requests cannot resurrect cleared entries.
-  Atlas allocation is bounded before integer conversion; each text line is measured
-  once for all masks. Native Canvas state and image URLs are released on failure,
-  cancellation and disposal. Concurrent requests share
-  preparation; failed font/chunk loads remain retryable. Host failures preserve
-  the JavaScript `Error` contract across the async boundary.
-- Glow uses a typed, pure render program validated against device limits before
-  allocation. The browser driver owns textures, framebuffers and programs; partial
-  initialization releases every acquired handle. Lost GPU contexts fall back to SVG.
-- `moonbit/browser_media`: bounded asset downloads, retryable shared image loads,
-  and serialized video decoders with explicit ownership during track discovery.
-  Inactive decoders are released on Scene changes, including Scenes without video.
-  Native `JsMap` bindings avoid rehashing large embedded sources in MoonBit; inline
-  image validation has a bounded memo. The actual codecs remain Mediabunny/WebCodecs.
-  Import owns each decoder and waveform iterator, probes only 32 container bytes,
-  and scans native Float32 audio channels directly. Cancellation and synchronous
-  host failures release acquired inputs; upload handlers are detached on completion.
-  Image normalization releases its canvas and object URL even when encoding fails.
-- `moonbit/audio`: pure planar PCM mixing with shared stereo phase calculations.
-  The browser mixer owns one decoded packet per track, shares each source input,
-  serializes chunk requests, and releases partial preparation on failure or abort.
-  Differential tests compare Float32 bits with the original at 16/44.1/48 kHz,
-  including packet gaps, trims, overlaps and one-hour timeline positions.
-- `moonbit/exporting` and `moonbit/browser_export`: validated frame schedules,
-  captured project timelines, codec probes and owned encoder sessions. Preparation
-  can be canceled promptly; in-flight encoding/finalization settles before cleanup.
-  Native failures retain their cause, and cleanup failures cannot suppress it.
-- `moonbit/editor`: typed connection/persistence states, operation feedback,
-  group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
-  before writing; existing tracks change only intended leaves. A delayed
-  completion cannot clear a newer gesture or another Scene.
-  File decoding strips unknown fields and checks references before import.
-  UTF-8 size checks use a bounded scratch buffer; clipboard operations read only
-  selected payloads and destination metadata, preserving unrelated shared states.
-- `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
-  controls, Scene tabs, project/export dialogs, project preview, easing editor, playback information and status displays retain the existing CSS and accessible Base UI
-  primitives. Canvas/video previews serialize work and retain one pending frame;
-  lifetime checks prevent publication after switching views. Audio playback owns
-  its timer, scheduled nodes and decoder together. Stable typed track identities
-  replace per-tick JSON serialization, and waveform-only changes do not restart audio.
-  Canvas gestures use typed modes and own their Undo entry; cancellation preserves
-  earlier edits and peer changes. Hit testing uses the published painted frame.
-  Ruler presses seek precisely even when the wide moving playhead overlaps them.
-  Global keyboard/clipboard handlers keep stable subscriptions and read current
-  state. Typed shortcut actions preserve IME/text selection and one-gesture nudge
-  Undo. Asset paste checks its destination again after asynchronous transfers.
-  Imports own their progress, cancellation and target. Mixed image/audio/video
-  batches prepare every asset and validate all limits before one shared command,
-  so failures leave no partial document edits and one Undo restores the batch.
-  The studio controller uses typed selections, cursor modes and stopped/preparing/
-  playing states. Scene segments and compiled frames stay cached across presence,
-  chat and local panel updates; an obsolete audio-resume request cannot start
-  playback or dismiss a newer request. Notifications and saves belong to the
-  mounted controller and release their timers/requests on exit.
-  Account sessions own their list/save requests; switching identity aborts old
-  work and rejects its late responses, including already received JSON.
-  `src/platform/ui-host.mjs` only exposes npm runtime values.
-- `moonbit/browser_projects`: typed asset metadata, deduplicated transfers and
-  staged reference publication. Contradictory metadata fails before I/O, and a
-  failed/canceled clipboard batch leaves all source references intact. Fresh rooms
-  stage and bound their Yjs update before sending it; an owned publication session
-  waits for the ordered server acknowledgment and closes all acquired resources.
-  The project dialog drops canceled requests immediately, so reopening can start
-  a new operation while an old file read finishes harmlessly.
-- `moonbit/browser_chat`: validated room messages, per-entry snapshot caching and
-  owned Yjs subscriptions. Typed request sessions suppress canceled or stale AI
-  replies; history limits and proposal-target labels live in the pure editor model.
-- `moonbit/collaboration`: typed edit batches, full target validation before a
-  transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
-- `moonbit/browser_editor`: the complete editor Store, field-level commands and
-  owned connection/persistence lifecycle. Immutable snapshots feed new shared maps
-  without a redundant Composition clone. Media commands use the same validated
-  insertion plan as file imports. Presence is read only on awareness changes;
-  project edits keep the peer array's identity. Destroy releases subscriptions,
-  timers and the WebSocket provider and ignores late IndexedDB completions.
-  Preference-storage failures do not prevent editing. Manual creation checks the
-  portable format's 500-object/100-Composition limits before writing.
-- `moonbit/browser_undo`: typed preservation plans for shared creations, promoted
-  tracks, independent timing maps and their duration dependencies. Native Yjs
-  identities use mizchi's weak collections. Clock subtraction groups by client
-  and sweeps sorted intervals instead of repeatedly copying every range; clock
-  values retain JS safe-integer precision. Invalid restoration fails before
-  touching either history stack, and native failures restore temporary filters.
-- `moonbit/site`, `site_boundary`, `site_shell` and `browser_site`: typed English/
-  Japanese copy, locale choice, the interactive homepage, lazy entry loading and
-  project creation. Visiting the public page opens no collaboration connection and
-  loads no editor/codec engine. Build-time HTML/Markdown share the MoonBit copy.
-  Owned creation requests ignore late completion after cancellation or unmount.
-  A small React class adapter keeps actual error capture: the upstream typed React
-  Error Boundary currently returns children without catching errors, so it is not
-  used for this responsibility. Recovery content and decisions remain in MoonBit.
-- `moonbit/http_policy` and `http_runtime`: shared HTML/Markdown negotiation,
-  immutable media validators/ranges, SHA-256 and bounded streaming ingestion.
-  A media upload reuses one 128 KiB buffer only after its sink resolves; images
-  coalesce incoming fragments without retaining a growing chunk list.
-- `moonbit/presence`, `server_presence` and `y_protocol`: bounded, typed presence
-  and safe-integer ownership clocks. Length-prefixed reads are bounded by the
-  supplied byte view, including views backed by a larger buffer.
-- `moonbit/node_rooms`: local WebSocket rooms, presence ownership, persistence and
-  inactive-room eviction. Out-of-order Yjs updates schedule persistence even when
-  missing dependencies prevent an immediate document event; disposal cancels
-  pending saves, and one failed peer cannot interrupt broadcasts to the others.
-- `moonbit/room_assets`, `r2_upload`, `worker_assets` and `node_assets`: typed
-  asset routes, atomic SQLite publication, R2 multipart uploads, HTTP delivery
-  and local file storage. R2 parts share one 5 MiB buffer with backpressure;
-  cancellation waits for outstanding storage writes before retiring a unique key.
-  Local image uploads use bounded memory and asynchronous files, with serialized
-  quota/publication checks and atomic private files. Native error identity is
-  shared across independently linked MoonBit modules.
-- `moonbit/auth_policy`, `auth_service`, `node_auth` and `worker_accounts`:
-  typed pending OAuth flows and sessions, browser-bound one-use state, PKCE,
-  session rotation, private project indexes and TTL cleanup. Provider JSON is
-  read into a fixed bounded buffer. Cryptographic operations use Web Crypto and
-  MoonBit core base64; identities remain separate for Google and GitHub.
-- `moonbit/node_server`, `worker_server` and `worker_room`: HTTP routing, bounded
-  JSON ingestion, static delivery, hibernating WebSockets, durable update journals,
-  compaction, presence ownership, legacy asset streaming/migration and AI locks.
-  Journal failures abort the room; unresolved Yjs dependencies are persisted too.
-  Native SQLite tests verify that a restored room respects an in-flight AI lock and
-  a late old request cannot release a successor's lock.
-- `moonbit/site_build` generates localized HTML, canonical/hreflang/structured data,
-  Markdown and noindex editor/404 pages. `browser_kernel` loads the WASM module;
-  typed timing evaluation is shared with scene playback/export.
-- The Worker host defers generated modules inside its request/DO initialization
-  gate. The pinned MoonBit core initializes hash seeds with Web Crypto, which
-  workerd forbids at global scope. Wrangler bundles the deferred import into a
-  local initializer; no compiler patch or global crypto replacement is used.
-- `moonbit/schemas`: AI operations, easing, media and bounded chat-history schemas
-  built with mizchi’s typed Zod bindings. Native schema/error identity preserves
-  OpenAI structured output and the existing API error/repair contract.
-- `moonbit/ai_service`: request snapshots, typed conversation roles, bounded one-time
-  proposal repair, usage accounting, SDK tuning fallback and parallel image generation.
-  Text, images and image storage share a 170-second deadline; a failed image cancels
-  its siblings. The native OpenAI SDK remains a runtime adapter. All 42 service tests
-  pass, including its actual retry/Retry-After implementation with simulated HTTP.
-- `moonbit/proposal_plan`: pure typed AI commands, identity kinds and guarded edit
-  plans. Metadata and lazy state reads replace whole-Scene cloning. Appends copy
-  the effective state at their declaration; later edits cannot change earlier
-  copies. Generated creations respect the same 500-object portable-file limit.
-- `moonbit/proposals`: schema decoding, generated-image preparation, compilation
-  and atomic application of AI edits. It verifies
-  values, parent identities, append dependencies and projected timing before any
-  write. Only touched tracks are copied for projection. Parent/child replacement
-  conflicts are rejected, and all new shared values are prepared before the Yjs
-  transaction so a conversion failure cannot publish an earlier partial edit.
-- Shared snapshots invalidate only changed branches before observers run.
-  Unchanged Scenes retain identity, avoiding needless playback compilation.
-  Cached snapshots are immutable; clone before editing outside the command API.
-  Nested/observer-queued transactions read live data until their writes settle.
-- `moonbit/boundary`: representation-only adapters for existing JS consumers.
-  `scripts/generate-adapters.py` generates field marshalling from the MoonBit model.
-  Frames do not serialize embedded media to JSON.
-- `apps/studio`: the running editor and original regression tests, imported from
-  public `poietra-hackathon` commit `3f49040ee4bcf06bfcf02e269712833f3729c536`.
-- `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
-  differential testing, not runtime imports.
+## How it is built
 
-`apps/studio` now contains runtime adapters and type declarations for the MoonBit
-implementation. The pinned TypeScript/Rust oracles are test-only. JavaScript build
-scripts perform native file/tool I/O; public-page generation policy is MoonBit.
+| Layer | MoonBit packages | Responsibility |
+| --- | --- | --- |
+| Pure model and engine | `scene`, `motion`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Typed documents, prepared playback, geometry, SVG, PCM mixing, edit/export plans |
+| Collaboration | `collaboration`, `boundary`, `browser_editor`, `browser_undo`, `browser_chat` | Field-level Yjs edits, immutable snapshots, selective Undo and chat |
+| Browser | `ui`, `browser_render`, `browser_media`, `browser_export`, `browser_projects`, `browser_kernel` | React components, resource ownership, Canvas/WebGL2, decoding, export and file transfer |
+| Services | `schemas`, `proposals`, `ai_service`, `auth_policy`, `auth_service` | Validated AI operations, bounded requests, OAuth and private project indexes |
+| Hosts and storage | `node_server`, `node_rooms`, `node_assets`, `node_auth`, `worker_server`, `worker_room`, `worker_assets`, `worker_accounts`, `room_assets`, `r2_upload`, `http_policy`, `http_runtime` | HTTP/WebSockets, persistence, quotas, streaming uploads and atomic publication |
+| Public site | `site`, `site_shell`, `site_boundary`, `browser_site`, `site_build` | English/Japanese content, lazy editor entry, prerendering and content negotiation |
 
-The founder explicitly requested architectural improvements on 2026-09-18.
-Native compatibility adapters preserve library/runtime interfaces; the application
-model and its implementation are owned by the MoonBit packages.
+The implementation lives in [moonbit/](moonbit/). [apps/studio/](apps/studio/)
+contains native adapters, styles, assets and regression tests. Generated release
+modules go to `_build/`; `scripts/generate-adapters.py` generates representation
+adapters from the typed model. Historical TypeScript/Rust implementations in
+[tests/oracle/](apps/studio/tests/oracle/) are used only for comparison.
 
-## Checks and performance
+The rewrite changes the data flow as well as the language:
 
-Locally verified: **640 regression/differential tests**, 15 MoonBit tests on JS,
-3 kernel tests and the pure proposal planner test on WASM, typechecking and the
-production build. The complete studio,
-selective Undo and editor Store passed the **154-test CI browser selection**, covering
-offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
-portable media, seeking and actual MP4/WebM output. An additional 15 chat/structure
-checks passed with both the dev server and browsers restricted to two CPU cores;
-navigation/reload waits for initial editor readiness use a 15 s budget for those
-simultaneous fresh sessions. CI traces from two further 5 s timeouts showed no
-runtime errors and reached Live by the failure screenshot; regular edit/sync
-assertions keep their existing budgets.
+- **Prepare once, evaluate repeatedly.** Typed `Hold`/`Change` programs resolve
+  tracks, object matches, layer order and colors before playback. Seeking uses a
+  binary search. Preview and export share the evaluator.
+- **Share unchanged data.** Yjs reads reuse immutable branches and invalidate
+  touched branches before observers run. Presence/chat updates retain unchanged
+  Scene identities; a one-field proposal reads only the state it needs.
+- **Own asynchronous work.** Renderers, decoders, imports and AI requests have
+  explicit lifetimes. Stale completions cannot publish into a replacement view;
+  cancellation releases resources. Uploads use bounded buffers and backpressure.
+- **Preserve edit intent.** Commands write only changed fields. Guarded proposals
+  validate the complete batch before publication. Pending Yjs dependencies are
+  persisted even when they have not yet produced a visible document change.
 
-Separate rendering/production checks cover SVG/Canvas agreement, Japanese text,
-equation Write, GPU limits, decoder cancellation and actual 399-frame MP4/WebM
-export and decoding. Media checks exercise stereo mixing and real AudioContext
-cleanup. Account behavior is tested with simulated authentication, not a live
-OAuth registration. The website/startup migration passed 28 dev browser checks (including actual
-error capture, cancellation and editor entry) plus 25 checks against the production
-build for hydration, language negotiation, no-JavaScript HTML, Markdown, responsive
-layout and shared project creation. Its 11 editor startup/playback/lifecycle checks
-also passed with both server and browsers restricted to two CPU cores. Simply
-visiting loads no editor engine. Native-failure and delayed-completion tests cover Undo history restoration,
-audio resume, canceled imports, account switches and persistence after disposal.
-Clock subtraction matches an independent point-set model in 500 randomized cases.
-The proposal compiler/schema migration also passed 53 AI/chat/image/media browser
-checks, including actual MP4/WebM exports.
-The new compiler matches the pinned TypeScript implementation in 100 mixed-operation
-scenarios, including rejected timing and valid creation/append sequences. A poisoned
-unrelated state proves one-field edits do not read or clone its payload.
-The HTTP/presence/local-room migration passed 52 additional browser checks with
-both server and browsers restricted to two cores, plus 25 production-page checks.
-HTTP policy matches the original in 1,200 mixed header/range cases. Streaming tests
-verify byte identity, one-buffer reuse, backpressure and source cleanup on failure.
-Actual Node and workerd processes passed media restart/range/quota checks.
-The R2 integration also passed legacy SQLite copying, concurrent deduplication,
-interrupted uploads, injected write failures and orphan cleanup across restarts.
-Workerd checks cover live-socket hibernation, reconnect ownership, forced process
-restart, compaction and out-of-order updates; account/TTL tests use mocked OAuth
-provider HTTP. The local room also saves pending dependencies before disconnection.
-CI checks generated adapters and runs the core/editor/media suites with the pinned
-compiler. These checks do not constitute a production migration or deployment.
+Upstream packages were selected by source review and compatibility tests:
+[mizchi/js.mbt](https://github.com/mizchi/js.mbt) **0.13.0** supplies host bindings;
+[mizchi/npm_typed.mbt](https://github.com/mizchi/npm_typed.mbt) **0.1.16** supplies
+React/Zod bindings; [mizchi/cloudflare.mbt](https://github.com/mizchi/cloudflare.mbt/tree/575da27df27e0342813143ed17cce470960fbf73)
+**0.1.12** supplies selected SQLite and R2 types. Native Promise bindings bridge
+R2 into the application's request lifetimes, and alarm timestamps use `Double`.
 
-```sh
-pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts
-```
+Other reviewed libraries—including Luna, gfx, converge, audio-mbt and MoonBit
+OpenAI clients—are not dependencies. Yjs retains the nested-map/selective-Undo
+contract; the official OpenAI SDK retains Responses and Images support. The
+[gfx source](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
+informed the separation between the pure Glow program and its browser driver.
 
-This measures **CPU scene evaluation only**, excluding rendering, media decoding,
-encoding and display. Node 24.13.0 on Linux x64; medians of seven alternating
-240-frame batches after warmup. Local 2026-09-18 results:
+## Performance
 
-| Objects | Easing | Original ms/frame | MoonBit ms/frame | Speedup | Preparation ms |
+Remeasured **2026-09-19**, application revision
+[`0602d6b`](https://github.com/Poietra/poietra/commit/0602d6bebc26c96bcbdaf88fb40f2c6050036948).
+[Raw results](benchmarks/2026-09-19/) include samples, versions, machine metadata
+and WASM hashes. Measurements ran sequentially, without this project's tests or
+builds running alongside them. The machine was an Intel Core Ultra 7 255H, 16
+logical CPUs, 31.1 GiB RAM, Linux x64 under WSL2. Benchmark processes were limited
+to CPUs `0-3`; local servers used `4-5`. Other host activity was not isolated.
+Node was 24.13.0; browser measurements used headless Chromium 153.0.8010.12.
+
+### CPU comparisons
+
+Each benchmark ran in **three fresh Node processes**. Each process warmed up,
+then alternated old/new implementations for seven batches. Tables use the median
+of the three process medians; speedup is the ratio of those medians. All units are
+milliseconds. These compare implementation strategies as well as languages.
+
+**Scene evaluation** — 240 frames per batch, two Compositions and a Transition.
+The baseline uses the pinned TypeScript evaluator and Rust WASM; the rewrite uses
+prepared MoonBit playback and MoonBit WASM. Preparation is measured separately.
+Its value is the median of seven compile calls per process, not first-use browser
+startup latency.
+
+| Objects | Easing | Baseline / frame | MoonBit / frame | Speedup | Preparation |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 10 | Preset | 0.0253 | 0.00434 | 5.8× | 0.262 |
-| 100 | Preset | 0.193 | 0.0226 | 8.5× | 0.770 |
-| 500 | Preset | 0.995 | 0.129 | 7.7× | 2.572 |
-| 10 | Custom cubic | 0.0202 | 0.00403 | 5.0× | 0.100 |
-| 100 | Custom cubic | 0.204 | 0.0349 | 5.8× | 0.516 |
-| 500 | Custom cubic | 1.061 | 0.188 | 5.6× | 2.464 |
+| 10 | Preset | 0.02659 | 0.00406 | 6.5× | 0.202 |
+| 100 | Preset | 0.19980 | 0.02058 | 9.7× | 0.799 |
+| 500 | Preset | 1.00074 | 0.11571 | 8.6× | 2.475 |
+| 10 | Custom Bézier | 0.02036 | 0.00382 | 5.3× | 0.080 |
+| 100 | Custom Bézier | 0.20380 | 0.03344 | 6.1× | 0.572 |
+| 500 | Custom Bézier | 1.03174 | 0.18261 | 5.6× | 2.298 |
 
-These are synthetic evaluator measurements, not a claim about end-to-end browser
-fps. The main savings come from preparing reusable typed playback data, parsing
-colors once, and avoiding temporary arrays when returning frames to JavaScript.
+At 500 objects/preset easing, the three MoonBit process medians ranged from
+**0.11391–0.11588 ms/frame**. These timings exclude drawing, decoding, encoding,
+UI and networking; they are not browser FPS.
 
-A separate 2026-09-19 benchmark measures one Yjs leaf edit plus a full project
-snapshot (three Scenes, five Compositions each). It excludes UI, drawing and
-networking. Seven alternating batches of 50 edits after warmup:
+**Snapshots** — one Yjs leaf edit plus a complete project read; three Scenes,
+five Compositions per Scene, 50 edits per batch. Baseline: `toJSON()` and the
+pinned structural projection. MoonBit: immutable snapshots with branch reuse.
 
-| Objects per Scene | Original ms/edit + read | MoonBit ms/edit + read | Speedup |
+| Objects / Scene | Baseline / edit + read | MoonBit / edit + read | Speedup |
 | ---: | ---: | ---: | ---: |
-| 100 | 1.130 | 0.0593 | 19.0× |
-| 500 | 7.839 | 0.1747 | 44.9× |
+| 100 | 1.1970 | 0.05866 | 20.4× |
+| 500 | 7.7229 | 0.18806 | 41.1× |
+
+**AI proposal compilation** — one existing object's `x` edit, including guards
+and preflight, from an already-read snapshot; 10 compilations per batch. The
+baseline is the retained TypeScript compiler from `afbd6b3`, using current shared
+bindings. This excludes model calls, image generation, network and applying edits.
+
+| Objects | Compositions | Baseline / proposal | MoonBit / proposal | Speedup |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 10 | 1.6121 | 0.23705 | 6.8× |
+| 500 | 10 | 7.7065 | 0.24599 | 31.3× |
+| 500 | 40 | 32.7689 | 0.52098 | 62.9× |
+
+### Browser editing and loading
+
+The **production UI** was measured with 2/4 isolated browser contexts sharing
+one local Node room. Each scene had one Composition and 100/500 circles. After
+three warmup nudges, 30 trusted ArrowRight inputs were measured from `keydown`
+to the matching stage transform plus two animation-frame callbacks. Peers use
+the same timestamp origin convention; the peer column reports the slowest peer
+for each input. [Raw editor results](benchmarks/2026-09-19/editor.json).
+
+| Objects | Participants | Local p50 / p95 | Slowest peer p50 / p95 |
+| ---: | ---: | ---: | ---: |
+| 100 | 2 | 28.4 / 31.6 ms | 29.1 / 32.9 ms |
+| 100 | 4 | 35.0 / 43.3 ms | 40.1 / 50.9 ms |
+| 500 | 2 | 59.6 / 71.6 ms | 60.2 / 75.9 ms |
+| 500 | 4 | 75.3 / 95.2 ms | 79.9 / 102.4 ms |
+
+This measures a **presentation opportunity**, not physical display latency or
+field INP. All participants share one machine/browser process, with no artificial
+network or CPU slowdown. It does not measure WAN latency, workerd performance,
+video-heavy projects or long-session memory growth.
+
+The **production homepage** was loaded five times per locale in new contexts,
+with cache disabled, a 390×844 viewport, CDP CPU slowdown ×4, configured latency
+150 ms and download throughput 200,000 bytes/s. Medians, with LCP min–max in
+parentheses; [raw page results](benchmarks/2026-09-19/home.json).
+
+| Locale | FCP | LCP | CLS | Observed long-task blocking |
+| --- | ---: | ---: | ---: | ---: |
+| English | 780 ms | 1,724 ms (1,716–1,760) | 0.00019 | 21 ms |
+| Japanese | 820 ms | 1,784 ms (1,776–1,784) | 0.00097 | 74 ms |
+
+Observation ends after network idle, font readiness and two animation frames.
+Long-task blocking sums `max(0, duration − 50 ms)` over that window; it is **not
+Lighthouse TBT**. The local Node server served uncompressed assets. Homepage
+visits loaded no editor/WASM and opened no collaboration socket. These are local
+lab measurements, not production field data or an old/new homepage comparison.
+
+### Rendering and payload
+
+The renderer was measured in three fresh Chromium runs with **SwiftShader**
+(software GPU), release MoonBit modules served by Vite, and a 1280×720 canvas.
+Shape scenarios move one object and include cloning plus `painter.render` (30
+samples/run). Video scenarios call the real painter, including its owned media
+preparation, for 60 timestamps/run after warmup. They are **unpaced component
+measurements**, with no GPU completion fence or physical-display measurement.
+
+| Scenario | Median of run p50s | Range of run p50s | Range of run p95s |
+| --- | ---: | ---: | ---: |
+| Move/paint, 100 circles | 3.1 ms | 3.0–3.1 ms | 10.5–10.8 ms |
+| Move/paint, 500 circles | 7.0 ms | 6.8–7.3 ms | 14.4–16.2 ms |
+| 720p video, timestamps at 30 Hz | 53.0 ms | 52.7–54.1 ms | 66.4–68.2 ms |
+| Same 30 fps source, timestamps at 60 Hz | 48.1 ms | 47.5–82.1 ms | 60.8–156.3 ms |
+| Video, alternating two still timestamps | 47.5 ms | 46.5–48.6 ms | 53.5–94.4 ms |
+
+All runs are retained: [run 1](benchmarks/2026-09-19/rendering-1.json),
+[run 2](benchmarks/2026-09-19/rendering-2.json),
+[run 3](benchmarks/2026-09-19/rendering-3.json). Run 2 was much slower in the 60 Hz
+scenario; three runs on a shared WSL host do not establish its cause or a stable
+device-wide percentile. The video path still made 60 `CanvasSink.getCanvas`
+requests and 60 PNG conversions for 60 timestamps in both sequential scenarios.
+The raw `marks.decode` field times the whole `getCanvas` call, not isolated codec
+execution. These findings identify remaining work; they do not predict hardware
+GPU playback FPS or prove a video speedup over the old application.
+
+Production JavaScript sizes, including static imports:
+
+| Entry | Raw | gzip level 9 | Brotli |
+| --- | ---: | ---: | ---: |
+| Homepage, including its selected entry | 290,273 B | 91,031 B | 78,360 B |
+| Editor bootstrap | 2,524,629 B | 685,047 B | 526,080 B |
+
+The editor group excludes dynamically loaded MathJax/font modules, CSS, fonts and
+media. Compression is computed per file, not measured network transfer.
+[Bundle inventory](benchmarks/2026-09-19/bundle.json) records all emitted JS and
+the motion WASM. The large editor payload and video conversion path remain
+concrete targets for further work; faster evaluation alone does not remove them.
+
+### Reproduce the measurements
+
+Build once. Stop other builds, tests and encoders before measuring; keep source
+and generated artifacts unchanged for the whole run. Results normally go under
+ignored `test-results/` so a local run does not overwrite published evidence.
 
 ```sh
-pnpm --dir apps/studio exec node --import tsx scripts/benchmark-snapshots.ts
+# Repository root: CPU comparison, three fresh processes per suite
+pnpm build
+pnpm bench --runs 3 --output test-results/benchmarks/cpu.json
+
+# Terminal 1: isolated production host, no real API calls
+cd apps/studio
+PORT=5188 NODE_ENV=production OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-perf \
+  node --import tsx server/index.ts
 ```
-
-A separate 2026-09-19 benchmark compiles a one-field AI edit with guards and
-preflight, starting from an existing immutable snapshot. Seven alternating batches
-of 10 compilations after warmup; Node 24.13.0 on Linux x64:
-
-| Objects | Compositions | Original ms | MoonBit ms |
-| ---: | ---: | ---: | ---: |
-| 100 | 10 | 1.701 | 0.226 |
-| 500 | 10 | 7.472 | 0.236 |
-| 500 | 40 | 32.454 | 0.508 |
 
 ```sh
-pnpm --dir apps/studio exec node --import tsx scripts/benchmark-proposals.ts
+# Terminal 2, apps/studio; run each command to completion
+pnpm exec playwright install chromium
+POIETRA_PERF_URL=http://127.0.0.1:5188 node scripts/measure-home.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5188 node --import tsx scripts/measure-editor.mjs
+node scripts/measure-bundle.mjs
 ```
 
-This measures compilation only, excluding model calls, network, UI and applying
-changes. The old compiler at `afbd6b3` is retained only as a test/benchmark oracle.
+`measure-home` defaults to five runs/locale (`POIETRA_PERF_RUNS`);
+`measure-editor` defaults to 30 inputs/scenario (`POIETRA_PERF_SAMPLES`) and creates
+fresh local rooms. `POIETRA_PERF_OUTPUT` selects each output file. On Linux, prefix
+measurement commands with `taskset -c 0-3` and the host with `taskset -c 4-5` to
+match the recorded CPU affinity; choose CPUs available on your machine.
 
-The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability and [mizchi/npm_typed](https://github.com/mizchi/npm_typed.mbt) for typed React hooks/elements and Zod schemas. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) were also investigated; they are not active dependencies. The initial UI migration keeps the existing React/Base UI runtime and replaces application components with MoonBit.
+The renderer harness imports source modules from a separate Vite development
+host, backed by the same release MoonBit artifacts. It requires FFmpeg/libx264
+for its generated 720p clip; `--skip-video` omits those scenarios.
 
-On 2026-09-19, source review of [gfx](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
-informed the separation of the pure Glow program from its browser driver; gfx's
-WebGL driver is currently a stub, so it is not a runtime dependency.
-[canvas](https://github.com/mizchi/canvas-mbt), [image](https://github.com/mizchi/image-mbt),
-[mayo](https://github.com/mizchi/mayo) and [converge](https://github.com/mizchi/converge)
-were also inspected. Canvas uses its own TTF rasterizer; image does not decode WebP;
-Mayo requires cross-origin isolation and explicit shared Int32 layouts. Converge's
-column-level CRDT passed all 75 upstream JS tests with the pinned compiler, but
-needs a separate compatibility evaluation for selective Undo.
-[valtio](https://github.com/dowdiness/valtio/tree/9cdf37fa61ef656db2925035f1b42a31ec922d73)
-was reviewed too; its text-sequence synchronization does not replace the editor's
-nested-map document and selective Undo contract. Yjs remains the shared runtime.
-The [audio mixer/resampler](https://github.com/mizchi/audio-mbt/tree/f57bffe7dea9d41173784ea6abba13fd5a8454a2)
-was also reviewed. It uses interleaved PCM and a Float playback cursor; this editor
-keeps planar Web Audio buffers and absolute Double timestamps to preserve its
-sample-level trim/export contract.
-These remain candidates, not adopted or production-verified replacements.
-The MIT-licensed [jsonschema v0.8.1](https://github.com/mizchi/moonbit_jsonschema/tree/c58c2433df573960e432c5f9061dfe57b40169a1)
-passed its 47 upstream JS tests with the pinned compiler, but compatibility probes
-found that string `pattern` and `propertyNames` constraints were not enforced.
-The MIT-licensed `mizchi/npm_typed` 0.1.16 Zod bindings passed all 48 upstream tests
-and two additional compatibility probes with Zod 4.6.5. They are adopted for
-discriminated operations, strict easing records, nullable timing and schema output.
-Project files use a typed bounded decoder with explicit identifier,
-media and cross-reference checks instead of adopting it as their validator.
+```sh
+# apps/studio, separate terminal
+PORT=5189 OPENAI_API_KEY= POIETRA_DATA_DIR=/tmp/poietra-render node --import tsx server/index.ts
+# apps/studio, measurement terminal; repeat three times with distinct outputs
+node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
+  --output test-results/benchmarks/rendering-1.json
+```
 
-The MIT-declared `mizchi/js_web` and `mizchi/js_node` 0.13.0 bindings are adopted
-for the HTTP/Streams/Crypto and filesystem boundaries, with application
-decisions kept in MoonBit. The upstream variadic path/process helpers use CommonJS
-`require`, so native ESM entrypoints use direct ESM bindings for those calls. On 2026-09-19,
-[cloudflare.mbt 0.1.12](https://github.com/mizchi/cloudflare.mbt/tree/575da27df27e0342813143ed17cce470960fbf73)
-passed its JS typecheck and four upstream R2 tests. A workerd probe also verified
-SQLite bound writes, row/column iteration, single-row reads and safe-integer values.
-Its full suite stalled in D1; hibernating-WebSocket APIs are absent and would need
-an additional boundary. Its synchronous SQLite bindings and R2 resource/metadata
-types are now adopted. Its R2 awaits require the separate `moonbitlang/async`
-coroutine scheduler; `cloudflare_runtime` binds native promises to the application's
-existing request lifetimes. Alarm timestamps use `Double` because the upstream
-alarm API uses `Int`. The migrated storage passed 32 multipart/image tests, a
-concurrent local-image quota/dedup check, and actual Node/workerd restart, range,
-R2 migration, fault injection and concurrent-quota integrations.
-The production build also passed 18 image/media browser checks, including portable
-imports, peer Undo and MP4/WebM pixel verification, on two CPU cores.
-[mars.mbt](https://github.com/mizchi/mars.mbt/tree/ff4485e0309a8532d03002eb588ab06dcd252848)
-was inspected, but its Cloudflare adapter is a placeholder and is not adopted.
-The `npm_typed` 0.1.16 [better-auth binding](https://github.com/mizchi/npm_typed.mbt/tree/main/better_auth)
-was also inspected. It uses CommonJS loading and a different session/database API;
-it is not adopted for the existing per-token Durable Object storage. The MoonBit
-auth service passes the OAuth/state/PKCE/private-index tests, including malformed
-and oversized provider responses and native SHA-256/base64url comparison. Real
-workerd tests cover callback races, TTL alarms and two process restarts with mocked
-provider HTTP; live Google/GitHub OAuth registration is still unverified.
-Eight account/project browser tests passed against the production build; the two
-development-only lifecycle fixtures passed against Vite. CI exposed a Node upload
-rejection race: immediately destroying a still-uploading request could reset the
-socket before its 413 response arrived. Rejected inputs now drain within a byte/time
-budget before responding; a stalled-body HTTP regression enforces that deadline.
+## Checks
 
-[mizchi/llm](https://github.com/mizchi/llm/tree/8ff08f81f8ecaa5b1b22c94b16a121d151455efa)
-and [openai_sdk](https://github.com/moonbit-community/openai_sdk/tree/f634faec4d8c0359804a0afaedcf25665032cc03)
-were inspected for the AI service. Their inspected APIs center on Chat Completions;
-this editor requires Responses structured output and Images. The former's asynchronous
-text helper hides transport errors, and its module/license declarations disagree
-(MIT/Apache-2.0). Neither is adopted. The installed official SDK 7.15.0 remains behind
-MoonBit lifecycle code; no paid API calls were needed for migration tests.
+The [completed implementation CI run](https://github.com/Poietra/poietra/actions/runs/35410225885)
+passed 640 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
+WASM tests, 154 main browser checks, six media/export checks and 25 production-page
+checks. It also ran actual Node/workerd persistence, hibernation, restart, R2
+migration/fault/quota and account/TTL integrations. The
+[workflow](.github/workflows/check.yml) is the authoritative command selection.
 
-The completed Worker/Node routing migration passed the real workerd hibernation,
-snapshot/journal restart, pending-dependency recovery, stale-presence replacement,
-R2 failure/migration/quota and account restart tests. Node media persistence and
-concurrent quotas were rechecked after its entry point moved to MoonBit.
+```sh
+# Repository root
+pnpm test
+node scripts/moon.mjs test --target js
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan
+pnpm build
 
-## Repository and deployment
+# apps/studio: browser and local runtime checks
+cd apps/studio
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm exec playwright test --config tests/e2e/media-export.config.ts
+pnpm exec playwright test --config tests/e2e/site-production.config.ts
+node tests/collaboration-worker.integration.mjs --port 8796
+node tests/media-storage.integration.mjs node
+node tests/r2-assets-worker.integration.mjs
+node tests/accounts-worker.integration.mjs
+```
 
-On 2026-09-18 the founder requested this new **public** `Poietra/poietra` repository.
-The older private repository was renamed to `Poietra/poietra-design-archive` and
-its private documents/history were not imported. The source application remains
-at `Poietra/poietra-hackathon`.
+Video checks need FFmpeg/ffprobe. Set `POIETRA_TEST_URL` to test an existing isolated
+server; otherwise Playwright starts its configured host. API/OAuth responses are
+simulated in automated tests. Live Google/GitHub registration and paid OpenAI
+requests have **not** been validated for this rewrite.
 
-The copied Worker configuration has an independent Worker/bucket name and no
-production domain route. The deploy command currently bundles with `--dry-run`.
-No production migration or deployment has been performed. The app guide under `apps/studio` distinguishes the source service from this
-rewrite; its setup and build instructions now use MoonBit.
+## Deployment and limits
+
+The Node host uses local persistence. The Cloudflare host uses Static Assets,
+room/account SQLite Durable Objects and a private R2 media bucket. Try it locally
+with `pnpm --dir apps/studio dev:worker` after building.
+`pnpm --dir apps/studio run deploy` currently performs **only a dry-run bundle**.
+
+Before any real deployment, choose an account/origin, review the copied account ID,
+OAuth settings, generated canonical URLs and storage names. The configuration has
+independent `poietra-moonbit` Worker/bucket names and no production domain route;
+its SEO origin still points at the original service. Do not reuse production
+storage to validate the rewrite.
+
+Desktop Chromium is the primary tested browser. Codec availability depends on
+the browser/device; MP4 audio requires AAC encoding, while WebM uses Opus. The
+portable format permits 500 objects and 100 Compositions per Scene. Images are
+normalized to at most 2,048 px on the long edge and 1 MiB; room image storage is
+64 MiB. Audio/video limits are 32 MiB/file, ten minutes/source and 128 MiB/room.
+See the [user guide](apps/studio/README.md) for editing, export and other limits.
+
+The public rewrite started from `poietra-hackathon` commit
+`3f49040ee4bcf06bfcf02e269712833f3729c536`, at the founder's request on 2026-09-18.
+The separate private design archive was not imported. The original
+[hackathon application](apps/studio/docs/hackathon-application.md) is retained as
+historical material; current implementation details live in these READMEs.

@@ -12,7 +12,8 @@
     "build": "pnpm build:moonbit && pnpm --dir apps/studio build:web",
     "dev": "pnpm build:moonbit && pnpm --dir apps/studio dev",
     "test": "pnpm build:moonbit && pnpm --dir apps/studio test",
-    "typecheck": "pnpm --dir apps/studio typecheck"
+    "typecheck": "pnpm --dir apps/studio typecheck",
+    "bench": "node scripts/benchmark.mjs"
   },
   "dependencies": {
     "lib0": "0.2.117",
