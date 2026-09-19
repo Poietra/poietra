@@ -1,5 +1,6 @@
+import * as proposals from '../../../_build/js/release/build/proposals/proposals.js';
 import { z } from 'zod';
-import { getShared, getValue, LOCAL_ORIGIN, readProject, toShared, type Change } from './document';
+import { getShared, getValue, LOCAL_ORIGIN, type Change } from './document';
 import { defaultState, defaultTrack, implicitTracks, PROPERTY_CHANNELS, propertyTimingKey, resolveTrack, validateAnimationTrack, newId, type AnimationTrack, type Composition, type ObjectKind, type ObjectState, type Project, type SceneObject } from './model';
 import { ImageAssetSchema, type ImageAsset } from './images';
 import { CubicBezierEasingSchema, EasingSchema } from './easing-schema';
@@ -97,92 +98,9 @@ export function validateStateValue(property: string, value: unknown, kind?: Obje
 
 function validateTrackTiming(track: AnimationTrack, duration: number) { validateAnimationTrack(track, duration); }
 
-/** Check every precondition before editing; Yjs transactions do not roll back a failed batch. */
-export function validateProposalForApply(doc: Y.Doc, proposal: EditProposal): void {
-  for (const guard of [...proposal.changes, ...(proposal.guards ?? [])]) {
-    if (!safePath(guard.path)) throw new Error('編集案に無効な対象が含まれています。');
-    const current = getValue(doc, guard.path);
-    if ((guard.parentIdentity !== undefined && identityOf(doc, guard.path) !== guard.parentIdentity) || (current !== undefined) !== guard.existed || (guard.existed && !sameValue(current, guard.expected))) throw new Error('提案後に対象が変更されました。今の状態でもう一度依頼してください。');
-  }
-  const project = readProject(doc);
-  for (const change of proposal.changes) {
-    if (change.path[0] === 'scenes' && !project?.scenes[change.path[1]]) throw new Error('編集対象の Scene が削除されています。今の状態でもう一度依頼してください。');
-    if (!(getShared(doc, change.path.slice(0, -1)) instanceof Y.Map)) throw new Error('編集対象が削除されています。今の状態でもう一度依頼してください。');
-    if (change.path[2] === 'compositionOrder') throw new Error('Composition の順序は既存の配列へ追加してください。');
-  }
-  const appends = z.array(z.object({ sceneId: z.string(), compositionIds: z.array(z.string()).min(1).max(4), orderIdentity: z.string() }).strict()).max(1).parse(proposal.compositionAppends ?? []);
-  const appendedPaths = new Set<string>();
-  const incomingPaths = new Set<string>();
-  for (const append of appends) {
-    const scene = project?.scenes[append.sceneId];
-    const order = getShared(doc, ['scenes', append.sceneId, 'compositionOrder']);
-    if (!scene || !(order instanceof Y.Array) || arrayIdentity(order) !== append.orderIdentity) throw new Error('提案後に Composition の順序が変更されました。今の状態でもう一度依頼してください。');
-    if (new Set(append.compositionIds).size !== append.compositionIds.length || scene.compositionOrder.length + append.compositionIds.length > 100) throw new Error('Composition の追加順序が無効です。');
-    let previousId = scene.compositionOrder.at(-1)!;
-    for (const id of append.compositionIds) {
-      const path = ['scenes', append.sceneId, 'compositions', id];
-      const change = proposal.changes.find(value => pathKey(value.path) === pathKey(path));
-      const comp = change?.value as Composition | undefined;
-      if (!safePath(path) || !change || change.existed || !comp || comp.id !== id || comp.deleted || !comp.incomingTransitionId) throw new Error('追加する Composition が無効です。');
-      z.number().finite().min(0).max(120000).parse(comp.duration);
-      const transitionPath = ['scenes', append.sceneId, 'transitions', comp.incomingTransitionId];
-      const transitionChange = proposal.changes.find(value => pathKey(value.path) === pathKey(transitionPath));
-      const transition = transitionChange?.value as { id: string; fromId: string; toId: string } | undefined;
-      if (!transitionChange || transitionChange.existed || !transition || transition.id !== comp.incomingTransitionId || transition.fromId !== previousId || transition.toId !== id || incomingPaths.has(pathKey(transitionPath))) throw new Error('追加する Transition の参照が無効です。');
-      appendedPaths.add(pathKey(path)); incomingPaths.add(pathKey(transitionPath)); previousId = id;
-    }
-  }
-  for (const change of proposal.changes) if (change.path[0] === 'scenes' && change.path.length === 4) {
-    if (change.path[2] === 'compositions' && !appendedPaths.has(pathKey(change.path))) throw new Error('Composition の追加情報が見つかりません。');
-    if (change.path[2] === 'transitions' && !incomingPaths.has(pathKey(change.path))) throw new Error('Transition の追加情報が見つかりません。');
-  }
-  // Project both duration and track edits before checking coupled timing. Recheck every
-  // live track, including a peer's newly added track that was absent when AI started.
-  const transitions = new Map<string, { tracks: Record<string, AnimationTrack>; duration: number }>();
-  for (const change of proposal.changes) {
-    const path = change.path;
-    if (path[0] === 'scenes' && path[2] === 'transitions' && path.length === 4) {
-      transitions.set(pathKey(path), structuredClone(change.value as { tracks: Record<string, AnimationTrack>; duration: number }));
-      continue;
-    }
-    if (path[0] !== 'scenes' || path[2] !== 'transitions' || !['tracks', 'duration'].includes(path[4])) continue;
-    const base = path.slice(0, 4); const key = pathKey(base);
-    let entry = transitions.get(key);
-    if (!entry) {
-      const duration = getValue(doc, [...base, 'duration']);
-      if (typeof duration !== 'number') throw new Error('Transition が見つかりません。');
-      entry = { tracks: structuredClone(getValue(doc, [...base, 'tracks']) as Record<string, AnimationTrack>), duration };
-      transitions.set(key, entry);
-    }
-    if (path[4] === 'duration') entry.duration = change.value as number;
-    else if (path.length === 6) entry.tracks[path[5]] = structuredClone(change.value as AnimationTrack);
-    else {
-      const track = entry.tracks[path[5]];
-      if (!track) throw new Error('編集対象のアニメーションが見つかりません。');
-      Object.assign(track, { [path[6]]: change.value });
-    }
-  }
-  for (const { tracks, duration } of transitions.values()) {
-    z.number().finite().min(0).max(120000).parse(duration);
-    for (const track of Object.values(tracks)) {
-      if (!track) throw new Error('編集対象のアニメーションが見つかりません。');
-      validateTrackTiming(track, duration);
-    }
-  }
-}
-
-/** Apply a portable proposal atomically without replacing CRDT order arrays. */
-export function applyProposal(doc: Y.Doc, proposal: EditProposal, origin: unknown = LOCAL_ORIGIN): void {
-  validateProposalForApply(doc, proposal);
-  // Resolve and prepare every shared value before entering the transaction: Yjs
-  // transactions do not roll back, including a failure after an order append.
-  const changes = proposal.changes.map(change => ({ parent: getShared(doc, change.path.slice(0, -1)) as Y.Map<unknown>, key: change.path.at(-1)!, value: change.value === undefined ? undefined : toShared(change.value) }));
-  const appends = (proposal.compositionAppends ?? []).map(append => ({ order: getShared(doc, ['scenes', append.sceneId, 'compositionOrder']) as Y.Array<string>, ids: [...append.compositionIds] }));
-  doc.transact(() => {
-    for (const { parent, key, value } of changes) { if (value === undefined) parent.delete(key); else parent.set(key, value); }
-    for (const { order, ids } of appends) order.push(ids);
-  }, origin);
-}
+/** Validate the complete MoonBit plan before publishing a single Yjs transaction. */
+export function validateProposalForApply(doc: Y.Doc, proposal: EditProposal): void { proposals.validateProposalForApply(doc, proposal, Y); }
+export function applyProposal(doc: Y.Doc, proposal: EditProposal, origin: unknown = LOCAL_ORIGIN): void { proposals.applyProposal(doc, proposal, origin, Y); }
 
 export function compileProposal(doc: Y.Doc, project: Project, sceneId: string, raw: CompilableProposal, _scope?: EditScope): EditProposal {
   // Selection supplies context; actual Scene identities, locks and guards authorize edits.

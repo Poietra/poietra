@@ -141,6 +141,11 @@ node scripts/moon.mjs check --target js
   and sweeps sorted intervals instead of repeatedly copying every range; clock
   values retain JS safe-integer precision. Invalid restoration fails before
   touching either history stack, and native failures restore temporary filters.
+- `moonbit/proposals`: preflight and atomic application of AI edits. It verifies
+  values, parent identities, append dependencies and projected timing before any
+  write. Only touched tracks are copied for projection. Parent/child replacement
+  conflicts are rejected, and all new shared values are prepared before the Yjs
+  transaction so a conversion failure cannot publish an earlier partial edit.
 - Shared snapshots invalidate only changed branches before observers run.
   Unchanged Scenes retain identity, avoiding needless playback compilation.
   Cached snapshots are immutable; clone before editing outside the command API.
@@ -164,7 +169,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **617 regression/differential tests**, 14 MoonBit tests on JS,
+Locally verified: **619 regression/differential tests**, 14 MoonBit tests on JS,
 3 kernel tests on WASM, typechecking and the production build. The complete studio,
 selective Undo and editor Store passed the **152-test CI browser selection**, covering
 offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
@@ -180,6 +185,7 @@ OAuth registration. Homepage checks verify that simply visiting loads no editor
 engine. Native-failure and delayed-completion tests cover Undo history restoration,
 audio resume, canceled imports, account switches and persistence after disposal.
 Clock subtraction matches an independent point-set model in 500 randomized cases.
+The proposal preflight/application migration also passed all 24 AI browser checks.
 CI checks generated adapters and runs the core/editor/media suites with the pinned
 compiler. These checks do not constitute a production migration or deployment.
 

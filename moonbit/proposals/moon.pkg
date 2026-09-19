@@ -1,0 +1,19 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/assets",
+  "poietra/poietra/boundary",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "validate_proposal_for_apply:validateProposalForApply",
+        "apply_proposal:applyProposal",
+      ],
+    },
+  },
+)
