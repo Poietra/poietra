@@ -13,11 +13,11 @@ if (values.help) {
 const count = Number(values.runs);
 if (!Number.isInteger(count) || count < 1 || count > 9) throw new Error('--runs must be an integer from 1 to 9');
 const output = resolve(values.output);
-const result = { measuredAt: new Date().toISOString(), environment: environment(), method: 'Fresh processes, sequential scenarios; summary is median of process medians, speedup is ratio of those medians. Min/max span process medians, not individual operations.', runs: count, suites: {} };
+const result = { schemaVersion: 2, measuredAt: new Date().toISOString(), environment: environment(), method: 'Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.', runs: count, suites: {} };
 for (const [name, script, fields] of [
-  ['evaluation', 'benchmark-moonbit.ts', ['originalMsPerFrame', 'moonbitMsPerFrame', 'prepareMs']],
-  ['snapshots', 'benchmark-snapshots.ts', ['originalMsPerEditAndRead', 'moonbitMsPerEditAndRead']],
-  ['proposals', 'benchmark-proposals.ts', ['originalMs', 'moonbitMs']],
+  ['evaluation', 'benchmark-moonbit.ts', ['msPerFrame', 'prepareMs']],
+  ['snapshots', 'benchmark-snapshots.ts', ['msPerEditAndRead']],
+  ['proposals', 'benchmark-proposals.ts', ['msPerProposal']],
 ]) {
   const samples = [];
   for (let run = 0; run < count; run++) {
@@ -25,9 +25,9 @@ for (const [name, script, fields] of [
     samples.push(JSON.parse(execFileSync(process.execPath, [`scripts/${script}`], { cwd: join(root, 'apps/studio'), encoding: 'utf8', timeout: 180000 })));
   }
   const summary = samples[0].results.map((row, index) => {
-    const dimensions = Object.fromEntries(Object.entries(row).filter(([key]) => ![...fields, 'speedup', 'samples'].includes(key)));
+    const dimensions = Object.fromEntries(Object.entries(row).filter(([key]) => ![...fields, 'samples'].includes(key)));
     const metrics = Object.fromEntries(fields.map(field => [field, stats(samples.map(sample => sample.results[index][field]))]));
-    return { ...dimensions, ...metrics, speedup: metrics[fields[0]].median / metrics[fields[1]].median };
+    return { ...dimensions, ...metrics };
   });
   result.suites[name] = { summary, samples };
   console.table(summary.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === 'object' ? value.median : value]))));

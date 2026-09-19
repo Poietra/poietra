@@ -18,7 +18,6 @@ export function environment() {
     memoryBytes: totalmem(), loadAverage: loadavg(),
     moonVersion: readFileSync(new URL('../../../.moon-version', import.meta.url), 'utf8').trim(),
     wasmSha256: hash('../public/wasm/poietra_core.wasm'),
-    rustOracleSha256: hash('../tests/oracle/rust-motion.wasm'),
   };
 }
 export function stats(values) {

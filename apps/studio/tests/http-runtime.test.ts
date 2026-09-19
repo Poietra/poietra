@@ -1,32 +1,8 @@
 import { expect, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { prefersMarkdown, publicPagePlan } from '../shared/public-site';
 import { imageDigest, readImageBody, IMAGE_BYTES_LIMIT } from '../shared/images';
-import { mediaByteRange, mediaResponsePlan, writeMediaChunks, MediaUploadError, MEDIA_CHUNK_BYTES } from '../shared/media';
-import * as oracle from './oracle/http-policy';
-
-it('matches original HTTP negotiation and range semantics across mixed headers', () => {
-  let seed = 73519;
-  const random = (length: number) => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % length; };
-  const mime = ['text/html', 'text/markdown', '*/*', 'text/*', 'TEXT/MARKDOWN', 'text/html '];
-  const languages = ['fr', 'ja-JP', 'en-GB', 'ja', 'en', '*', 'invalid_tag', 'en-US-x-test'];
-  const quality = ['', ';q=0', ';q=1.', ';q=0.1', ';q=0.001', ';q=0.0001', ';q=1.001', '; q = 0.8', ';Q=0.4;q=1', ';q=NaN', ';x=y;q=1', ';q==1'];
-  const paths = ['/', '/ja/', '/index.html?lang=en', '/?lang=ja', '/?room=', '/studio', '/unknown'];
-  const bounds = ['', '0', '1', '4', '10', '999999', '9007199254740991', '9007199254740993', '-1', '2.3', '1-2,4-5'];
-  for (let index = 0; index < 1200; index++) {
-    const accept = Array.from({ length: random(5) }, () => mime[random(mime.length)] + quality[random(quality.length)]).join(', ');
-    const language = Array.from({ length: random(5) }, () => languages[random(languages.length)] + quality[random(quality.length)]).join(', ');
-    const url = new URL(paths[random(paths.length)], 'https://poietra.test');
-    const headers = new Headers({ Accept: accept, 'Accept-Language': language });
-    expect(prefersMarkdown(accept), accept).toBe(oracle.prefersMarkdown(accept));
-    expect(publicPagePlan(url, headers), language).toEqual(oracle.publicPagePlan(url, headers));
-    const range = `bytes=${bounds[random(bounds.length)]}-${bounds[random(bounds.length)]}`;
-    const size = random(101), request = { range, ifRange: index % 3 ? null : '"old"', ifNoneMatch: index % 7 ? null : 'W/"digest"' };
-    expect(mediaByteRange(range, size), range).toEqual(oracle.mediaByteRange(range, size));
-    expect(mediaResponsePlan(request, { size, mime: 'audio/wav' }, 'digest')).toEqual(oracle.mediaResponsePlan(request, { size, mime: 'audio/wav' }, 'digest'));
-  }
-});
+import { writeMediaChunks, MediaUploadError, MEDIA_CHUNK_BYTES } from '../shared/media';
 
 it('holds one upload buffer, preserves bytes and backpressure, and closes the source on sink failure', async () => {
   const bytes = new Uint8Array(MEDIA_CHUNK_BYTES * 3 + 17);

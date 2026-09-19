@@ -13,8 +13,11 @@ and measurements belong in [README.md](README.md).
   functionality, appearance, collaboration semantics, portable files and
   preview/export agreement when making further changes.
 - Source provenance: public hackathon commit
-  `3f49040ee4bcf06bfcf02e269712833f3729c536`. Historical TypeScript/Rust comparison
-  oracles remain under `apps/studio/tests/oracle`; never import them at runtime.
+  `3f49040ee4bcf06bfcf02e269712833f3729c536`. The original application is available
+  in `Poietra/poietra-hackathon` and the local hackathon checkout.
+- 2026-09-20: At the founder's request, remove copied historical implementations
+  and migration-only comparisons. Preserve current behavioral and API checks;
+  use Git history or the hackathon repository when historical code is needed.
 - The separate private `poietra-design-archive` was not imported. Do not copy
   its documents or history into this public repository.
 - The rewrite is not deployed to the original service. Do not deploy to its
@@ -27,7 +30,7 @@ and measurements belong in [README.md](README.md).
   remains for public declarations and build/test tooling.
 - 2026-09-20: Audit language usage with `pnpm audit:source`. GitHub's byte-based
   language ratio includes tests and does not quantify remaining host dependencies.
-  Preserve comparison tests and public declarations; CI rejects executable TS in
+  Preserve behavioral tests and public declarations; CI rejects executable TS in
   the four application source directories. Benchmarks run with Node 24's native
   type stripping and explicit ESM extensions, without a `tsx` loader.
 - Generate document adapters and public record types from `moonbit/scene` with
@@ -57,7 +60,7 @@ and measurements belong in [README.md](README.md).
 - Run performance workloads sequentially, without concurrent builds/tests/encoders.
   Freeze source and generated output during browser runs. Report variation;
   do not present CPU microbenchmarks or SwiftShader timings as user-visible FPS.
-- Use representative regression/differential/browser checks for changed behavior.
+- Use representative regression, backend-conformance and browser checks for changed behavior.
   Distinguish tests with mocked provider HTTP from live OAuth/OpenAI verification.
 - Keep current documentation in the existing READMEs. Historical application text
   stays historical. Avoid new ADRs/research logs unless they are needed.

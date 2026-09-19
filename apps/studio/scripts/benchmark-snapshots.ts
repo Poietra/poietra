@@ -2,7 +2,6 @@ import { performance } from 'node:perf_hooks';
 import * as Y from 'yjs';
 import { defaultState, type Project, type Scene } from '../shared/model.js';
 import { initializeDocument, readProject, getShared } from '../shared/document.js';
-import { projectStructureView as originalView } from '../tests/oracle/structure-view.ts';
 
 function fixture(count: number): Project {
   const scenes: Record<string, Scene> = {};
@@ -23,24 +22,17 @@ const results: object[] = [];
 let checksum = 0;
 for (const count of [100, 500]) {
   const source = fixture(count);
-  const legacy = new Y.Doc(), moonbit = new Y.Doc();
-  initializeDocument(legacy, source); initializeDocument(moonbit, source);
-  const readLegacy = () => originalView(legacy.getMap('project').toJSON() as Project);
-  const readMoonbit = () => readProject(moonbit)!;
-  const target = (doc: Y.Doc) => getShared(doc, ['scenes', 's0', 'compositions', 'c0', 'states', 'o0']) as Y.Map<unknown>;
-  const oldTarget = target(legacy), newTarget = target(moonbit);
-  const measure = (state: Y.Map<unknown>, read: () => Project) => {
+  const doc = new Y.Doc();
+  initializeDocument(doc, source);
+  const state = getShared(doc, ['scenes', 's0', 'compositions', 'c0', 'states', 'o0']) as Y.Map<unknown>;
+  const measure = () => {
     const start = performance.now();
-    for (let i = 0; i < 50; i++) { state.set('x', i); checksum += read().scenes.s0.compositions.c0.states.o0.x; }
+    for (let i = 0; i < 50; i++) { state.set('x', i); checksum += readProject(doc)!.scenes.s0.compositions.c0.states.o0.x; }
     return (performance.now() - start) / 50;
   };
-  readMoonbit(); measure(oldTarget, readLegacy); measure(newTarget, readMoonbit);
-  const before: number[] = [], after: number[] = [];
-  for (let i = 0; i < 7; i++) {
-    if (i % 2) { after.push(measure(newTarget, readMoonbit)); before.push(measure(oldTarget, readLegacy)); }
-    else { before.push(measure(oldTarget, readLegacy)); after.push(measure(newTarget, readMoonbit)); }
-  }
-  results.push({ scenes: 3, compositionsPerScene: 5, objectsPerScene: count, originalMsPerEditAndRead: median(before), moonbitMsPerEditAndRead: median(after), speedup: median(before) / median(after), samples: { originalMsPerEditAndRead: before, moonbitMsPerEditAndRead: after } });
-  legacy.destroy(); moonbit.destroy();
+  readProject(doc); measure();
+  const samples = Array.from({ length: 7 }, measure);
+  results.push({ scenes: 3, compositionsPerScene: 5, objectsPerScene: count, msPerEditAndRead: median(samples), samples: { msPerEditAndRead: samples } });
+  doc.destroy();
 }
-console.log(JSON.stringify({ scope: 'One Yjs leaf edit and a complete project snapshot; excludes UI/rendering/network', iterations: '7 alternating batches × 50 edits after warmup', results, checksum }, null, 2));
+console.log(JSON.stringify({ scope: 'One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network', iterations: '7 batches × 50 edits after warmup', results, checksum }, null, 2));

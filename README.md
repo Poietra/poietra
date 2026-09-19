@@ -17,8 +17,7 @@ This is the **MoonBit implementation** of the original
 Application logic—including the UI, collaboration, rendering, media, AI and
 servers—is written in typed MoonBit. The numerical motion kernel targets
 WebAssembly; browser and server packages target JavaScript. Native adapters retain
-React/Base UI, Yjs, MathJax, Mediabunny, OpenAI and platform APIs. Rust is needed
-only to rebuild the historical comparison oracle, not to run or build this app.
+React/Base UI, Yjs, MathJax, Mediabunny, OpenAI and platform APIs.
 There are no executable `.ts` or `.tsx` files in `src`, `shared`, `server` or
 `worker`. Public `.d.ts` contracts and TypeScript tests/tooling remain; native JS
 entry points run without a TypeScript loader.
@@ -72,7 +71,7 @@ The Node host saves data under `apps/studio/.data` by default.
 ```sh
 pnpm build                     # MoonBit JS/WASM, types, Vite, localized HTML/Markdown
 pnpm --dir apps/studio start    # serve the production build locally
-pnpm test                      # build, extension test, regression/differential tests
+pnpm test                      # build, extension test, behavioral regression tests
 pnpm typecheck
 node scripts/moon.mjs check --target js --deny-warn
 ```
@@ -98,8 +97,9 @@ modules go to `_build/`; `scripts/generate-adapters.py` generates representation
 adapters and public record types from the typed model. `scripts/bindings.json`
 generates 32 simple JS facades. Wrangler environment types are generated under
 ignored `.wrangler/`, rather than committed as 15,408 lines of application source.
-Historical TypeScript/Rust implementations in
-[tests/oracle/](apps/studio/tests/oracle/) are used only for comparison.
+Historical source is available in
+[poietra-hackathon](https://github.com/Poietra/poietra-hackathon) and Git history.
+Copied TypeScript/Rust implementations were removed on 2026-09-20.
 
 The rewrite changes the data flow as well as the language:
 
@@ -139,18 +139,17 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20. GitHub reported **41.4% TypeScript** when this audit started.
-Its [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
+Audited 2026-09-20 after removing the historical implementations.
+GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
 
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 146 | 15,340 |
-| Historical comparison implementations, used only in tests/benchmarks | 14 | 1,257 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,091 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
-| Benchmark scripts and root tool configurations | 5 | 156 |
+| Benchmark scripts and root tool configurations | 5 | 138 |
 
 The same inventory has **51,435 application MoonBit lines** and **770 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
@@ -162,8 +161,8 @@ implementation and compatibility task; it cannot be inferred from the TS ratio.
 Run `pnpm audit:source` to reproduce the inventory, or
 `node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also
 fails if executable TS/TSX returns to the four application directories, and runs
-as part of `pnpm test` in CI. The original tests and precise public declarations
-remain useful for parity and extension checks. CPU benchmarks now run directly
+as part of `pnpm test` in CI. Behavioral tests and precise public declarations
+protect current functionality and extension contracts. CPU benchmarks run directly
 with Node 24's built-in type stripping; `tsx` is no longer in the dependency tree.
 
 ## Add a feature
@@ -211,7 +210,12 @@ CPUs, 31.1 GiB RAM, Linux x64 under WSL2. Benchmark processes used CPUs `0-3`;
 servers used `4-5`. Other host activity was not isolated. Node was 24.13.0;
 headless Chromium was 153.0.8010.12.
 
-### CPU comparisons
+### Historical CPU comparisons — 2026-09-19
+
+These recorded migration measurements remain as performance evidence. The current
+`pnpm bench` measures MoonBit alone. The comparison harness is available in
+[Git history](https://github.com/Poietra/poietra/tree/6893e08d76356eaf829fcd65bcb548cdaa6d706e);
+use the source revisions recorded in each result when reproducing an old run.
 
 These compare the original TypeScript/Rust algorithms against prepared MoonBit
 implementations, including architectural changes. Each suite ran in **three fresh
@@ -247,7 +251,7 @@ structural projection. MoonBit: immutable snapshots with branch reuse.
 
 **AI proposal compilation** — one existing object's `x` edit, including guards
 and preflight, from an already-read snapshot; ten compilations/batch. Baseline:
-retained TypeScript compiler from `afbd6b3`, using current shared bindings. This
+the then-retained TypeScript compiler from `afbd6b3`, using that checkout's shared bindings. This
 excludes model calls, image generation, networking and applying edits.
 
 | Objects | Compositions | Baseline / proposal | MoonBit / proposal | Speedup |
@@ -355,7 +359,7 @@ and generated artifacts unchanged for the whole run. Results normally go under
 ignored `test-results/` so a local run does not overwrite published evidence.
 
 ```sh
-# Repository root: CPU comparison, three fresh processes per suite
+# Repository root: current MoonBit CPU measurements, three fresh processes per suite
 pnpm build
 pnpm bench --runs 3 --output test-results/benchmarks/cpu.json
 
@@ -394,7 +398,7 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 642 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
+runs 630 Vitest behavioral/backend checks, 15 MoonBit JS tests, four MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2

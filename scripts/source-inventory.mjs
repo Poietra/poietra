@@ -10,7 +10,7 @@ const { values } = parseArgs({ options: { json: { type: 'boolean' }, check: { ty
 const categories = [
   'MoonBit application', 'MoonBit tests', 'JavaScript runtime adapters',
   'JavaScript tooling/tests', 'TypeScript runtime', 'TypeScript declarations',
-  'TypeScript tests', 'TypeScript comparison oracles', 'TypeScript tooling',
+  'TypeScript tests', 'TypeScript tooling',
 ];
 const totals = new Map(categories.map(category => [category, { category, files: 0, lines: 0, bytes: 0 }]));
 const runtimeTypeScript = [];
@@ -26,7 +26,6 @@ for (const name of [...files].sort()) {
   else if (/\.d\.[cm]?ts$/.test(name)) category = 'TypeScript declarations';
   else if (/\.[cm]?tsx?$/.test(name)) {
     if (runtime) { category = 'TypeScript runtime'; runtimeTypeScript.push(name); }
-    else if (name.includes('/tests/oracle/')) category = 'TypeScript comparison oracles';
     else if (name.includes('/tests/') || /\.(test|spec)\./.test(name)) category = 'TypeScript tests';
     else category = 'TypeScript tooling';
   } else if (/\.[cm]?jsx?$/.test(name)) category = runtime ? 'JavaScript runtime adapters' : 'JavaScript tooling/tests';
@@ -39,7 +38,7 @@ for (const name of [...files].sort()) {
     + Number(bytes.length > 0 && bytes.at(-1) !== 10);
 }
 const report = {
-  basis: 'Tracked and unignored working-tree source; raw bytes include declarations, tests and oracles. This is not GitHub Linguist classification.',
+  basis: 'Tracked and unignored working-tree source; raw bytes include declarations and tests. This is not GitHub Linguist classification.',
   totals: [...totals.values()], runtimeTypeScript,
 };
 if (values.json) console.log(JSON.stringify(report, null, 2));

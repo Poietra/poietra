@@ -36,17 +36,8 @@ function packets(rate: number, channels: number): Packet[] {
     return { timestamp, duration: length / rate, buffer };
   });
 }
-function equalPcm(actual: PcmBuffer, expected: AudioBuffer) {
-  for (let channel = 0; channel < 2; channel++) {
-    const actualBits = new Uint32Array(actual.getChannelData(channel).buffer);
-    const expectedBits = new Uint32Array(expected.getChannelData(channel).buffer);
-    expect(actualBits).toEqual(expectedBits);
-  }
-}
-
 describe('MoonBit audio packet mixer', () => {
   let moon: typeof import('../../../_build/js/release/build/browser_media/browser_media.js');
-  let Oracle: typeof import('./oracle/audio').AudioMixer;
   let available: Packet[];
   let inputs: Input[];
   let iterators: Array<{ next: ReturnType<typeof vi.fn>; return: ReturnType<typeof vi.fn> }>;
@@ -71,23 +62,36 @@ describe('MoonBit audio packet mixer', () => {
     fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(new Uint8Array([1]), { headers: { 'Content-Type': 'audio/wav' } })));
     vi.stubGlobal('fetch', fetcher); vi.stubGlobal('AudioBuffer', PcmBuffer);
     moon = await import('../../../_build/js/release/build/browser_media/browser_media.js');
-    Oracle = (await import('./oracle/audio')).AudioMixer;
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
   for (const rate of [16000, 44100, 48000]) for (const channels of [1, 2]) {
-    it(`matches original Float32 samples at ${rate} Hz/${channels} channels with gaps, trims and overlap`, async () => {
+    it(`keeps gaps, trims and overlap independent of chunk size at ${rate} Hz/${channels} channels`, async () => {
       available = packets(rate, channels);
       for (const shift of [0, 3599.987]) {
         const tracks = [clip({ start: shift * 1000 + 13.1, offset: 2.35, duration: 151.2, volume: .83 }),
           clip({ id: 'overlap', start: shift * 1000 + 25.7, offset: 33.9, duration: 124.45, volume: .96 })];
-        const original = new Oracle(tracks), mixer = moon.createAudioMixer(tracks, undefined);
-        let cursor = shift;
-        for (const frames of [1, 227, 911, 2491, 4519, 327]) {
-          equalPcm(await mixer.mix(cursor, frames), await original.mix(cursor, frames));
-          cursor += frames / 48000;
-        }
-        mixer.dispose(); original.dispose();
+        const continuous = moon.createAudioMixer(tracks, undefined), mixer = moon.createAudioMixer(tracks, undefined);
+        const chunks = [1, 227, 911, 2491, 4519, 327];
+        try {
+          const expected = await continuous.mix(shift, chunks.reduce((sum, frames) => sum + frames, 0));
+          let offset = 0, peak = 0;
+          for (const frames of chunks) {
+            const actual = await mixer.mix(shift + offset / 48000, frames);
+            for (let channel = 0; channel < 2; channel++) {
+              const samples = actual.getChannelData(channel), reference = expected.getChannelData(channel);
+              let error = 0;
+              for (let index = 0; index < frames; index++) {
+                error = Math.max(error, Math.abs(samples[index] - reference[offset + index]));
+                peak = Math.max(peak, Math.abs(samples[index]));
+              }
+              // Chunk starts can round differently; allow less than 1 ppm of full scale.
+              expect(error).toBeLessThan(1e-6);
+            }
+            offset += frames;
+          }
+          expect(peak).toBeGreaterThan(.1);
+        } finally { mixer.dispose(); continuous.dispose(); }
       }
     });
   }
