@@ -7,7 +7,7 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands,
 Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
-rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing and MP4/WebM export. Most editor screens,
+rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. Most editor screens,
 higher-level editor/Undo commands, AI and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
@@ -82,7 +82,11 @@ node scripts/moon.mjs check --target js
   completion cannot clear a newer gesture or another Scene.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
   controls, Scene tabs, playback information and status displays retain the existing CSS and accessible Base UI
-  primitives. `src/platform/ui-host.mjs` only exposes npm runtime values.
+  primitives. Canvas/video previews serialize work and retain one pending frame;
+  lifetime checks prevent publication after switching views. Audio playback owns
+  its timer, scheduled nodes and decoder together. Stable typed track identities
+  replace per-tick JSON serialization, and waveform-only changes do not restart audio.
+  `src/platform/ui-host.mjs` only exposes npm runtime values.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
 - Shared snapshots invalidate only changed branches before observers run.
@@ -118,7 +122,10 @@ the core suite and editor selection with a pinned compiler.
 The GPU and export migrations passed eight production-bundle browser checks for buffer
 resizing, device-limit fallback, and actual 399-frame MP4/WebM export and decoding.
 Five additional media browser checks passed after decoder, mixer and export migrations, including
-seeks, mixed/trimmed audio and MP4/WebM video pixels.
+seeks, mixed/trimmed audio and MP4/WebM video pixels. The preview migration also
+passed 13 browser checks for Canvas scheduling, stale-frame suppression, media
+import/sharing and project playback/export, plus real AudioContext cleanup and
+a regression check for serialization-free ticks and metadata/gain changes.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

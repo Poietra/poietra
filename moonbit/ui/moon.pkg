@@ -1,6 +1,9 @@
 import {
   "mizchi/js_core" @core,
   "mizchi/npm_typed/react",
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/audio",
+  "poietra/poietra/browser_media",
   "poietra/poietra/scene",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
@@ -13,6 +16,9 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "canvas_frame:CanvasFrame",
+        "use_media_playback:useMediaPlayback",
+        "use_prepared_stage_frame:usePreparedStageFrame",
         "scene_tabs:SceneTabs",
         "playback_panel:PlaybackPanel",
         "chat_thinking:ChatThinking",

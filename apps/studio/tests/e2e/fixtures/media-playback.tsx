@@ -28,11 +28,22 @@ str(0, 'RIFF'); view.setUint32(4, wave.byteLength - 8, true); str(8, 'WAVE'); st
 for (let i = 0; i < rate * 2; i++) view.setInt16(44 + i * 2, i < rate / 2 ? 0 : Math.round(Math.sin(i * 2 * Math.PI * 440 / rate) * 16000), true);
 const src = await new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.readAsDataURL(new Blob([wave], { type: 'audio/wav' })); });
 scene.audioTracks = { tone: { id: 'tone', name: 'Tone', start: 0, offset: 500, duration: 1500, volume: 0.5, muted: false, asset: { src, mime: 'audio/wav', duration: 2000, hasAudio: true } } };
+const probe = { renders: 0, trackSerializations: 0 };
+const stringify = JSON.stringify;
+JSON.stringify = function (value: unknown, ...args: unknown[]) {
+  if (Array.isArray(value) && value.some(track => track?.asset?.src === src)) probe.trackSerializations++;
+  return Reflect.apply(stringify, JSON, [value, ...args]);
+} as typeof JSON.stringify;
 function App() {
   const [playing, setPlaying] = useState(false), [time, setTime] = useState(0), [error, setError] = useState('');
-  const media = useMediaPlayback(scene, time, playing, failure => { setPlaying(false); setError(failure.message); });
+  const [currentScene, setScene] = useState(scene);
+  probe.renders++;
+  const media = useMediaPlayback(currentScene, time, playing, failure => { setPlaying(false); setError(failure.message); });
   useEffect(() => { if (!playing) return; const interval = setInterval(() => setTime(value => value + 20), 20); return () => clearInterval(interval); }, [playing]);
-  return <><button onClick={async () => { await media.unlock(); setPlaying(true); }}>Play</button><button onClick={() => setPlaying(false)}>Pause</button><button onClick={() => { setPlaying(false); setTime(1200); }}>Seek</button><button onClick={() => setTime(1200)}>Live seek</button><output>{error || `${playing}:${time}`}</output></>;
+  return <><button onClick={async () => { await media.unlock(); setPlaying(true); }}>Play</button><button onClick={() => setPlaying(false)}>Pause</button><button onClick={() => { setPlaying(false); setTime(1200); }}>Seek</button><button onClick={() => setTime(1200)}>Live seek</button>
+    <button onClick={() => setScene(value => ({ ...value, audioTracks: { tone: { ...value.audioTracks!.tone, asset: { ...value.audioTracks!.tone.asset, waveform: [0.1, 0.2] } } } }))}>Refresh metadata</button>
+    <button onClick={() => setScene(value => ({ ...value, audioTracks: { tone: { ...value.audioTracks!.tone, volume: 0.25 } } }))}>Quiet</button>
+    <output>{error || `${playing}:${time}`}</output></>;
 }
 const root = createRoot(document.getElementById('root')!); root.render(<App/>);
-Object.assign(window, { mediaPlaybackFixture: { calls, contexts, unmount: () => root.unmount() } });
+Object.assign(window, { mediaPlaybackFixture: { calls, contexts, probe, unmount: () => root.unmount() } });

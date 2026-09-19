@@ -166,3 +166,17 @@ test('real AudioContext playback honors trim, pause, seek, replay and unmount cl
   const after = await page.evaluate(() => (window as any).mediaPlaybackFixture.calls.length);
   await page.waitForTimeout(300); expect(await page.evaluate(() => (window as any).mediaPlaybackFixture.calls.length)).toBe(after);
 });
+
+test('playback avoids serializing embedded audio and ignores metadata-only changes while applying gain edits', async ({ page }) => {
+  await page.goto('/tests/e2e/fixtures/media-playback.html');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).mediaPlaybackFixture.probe.renders)).toBeGreaterThan(8);
+  expect(await page.evaluate(() => (window as any).mediaPlaybackFixture.probe.trackSerializations)).toBe(0);
+  await page.getByRole('button', { name: 'Refresh metadata', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).mediaPlaybackFixture.probe.renders)).toBeGreaterThan(12);
+  expect(await page.evaluate(() => (window as any).mediaPlaybackFixture.calls.filter((call: any) => call.type === 'stop').length)).toBe(0);
+  await page.getByRole('button', { name: 'Quiet', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).mediaPlaybackFixture.calls.filter((call: any) => call.type === 'stop').length)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => (window as any).mediaPlaybackFixture.calls.filter((call: any) => call.type === 'start').at(-1)?.rms)).toBeLessThan(.1);
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+});

@@ -48,4 +48,6 @@ jobs:
       - name: Install video verification tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Check collaborative editing, custom easing and actual video output
-        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/connection.spec.ts
+        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/connection.spec.ts tests/e2e/painter-preview.spec.ts
+      - name: Check media decoding, stereo mixing and actual browser audio playback
+        run: pnpm --dir apps/studio exec playwright test --config tests/e2e/media-export.config.ts
