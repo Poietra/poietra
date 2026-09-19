@@ -62,6 +62,37 @@ it('creates no update or Undo item for a repeated primitive value', () => {
   alice.setTrack('scene-1', 'transition-1', 'circle', { start: 0 });
   expect(updates).toBe(0); expect(alice.undoManager.canUndo()).toBe(false);
 });
+it('publishes a complete typed creation plan and preserves a peer edit when undoing creation', () => {
+  const { alice, bob, sync } = replicas();
+  const id = alice.addObject('scene-1', 'comp-2', 'rectangle', { x: 123, fill: '#f00', visible: false });
+  const scene = alice.scene('scene-1');
+  expect(scene.objects[id]).toMatchObject({ id, name: 'Rectangle 1', kind: 'rectangle', groupId: null, locked: false });
+  expect(scene.objects[id].order).toBe(Math.max(...Object.values(scene.objects).filter(object => object.id !== id).map(object => object.order)) + 1);
+  expect(scene.compositions['comp-1'].states[id]).toMatchObject({ x: 123, fill: '#f00', visible: false });
+  expect(scene.compositions['comp-2'].states[id]).toMatchObject({ x: 123, fill: '#f00', visible: true });
+  expect(scene.transitions['transition-1'].tracks[id]).toMatchObject({ objectId: id, implicit: true, duration: 800 });
+  bob.updateState('scene-1', 'comp-1', 'circle', { fill: '#ff0000' });
+  sync();
+  alice.undo(); sync();
+  expect(alice.scene('scene-1').objects[id]).toBeUndefined();
+  expect(circle(alice).fill).toBe('#ff0000');
+  alice.redo(); sync();
+  expect(alice.scene('scene-1').objects[id]).toBeDefined();
+  expect(circle(alice).fill).toBe('#ff0000');
+});
+it('ignores targets locked or removed after a drag starts without recreating their state', () => {
+  const { alice, bob, sync } = replicas();
+  alice.setObject('scene-1', 'circle', { locked: true });
+  applyChanges(alice.doc, [{ path: ['scenes', 'scene-1', 'compositions', 'comp-1', 'states', 'equation'], value: undefined }]);
+  sync();
+  const before = readProject(alice.doc), clock = Y.encodeStateVector(alice.doc);
+  const starts = { circle: { x: 245, y: 520 }, equation: { x: 0, y: 0 }, gone: { x: 10, y: 20 } };
+  alice.translate('scene-1', 'comp-1', starts, 123, 456);
+  alice.hide('scene-1', 'comp-1', Object.keys(starts));
+  expect(Y.encodeStateVector(alice.doc)).toEqual(clock);
+  expect(readProject(alice.doc)).toEqual(before);
+  expect(bob.scene('scene-1').compositions['comp-1'].states.equation).toBeUndefined();
+});
 it('preserves create/delete/null, explicit array/map replacement and ordered repeated changes', () => {
   const { alice } = replicas(), base = ['scenes', 'scene-1'];
   applyChanges(alice.doc, [{ path: [...base, 'objects', 'circle', 'groupId'], value: 'g' }, { path: [...base, 'objects', 'circle', 'groupId'], value: null }]);

@@ -78,25 +78,59 @@ pub fn translate(
   if !truthy(composition) {
     return
   }
-  let changes = []
-  for id in @core.object_keys(starts) {
-    let object = scene._get("objects")._get(id)
-    if !truthy(object) ||
-      truthy(object._get("locked")) ||
-      !truthy(composition._get("states")._get(id)) {
-      continue
-    }
+  let objects = scene._get("objects")
+  let states = composition._get("states")
+  let targets : Array[@editor.StateTarget[@scene.Point]] = @core.object_keys(
+    starts,
+  ).map(fn(id) {
+    let object = objects._get(id)
     let point = starts._get(id)
-    let x = round((number(point._get("x")) + dx) * 10.0) / 10.0
-    let y = round((number(point._get("y")) + dy) * 10.0) / 10.0
-    changes.append(
-      changes_for(
-        ["scenes", scene_id, "compositions", composition_id, "states", id],
-        record([("x", @core.any(x)), ("y", @core.any(y))]),
-      ),
-    )
+    {
+      id,
+      locked: if @core.is_nullish(object) {
+        None
+      } else {
+        Some(truthy(object._get("locked")))
+      },
+      state: if @core.is_nullish(states._get(id)) {
+        None
+      } else {
+        Some({ x: number(point._get("x")), y: number(point._get("y")), })
+      },
+    }
+  })
+  edit(
+    store,
+    @boundary.object_position_changes(
+      scene_id,
+      composition_id,
+      @editor.translated_objects(targets, dx, dy),
+    ),
+    separate=false,
+  )
+}
+
+///|
+fn creation_target(scene : @core.Any) -> @editor.ObjectCreationTarget {
+  let objects = scene._get("objects")
+  let compositions = scene._get("compositions")
+  let transitions = scene._get("transitions")
+  {
+    objects: @core.object_keys(objects).map(fn(id) {
+      let object = objects._get(id)
+      (
+        @boundary.read_object_kind(object._get("kind")),
+        number(object._get("order")),
+      )
+    }),
+    compositions: @core.object_keys(compositions).map(fn(id) {
+      compositions._get(id)._get("id").cast()
+    }),
+    transitions: @core.object_keys(transitions).map(fn(id) {
+      let transition = transitions._get(id)
+      (transition._get("id").cast(), number(transition._get("duration")))
+    }),
   }
-  edit(store, changes, separate=false)
 }
 
 ///|
@@ -110,8 +144,8 @@ pub fn add_object(
   image_name : @core.Any,
 ) -> String {
   let scene = current_scene(store, scene_id)
-  let compositions = scene._get("compositions")
-  if !truthy(compositions._get(composition_id)) {
+  // Keep validation/error ordering at the public boundary.
+  if !truthy(scene._get("compositions")._get(composition_id)) {
     @core.throw_error("追加先の Composition が見つかりません。")
     return ""
   }
@@ -120,86 +154,45 @@ pub fn add_object(
       error => @core.throw_(native_error(error))
     }
   }
-  let objects = scene._get("objects")
-  if @core.object_keys(objects).length() >= 500 {
-    @core.throw_error(
-      "オブジェクトは 500 件まで追加できます。",
-    )
-    return ""
+  let image = if truthy(image) {
+    Some(@scene.ImageAsset::{
+      src: image._get("src").cast(),
+      width: number(image._get("width")),
+      height: number(image._get("height")),
+    })
+  } else {
+    None
   }
-  let mut count = 1
-  let mut order = -1.0
-  for id in @core.object_keys(objects) {
-    let object = objects._get(id)
-    if @core.equal(object._get("kind"), @core.any(kind)) {
-      count += 1
+  let result = @editor.create_object(
+    creation_target(scene),
+    composition_id,
+    @boundary.read_object_kind(@core.any(kind)),
+    @boundary.read_object_state(@boundary.default_state(@core.any(kind), patch)),
+    image,
+    if @core.is_nullish(image_name) {
+      None
+    } else {
+      Some(image_name.cast())
+    },
+    @boundary.new_id,
+  )
+  match result {
+    Err(error) => {
+      @core.throw_error(
+        match error {
+          MissingComposition =>
+            "追加先の Composition が見つかりません。"
+          ObjectLimit =>
+            "オブジェクトは 500 件まで追加できます。"
+        },
+      )
+      ""
     }
-    order = order.max(number(object._get("order")))
+    Ok(addition) => {
+      edit(store, @boundary.object_insertion_changes(scene_id, [addition]))
+      addition.object.id
+    }
   }
-  let label = match @boundary.read_object_kind(@core.any(kind)) {
-    Circle => "Circle"
-    Rectangle => "Rectangle"
-    Text => "Text"
-    Equation => "Equation"
-    Path => "Path"
-    Arrow => "Arrow"
-    NumberLine => "Number line"
-    Image => "Image"
-    Video => "Video"
-  }
-  let supplied = if @core.is_nullish(image_name) {
-    ""
-  } else {
-    slice_text(image_name.cast(), 200)
-  }
-  let name = if supplied.is_empty() {
-    label + " " + count.to_string()
-  } else {
-    supplied
-  }
-  let id = @boundary.new_id("obj")
-  let state = @boundary.default_state(@core.any(kind), patch)
-  let object = record([
-    ("id", @core.any(id)),
-    ("name", @core.any(name)),
-    ("kind", @core.any(kind)),
-    ("order", @core.any(order + 1.0)),
-    ("groupId", @core.null()),
-    ("locked", @core.any(false)),
-  ])
-  if truthy(image) {
-    object._set("image", image)
-  }
-  let changes = [change(["scenes", scene_id, "objects", id], object)]
-  for cid in @core.object_keys(compositions) {
-    let composition = compositions._get(cid)
-    let cid : String = composition._get("id").cast()
-    changes.push(
-      change(
-        ["scenes", scene_id, "compositions", cid, "states", id],
-        merge(state, record([("visible", @core.any(cid == composition_id))])),
-      ),
-    )
-  }
-  let transitions = scene._get("transitions")
-  for tid in @core.object_keys(transitions) {
-    let transition = transitions._get(tid)
-    let tid : String = transition._get("id").cast()
-    changes.push(
-      change(
-        ["scenes", scene_id, "transitions", tid, "tracks", id],
-        @boundary.default_track(
-          id,
-          record([
-            ("duration", transition._get("duration")),
-            ("implicit", @core.any(true)),
-          ]),
-        ),
-      ),
-    )
-  }
-  edit(store, changes)
-  id
 }
 
 ///|
@@ -264,25 +257,44 @@ pub fn hide(
 ) -> Unit {
   let scene = current_scene(store, scene_id)
   let composition = scene._get("compositions")._get(composition_id)
-  let changes = []
-  if truthy(composition) {
-    for id in ids {
-      let object = scene._get("objects")._get(id)
-      if truthy(object) &&
-        !truthy(object._get("locked")) &&
-        truthy(composition._get("states")._get(id)) {
-        changes.push(
-          change(
-            [
-              "scenes", scene_id, "compositions", composition_id, "states", id, "visible",
-            ],
-            @core.any(false),
-          ),
-        )
+  let targets : Array[@editor.StateTarget[Unit]] = if @core.is_nullish(
+      composition,
+    ) {
+    []
+  } else {
+    let objects = scene._get("objects")
+    let states = composition._get("states")
+    ids
+    .iter()
+    .map(fn(id) {
+      let object = objects._get(id)
+      @editor.StateTarget::{
+        id,
+        locked: if @core.is_nullish(object) {
+          None
+        } else {
+          Some(truthy(object._get("locked")))
+        },
+        state: if @core.is_nullish(states._get(id)) {
+          None
+        } else {
+          Some(())
+        },
       }
-    }
+    })
+    .to_array()
   }
-  edit(store, changes)
+  edit(
+    store,
+    @editor.editable_state_ids(targets).map(fn(id) {
+      change(
+        [
+          "scenes", scene_id, "compositions", composition_id, "states", id, "visible",
+        ],
+        @core.any(false),
+      )
+    }),
+  )
 }
 
 ///|

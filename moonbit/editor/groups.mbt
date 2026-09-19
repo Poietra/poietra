@@ -35,27 +35,28 @@ pub fn editable_group_members(
   objects : Array[GroupObject],
   selected : Array[String],
 ) -> Array[String] {
-  let ids : Map[String, Bool] = Map([])
-  let groups : Map[String, Bool] = Map([])
+  let selected = Set::from_array(selected)
+  let ids : Set[String] = Set([])
+  let groups : Set[String] = Set([])
   for object in objects {
     if !object.locked && selected.contains(object.id) {
-      ids[object.id] = true
+      ids.add(object.id)
       if object.group_id is Some(group) && !group.is_empty() {
-        groups[group] = true
+        groups.add(group)
       }
     }
   }
-  objects
-  .filter(fn(object) {
-    !object.locked &&
+  [
+    for object in objects if !object.locked &&
     (
       ids.contains(object.id) ||
-      object.group_id
-      .map(fn(group) { !group.is_empty() && groups.contains(group) })
-      .unwrap_or(false)
-    )
-  })
-  .map(fn(object) { object.id })
+      (
+        object.group_id is Some(group) &&
+        !group.is_empty() &&
+        groups.contains(group)
+      )
+    ) => object.id
+  ]
 }
 
 ///|
@@ -82,6 +83,52 @@ pub fn presence_name(value : Presence) -> String {
     Leaving => "exit"
     Both => "both"
   }
+}
+
+///|
+pub(all) struct AnimationCandidate {
+  id : String
+  locked : Bool
+  from_visible : Bool
+  to_visible : Bool
+}
+
+///|
+pub(all) enum AnimationExclusion {
+  Locked
+  Hidden
+} derive(Eq, Debug)
+
+///|
+pub(all) struct AnimationSelection {
+  targets : Array[(String, Presence)]
+  excluded : Array[(String, AnimationExclusion)]
+}
+
+///|
+/// Classify once without resolving/allocating a display track. Commands can
+/// consume the selected identities directly; UI adapters add display values.
+pub fn select_animations(
+  candidates : Array[AnimationCandidate],
+) -> AnimationSelection {
+  let selected : Set[String] = Set([])
+  let targets : Array[(String, Presence)] = []
+  let excluded : Array[(String, AnimationExclusion)] = []
+  for candidate in candidates {
+    if selected.contains(candidate.id) {
+      continue
+    }
+    selected.add(candidate.id)
+    if candidate.locked {
+      excluded.push((candidate.id, Locked))
+    } else {
+      match presence(candidate.from_visible, candidate.to_visible) {
+        None => excluded.push((candidate.id, Hidden))
+        Some(presence) => targets.push((candidate.id, presence))
+      }
+    }
+  }
+  { targets, excluded, }
 }
 
 ///|

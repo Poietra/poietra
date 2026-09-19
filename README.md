@@ -120,6 +120,11 @@ The rewrite changes the data flow as well as the language:
   This uses Mediabunny 1.56.2's
   [sequential canvas iterator](https://mediabunny.dev/guide/reading-media-files),
   with explicit ownership and cancellation around the host binding.
+- **Plan typed edits.** Manual creation, clipboard and media imports share an
+  `ObjectInsertion` plan. Drag/hide eligibility and animation selection use typed
+  values in `editor`, which is checked on both JS and WASM. Adapters read only
+  the needed metadata and encode complete batches before any Yjs write. Group
+  expansion uses sets; drag plans encode coordinate leaves directly.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -147,11 +152,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,091 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,142 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **51,435 application MoonBit lines** and **770 native JS
+The same inventory has **51,658 application MoonBit lines** and **770 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -190,6 +195,44 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Typed editing commands — 2026-09-20
+
+Object creation, drag/hide eligibility and group animation selection now use the
+pure `editor` package. Selected IDs are indexed once, removing the nested scan
+from group expansion. Drag planning no longer constructs a JS patch object and
+then expands it back into leaf changes; group animation commands no longer
+construct UI track objects before decoding their stored tracks.
+
+The following workloads select **every object**. Each before/after suite ran in
+three fresh Node 24.13.0 processes, pinned to CPU `2` on the Intel Core Ultra 7
+255H/WSL2 machine described below, with MoonBit `0.10.13+cbb11c36f`. Each process
+used two warmup batches and seven measured batches of 200 operations. Times are
+medians of process medians; the range spans the three after medians.
+
+| Operation | Objects / selected | Before | After | After range | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Expand editable groups | 100 | 0.04242 ms | 0.01055 ms | 0.01015–0.01086 ms | 4.0× |
+| Expand editable groups | 500 | 0.60512 ms | 0.11086 ms | 0.10781–0.11429 ms | 5.5× |
+| Plan drag coordinates | 100 | 0.12179 ms | 0.00883 ms | 0.00870–0.00965 ms | 13.8× |
+| Plan drag coordinates | 500 | 0.62795 ms | 0.10789 ms | 0.09758–0.11113 ms | 5.8× |
+
+These measure the public MoonBit operations **including JS marshalling**, and
+exclude Yjs publication, rendering, UI and networking. They do not establish a
+browser responsiveness/FPS improvement. Single-object and 50-object selections
+are also recorded, including unchanged object identity checks. Sources/artifacts
+were frozen during each suite; tests and builds ran separately. Other host
+activity was not isolated.
+
+[Before samples](benchmarks/2026-09-20-editing/before.json) use application
+[`f5762b1`](https://github.com/Poietra/poietra/commit/f5762b1054f608e8438625154356c6f527dfb6dc);
+[after samples](benchmarks/2026-09-20-editing/after.json) use the typed changes
+committed with this report (the metadata records the parent checkout and working
+changes). Both use [the same harness](apps/studio/scripts/benchmark-editing.mjs).
+Run `pnpm bench --suite editing --runs 3` after building to measure the current
+implementation; historical implementations remain in Git history.
+
+### Video pipeline and loading — 2026-09-19
 
 Remeasured **2026-09-19**. The new video pipeline reduced the median 720p/30 Hz
 painting time from **53.0 to 12.8 ms (4.1×)** in the software-GPU workload below.
@@ -260,7 +303,7 @@ excludes model calls, image generation, networking and applying edits.
 | 500 | 10 | 8.3654 | 0.27324 | 30.6× |
 | 500 | 40 | 37.0487 | 0.60375 | 61.4× |
 
-### Browser editing and loading
+### Browser editing and loading — 2026-09-19
 
 The **production UI** used 2/4 isolated contexts sharing one local Node room,
 with one Composition and 100/500 circles. After three warmup nudges, 30 trusted
@@ -299,7 +342,7 @@ Lighthouse TBT**. The local server served uncompressed assets. Homepage visits
 loaded no editor/WASM and opened no collaboration socket. These are local lab
 measurements, not production field data or evidence of a homepage speedup.
 
-### Rendering and payload
+### Rendering and payload — 2026-09-19
 
 Three fresh Chromium runs used **SwiftShader** (software GPU), release MoonBit
 modules served by Vite, and a 1280×720 canvas. Shape workloads move one object
@@ -398,7 +441,7 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 630 Vitest behavioral/backend checks, 15 MoonBit JS tests, four MoonBit
+runs 633 Vitest behavioral/backend checks, 22 MoonBit JS tests, 15 MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
@@ -411,7 +454,7 @@ selection.
 # Repository root
 pnpm test
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor
 pnpm build
 
 # apps/studio: browser and local runtime checks

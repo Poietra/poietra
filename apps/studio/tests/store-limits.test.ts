@@ -28,3 +28,23 @@ test.each(['objects', 'compositions'] as const)('manual creation respects the po
     expect(undoManager.canUndo()).toBe(false);
   } finally { doc.destroy(); }
 });
+
+test('manual image creation validates before publication and retains metadata through Undo/Redo', () => {
+  const scene = makeBlankScene('image-scene', 'Scene');
+  const doc = new Y.Doc();
+  try {
+    initializeDocument(doc, { version: 1, name: 'Images', sceneOrder: [scene.id], scenes: { [scene.id]: scene } });
+    const undoManager = new EditorUndoManager(doc);
+    const store = Object.assign(Object.create(EditorStore.prototype), { doc, undoManager }) as EditorStore;
+    const cid = scene.compositionOrder[0], clock = Y.encodeStateVector(doc);
+    expect(() => store.addObject(scene.id, cid, 'image')).toThrow();
+    expect(Y.encodeStateVector(doc)).toEqual(clock);
+    expect(undoManager.canUndo()).toBe(false);
+    const image = { src: `/api/rooms/${crypto.randomUUID()}/images/${'b'.repeat(64)}`, width: 100, height: 50 };
+    const id = store.addObject(scene.id, cid, 'image', { width: 80, height: 40 }, image, 'Image'.repeat(50));
+    expect(store.scene(scene.id).objects[id].image).toEqual(image);
+    expect(store.scene(scene.id).objects[id].name).toHaveLength(200);
+    store.undo(); expect(store.scene(scene.id).objects[id]).toBeUndefined();
+    store.redo(); expect(store.scene(scene.id).objects[id].image).toEqual(image);
+  } finally { doc.destroy(); }
+});

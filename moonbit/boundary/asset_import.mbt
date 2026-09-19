@@ -44,34 +44,8 @@ pub fn asset_import_changes(
     }
   }
   let scene_id : String = scene._get("id").cast()
-  let changes = []
-  let ids = []
-  for addition in additions.objects {
-    let id = addition.object.id
-    ids.push(id)
-    changes.push(
-      make_change(
-        ["scenes", scene_id, "objects", id],
-        encode_SceneObject(addition.object),
-      ),
-    )
-    for (cid, state) in addition.states {
-      changes.push(
-        make_change(
-          ["scenes", scene_id, "compositions", cid, "states", id],
-          encode_ObjectState(state),
-        ),
-      )
-    }
-    for (tid, track) in addition.tracks {
-      changes.push(
-        make_change(
-          ["scenes", scene_id, "transitions", tid, "tracks", id],
-          encode_Track(track),
-        ),
-      )
-    }
-  }
+  let changes = object_insertion_changes(scene_id, additions.objects)
+  let ids = additions.objects.map(fn(addition) { addition.object.id })
   for track in additions.audio {
     changes.push(
       make_change(

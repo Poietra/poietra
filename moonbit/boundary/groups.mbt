@@ -122,45 +122,63 @@ extern "js" fn animation_targets(
   #|(targets, excluded) => ({targets, excluded})
 
 ///|
+fn select_animations(
+  scene : @core.Any,
+  transition : @core.Any,
+  selected : FixedArray[String],
+) -> @editor.AnimationSelection {
+  let objects = scene._get("objects")
+  let from : String = transition._get("fromId").cast()
+  let to : String = transition._get("toId").cast()
+  let candidates : Array[@editor.AnimationCandidate] = []
+  for id in selected {
+    let object = objects._get(id)
+    if !@core.is_nullish(object) {
+      candidates.push({
+        id,
+        locked: truthy(object._get("locked")),
+        from_visible: state_visible(scene, from, id),
+        to_visible: state_visible(scene, to, id),
+      })
+    }
+  }
+  @editor.select_animations(candidates)
+}
+
+///|
 pub fn group_animation_targets(
   scene : @core.Any,
   transition_id : String,
   selected : FixedArray[String],
 ) -> @core.Any {
   let transition = scene._get("transitions")._get(transition_id)
-  let targets = []
-  let excluded = []
-  let seen : Map[String, Bool] = Map([])
-  if truthy(transition) {
-    for id in selected {
-      if seen.contains(id) {
-        continue
-      }
-      seen[id] = true
-      let object = scene._get("objects")._get(id)
-      if !truthy(object) {
-        continue
-      }
-      let animation = visible_animation(scene, transition, id)
-      if truthy(object._get("locked")) || @core.is_nullish(animation) {
-        excluded.push(
-          excluded_target(
-            object,
-            if truthy(object._get("locked")) {
-              "locked"
-            } else {
-              "hidden"
-            },
-          ),
-        )
-      } else {
-        targets.push(animation)
-      }
-    }
+  if !truthy(transition) {
+    return animation_targets([], [])
   }
+  let selection = select_animations(scene, transition, selected)
+  let objects = scene._get("objects")
+  let tracks = transition._get("tracks")
   animation_targets(
-    FixedArray::makei(targets.length(), fn(i) { targets[i] }),
-    FixedArray::makei(excluded.length(), fn(i) { excluded[i] }),
+    FixedArray::makei(selection.targets.length(), fn(i) {
+      let (id, presence) = selection.targets[i]
+      let track = tracks._get(id)
+      make_animation(
+        objects._get(id),
+        resolve_track(track, id, transition._get("duration").cast()),
+        truthy(track) && !truthy(track._get("implicit")),
+        @editor.presence_name(presence),
+      )
+    }),
+    FixedArray::makei(selection.excluded.length(), fn(i) {
+      let (id, reason) = selection.excluded[i]
+      excluded_target(
+        objects._get(id),
+        match reason {
+          Locked => "locked"
+          Hidden => "hidden"
+        },
+      )
+    }),
   )
 }
 
@@ -251,15 +269,11 @@ pub fn group_animation_changes(
   if !truthy(transition) {
     return []
   }
-  let targets : FixedArray[@core.Any] = group_animation_targets(
-      scene, transition_id, selected,
-    )
-    ._get("targets")
-    .cast()
+  let selection = select_animations(scene, transition, selected)
   let patch = decode_track_patch(input)
   let tracks = transition._get("tracks")
-  let targets = Array::makei(targets.length(), fn(i) {
-    let object_id : String = targets[i]._get("object")._get("id").cast()
+  let targets = selection.targets.map(fn(entry) {
+    let (object_id, _) = entry
     @editor.EditableTrack::{
       object_id,
       stored: optional(tracks._get(object_id), decode_Track),

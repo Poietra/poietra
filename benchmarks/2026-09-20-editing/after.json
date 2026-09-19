@@ -1,0 +1,568 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-19T16:10:07.422Z",
+  "environment": {
+    "applicationRevision": "f5762b1054f608e8438625154356c6f527dfb6dc",
+    "trackedModifications": [
+      ".github/workflows/check.yml",
+      "apps/studio/tests/collaboration-writes.test.ts",
+      "apps/studio/tests/store-limits.test.ts",
+      "moonbit/boundary/asset_import.mbt",
+      "moonbit/boundary/groups.mbt",
+      "moonbit/boundary/moon.pkg",
+      "moonbit/browser_editor/host.mbt",
+      "moonbit/browser_editor/object_commands.mbt",
+      "moonbit/editor/asset_import.mbt",
+      "moonbit/editor/clipboard.mbt",
+      "moonbit/editor/groups.mbt",
+      "scripts/benchmark.mjs"
+    ],
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "2",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      1.28,
+      0.97,
+      0.62
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 3,
+  "suites": {
+    "editing": {
+      "summary": [
+        {
+          "operation": "expand groups",
+          "objects": 100,
+          "selected": 1,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.005401945000000019,
+            "min": 0.005217155000000026,
+            "max": 0.00576045999999998
+          }
+        },
+        {
+          "operation": "expand groups",
+          "objects": 100,
+          "selected": 50,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.00905932,
+            "min": 0.007616075000000038,
+            "max": 0.009101630000000043
+          }
+        },
+        {
+          "operation": "expand groups",
+          "objects": 100,
+          "selected": 100,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.010548900000000003,
+            "min": 0.010149195000000048,
+            "max": 0.010856970000000032
+          }
+        },
+        {
+          "operation": "plan drag",
+          "objects": 100,
+          "selected": 100,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.00883471,
+            "min": 0.008704254999999961,
+            "max": 0.00965440000000001
+          }
+        },
+        {
+          "operation": "expand groups",
+          "objects": 500,
+          "selected": 1,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.047120439999999916,
+            "min": 0.045934370000000085,
+            "max": 0.04760510999999994
+          }
+        },
+        {
+          "operation": "expand groups",
+          "objects": 500,
+          "selected": 50,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.05290918000000005,
+            "min": 0.04771903499999979,
+            "max": 0.05863146999999998
+          }
+        },
+        {
+          "operation": "expand groups",
+          "objects": 500,
+          "selected": 500,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.11085567999999996,
+            "min": 0.10780797499999978,
+            "max": 0.11428836499999989
+          }
+        },
+        {
+          "operation": "plan drag",
+          "objects": 500,
+          "selected": 500,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.1078949,
+            "min": 0.09757603999999959,
+            "max": 0.11113471000000004
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Public MoonBit group selection and drag planning, including JS marshalling; excludes Yjs publication, UI, rendering and network",
+          "iterations": "7 batches × 200 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 1,
+              "msPerOperation": 0.005401945000000019,
+              "samples": {
+                "msPerOperation": [
+                  0.005534445000000012,
+                  0.006581869999999981,
+                  0.031248144999999995,
+                  0.005401945000000019,
+                  0.005258070000000004,
+                  0.004966289999999987,
+                  0.005161914999999979
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 50,
+              "msPerOperation": 0.00905932,
+              "samples": {
+                "msPerOperation": [
+                  0.05386873000000001,
+                  0.018776845000000007,
+                  0.009295240000000007,
+                  0.00905932,
+                  0.0076519499999999855,
+                  0.00797486499999998,
+                  0.007862930000000006
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.010548900000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.010482439999999968,
+                  0.01059993999999996,
+                  0.011774135000000002,
+                  0.010548900000000003,
+                  0.01049109999999999,
+                  0.00993458000000004,
+                  0.010728170000000006
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.00883471,
+              "samples": {
+                "msPerOperation": [
+                  0.00883471,
+                  0.00901917999999995,
+                  0.010457054999999969,
+                  0.008462189999999908,
+                  0.008982604999999921,
+                  0.00839235500000001,
+                  0.008536024999999938
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 1,
+              "msPerOperation": 0.04760510999999994,
+              "samples": {
+                "msPerOperation": [
+                  0.04760510999999994,
+                  0.0445113400000001,
+                  0.050712824999999954,
+                  0.04641765000000007,
+                  0.04791579999999996,
+                  0.04661690500000006,
+                  0.04931888000000001
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 50,
+              "msPerOperation": 0.04771903499999979,
+              "samples": {
+                "msPerOperation": [
+                  0.05668183999999996,
+                  0.04636565499999989,
+                  0.06657121499999988,
+                  0.04771903499999979,
+                  0.04651314999999982,
+                  0.04854050999999998,
+                  0.04709113000000002
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.11085567999999996,
+              "samples": {
+                "msPerOperation": [
+                  0.09411250000000024,
+                  0.11638221999999984,
+                  0.12443085999999993,
+                  0.0998921150000001,
+                  0.10181729499999989,
+                  0.11085567999999996,
+                  0.12324452500000006
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.09757603999999959,
+              "samples": {
+                "msPerOperation": [
+                  0.1163042250000001,
+                  0.08810898000000009,
+                  0.11853365499999996,
+                  0.10277401000000054,
+                  0.09757603999999959,
+                  0.08920309999999972,
+                  0.08191359999999975
+                ]
+              }
+            }
+          ],
+          "checksum": 3442800
+        },
+        {
+          "scope": "Public MoonBit group selection and drag planning, including JS marshalling; excludes Yjs publication, UI, rendering and network",
+          "iterations": "7 batches × 200 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 1,
+              "msPerOperation": 0.00576045999999998,
+              "samples": {
+                "msPerOperation": [
+                  0.005862090000000002,
+                  0.031174134999999978,
+                  0.00576045999999998,
+                  0.005344149999999992,
+                  0.00831052500000002,
+                  0.005201300000000017,
+                  0.005207510000000006
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 50,
+              "msPerOperation": 0.009101630000000043,
+              "samples": {
+                "msPerOperation": [
+                  0.031719465000000044,
+                  0.02711171499999999,
+                  0.011321560000000019,
+                  0.009101630000000043,
+                  0.008144075000000014,
+                  0.008049389999999974,
+                  0.007702935000000011
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.010856970000000032,
+              "samples": {
+                "msPerOperation": [
+                  0.010144829999999985,
+                  0.01916495999999995,
+                  0.014583409999999972,
+                  0.01435275500000003,
+                  0.010856970000000032,
+                  0.010369880000000008,
+                  0.009875240000000006
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.008704254999999961,
+              "samples": {
+                "msPerOperation": [
+                  0.008704254999999961,
+                  0.036739510000000024,
+                  0.012932534999999917,
+                  0.01169371499999997,
+                  0.00846082999999993,
+                  0.00830000499999997,
+                  0.008615784999999931
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 1,
+              "msPerOperation": 0.045934370000000085,
+              "samples": {
+                "msPerOperation": [
+                  0.05019486499999999,
+                  0.05650511000000009,
+                  0.04073246499999996,
+                  0.04624190499999997,
+                  0.045934370000000085,
+                  0.042646960000000005,
+                  0.03858984500000005
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 50,
+              "msPerOperation": 0.05863146999999998,
+              "samples": {
+                "msPerOperation": [
+                  0.06460377499999993,
+                  0.056153264999999807,
+                  0.06752563000000009,
+                  0.06396656499999978,
+                  0.05863146999999998,
+                  0.05834943999999979,
+                  0.05711435999999992
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.11428836499999989,
+              "samples": {
+                "msPerOperation": [
+                  0.14025473500000005,
+                  0.12342860000000001,
+                  0.10350358,
+                  0.10940414999999973,
+                  0.11428836499999989,
+                  0.11935585000000003,
+                  0.10523548500000005
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.11113471000000004,
+              "samples": {
+                "msPerOperation": [
+                  0.12257064500000013,
+                  0.09257150499999967,
+                  0.08159523000000035,
+                  0.09329273,
+                  0.15070245999999998,
+                  0.1262289599999997,
+                  0.11113471000000004
+                ]
+              }
+            }
+          ],
+          "checksum": 3442800
+        },
+        {
+          "scope": "Public MoonBit group selection and drag planning, including JS marshalling; excludes Yjs publication, UI, rendering and network",
+          "iterations": "7 batches × 200 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 1,
+              "msPerOperation": 0.005217155000000026,
+              "samples": {
+                "msPerOperation": [
+                  0.009672625000000004,
+                  0.005346224999999975,
+                  0.005064525000000018,
+                  0.01033818,
+                  0.005005065000000002,
+                  0.005056145000000001,
+                  0.005217155000000026
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 50,
+              "msPerOperation": 0.007616075000000038,
+              "samples": {
+                "msPerOperation": [
+                  0.04772653499999997,
+                  0.01634167000000005,
+                  0.008015565000000037,
+                  0.007616075000000038,
+                  0.00752755999999998,
+                  0.007323374999999998,
+                  0.007250445000000027
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.010149195000000048,
+              "samples": {
+                "msPerOperation": [
+                  0.010106905000000025,
+                  0.009899004999999975,
+                  0.01028516500000002,
+                  0.010135930000000001,
+                  0.010149195000000048,
+                  0.010285580000000039,
+                  0.01080706499999998
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 100,
+              "selected": 100,
+              "msPerOperation": 0.00965440000000001,
+              "samples": {
+                "msPerOperation": [
+                  0.011286070000000023,
+                  0.010981799999999993,
+                  0.012382199999999984,
+                  0.00965440000000001,
+                  0.009185444999999959,
+                  0.008317109999999985,
+                  0.008341544999999968
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 1,
+              "msPerOperation": 0.047120439999999916,
+              "samples": {
+                "msPerOperation": [
+                  0.04644053999999997,
+                  0.04651387499999998,
+                  0.0499856100000001,
+                  0.05555968500000006,
+                  0.04811157000000008,
+                  0.04676333,
+                  0.047120439999999916
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 50,
+              "msPerOperation": 0.05290918000000005,
+              "samples": {
+                "msPerOperation": [
+                  0.06403751499999999,
+                  0.05290918000000005,
+                  0.04882688999999999,
+                  0.04921633499999985,
+                  0.04893182999999993,
+                  0.06668647999999991,
+                  0.060042945000000146
+                ]
+              }
+            },
+            {
+              "operation": "expand groups",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.10780797499999978,
+              "samples": {
+                "msPerOperation": [
+                  0.10006656500000019,
+                  0.13430701499999997,
+                  0.10880491000000006,
+                  0.11712882499999978,
+                  0.10780797499999978,
+                  0.09874787999999995,
+                  0.10433440000000019
+                ]
+              }
+            },
+            {
+              "operation": "plan drag",
+              "objects": 500,
+              "selected": 500,
+              "msPerOperation": 0.1078949,
+              "samples": {
+                "msPerOperation": [
+                  0.14319524,
+                  0.10968673000000023,
+                  0.10651068499999951,
+                  0.1078949,
+                  0.10551737500000001,
+                  0.10109498999999972,
+                  0.12166559500000006
+                ]
+              }
+            }
+          ],
+          "checksum": 3442800
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-19T16:10:09.675Z",
+  "loadAverageAfter": [
+    1.28,
+    0.97,
+    0.62
+  ]
+}

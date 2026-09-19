@@ -18,7 +18,7 @@ pub(all) struct ImportScene {
 
 ///|
 pub(all) struct AssetInsertion {
-  objects : Array[PastedObject]
+  objects : Array[ObjectInsertion]
   audio : Array[@scene.AudioTrack]
 }
 
@@ -97,7 +97,7 @@ pub fn import_assets(
   }
   let mut order = target.orders.fold(init=-1.0, fn(a, b) { a.max(b) }) + 1.0
   let mut image_index = 0
-  let objects : Array[PastedObject] = []
+  let objects : Array[ObjectInsertion] = []
   let audio : Array[@scene.AudioTrack] = []
   let origin = point.unwrap_or({
     x: target.width / 2.0,

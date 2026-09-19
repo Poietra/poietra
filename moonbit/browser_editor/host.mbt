@@ -10,9 +10,6 @@ extern "js" fn slice_text(value : String, limit : Int) -> String =
   #|(value, limit) => value.slice(0, limit)
 
 ///|
-extern "js" fn round(value : Double) -> Double = "Math.round"
-
-///|
 extern "js" fn instance_of(value : @core.Any, type_ : @core.Any) -> Bool =
   #|(value, type) => value instanceof type
 

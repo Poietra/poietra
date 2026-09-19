@@ -43,6 +43,10 @@ and measurements belong in [README.md](README.md).
   through `node scripts/moon.mjs`; verify generated release artifacts.
 - Prefer typed states/enums, prepared playback, explicit ownership and shared
   evaluators. Native adapters do not constrain internal architecture.
+- 2026-09-20: Keep object/group edit decisions in pure `editor` plans, tested on
+  JS and WASM. Creation/clipboard/import share `ObjectInsertion`; boundary code
+  reads required metadata and encodes batches before publication. Avoid decoding
+  whole Scenes for pointer edits or constructing display tracks for command plans.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

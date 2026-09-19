@@ -5,20 +5,23 @@ import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { environment, root, stats } from '../apps/studio/scripts/benchmark-environment.mjs';
 
-const { values } = parseArgs({ options: { output: { type: 'string', default: 'test-results/benchmarks/cpu.json' }, runs: { type: 'string', default: '3' }, help: { type: 'boolean' } } });
+const { values } = parseArgs({ options: { output: { type: 'string', default: 'test-results/benchmarks/cpu.json' }, runs: { type: 'string', default: '3' }, suite: { type: 'string' }, help: { type: 'boolean' } } });
 if (values.help) {
-  console.log('Usage: pnpm bench [--runs 1..9] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
+  console.log('Usage: pnpm bench [--runs 1..9] [--suite evaluation|snapshots|proposals|editing] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
   process.exit(0);
 }
 const count = Number(values.runs);
 if (!Number.isInteger(count) || count < 1 || count > 9) throw new Error('--runs must be an integer from 1 to 9');
-const output = resolve(values.output);
-const result = { schemaVersion: 2, measuredAt: new Date().toISOString(), environment: environment(), method: 'Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.', runs: count, suites: {} };
-for (const [name, script, fields] of [
+const suites = [
   ['evaluation', 'benchmark-moonbit.ts', ['msPerFrame', 'prepareMs']],
   ['snapshots', 'benchmark-snapshots.ts', ['msPerEditAndRead']],
   ['proposals', 'benchmark-proposals.ts', ['msPerProposal']],
-]) {
+  ['editing', 'benchmark-editing.mjs', ['msPerOperation']],
+];
+if (values.suite && !suites.some(([name]) => name === values.suite)) throw new Error('Unknown --suite');
+const output = resolve(values.output);
+const result = { schemaVersion: 2, measuredAt: new Date().toISOString(), environment: environment(), method: 'Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.', runs: count, suites: {} };
+for (const [name, script, fields] of suites.filter(([name]) => !values.suite || name === values.suite)) {
   const samples = [];
   for (let run = 0; run < count; run++) {
     console.error(`${name}: process ${run + 1}/${count}`);

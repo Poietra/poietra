@@ -31,13 +31,6 @@ pub fn next_paste(
 }
 
 ///|
-pub(all) struct PastedObject {
-  object : @scene.SceneObject
-  states : Array[(String, @scene.ObjectState)]
-  tracks : Array[(String, @scene.Track)]
-}
-
-///|
 pub fn copied_object_ids(
   ordered : Array[String],
   present : Array[String],
@@ -62,7 +55,7 @@ pub fn paste_objects(
   clipboard : ObjectClipboard,
   offset : Double,
   id : (String) -> String,
-) -> Result[Array[PastedObject], String] {
+) -> Result[Array[ObjectInsertion], String] {
   if !scene.compositions.contains(composition_id) {
     return Err("貼り付け先の Composition が見つかりません。")
   }
