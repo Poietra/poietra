@@ -1,0 +1,27 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/npm_typed/react",
+  "poietra/poietra/scene",
+  "poietra/poietra/editor",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "connection_presentation:connectionPresentation",
+        "connection_status:ConnectionStatus",
+        "use_operation_feedback:useOperationFeedback",
+        "operation_feedback:OperationFeedback",
+        "icon_button:IconButton",
+        "field:Field",
+        "number_input:NumberInput",
+        "modal:Modal",
+        "section:Section",
+      ],
+    },
+  },
+)

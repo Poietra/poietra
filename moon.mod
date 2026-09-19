@@ -12,6 +12,6 @@ description = "Collaborative browser motion editor"
 
 import {
   "mizchi/js@0.13.0",
-  "mizchi/luna@0.25.1",
   "mizchi/js_core@0.13.0",
+  "mizchi/npm_typed@0.1.16",
 }

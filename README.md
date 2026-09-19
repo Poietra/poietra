@@ -4,8 +4,10 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
-CRDT structure projection, model defaults/validation and project timelines. The React UI, higher-level editor/Undo commands, AI,
-media renderer, and service orchestration still contain TypeScript implementations. Keeping those running preserves the original regression suite
+CRDT structure projection, model defaults/validation, project timelines, shared UI
+controls, connection status and operation feedback. Most editor screens, higher-level
+editor/Undo commands, AI, media renderer, and service orchestration still contain
+TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
 ## Run locally
@@ -14,7 +16,7 @@ Requires Node.js 24+, pnpm 10.23.0, Python 3.12+, and MoonBit v0.10.13 (the comp
 used here is `moonc v0.10.13+cbb11c36f`, released 2026-09-15).
 
 ```sh
-pnpm --dir apps/studio install --frozen-lockfile
+pnpm install --frozen-lockfile
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
 bash /tmp/install-moonbit.sh "$(cat .moon-version)"
 moon update
@@ -42,6 +44,11 @@ node scripts/moon.mjs check --target js
   Seeking uses binary search; preview and export share this same evaluator.
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
+- `moonbit/editor`: typed connection/persistence states and operation feedback
+  reducer. A delayed completion cannot clear a newer gesture or another Scene.
+- `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
+  controls and status displays retain the existing CSS and accessible Base UI
+  primitives. `src/platform/ui-host.mjs` only exposes npm runtime values.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
 - Shared snapshots invalidate only changed branches before observers run.
@@ -67,8 +74,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 529 regression/differential tests, 3 kernel tests on each of
-JS and WASM, typechecking and the production build. A 39-test browser selection
+Locally verified: 529 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
 
@@ -106,7 +112,7 @@ networking. Seven alternating batches of 50 edits after warmup:
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-snapshots.ts
 ```
 
-The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) are being evaluated for the UI/build migration; they are not yet the active UI.
+The migration follows mizchi's [TypeScript-to-MoonBit workflow](https://github.com/mizchi/skills/tree/main/ts2moonbit-migration): typed MoonBit domain code, a small JS boundary, and comparison with the original behavior. It uses [mizchi/js_core](https://github.com/mizchi/js.mbt) for interoperability and [mizchi/npm_typed](https://github.com/mizchi/npm_typed) for typed React hooks and elements. [Luna](https://github.com/mizchi/luna.mbt) and [vite-plugin-moonbit](https://github.com/mizchi/vite-plugin-moonbit) were also investigated; they are not active dependencies. The initial UI migration keeps the existing React/Base UI runtime and replaces application components with MoonBit.
 
 ## Repository and deployment
 
