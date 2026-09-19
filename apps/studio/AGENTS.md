@@ -1,6 +1,6 @@
 # Poietra Studio — product and runtime rules
 
-Updated 2026-09-19. Applies to `apps/studio`; also follow the
+Updated 2026-09-20. Applies to `apps/studio`; also follow the
 [root rules](../../AGENTS.md). The current implementation, setup, checks and
 measurements are in the [root README](../../README.md) and
 [studio guide](README.md). Earlier Rust/TypeScript implementation decisions are
@@ -86,8 +86,9 @@ files or flatten AI edits into an uneditable generated video.
   before switching the reference and preserve the original bytes.
 - Own render/decode/encode resources through failure, cancellation and Scene
   changes. Preserve WebGL2 Glow with SVG/Canvas2D fallback and export decoding tests.
-- Local Node and workerd are separate validation hosts. The copied Worker account
-  ID and SEO origin do not authorize changing the original production service.
+- Local Node and workerd are separate validation hosts with isolated storage.
+  The founder authorized the production cutover on 2026-09-20; the explicit
+  `production` environment preserves the existing Worker, storage and origin.
 
 ## UI and scope
 

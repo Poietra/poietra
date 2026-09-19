@@ -20,8 +20,13 @@ and measurements belong in [README.md](README.md).
   use Git history or the hackathon repository when historical code is needed.
 - The separate private `poietra-design-archive` was not imported. Do not copy
   its documents or history into this public repository.
-- The rewrite is not deployed to the original service. Do not deploy to its
-  production domain or reuse production storage for local validation.
+- 2026-09-20: The founder authorized deploying the MoonBit rewrite to
+  `https://poietra.com`. Use the explicit `production` Wrangler environment to
+  update the existing `poietra-hackathon` Worker in Yumaboda's account. Preserve
+  its Durable Object namespaces/classes, migration tags, `poietra-assets-prod`
+  bucket, secrets, domain and old workers.dev links. Record the previous version,
+  upload then deploy the new version, and verify persistence and collaboration.
+  Local validation must continue to use isolated storage and the default config.
 
 ## Implementation
 
