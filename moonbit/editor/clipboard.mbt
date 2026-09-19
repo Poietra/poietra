@@ -1,0 +1,133 @@
+///|
+pub(all) struct ObjectClipboard {
+  objects : Array[@scene.SceneObject]
+  states : Map[String, @scene.ObjectState]
+}
+
+///|
+pub(all) struct PastedObject {
+  object : @scene.SceneObject
+  states : Array[(String, @scene.ObjectState)]
+  tracks : Array[(String, @scene.Track)]
+}
+
+///|
+pub fn copied_object_ids(
+  ordered : Array[String],
+  present : Array[String],
+  ids : Array[String],
+) -> Array[String] {
+  let selected = Set::from_array(ids)
+  let present = Set::from_array(present)
+  ordered.filter(fn(id) { selected.contains(id) && present.contains(id) })
+}
+
+///|
+pub(all) struct PasteScene {
+  objects : Array[(String, Double)]
+  compositions : Array[String]
+  transitions : Array[(String, Double)]
+}
+
+///|
+pub fn paste_objects(
+  scene : PasteScene,
+  composition_id : String,
+  clipboard : ObjectClipboard,
+  offset : Double,
+  id : (String) -> String,
+) -> Result[Array[PastedObject], String] {
+  if !scene.compositions.contains(composition_id) {
+    return Err("貼り付け先の Composition が見つかりません。")
+  }
+  let counts : Map[String, Int] = Map([])
+  let groups : Map[String, String] = Map([])
+  let names : Set[String] = Set([])
+  let mut order = -1.0
+  for (name, position) in scene.objects {
+    names.add(name)
+    order = @scene.maximum(order, position)
+  }
+  order += 1.0
+  for object in clipboard.objects {
+    if !clipboard.states.contains(object.id) {
+      return Err(
+        "コピーしたオブジェクトの状態がありません。",
+      )
+    }
+    if object.groupId is Some(group) && !group.is_empty() {
+      counts[group] = counts.get(group).unwrap_or(0) + 1
+    }
+  }
+  let result = []
+  for object in clipboard.objects {
+    let original = clipboard.states[object.id]
+    let object_id = id("obj")
+    let group = match object.groupId {
+      Some(group) =>
+        if counts.get(group).unwrap_or(0) > 1 {
+          match groups.get(group) {
+            Some(value) => Some(value)
+            None => {
+              let value = id("group")
+              groups[group] = value
+              Some(value)
+            }
+          }
+        } else {
+          None
+        }
+      None => None
+    }
+    let mut name = object.name
+    for index = 1; names.contains(name); index = index + 1 {
+      let suffix = " copy" + (if index > 1 { " \{index}" } else { "" })
+      let mut length = (200 - suffix.length()).max(0).min(object.name.length())
+      if length > 0 {
+        let code = object.name.code_unit_at(length - 1).to_int()
+        if code >= 0xd800 && code <= 0xdbff {
+          length -= 1
+        }
+      }
+      name = object.name[:length].to_owned() + suffix
+    }
+    names.add(name)
+    let states = []
+    for composition in scene.compositions {
+      states.push(
+        (
+          composition,
+          {
+            ..original,
+            x: original.x + offset,
+            y: original.y + offset,
+            visible: composition == composition_id,
+          },
+        ),
+      )
+    }
+    let tracks = []
+    for (transition, duration) in scene.transitions {
+      tracks.push(
+        (
+          transition,
+          { ..@scene.default_track(object_id, duration), implicit: Some(true), },
+        ),
+      )
+    }
+    result.push({
+      object: {
+        ..object,
+        id: object_id,
+        name,
+        groupId: group,
+        order,
+        locked: false,
+      },
+      states,
+      tracks,
+    })
+    order += 1.0
+  }
+  Ok(result)
+}

@@ -5,6 +5,20 @@ import { applyChanges, initializeDocument, LOCAL_ORIGIN, readProject } from '../
 import { makeDemoProject } from '../shared/demo';
 
 describe('object clipboard', () => {
+  it('copies only selected state payloads and plans a paste from target metadata', () => {
+    const scene = makeDemoProject().scenes['scene-1'];
+    Object.defineProperty(scene.compositions['comp-1'].states, 'equation', { enumerable: true, get() { throw new Error('Unselected state must not be decoded'); } });
+    const clipboard = copyObjects(scene, 'comp-1', ['circle']);
+    Object.defineProperty(scene.compositions['comp-2'], 'states', { get() { throw new Error('Target states must not be decoded to paste'); } });
+    expect(pasteObjectChanges(scene, 'comp-2', clipboard).ids).toHaveLength(1);
+    clipboard.states.circle.path.c1.x = 900;
+    expect(scene.compositions['comp-1'].states.circle.path.c1.x).not.toBe(900);
+  });
+  it('preserves deterministic layer ordering when objects have the same order', () => {
+    const scene = makeDemoProject().scenes['scene-1'];
+    for (const object of Object.values(scene.objects)) object.order = 0;
+    expect(copyObjects(scene, 'comp-1', ['sigmoid', 'equation', 'circle']).objects.map(object => object.id)).toEqual(['circle', 'equation', 'sigmoid']);
+  });
   it('preserves a linked selection and Bézier shape across a JSON roundtrip', () => {
     const project = makeDemoProject(); const scene = project.scenes['scene-1'];
     scene.objects.circle.groupId = scene.objects.sigmoid.groupId = 'linked';

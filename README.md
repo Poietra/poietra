@@ -8,7 +8,7 @@ CRDT structure projection, model defaults/validation, project timelines, shared 
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
 audio/video track editing, the animation timeline, canvas interaction,
-optional login/project bookmarks and sample project generation,
+optional login/project bookmarks, sample project generation, portable-file validation and object clipboard plans,
 Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
 higher-level editor/Undo commands, AI proposal compilation and services still contain
@@ -85,6 +85,9 @@ node scripts/moon.mjs check --target js
   group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
   before writing; existing tracks change only intended leaves. A delayed
   completion cannot clear a newer gesture or another Scene.
+  File decoding strips unknown fields and checks references before import.
+  UTF-8 size checks use a bounded scratch buffer; clipboard operations read only
+  selected payloads and destination metadata, preserving unrelated shared states.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
   controls, Scene tabs, export dialog, project preview, easing editor, playback information and status displays retain the existing CSS and accessible Base UI
   primitives. Canvas/video previews serialize work and retain one pending frame;
@@ -125,7 +128,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 591 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 595 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -153,6 +156,8 @@ Shared chat and AI controls passed 35 browser checks covering concurrent request
 offline history, cancel/retry, automatic application, new Scenes/objects/images,
 guarded peer conflicts and selective Undo. Account/project screens passed seven
 browser checks, including delayed read/write responses across account switches.
+File/clipboard changes passed 21 browser checks for shared paste/Undo, independent
+room imports, embedded image/audio/video assets, and failed/canceled imports.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts
@@ -203,6 +208,11 @@ was also reviewed. It uses interleaved PCM and a Float playback cursor; this edi
 keeps planar Web Audio buffers and absolute Double timestamps to preserve its
 sample-level trim/export contract.
 These remain candidates, not adopted or production-verified replacements.
+The MIT-licensed [jsonschema v0.8.1](https://github.com/mizchi/moonbit_jsonschema/tree/c58c2433df573960e432c5f9061dfe57b40169a1)
+passed its 47 upstream JS tests with the pinned compiler, but compatibility probes
+found that string `pattern` and `propertyNames` constraints were not enforced.
+Project files therefore use a typed bounded decoder with explicit identifier,
+media and cross-reference checks instead of adopting it as their validator.
 
 ## Repository and deployment
 

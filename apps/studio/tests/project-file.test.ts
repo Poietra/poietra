@@ -7,8 +7,25 @@ import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
 import { initializeDocument, readProject } from '../shared/document';
 import { createProjectMessages } from '../src/editor/projects';
+import { boundedUtf8Size } from '../../../_build/js/release/build/boundary/boundary.js';
 
 describe('project file import', () => {
+  it('counts UTF-8 with bounded scratch memory across surrogate and buffer boundaries', () => {
+    for (const text of ['', '日本語', '\ud800', '\udc00', 'a'.repeat(65535) + '😀終', '日'.repeat(30000) + '😀', 'x'.repeat(65534) + '😀' + 'x'.repeat(70000)]) {
+      const bytes = new TextEncoder().encode(text).length;
+      for (const limit of [0, 1, 65536, 128 * 1024 * 1024]) expect(boundedUtf8Size(text, limit)).toBe(Math.min(bytes, limit + 1));
+    }
+  });
+  it('strips unknown data while preserving explicit inherited timings and independent nested states', () => {
+    const project = makeDemoProject();
+    project.scenes['scene-1'].transitions['transition-1'].tracks.circle.positionTiming = null;
+    const source = { ...project, extra: '😀'.repeat(40000) };
+    const parsed = parseProjectFile(JSON.stringify(source));
+    expect(parsed).toEqual(project);
+    parsed.scenes['scene-1'].compositions['comp-1'].states.circle.path.c1.x = 987;
+    expect(parsed.scenes['scene-1'].compositions['comp-2'].states.circle.path.c1.x).not.toBe(987);
+    expect(project.scenes['scene-1'].compositions['comp-1'].states.circle.path.c1.x).not.toBe(987);
+  });
   it('round-trips editable geometry, timing and expressions', () => {
     const project = makeDemoProject();
     expect(parseProjectFile(JSON.stringify(project))).toEqual(project);
