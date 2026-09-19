@@ -66,15 +66,29 @@ pub fn composition_frame(
   value : @core.Any,
   time : @core.Any,
 ) -> @core.Any {
-  let scene = decode_Scene(input)
   let composition = decode_Composition(value)
   let time : Double = if @core.is_undefined(time) {
-    @scene.segment_start(scene, "composition", composition.id)
+    @scene.timeline_segments(decode_timeline(input))
+    .iter()
+    .find_first(fn(segment) {
+      segment.kind == "composition" && segment.id == composition.id
+    })
+    .map(fn(segment) { segment.start })
+    .unwrap_or(0.0)
   } else {
     time.cast()
   }
   frame_value(
-    @scene.composition_frame(scene, composition, time, compare_ids),
+    {
+      objects: @scene.composition_objects(
+        ordered_objects(input).iter().map(decode_SceneObject).to_array(),
+        composition,
+        time,
+      ),
+      background: input._get("background").cast(),
+      width: input._get("width").cast(),
+      height: input._get("height").cast(),
+    },
     input,
   )
 }

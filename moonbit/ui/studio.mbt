@@ -12,16 +12,25 @@ fn use_studio_frames(
   state : StudioState,
   kernel : @core.Any,
 ) -> StudioFrames {
+  let needs_program = state.viewing() || truthy(doc.transition)
   let program = @react.use_memo(
     fn() {
-      if truthy(doc.scene) {
+      if truthy(doc.scene) && needs_program {
         Some(@boundary.prepare_playback(doc.scene, kernel))
       } else {
         None
       }
     },
-    [doc.scene, kernel],
+    [doc.scene, kernel, @core.any(needs_program)],
   )
+  let clock_key = match program {
+    Some(program) if state.viewing() =>
+      match @boundary.playback_static_key(program, state.playhead) {
+        Some(key) => @core.any("hold-\{key}")
+        None => @core.any(state.playhead)
+      }
+    _ => @core.any(state.playhead)
+  }
   let current = @react.use_memo(
     fn() {
       match program {
@@ -35,13 +44,23 @@ fn use_studio_frames(
               @core.undefined(),
             )
           }
-        None => @core.undefined()
+        None =>
+          if truthy(doc.scene) {
+            @boundary.composition_frame(
+              doc.scene,
+              doc.scene._get("compositions")._get(doc.composition),
+              @core.undefined(),
+            )
+          } else {
+            @core.undefined()
+          }
       }
     },
     [
       @core.any(program),
+      doc.scene,
       @core.any(state.viewing()),
-      @core.any(state.playhead),
+      clock_key,
       @core.any(doc.composition),
       @core.any(state.render_revision),
     ],

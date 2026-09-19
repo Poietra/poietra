@@ -21,6 +21,11 @@ pub fn playback_frame(playback : Playback, time : Double) -> @core.Any {
 }
 
 ///|
+pub fn playback_static_key(playback : Playback, time : Double) -> Int? {
+  playback.program.static_frame_key(time)
+}
+
+///|
 pub fn compile_scene(input : @core.Any, host : @core.Any) -> @core.Any {
   let playback = prepare_playback(input, host)
   @core.from_entries([

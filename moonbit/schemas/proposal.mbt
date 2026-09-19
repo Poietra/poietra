@@ -52,7 +52,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "transitionId": @zod.string(),
       "objectId": @zod.string(),
       "property": @zod.enum_(["type", "start", "duration", "easing", "order"]),
-      "value": @zod.union([@zod.number(), @zod.string(), cubic_easing]),
+      "value": @zod.union([@zod.number(), @zod.string(), cubic_easing()]),
     }),
     operation("setPropertyTiming", {
       "transitionId": @zod.string(),
@@ -64,7 +64,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "timing": @zod.object({
         "start": @zod.number().finite().min(0),
         "duration": @zod.number().finite().min(0),
-        "easing": easing,
+        "easing": easing(),
       }).nullable(),
     }),
     operation("setMotionPath", {
@@ -105,7 +105,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
   }
   if resolved {
     image["height"] = @zod.number()
-    image["image"] = image_asset
+    image["image"] = image_asset()
     operations.push(operation("createImage", image))
   } else {
     image["prompt"] = @zod.string().trim().min(1).max(1000)
@@ -122,22 +122,32 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
 }
 
 ///|
-let edit_proposal : @zod.ZodSchema = proposal_schema(false)
+let edit_proposal_cache : Ref[@zod.ZodSchema?] = Ref(None)
 
 ///|
-let resolved_proposal : @zod.ZodSchema = proposal_schema(true)
+fn edit_proposal() -> @zod.ZodSchema {
+  cached_schema(edit_proposal_cache, fn() { proposal_schema(false) })
+}
+
+///|
+let resolved_proposal_cache : Ref[@zod.ZodSchema?] = Ref(None)
+
+///|
+fn resolved_proposal() -> @zod.ZodSchema {
+  cached_schema(resolved_proposal_cache, fn() { proposal_schema(true) })
+}
 
 ///|
 pub fn edit_proposal_schema() -> @core.Any {
-  edit_proposal.as_any()
+  edit_proposal().as_any()
 }
 
 ///|
 pub fn resolved_proposal_schema() -> @core.Any {
-  resolved_proposal.as_any()
+  resolved_proposal().as_any()
 }
 
 ///|
 pub fn parse_resolved_proposal(input : @core.Any) -> @core.Any {
-  parse(resolved_proposal, input)
+  parse(resolved_proposal(), input)
 }

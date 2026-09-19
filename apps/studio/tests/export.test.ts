@@ -121,7 +121,7 @@ describe('exportScene', () => {
     expect(result).toMatchObject({ width: 640, height: 360, durationMs: 100, codec: 'avc1.42001f', extension: 'mp4', mimeType: 'video/mp4' });
     expect(result.blob.size).toBe(4);
     expect(mocks.prepare.mock.calls[0][0]).not.toBe(original);
-    expect(mocks.render.mock.calls).toHaveLength(3);
+    expect(mocks.render.mock.calls).toHaveLength(1);
     for (const [frame] of mocks.render.mock.calls) expect(frame.objects[0].state.fill).toBe('#abcdef');
     expect(mocks.add.mock.calls.map(call => call[0])).toEqual([0, 1 / 30, 2 / 30]);
     expect(mocks.probe).toHaveBeenCalledWith('avc', expect.objectContaining({ width: 640, height: 360 }));
@@ -144,6 +144,24 @@ describe('exportScene', () => {
     calls.forEach((call, index) => expect(call[0]).toBe(index / fps));
     const last = calls.at(-1)!;
     expect(last[0] + last[1]).toBeCloseTo(0.045, 10);
+  });
+
+  it('keeps sampling video during a hold, including its start and end boundaries', async () => {
+    const input = scene(200);
+    input.objects.video = {
+      id: 'video', name: 'Video', kind: 'video', order: 1, groupId: null, locked: false,
+      media: { src: 'data:video/mp4;base64,AAAA', mime: 'video/mp4', duration: 500, width: 320, height: 180, hasAudio: false },
+      playback: { start: 30, offset: 70, duration: 50 },
+    };
+    input.compositions['test-comp-1'].states.video = defaultState('video');
+    await exportScene(input, kernel, { format: 'mp4', fps: 30 });
+    expect(mocks.add).toHaveBeenCalledTimes(6);
+    expect(mocks.render).toHaveBeenCalledTimes(6);
+    const videoFrames = mocks.render.mock.calls.map(([frame]) => frame.objects.find((item: { object: { id: string } }) => item.object.id === 'video'));
+    expect(videoFrames[0]).toBeUndefined();
+    expect(videoFrames[1].videoTimeMs).toBeCloseTo(70 + 1000 / 30 - 30);
+    expect(videoFrames[2].videoTimeMs).toBeCloseTo(70 + 2000 / 30 - 30);
+    expect(videoFrames.slice(3)).toEqual([undefined, undefined, undefined]);
   });
 
   it('provides WebM default frame duration and retains a final partial interval as a full frame', async () => {
@@ -316,7 +334,7 @@ describe('exportScene', () => {
     mocks.painter.mockResolvedValueOnce({ backend: 'canvas2d', render: mocks.render, dispose: mocks.dispose });
     const result = await exportScene(scene(), kernel, { format: 'mp4', fps: 30 });
     expect(result.blob.size).toBeGreaterThan(0);
-    expect(mocks.render).toHaveBeenCalledTimes(3);
+    expect(mocks.render).toHaveBeenCalledTimes(1);
     expect(mocks.add).toHaveBeenCalledTimes(3);
     expect(mocks.dispose).toHaveBeenCalledOnce();
   });
@@ -360,8 +378,9 @@ describe('exportProject', () => {
     const output = await exportProject(project(), kernel, { format: 'mp4', fps: 30 });
     expect(output).toMatchObject({ durationMs: 250, width: 1280, height: 720 });
     expect(mocks.outputConfigs).toHaveLength(1); expect(mocks.add).toHaveBeenCalledTimes(8);
-    expect(mocks.render.mock.calls.slice(0, 3).every(([frame]) => frame.width === 1280 && frame.objects[0].state.fill === '#abcdef')).toBe(true);
-    expect(mocks.render.mock.calls.slice(3).every(([frame]) => frame.width === 720 && frame.height === 1280 && frame.background === '#ffffff' && frame.objects[0].state.fill === '#ff0000')).toBe(true);
+    expect(mocks.render).toHaveBeenCalledTimes(2);
+    expect(mocks.render.mock.calls[0][0]).toMatchObject({ width: 1280, objects: [{ state: { fill: '#abcdef' } }] });
+    expect(mocks.render.mock.calls[1][0]).toMatchObject({ width: 720, height: 1280, background: '#ffffff', objects: [{ state: { fill: '#ff0000' } }] });
     expect(mocks.add.mock.calls.map(([time]) => time)).toEqual(Array.from({ length: 8 }, (_, index) => index / 30));
     expect(mocks.add.mock.calls.at(-1)![1]).toBeCloseTo(0.25 - 7 / 30);
   });

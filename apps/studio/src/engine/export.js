@@ -1,11 +1,17 @@
 import { createFramePainter } from "./painter.js";
 import { prepareScene } from "./renderer.js";
-import * as moonbit from "../../../../_build/js/release/build/browser_export/browser_export.js";
-export { getExportCapabilities } from "./exporting/codecs.js";
 const host = { createFramePainter, prepareScene };
-export function exportScene(scene, kernel, options) {
-    return moonbit.exportScene(scene, kernel, options, host);
+const runtime = () => import("../../../../_build/js/release/build/browser_export/browser_export.js");
+export async function getExportCapabilities() {
+    return (await runtime()).getExportCapabilities();
 }
-export function exportProject(project, kernel, options) {
-    return moonbit.exportProject(project, kernel, options, host);
+// Capture native inputs before loading the encoder; edits during that await
+// must not alter an export that has already started.
+export async function exportScene(scene, kernel, options) {
+    const source = structuredClone(scene), settings = { ...options };
+    return (await runtime()).exportScene(source, kernel, settings, host);
+}
+export async function exportProject(project, kernel, options) {
+    const source = structuredClone(project), settings = { ...options };
+    return (await runtime()).exportProject(source, kernel, settings, host);
 }

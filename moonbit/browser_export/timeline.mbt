@@ -27,6 +27,16 @@ fn Timeline::frame(self : Timeline, time : Double) -> @core.Any {
 }
 
 ///|
+fn Timeline::static_key(self : Timeline, time : Double) -> (Int, Int)? {
+  let index = @scene.project_segment_at(self.bounds, time).unwrap_or(0)
+  let segment = self.segments[index]
+  @boundary.playback_static_key(
+    segment.playback,
+    (time - segment.start).max(0.0),
+  ).map(fn(key) { (index, key) })
+}
+
+///|
 async fn Timeline::prepare(
   self : Timeline,
   host : @core.Any,

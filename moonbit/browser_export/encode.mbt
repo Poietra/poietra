@@ -160,6 +160,7 @@ async fn export_timeline(
     let mut audio_frames = 0.0
     let rate = @audio.sample_rate.to_double()
     let total_audio_frames = (plan.duration / 1000.0 * rate + 0.5).floor()
+    let mut previous_static : (Int, Int)? = None
     for index = 0; index < plan.frames; index = index + 1 {
       check_signal(signal)
       let timestamp = plan.timestamp(index)
@@ -180,12 +181,16 @@ async fn export_timeline(
         }
       }
       stage = VideoFrames
-      let frame = @core.throwable(fn() { timeline.frame(timestamp * 1000.0) })
-      invoke(painter, "render", [
-        frame,
-        @core.from_entries([("signal", signal)]),
-      ])
-      |> ignore
+      let static_key = timeline.static_key(timestamp * 1000.0)
+      if static_key is None || static_key != previous_static {
+        let frame = @core.throwable(fn() { timeline.frame(timestamp * 1000.0) })
+        invoke(painter, "render", [
+          frame,
+          @core.from_entries([("signal", signal)]),
+        ])
+        |> ignore
+      }
+      previous_static = static_key
       check_signal(signal)
       // Do not race cancel against asynchronous WebCodecs initialization inside add.
       invoke(video, "add", [

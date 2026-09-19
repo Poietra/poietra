@@ -183,8 +183,21 @@ pub fn composition_frame(
   time : Double,
   compare_ids : (String, String) -> Int,
 ) -> Frame {
+  frame(
+    scene,
+    composition_objects(ordered_objects(scene, compare_ids), composition, time),
+  )
+}
+
+///|
+/// Evaluate an authored still using only its states and ordered object metadata.
+pub fn composition_objects(
+  ordered : Array[SceneObject],
+  composition : Composition,
+  time : Double,
+) -> Array[RenderObject] {
   let objects : Array[RenderObject] = []
-  for object in ordered_objects(scene, compare_ids) {
+  for object in ordered {
     if composition.states.get(object.id) is Some(state) && state.visible {
       objects.push({
         object,
@@ -195,7 +208,7 @@ pub fn composition_frame(
       })
     }
   }
-  frame(scene, objects)
+  objects
 }
 
 ///|

@@ -23,6 +23,7 @@ priv struct ScheduledSegment {
   end : Double
   duration : Double
   program : PlaybackSegment
+  static_frame : Bool
 }
 
 ///|
@@ -89,6 +90,10 @@ pub fn prepare_scene(scene : Scene, kernel : Kernel) -> PreparedScene {
       end: segment.start + segment.duration,
       duration: segment.duration,
       program,
+      static_frame: match program {
+        Hold(objects) => !objects.any(fn(item) { item.object.kind == Video })
+        Change(_) => false
+      },
     })
   }
   { scene, schedule, holds, changes, starts, kernel, monotone, }
@@ -116,9 +121,9 @@ fn evaluate_hold(
 
 ///|
 /// Binary search gives time-addressable seeks without scanning all compositions.
-pub fn PreparedScene::evaluate(self : PreparedScene, time : Double) -> Frame {
+fn PreparedScene::segment_index(self : PreparedScene, time : Double) -> Int? {
   if self.schedule.is_empty() {
-    return frame(self.scene, [])
+    return None
   }
   let mut index = self.schedule.length() - 1
   if self.monotone {
@@ -141,6 +146,32 @@ pub fn PreparedScene::evaluate(self : PreparedScene, time : Double) -> Frame {
         break
       }
     }
+  }
+  Some(index)
+}
+
+///|
+/// A key is valid only within this immutable program. Video remains time-dependent,
+/// including its appearance/disappearance during an otherwise static hold.
+pub fn PreparedScene::static_frame_key(
+  self : PreparedScene,
+  time : Double,
+) -> Int? {
+  match self.segment_index(time) {
+    None => Some(-1)
+    Some(index) =>
+      if self.schedule[index].static_frame {
+        Some(index)
+      } else {
+        None
+      }
+  }
+}
+
+///|
+pub fn PreparedScene::evaluate(self : PreparedScene, time : Double) -> Frame {
+  guard self.segment_index(time) is Some(index) else {
+    return frame(self.scene, [])
   }
   let selected = self.schedule[index]
   let objects = match selected.program {

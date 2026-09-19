@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { beforeAll, expect, test } from 'vitest';
 import * as jsKernel from '../../../_build/js/release/build/motion/motion.js';
 import { makeDemoProject } from '../shared/demo';
-import { compileScene } from '../src/engine/evaluate';
+import { compileScene, compositionFrame } from '../src/engine/evaluate';
 import type { MotionKernel } from '../src/engine/kernel';
 
 let kernel: MotionKernel;
@@ -46,4 +46,13 @@ test('compiled programs retain earlier frames across seeks and zero-duration cut
   }
   expect(program.evaluate(-100)).toEqual(frozen);
   expect(earlier).toEqual(frozen);
+});
+
+test('editing a composition does not decode other compositions or prepare transitions', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  const first = scene.compositions['comp-1'];
+  const expected = compositionFrame(scene, first);
+  Object.defineProperty(scene.compositions['comp-2'], 'states', { get() { throw new Error('Unrelated composition decoded'); } });
+  Object.defineProperty(scene.transitions['transition-1'], 'tracks', { get() { throw new Error('Unrelated transition compiled'); } });
+  expect(compositionFrame(scene, first)).toEqual(expected);
 });

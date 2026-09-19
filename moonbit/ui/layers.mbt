@@ -1,4 +1,113 @@
 ///|
+#module("react")
+extern "js" fn memo_component(
+  render : (@core.Any) -> @react.Element,
+) -> @core.Any = "memo"
+
+///|
+let cached_layer_row : @core.Any = memo_component(layer_row)
+
+///|
+fn layer_row(input : @core.Any) -> @react.Element {
+  let id : String = input._get("id").cast()
+  let name : String = input._get("name").cast()
+  let scene_id : String = input._get("sceneId").cast()
+  let composition_id : String = input._get("compositionId").cast()
+  let nested : Bool = input._get("nested").cast()
+  let visible : Bool = input._get("visible").cast()
+  let locked : Bool = input._get("locked").cast()
+  let selected : Bool = input._get("selected").cast()
+  let playback : Bool = input._get("playback").cast()
+  let store = input._get("store")
+  let choose : (Array[String], Bool) -> Unit = input._get("choose").cast()
+  h(
+    "div",
+    {
+      "key": @core.any(id),
+      "data-layer-id": @core.any(id),
+      "className": classes([
+        @core.any("layer-row"),
+        @core.any(if selected { "selected" } else { "" }),
+        @core.any(if nested { "nested" } else { "" }),
+      ]),
+    },
+    [
+      h(
+        "button",
+        {
+          "className": classes([
+            @core.any("layer-select"),
+            @core.any(if visible { "" } else { "dimmed" }),
+          ]),
+          "onClick": @core.any(fn(event : @core.Any) {
+            choose([id], truthy(event._get("shiftKey")))
+          }),
+          "aria-pressed": @core.any(selected),
+        },
+        [
+          component(object_icon, { "kind": input._get("kind") }, []),
+          h("span", Map([]), [name]),
+        ],
+      ),
+      h(
+        "button",
+        {
+          "className": @core.any("layer-visibility"),
+          "aria-label": @core.any(
+            name +
+            " を" +
+            (if locked { "ロック解除" } else { "ロック" }),
+          ),
+          "onClick": @core.any(fn() {
+            let current = store
+              ._call("scene", [@core.any(scene_id)])
+              ._get("objects")
+              ._get(id)
+            store._call("setObject", [
+              @core.any(scene_id),
+              @core.any(id),
+              host_record({
+                "locked": @core.any(
+                  !(truthy(current) && truthy(current._get("locked"))),
+                ),
+              }),
+            ])
+            |> ignore
+          }),
+        },
+        [icon(if locked { "LockKeyhole" } else { "UnlockKeyhole" }, 12)],
+      ),
+      h(
+        "button",
+        {
+          "className": @core.any("layer-visibility"),
+          "disabled": @core.any(locked || playback),
+          "aria-label": @core.any(
+            name + " を" + (if visible { "非表示" } else { "表示" }),
+          ),
+          "onClick": @core.any(fn() {
+            let current = store
+              ._call("scene", [@core.any(scene_id)])
+              ._get("objects")
+              ._get(id)
+            if !(truthy(current) && truthy(current._get("locked"))) {
+              store._call("updateState", [
+                @core.any(scene_id),
+                @core.any(composition_id),
+                @core.any(id),
+                host_record({ "visible": @core.any(!visible) }),
+              ])
+              |> ignore
+            }
+          }),
+        },
+        [icon(if visible { "Eye" } else { "EyeOff" }, 13)],
+      ),
+    ],
+  )
+}
+
+///|
 priv struct LayerIndex {
   objects : Array[@core.Any]
   groups : Map[String, Array[@core.Any]]
@@ -137,96 +246,39 @@ pub fn sidebar(input : @core.Any) -> @react.Element {
     )
     stop_capturing(store)
   }
+  // Stable row callbacks read the current selection instead of retaining old IDs.
+  let current_choose = @react.use_ref(Some(choose))
+  current_choose.set_current(Some(choose))
+  let choose_row = @react.use_memo(
+    fn() {
+      fn(ids : Array[String], additive : Bool) {
+        let latest = current_choose.get_current().unwrap()
+        latest(ids, additive)
+      }
+    },
+    [],
+  )
   let row = fn(object : @core.Any, nested : Bool) {
     let id : String = object._get("id").cast()
-    let name : String = object._get("name").cast()
     let state = @boundary.state_for(scene, composition_id, id)
-    let visible = truthy(state) && truthy(state._get("visible"))
-    let locked = truthy(object._get("locked"))
-    h(
-      "div",
+    keyed_element(
+      cached_layer_row,
       {
         "key": @core.any(id),
-        "data-layer-id": @core.any(id),
-        "className": classes([
-          @core.any("layer-row"),
-          @core.any(if selected_set.contains(id) { "selected" } else { "" }),
-          @core.any(if nested { "nested" } else { "" }),
-        ]),
+        "id": @core.any(id),
+        "name": object._get("name"),
+        "kind": object._get("kind"),
+        "sceneId": @core.any(scene_id),
+        "compositionId": @core.any(composition_id),
+        "nested": @core.any(nested),
+        "visible": @core.any(truthy(state) && truthy(state._get("visible"))),
+        "locked": @core.any(truthy(object._get("locked"))),
+        "selected": @core.any(selected_set.contains(id)),
+        "playback": @core.any(playback),
+        "store": store,
+        "choose": @core.any(choose_row),
       },
-      [
-        h(
-          "button",
-          {
-            "className": classes([
-              @core.any("layer-select"),
-              @core.any(if visible { "" } else { "dimmed" }),
-            ]),
-            "onClick": @core.any(fn(event : @core.Any) {
-              choose([id], truthy(event._get("shiftKey")))
-            }),
-            "aria-pressed": @core.any(selected_set.contains(id)),
-          },
-          [
-            component(object_icon, { "kind": object._get("kind") }, []),
-            h("span", Map([]), [name]),
-          ],
-        ),
-        h(
-          "button",
-          {
-            "className": @core.any("layer-visibility"),
-            "aria-label": @core.any(
-              name +
-              " を" +
-              (if locked { "ロック解除" } else { "ロック" }),
-            ),
-            "onClick": @core.any(fn() {
-              let current = store
-                ._call("scene", [@core.any(scene_id)])
-                ._get("objects")
-                ._get(id)
-              store._call("setObject", [
-                @core.any(scene_id),
-                @core.any(id),
-                host_record({
-                  "locked": @core.any(
-                    !(truthy(current) && truthy(current._get("locked"))),
-                  ),
-                }),
-              ])
-              |> ignore
-            }),
-          },
-          [icon(if locked { "LockKeyhole" } else { "UnlockKeyhole" }, 12)],
-        ),
-        h(
-          "button",
-          {
-            "className": @core.any("layer-visibility"),
-            "disabled": @core.any(locked || playback),
-            "aria-label": @core.any(
-              name + " を" + (if visible { "非表示" } else { "表示" }),
-            ),
-            "onClick": @core.any(fn() {
-              let current = store
-                ._call("scene", [@core.any(scene_id)])
-                ._get("objects")
-                ._get(id)
-              if !(truthy(current) && truthy(current._get("locked"))) {
-                store._call("updateState", [
-                  @core.any(scene_id),
-                  @core.any(composition_id),
-                  @core.any(id),
-                  host_record({ "visible": @core.any(!visible) }),
-                ])
-                |> ignore
-              }
-            }),
-          },
-          [icon(if visible { "Eye" } else { "EyeOff" }, 13)],
-        ),
-      ],
+      [],
     )
   }
   let project = store._call("snapshot", [])._get("project")
