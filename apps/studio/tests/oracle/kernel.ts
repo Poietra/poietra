@@ -1,4 +1,4 @@
-import type { Easing, PresetEasing } from '../../shared/easing';
+import type { Easing, PresetEasing } from '../../shared/easing.js';
 
 export interface MotionKernel {
   ease(value: number, kind: number): number;

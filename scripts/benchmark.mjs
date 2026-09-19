@@ -22,7 +22,7 @@ for (const [name, script, fields] of [
   const samples = [];
   for (let run = 0; run < count; run++) {
     console.error(`${name}: process ${run + 1}/${count}`);
-    samples.push(JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', `scripts/${script}`], { cwd: join(root, 'apps/studio'), encoding: 'utf8', timeout: 180000 })));
+    samples.push(JSON.parse(execFileSync(process.execPath, [`scripts/${script}`], { cwd: join(root, 'apps/studio'), encoding: 'utf8', timeout: 180000 })));
   }
   const summary = samples[0].results.map((row, index) => {
     const dimensions = Object.fromEntries(Object.entries(row).filter(([key]) => ![...fields, 'speedup', 'samples'].includes(key)));

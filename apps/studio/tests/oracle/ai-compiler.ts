@@ -2,10 +2,10 @@
 // Runtime imports must never depend on this file. Imports alone are relocated.
 import * as proposals from '../../../../_build/js/release/build/proposals/proposals.js';
 import { z } from 'zod';
-import { getShared, getValue, LOCAL_ORIGIN, type Change } from '../../shared/document';
-import { defaultState, defaultTrack, implicitTracks, PROPERTY_CHANNELS, propertyTimingKey, resolveTrack, validateAnimationTrack, newId, type AnimationTrack, type Composition, type ObjectKind, type ObjectState, type Project, type SceneObject } from '../../shared/model';
-import { ImageAssetSchema, type ImageAsset } from '../../shared/images';
-import { CubicBezierEasingSchema, EasingSchema } from '../../shared/easing-schema';
+import { getShared, getValue, LOCAL_ORIGIN, type Change } from '../../shared/document.js';
+import { defaultState, defaultTrack, implicitTracks, PROPERTY_CHANNELS, propertyTimingKey, resolveTrack, validateAnimationTrack, newId, type AnimationTrack, type Composition, type ObjectKind, type ObjectState, type Project, type SceneObject } from '../../shared/model.js';
+import { ImageAssetSchema, type ImageAsset } from '../../shared/images.js';
+import { CubicBezierEasingSchema, EasingSchema } from '../../shared/easing-schema.js';
 import * as Y from 'yjs';
 
 const pathCoordinate = z.number().finite().min(-10000).max(10000);

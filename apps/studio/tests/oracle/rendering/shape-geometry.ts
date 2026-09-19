@@ -1,6 +1,6 @@
 // Public original 3f49040; independent migration oracle.
-import type { RenderObject } from '../../../src/engine/evaluate';
-import { finite, number as n, unit } from './svg';
+import type { RenderObject } from '../../../src/engine/evaluate.js';
+import { finite, number as n, unit } from './svg.ts';
 
 /** Shared dimensions and reveal timing for both SVG and Canvas. */
 export const SHAPE_STYLE = {

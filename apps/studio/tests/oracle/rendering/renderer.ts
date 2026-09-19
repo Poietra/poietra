@@ -1,16 +1,16 @@
 // Public original 3f49040; independent migration oracle.
-import type { Scene } from '../../../shared/model';
-import type { Frame, RenderObject } from '../../../src/engine/evaluate';
-import type { ObjectBounds, SvgOptions } from '../../../src/engine/render-contract';
-import { GLOW_STYLE } from '../../../src/engine/effects/glow-style';
-import { EQUATION_UNITS_PER_EM, EQUATION_WRITE_STROKE_UNITS, equationMarkup, getEquation, prepareEquations } from './equations';
-import { embeddedFontStyles, measureText, prepareFonts } from './fonts';
-import { textMarkup } from './text-markup';
-import { arrowHeadPath, arrowHeadProgress, numberlineTickPath, numberlineTickProgress, SHAPE_STYLE, shapeGeometry } from './shape-geometry';
-import { color, escapeXml, finite, number as n, safeId, unit } from './svg';
-import { prepareImages, preparedImage } from '../../../src/engine/rendering/images';
+import type { Scene } from '../../../shared/model.js';
+import type { Frame, RenderObject } from '../../../src/engine/evaluate.js';
+import type { ObjectBounds, SvgOptions } from '../../../src/engine/render-contract.js';
+import { GLOW_STYLE } from '../../../src/engine/effects/glow-style.js';
+import { EQUATION_UNITS_PER_EM, EQUATION_WRITE_STROKE_UNITS, equationMarkup, getEquation, prepareEquations } from './equations.ts';
+import { embeddedFontStyles, measureText, prepareFonts } from './fonts.ts';
+import { textMarkup } from './text-markup.ts';
+import { arrowHeadPath, arrowHeadProgress, numberlineTickPath, numberlineTickProgress, SHAPE_STYLE, shapeGeometry } from './shape-geometry.ts';
+import { color, escapeXml, finite, number as n, safeId, unit } from './svg.ts';
+import { prepareImages, preparedImage } from '../../../src/engine/rendering/images.js';
 
-export { prepareVideoFrame as prepareFrame } from '../../../src/engine/rendering/videos';
+export { prepareVideoFrame as prepareFrame } from '../../../src/engine/rendering/videos.js';
 
 let nextSvg = 0;
 

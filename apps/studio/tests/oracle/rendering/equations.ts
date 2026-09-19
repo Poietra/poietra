@@ -1,5 +1,5 @@
 // Public original 3f49040; independent migration oracle.
-import { escapeXml, number, unit } from './svg';
+import { escapeXml, number, unit } from './svg.ts';
 
 // MathJax SVG uses 1000 units per em. Share the Write stroke with visual bounds.
 export const EQUATION_UNITS_PER_EM = 1000;

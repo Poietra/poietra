@@ -1,10 +1,10 @@
 import { performance } from 'node:perf_hooks';
 import assert from 'node:assert/strict';
 import * as Y from 'yjs';
-import { defaultState, type Project, type Scene } from '../shared/model';
-import { initializeDocument, readProject } from '../shared/document';
-import { compileProposal } from '../shared/ai';
-import { compileProposal as original } from '../tests/oracle/ai-compiler';
+import { defaultState, type Project, type Scene } from '../shared/model.js';
+import { initializeDocument, readProject } from '../shared/document.js';
+import { compileProposal } from '../shared/ai.js';
+import { compileProposal as original } from '../tests/oracle/ai-compiler.ts';
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[values.length >> 1];
 const results: object[] = [];

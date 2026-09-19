@@ -1,7 +1,7 @@
 // Pinned original Poietra audio mixer; test oracle only.
 import { AudioBufferSink, type Input, type WrappedAudioBuffer } from 'mediabunny';
-import type { AudioTrack } from '../../shared/media';
-import { openMedia } from '../../src/engine/media-source';
+import type { AudioTrack } from '../../shared/media.js';
+import { openMedia } from '../../src/engine/media-source.js';
 
 export const AUDIO_SAMPLE_RATE = 48000;
 export const audibleTracks = (tracks: Record<string, AudioTrack> | undefined): AudioTrack[] => Object.values(tracks ?? {}).filter(track => !track.muted && track.volume > 0 && track.duration > 0);

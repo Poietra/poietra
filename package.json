@@ -11,10 +11,11 @@
     "build:moonbit": "node scripts/build.mjs",
     "build": "pnpm build:moonbit && pnpm --dir apps/studio build:web",
     "dev": "pnpm build:moonbit && pnpm --dir apps/studio dev",
-    "test": "pnpm build:moonbit && pnpm test:extensions && pnpm --dir apps/studio test",
+    "test": "pnpm audit:source && pnpm build:moonbit && pnpm test:extensions && pnpm --dir apps/studio test",
     "typecheck": "pnpm --dir apps/studio typecheck",
     "bench": "node scripts/benchmark.mjs",
-    "test:extensions": "node --test scripts/extensions.test.mjs"
+    "test:extensions": "node --test scripts/extensions.test.mjs",
+    "audit:source": "node scripts/source-inventory.mjs --check"
   },
   "dependencies": {
     "lib0": "0.2.117",

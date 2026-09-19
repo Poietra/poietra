@@ -25,6 +25,11 @@ and measurements belong in [README.md](README.md).
 - Write application/domain logic in typed MoonBit. Runtime TS/TSX was removed on
   2026-09-19. Native JS serves browser/runtime/npm interoperability; TypeScript
   remains for public declarations and build/test tooling.
+- 2026-09-20: Audit language usage with `pnpm audit:source`. GitHub's byte-based
+  language ratio includes tests and does not quantify remaining host dependencies.
+  Preserve comparison tests and public declarations; CI rejects executable TS in
+  the four application source directories. Benchmarks run with Node 24's native
+  type stripping and explicit ESM extensions, without a `tsx` loader.
 - Generate document adapters and public record types from `moonbit/scene` with
   `scripts/generate-adapters.py`. `scripts/bindings.json` generates simple public
   JS facades. Do not manually duplicate domain records or edit generated output.

@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
-import { makeDemoProject } from '../shared/demo';
-import { defaultTrack } from '../shared/model';
-import { compileScene } from '../src/engine/evaluate';
-import { evaluateScene as original } from '../tests/oracle/evaluate';
-import type { MotionKernel } from '../src/engine/kernel';
+import { makeDemoProject } from '../shared/demo.js';
+import { defaultTrack } from '../shared/model.js';
+import { compileScene } from '../src/engine/evaluate.js';
+import { evaluateScene as original } from '../tests/oracle/evaluate.ts';
+import type { MotionKernel } from '../src/engine/kernel.js';
 
 const rust = (await WebAssembly.instantiate(readFileSync(new URL('../tests/oracle/rust-motion.wasm', import.meta.url)))).instance.exports as unknown as MotionKernel;
 const moon = (await WebAssembly.instantiate(readFileSync(new URL('../public/wasm/poietra_core.wasm', import.meta.url)))).instance.exports as unknown as MotionKernel;

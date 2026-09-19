@@ -1,4 +1,4 @@
-import type { Composition, Project, Scene, Transition } from '../../shared/model';
+import type { Composition, Project, Scene, Transition } from '../../shared/model.js';
 
 /**
  * Project retained CRDT structure into an ordered, editable scene. A transition

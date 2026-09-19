@@ -1,7 +1,7 @@
-import type { ImageAsset } from '../../shared/images';
-import type { AudioTrack, MediaAsset, MediaPlayback } from '../../shared/media';
-import { isValidEasing, type Easing, type PresetEasing } from './easing';
-export { DEFAULT_CUSTOM_EASING, isValidEasing, easingsEqual, type PresetEasing, type CubicBezierEasing, type Easing } from './easing';
+import type { ImageAsset } from '../../shared/images.js';
+import type { AudioTrack, MediaAsset, MediaPlayback } from '../../shared/media.js';
+import { isValidEasing, type Easing, type PresetEasing } from './easing.ts';
+export { DEFAULT_CUSTOM_EASING, isValidEasing, easingsEqual, type PresetEasing, type CubicBezierEasing, type Easing } from './easing.ts';
 export type ObjectKind = 'circle' | 'rectangle' | 'text' | 'equation' | 'path' | 'arrow' | 'numberline' | 'image' | 'video';
 export type AnimationKind = 'move' | 'write' | 'fade' | 'grow' | 'none';
 export type Point = { x: number; y: number };

@@ -1,5 +1,5 @@
-import { getPropertyTiming, hasPropertyTiming, resolveTrack, type PropertyChannel, clamp, orderedObjects, sceneSegments, type AnimationTrack, type Composition, type ObjectState, type Scene, type SceneObject, type Transition } from './model';
-import { trackProgress, type MotionKernel } from './kernel';
+import { getPropertyTiming, hasPropertyTiming, resolveTrack, type PropertyChannel, clamp, orderedObjects, sceneSegments, type AnimationTrack, type Composition, type ObjectState, type Scene, type SceneObject, type Transition } from './model.ts';
+import { trackProgress, type MotionKernel } from './kernel.ts';
 
 export interface RenderObject { object: SceneObject; state: ObjectState; writeProgress: number; order: 'together' | 'sequential'; videoTimeMs?: number; videoFrame?: string }
 export interface Frame { objects: RenderObject[]; background: string; width: number; height: number }

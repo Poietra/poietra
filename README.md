@@ -137,6 +137,35 @@ contract; the official OpenAI SDK retains Responses and Images support. The
 [gfx source](https://github.com/mizchi/gfx-mbt/tree/1aec97a83ab1e7d0c924c400f0e5494f8ac3c1ca)
 informed the separation between the pure Glow program and its browser driver.
 
+### What the remaining TypeScript represents
+
+Audited 2026-09-20. GitHub reported **41.4% TypeScript** when this audit started.
+Its [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
+including test code; they do not measure how much application logic remains to
+port. The working-tree inventory separates the remaining TypeScript by purpose:
+
+| TypeScript purpose | Files | Physical lines |
+| --- | ---: | ---: |
+| Executable application code (`src/shared/server/worker`) | 0 | 0 |
+| Regression/browser tests, fixtures and test configurations | 146 | 15,340 |
+| Historical comparison implementations, used only in tests/benchmarks | 14 | 1,257 |
+| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
+| Benchmark scripts and root tool configurations | 5 | 156 |
+
+The same inventory has **51,435 application MoonBit lines** and **770 native JS
+adapter lines**. This includes generated adapters, comments and blanks; it is
+neither a runtime payload measurement nor a count of external library code.
+React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
+runtime behavior through host bindings. Replacing those libraries is a separate
+implementation and compatibility task; it cannot be inferred from the TS ratio.
+
+Run `pnpm audit:source` to reproduce the inventory, or
+`node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also
+fails if executable TS/TSX returns to the four application directories, and runs
+as part of `pnpm test` in CI. The original tests and precise public declarations
+remain useful for parity and extension checks. CPU benchmarks now run directly
+with Node 24's built-in type stripping; `tsx` is no longer in the dependency tree.
+
 ## Add a feature
 
 1. Define data and behavior in the appropriate typed MoonBit package. Document

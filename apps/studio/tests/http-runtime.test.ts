@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { prefersMarkdown, publicPagePlan } from '../shared/public-site';
 import { imageDigest, readImageBody, IMAGE_BYTES_LIMIT } from '../shared/images';
@@ -37,14 +38,15 @@ it('holds one upload buffer, preserves bytes and backpressure, and closes the so
   await writeMediaChunks(source(), 'audio/wav', null, async (chunk, part) => {
     const count = pulled, expected = chunk.slice();
     allocations.add(chunk.buffer);
-    await new Promise(resolve => setTimeout(resolve, 1));
+    await new Promise<void>(resolve => setImmediate(resolve));
     expect(pulled).toBe(count);
-    expect(chunk).toEqual(expected);
+    // Compare bytes natively instead of recursively matching every array element.
+    assert.deepEqual(chunk, expected);
     expect(part).toBe(written.length);
     written.push(chunk.slice());
   });
   expect(allocations.size).toBe(1);
-  expect(Buffer.concat(written)).toEqual(Buffer.from(bytes));
+  assert.deepEqual(Buffer.concat(written), Buffer.from(bytes));
   expect(closed).toBe(1);
   const diskFailure = new Error('disk unavailable');
   await expect(writeMediaChunks(source(), 'audio/wav', null, () => { throw diskFailure; })).rejects.toBe(diskFailure);

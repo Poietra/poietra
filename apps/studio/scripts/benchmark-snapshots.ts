@@ -1,8 +1,8 @@
 import { performance } from 'node:perf_hooks';
 import * as Y from 'yjs';
-import { defaultState, type Project, type Scene } from '../shared/model';
-import { initializeDocument, readProject, getShared } from '../shared/document';
-import { projectStructureView as originalView } from '../tests/oracle/structure-view';
+import { defaultState, type Project, type Scene } from '../shared/model.js';
+import { initializeDocument, readProject, getShared } from '../shared/document.js';
+import { projectStructureView as originalView } from '../tests/oracle/structure-view.ts';
 
 function fixture(count: number): Project {
   const scenes: Record<string, Scene> = {};

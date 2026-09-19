@@ -1,5 +1,5 @@
 // Read-only differential oracle: shared HTTP policy at 198004b.
-import { resolveLocale, type Locale } from '../../shared/locale';
+import { resolveLocale, type Locale } from '../../shared/locale.js';
 
 export interface PublicPagePlan {
   kind: 'home' | 'editor';
