@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-19T17:02:12.547Z",
+  "environment": {
+    "applicationRevision": "0d8550ed4de27ddbdc3c37bcb6a8a4557a2bc285",
+    "trackedModifications": [
+      "apps/studio/tests/property-animation.test.ts",
+      "moonbit/boundary/moon.pkg",
+      "moonbit/browser_editor/animation_commands.mbt",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "d13be06a1a5815e9bc5fca8126ff9596d20e2da16aa94762dfbe0f501e4f3cad",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "2",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      0.38,
+      0.41,
+      0.43
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "ebe0f793bc4f8fc6995b0c10d17176c051719c46f1ef44f2f65eb32b1f99edf6",
+    "boundarySha256": "3b2a8f673148313844f0a7ae5e3657b78885581dfdb1a9fd6c70e10e68fa0490"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 3,
+  "suites": {
+    "track": {
+      "summary": [
+        {
+          "operation": "existing duration",
+          "overrides": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.0002874848999999998,
+            "min": 0.0002867309000000006,
+            "max": 0.0003036096999999998
+          }
+        },
+        {
+          "operation": "automatic activation",
+          "overrides": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.00042317480000000104,
+            "min": 0.0004129987999999997,
+            "max": 0.0004428354999999996
+          }
+        },
+        {
+          "operation": "existing curve",
+          "overrides": 0,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.0004997887999999989,
+            "min": 0.0004712614000000002,
+            "max": 0.0005336904000000004
+          }
+        },
+        {
+          "operation": "property duration",
+          "overrides": 11,
+          "msPerOperation": {
+            "n": 3,
+            "median": 0.0008547546999999951,
+            "min": 0.0008422324000000003,
+            "max": 0.0008769816999999989
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Single-track planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 10000 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "existing duration",
+              "overrides": 0,
+              "msPerOperation": 0.0002867309000000006,
+              "samples": {
+                "msPerOperation": [
+                  0.0006038258,
+                  0.0002849161999999993,
+                  0.0002867309000000006,
+                  0.0003490550999999996,
+                  0.0003493843999999996,
+                  0.0002842135999999996,
+                  0.0002832269999999994
+                ]
+              }
+            },
+            {
+              "operation": "automatic activation",
+              "overrides": 0,
+              "msPerOperation": 0.00042317480000000104,
+              "samples": {
+                "msPerOperation": [
+                  0.0004601163,
+                  0.000526890800000001,
+                  0.0004132682999999986,
+                  0.0004520744999999977,
+                  0.00041841570000000273,
+                  0.00041858589999999935,
+                  0.00042317480000000104
+                ]
+              }
+            },
+            {
+              "operation": "existing curve",
+              "overrides": 0,
+              "msPerOperation": 0.0004712614000000002,
+              "samples": {
+                "msPerOperation": [
+                  0.00048219860000000094,
+                  0.0004763402000000013,
+                  0.0005382141999999987,
+                  0.0004712614000000002,
+                  0.0004595121999999975,
+                  0.0004362940000000009,
+                  0.000447145900000001
+                ]
+              }
+            },
+            {
+              "operation": "property duration",
+              "overrides": 11,
+              "msPerOperation": 0.0008769816999999989,
+              "samples": {
+                "msPerOperation": [
+                  0.0008769816999999989,
+                  0.0008617111999999963,
+                  0.0008850298000000009,
+                  0.0008838227000000018,
+                  0.0008493628999999999,
+                  0.0008861275999999975,
+                  0.0008515021000000047
+                ]
+              }
+            }
+          ],
+          "checksum": 2610029
+        },
+        {
+          "scope": "Single-track planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 10000 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "existing duration",
+              "overrides": 0,
+              "msPerOperation": 0.0002874848999999998,
+              "samples": {
+                "msPerOperation": [
+                  0.0003140637999999996,
+                  0.00027478559999999987,
+                  0.0003431511,
+                  0.00032152930000000024,
+                  0.00027249479999999975,
+                  0.0002874848999999998,
+                  0.00028458029999999895
+                ]
+              }
+            },
+            {
+              "operation": "automatic activation",
+              "overrides": 0,
+              "msPerOperation": 0.0004428354999999996,
+              "samples": {
+                "msPerOperation": [
+                  0.0004428354999999996,
+                  0.0006616417000000012,
+                  0.00043296160000000155,
+                  0.00041579690000000086,
+                  0.0005584102999999998,
+                  0.00044436680000000024,
+                  0.0004319951000000003
+                ]
+              }
+            },
+            {
+              "operation": "existing curve",
+              "overrides": 0,
+              "msPerOperation": 0.0004997887999999989,
+              "samples": {
+                "msPerOperation": [
+                  0.0005129185000000007,
+                  0.0005023080999999991,
+                  0.0005083193999999992,
+                  0.0004997887999999989,
+                  0.0004961353000000003,
+                  0.0004989775000000009,
+                  0.0004954812000000004
+                ]
+              }
+            },
+            {
+              "operation": "property duration",
+              "overrides": 11,
+              "msPerOperation": 0.0008547546999999951,
+              "samples": {
+                "msPerOperation": [
+                  0.0008468122000000051,
+                  0.001128930600000001,
+                  0.0008547546999999951,
+                  0.0008524270000000001,
+                  0.0008416297999999983,
+                  0.0008563940000000002,
+                  0.0008689059999999984
+                ]
+              }
+            }
+          ],
+          "checksum": 2610029
+        },
+        {
+          "scope": "Single-track planning and JS marshalling; excludes Yjs publication, UI, rendering and networking",
+          "iterations": "7 batches × 10000 operations after 2 warmup batches",
+          "results": [
+            {
+              "operation": "existing duration",
+              "overrides": 0,
+              "msPerOperation": 0.0003036096999999998,
+              "samples": {
+                "msPerOperation": [
+                  0.00029053920000000064,
+                  0.0003138220000000004,
+                  0.00030763010000000007,
+                  0.0003904854,
+                  0.0002756663000000003,
+                  0.0002749672000000004,
+                  0.0003036096999999998
+                ]
+              }
+            },
+            {
+              "operation": "automatic activation",
+              "overrides": 0,
+              "msPerOperation": 0.0004129987999999997,
+              "samples": {
+                "msPerOperation": [
+                  0.0004083900999999997,
+                  0.00040999300000000004,
+                  0.00042039100000000075,
+                  0.0004656387999999993,
+                  0.00040973319999999943,
+                  0.0004129987999999997,
+                  0.0004257287000000019
+                ]
+              }
+            },
+            {
+              "operation": "existing curve",
+              "overrides": 0,
+              "msPerOperation": 0.0005336904000000004,
+              "samples": {
+                "msPerOperation": [
+                  0.0005658029999999997,
+                  0.0005159181000000019,
+                  0.0005336904000000004,
+                  0.0005162619000000007,
+                  0.0005362970999999988,
+                  0.0005297629,
+                  0.0005492266999999998
+                ]
+              }
+            },
+            {
+              "operation": "property duration",
+              "overrides": 11,
+              "msPerOperation": 0.0008422324000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.0013560629999999946,
+                  0.0008422324000000003,
+                  0.000889781000000005,
+                  0.0007951054999999997,
+                  0.0008296598999999958,
+                  0.0008076671999999973,
+                  0.0008678241999999955
+                ]
+              }
+            }
+          ],
+          "checksum": 2610029
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-19T17:02:13.628Z",
+  "loadAverageAfter": [
+    0.38,
+    0.41,
+    0.43
+  ]
+}

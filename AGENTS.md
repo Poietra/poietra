@@ -47,9 +47,11 @@ and measurements belong in [README.md](README.md).
   JS and WASM. Creation/clipboard/import share `ObjectInsertion`; boundary code
   reads required metadata and encodes batches before publication. Avoid decoding
   whole Scenes for pointer edits or constructing display tracks for command plans.
-- 2026-09-20: Transition resizing reads numeric bounds and writes only changed
-  timing leaves. Retain existing property-timing Yjs parents: replacing a whole
-  timing erased offline peer easing/start edits, including through Undo/Redo.
+- 2026-09-20: Transition resizing and single-track timing use typed plans and
+  write changed timing leaves. Retain existing property-timing Yjs parents,
+  including through `setTrack`: replacement erased offline peer easing/start
+  edits, including through Undo/Redo. Single-track activation keeps its strict
+  inherited-duration bounds; group edits have a separate remaining-duration rule.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

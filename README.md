@@ -127,6 +127,8 @@ The rewrite changes the data flow as well as the language:
   expansion uses sets; drag plans encode coordinate leaves directly. Transition
   resizing reads only time ranges and emits changed leaves; property timing uses
   typed insert/clear/keep/update variants while retaining existing Yjs parents.
+  Single-track timing distinguishes missing, automatic and explicit tracks with
+  an enum and validates the whole candidate before planning its changes.
 - **Preserve edit intent.** Commands write only changed fields. Guarded proposals
   validate the complete batch before publication. Pending Yjs dependencies are
   persisted even when they have not yet produced a visible document change.
@@ -154,16 +156,23 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,194 |
+| Regression/browser tests, fixtures and test configurations | 143 | 15,259 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **51,881 application MoonBit lines** and **770 native JS
+The same inventory has **52,138 application MoonBit lines** and **770 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
 runtime behavior through host bindings. Replacing those libraries is a separate
 implementation and compatibility task; it cannot be inferred from the TS ratio.
+
+Internal refactoring remains. [Scene/Composition creation](moonbit/browser_editor/structure_commands.mbt)
+still assembles native records, and [audio/video commands](moonbit/browser_editor/media_commands.mbt)
+still merge native patches before validation. Parts of the UI and host
+orchestration also use `Any`. Move remaining domain decisions into typed plans;
+React/DOM, Yjs and platform object interactions belong in host bindings. The
+zero-TS count is an inventory result, not completion of this internal refactoring.
 
 Run `pnpm audit:source` to reproduce the inventory, or
 `node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also
@@ -201,6 +210,39 @@ API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
 
+### Single-track timing — 2026-09-20
+
+The generic `setTrack` command now delegates timing inheritance, validation and
+leaf planning to `editor.plan_track_command`. It reads timing data without copying
+unrelated paths or metadata. Existing property timings retain their Yjs parents,
+including when edited through this generic API. Eleven regression cases reproduce
+the previous parent replacement and verify peer curve preservation through
+synchronization and Undo/Redo. Null versus deletion, strict inherited duration
+bounds, malformed input and atomic rejection are also covered.
+
+Each suite ran in three fresh Node 24.13.0 processes, pinned to CPU `2` on Intel
+Core Ultra 7 255H/WSL2 with MoonBit `0.10.13+cbb11c36f`. Each process used two warmup
+batches and seven measured batches of **10,000 operations**. These are warmed
+command-planning/JS-marshalling measurements in **microseconds**, excluding Yjs
+publication, UI, rendering and networking. Values are medians of process medians;
+ranges span the three after medians. Sources/artifacts stayed frozen and builds,
+tests and servers ran separately; other host activity was not isolated.
+
+| Operation | Before | After | After range | Speedup |
+| --- | ---: | ---: | ---: | ---: |
+| Change existing duration | 0.848 µs | 0.287 µs | 0.287–0.304 µs | 3.0× |
+| Activate automatic timing | 1.378 µs | 0.423 µs | 0.413–0.443 µs | 3.3× |
+| Change existing curve | 0.938 µs | 0.500 µs | 0.471–0.534 µs | 1.9× |
+| Change one property duration with 11 overrides | 1.019 µs | 0.855 µs | 0.842–0.877 µs | 1.2× |
+
+[Before samples](benchmarks/2026-09-20-tracks/before.json) use an isolated checkout
+of [`0d8550e`](https://github.com/Poietra/poietra/commit/0d8550ed4de27ddbdc3c37bcb6a8a4557a2bc285);
+[after samples](benchmarks/2026-09-20-tracks/after.json) use the track changes
+committed with this report. Both record source/release hashes and use
+[the same harness](apps/studio/scripts/benchmark-track.mjs).
+Run `pnpm bench --suite track --runs 3` after building; prefix with `taskset -c 2`
+on Linux to match the CPU affinity. These numbers do not measure browser FPS.
+
 ### Transition timing — 2026-09-20
 
 Transition resizing and property timing now use pure typed `editor` plans. Resize
@@ -230,8 +272,9 @@ frozen and builds/tests ran separately; other host activity was not isolated.
 
 [Before samples](benchmarks/2026-09-20-timing/before.json) use application
 [`43860b6`](https://github.com/Poietra/poietra/commit/43860b6e19adb9b9a756d3a7382162303cbfdf22);
-[after samples](benchmarks/2026-09-20-timing/after.json) use the timing changes
-committed with this report. Metadata records the parent checkout, working changes,
+[after samples](benchmarks/2026-09-20-timing/after.json) use the timing changes in
+[`0d8550e`](https://github.com/Poietra/poietra/commit/0d8550ed4de27ddbdc3c37bcb6a8a4557a2bc285).
+Metadata records the parent checkout, working changes,
 source digest and release module hashes. Both use [the same harness](apps/studio/scripts/benchmark-timing.mjs)
 and also record 100-track workloads. Run `pnpm bench --suite timing --runs 3`
 after building; on Linux, prefix with `taskset -c 2` to match the CPU affinity.
@@ -482,7 +525,7 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 647 Vitest behavioral/backend checks, 28 MoonBit JS tests, 21 MoonBit
+runs 667 Vitest behavioral/backend checks, 34 MoonBit JS tests, 27 MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import * as Y from 'yjs';
 import { makeDemoProject } from '../shared/demo';
 import { applyChanges, ensureSceneAnimationTracks, getShared, initializeDocument, readProject, toShared } from '../shared/document';
-import { defaultTrack, getPropertyTiming, PROPERTY_CHANNELS, resolveTrack, type AnimationTiming, type PropertyChannel } from '../shared/model';
+import { defaultTrack, getPropertyTiming, PROPERTY_CHANNELS, propertyTimingKey, resolveTrack, type AnimationTiming, type PropertyChannel } from '../shared/model';
 import { applyProposal, compileProposal, validateProposalForApply, type ProposalOperation } from '../shared/ai';
 import { parseProjectFile } from '../shared/project-file';
 import { EditorStore } from '../src/editor/store';
@@ -142,6 +142,20 @@ describe('stable parents, copy, timing bounds and collaborative Undo', () => {
     f.alice.undo(); f.sync();
     expect(f.track().opacityTiming).toEqual(timing(600, 50));
   });
+  test.each(PROPERTY_CHANNELS)('setTrack retains a peer curve and the existing %s timing parent through Undo/Redo', channel => {
+    const f = replicas(), key = propertyTimingKey(channel);
+    f.alice.setPropertyTiming(sid, tid, 'sigmoid', channel, timing(600, 100)); f.sync();
+    const parent = getShared(f.alice.doc, [...trackPath, key]);
+    const curve = { type: 'cubicBezier' as const, x1: .2, y1: .1, x2: .7, y2: .9 };
+    f.bob.setPropertyTiming(sid, tid, 'sigmoid', channel, { ...timing(600, 100), easing: curve });
+    f.alice.setTrack(sid, tid, 'sigmoid', { [key]: timing(400, 100) }); f.sync();
+    expect(getShared(f.alice.doc, [...trackPath, key])).toBe(parent);
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(400, 100), easing: curve });
+    f.alice.undo(); f.sync();
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(600, 100), easing: curve });
+    f.alice.redo(); f.sync();
+    expect(getPropertyTiming(f.track(), channel)).toEqual({ ...timing(400, 100), easing: curve });
+  });
   test('property timing plans retain parent identity, skip equivalent curves and preserve null versus deletion', () => {
     const f = replicas(), path = [...trackPath, 'opacityTiming'];
     const value = { ...timing(300, 100), easing: { type: 'cubicBezier' as const, x1: .2, y1: .1, x2: .7, y2: .9 } };
@@ -157,6 +171,57 @@ describe('stable parents, copy, timing bounds and collaborative Undo', () => {
     f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', value);
     f.alice.setPropertyTiming(sid, tid, 'sigmoid', 'opacity', undefined as unknown as null);
     expect(getShared(f.alice.doc, path)).toBeUndefined();
+  });
+  test('setTrack validates the whole timing batch before writing and preserves explicit null versus deletion', () => {
+    const f = replicas(), path = [...trackPath, 'opacityTiming'];
+    const before = Y.encodeStateVector(f.alice.doc);
+    expect(() => f.alice.setTrack(sid, tid, 'sigmoid', {
+      duration: 400, positionTiming: timing(200), opacityTiming: timing(900),
+    })).toThrow('範囲を超え');
+    expect(Y.encodeStateVector(f.alice.doc)).toEqual(before);
+    f.alice.setTrack(sid, tid, 'sigmoid', { opacityTiming: null });
+    expect(getShared(f.alice.doc, path)).toBeNull();
+    f.alice.setTrack(sid, tid, 'sigmoid', { opacityTiming: undefined });
+    expect(getShared(f.alice.doc, path)).toBeUndefined();
+    f.alice.setTrack(sid, tid, 'sigmoid', { opacityTiming: timing(200) });
+    const parent = getShared(f.alice.doc, path), clock = Y.encodeStateVector(f.alice.doc);
+    f.alice.setTrack(sid, tid, 'sigmoid', { opacityTiming: timing(200) });
+    expect(getShared(f.alice.doc, path)).toBe(parent);
+    expect(Y.encodeStateVector(f.alice.doc)).toEqual(clock);
+  });
+  test('setTrack keeps strict start-only bounds for missing and automatic tracks, then creates complete defaults', () => {
+    const f = replicas();
+    applyChanges(f.alice.doc, [{ path: trackPath, value: undefined }]);
+    const before = Y.encodeStateVector(f.alice.doc);
+    expect(() => f.alice.setTrack(sid, tid, 'sigmoid', { start: 100 })).toThrow('範囲を超え');
+    expect(Y.encodeStateVector(f.alice.doc)).toEqual(before);
+    f.alice.setTrack(sid, tid, 'sigmoid', { start: 100, duration: 600, path: null, opacityTiming: null });
+    expect(f.track()).toEqual(defaultTrack('sigmoid', { start: 100, duration: 600, implicit: false, path: null, opacityTiming: null }));
+    applyChanges(f.alice.doc, [{ path: trackPath, value: defaultTrack('sigmoid', { implicit: true, start: 120, duration: 900 }) }]);
+    expect(() => f.alice.setTrack(sid, tid, 'sigmoid', { start: 100 })).toThrow('範囲を超え');
+    f.alice.setTrack(sid, tid, 'sigmoid', { easing: 'linear' });
+    expect(f.track()).toMatchObject({ implicit: false, start: 0, duration: 800, easing: 'linear' });
+  });
+  test.each([
+    { start: undefined }, { start: '0' }, { start: NaN }, { duration: Infinity },
+    { easing: undefined }, { easing: 'unknown' },
+  ])('setTrack rejects malformed timing without publishing: %o', patch => {
+    const f = replicas(), before = Y.encodeStateVector(f.alice.doc);
+    expect(() => f.alice.setTrack(sid, tid, 'sigmoid', patch as never)).toThrow();
+    expect(Y.encodeStateVector(f.alice.doc)).toEqual(before);
+  });
+  test('track timing activation does not copy or decode unrelated paths or metadata', () => {
+    const track = defaultTrack('circle', { implicit: true });
+    const unread = vi.fn(() => { throw new Error('Unrelated payload was read'); });
+    for (const key of ['path', 'order', 'type', 'objectId', 'start', 'duration']) Object.defineProperty(track, key, { get: unread });
+    const fake = { scene: () => ({ objects: { circle: { locked: false } }, transitions: { t: { duration: 800, tracks: { circle: track } } } }), edit: vi.fn() };
+    EditorStore.prototype.setTrack.call(fake, 's', 't', 'circle', { duration: 400 });
+    expect(unread).not.toHaveBeenCalled();
+    expect(fake.edit.mock.calls[0][0]).toEqual([
+      { path: ['scenes', 's', 'transitions', 't', 'tracks', 'circle', 'start'], value: 0 },
+      { path: ['scenes', 's', 'transitions', 't', 'tracks', 'circle', 'duration'], value: 400 },
+      { path: ['scenes', 's', 'transitions', 't', 'tracks', 'circle', 'implicit'], value: false },
+    ]);
   });
   test('duration planning reads only bounds, leaving unrelated animation payloads untouched', () => {
     const track = defaultTrack('circle', { start: 100, duration: 600, opacityTiming: timing(600, 100) });

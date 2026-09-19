@@ -85,19 +85,6 @@ fn editable_transition(
 }
 
 ///|
-fn skip_equal_easing(
-  changes : Array[@core.Any],
-  previous : @core.Any,
-  next : @core.Any,
-) -> Array[@core.Any] {
-  changes.filter(fn(change) {
-    let path : FixedArray[String] = change._get("path").cast()
-    path[path.length() - 1] != "easing" ||
-    !@boundary.easings_equal(previous, next)
-  })
-}
-
-///|
 pub fn set_track(
   store : @core.Any,
   scene_id : String,
@@ -110,39 +97,18 @@ pub fn set_track(
     is Some(transition) else {
     return
   }
-  let previous = transition._get("tracks")._get(object_id)
-  let limit = number(transition._get("duration"))
-  let resolved = @boundary.resolve_track(previous, object_id, limit)
-  let track = merge(
-    merge(resolved, patch),
-    record([("implicit", @core.any(false))]),
+  edit(
+    store,
+    @boundary.single_track_changes(
+      scene_id,
+      transition_id,
+      object_id,
+      transition._get("tracks")._get(object_id),
+      patch,
+      number(transition._get("duration")),
+    ),
+    separate~,
   )
-  @boundary.validate_animation_track(track, limit)
-  let base = [
-    "scenes", scene_id, "transitions", transition_id, "tracks", object_id,
-  ]
-  if !truthy(previous) {
-    edit(store, [change(base, track)], separate~)
-  } else {
-    let promoted = if truthy(previous._get("implicit")) {
-      record([
-        ("start", resolved._get("start")),
-        ("duration", resolved._get("duration")),
-        ("implicit", @core.any(false)),
-      ])
-    } else {
-      @core.new_object()
-    }
-    edit(
-      store,
-      skip_equal_easing(
-        changes_for(base, merge(promoted, patch)),
-        previous._get("easing"),
-        patch._get("easing"),
-      ),
-      separate~,
-    )
-  }
 }
 
 ///|
