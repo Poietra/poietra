@@ -364,13 +364,15 @@ node scripts/benchmark-rendering.mjs --url http://127.0.0.1:5189 --frames 60 \
 
 ## Checks
 
-The [completed implementation CI run](https://github.com/Poietra/poietra/actions/runs/35416192419)
-passed 642 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
+The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
+runs 642 Vitest regression/differential tests, 15 MoonBit JS tests, four MoonBit
 WASM tests, 154 main browser checks, six media/export checks and 25 production-page
-checks. It also verified a newly generated feature/API, 108 captured public API
+checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
-migration/fault/quota and account/TTL integrations. The
-[workflow](.github/workflows/check.yml) is the authoritative command selection.
+migration/fault/quota and account/TTL integrations. The production configuration
+explicitly enables the prerender checks, including when CI starts its own server.
+The [workflow definition](.github/workflows/check.yml) is the authoritative command
+selection.
 
 ```sh
 # Repository root
