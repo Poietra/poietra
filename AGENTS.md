@@ -30,6 +30,25 @@ and measurements belong in [README.md](README.md).
 
 ## Implementation
 
+- 2026-09-20: The founder approved Scene-wide parent links, with local position,
+  rotation, scale and anchor per Composition. Reparent/detach preserves geometry
+  in all Compositions, including retained deleted ones; group selection stays
+  separate. Keep full affine composition and a sparse shear coefficient so
+  rotated nonuniform scale can be rebased without losing geometry. Evaluated
+  world matrices are runtime data, never serialized document state.
+- 2026-09-20: The founder approved intermediate actual-value keyframes with
+  Composition-linked endpoints. Point time is normalized within the property's
+  animation interval; resizing that interval stretches the whole curve. Use
+  stable keyframe IDs, leaf edits and deletion tombstones, with authoritative
+  server initialization of legacy track containers. Never replace that shared
+  map during ordinary point or track edits. Format v2 upgrades are monotonic
+  and excluded from editing Undo; old v1 files remain readable.
+- 2026-09-20: Extending selective Undo to hierarchy and points exposed dependent
+  peer edits. Retain newly created points/parents used by a peer. After received
+  coordinate or motion edits use a parent relation (including a detach), retain
+  that relation and compensating transform leaves when undoing it; unrelated
+  appearance still undoes. Notify the user and do not consume an earlier action.
+
 - Write application/domain logic in typed MoonBit. Runtime TS/TSX was removed on
   2026-09-19. Native JS serves browser/runtime/npm interoperability; TypeScript
   remains for public declarations and build/test tooling.

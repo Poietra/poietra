@@ -5,8 +5,8 @@ fn Compiler::finish(self : Compiler) -> Plan raise CompileError {
       self.emit(["transitions", tid, "duration"], ScalarValue(Number(duration)))
     }
   }
-  for oid, pending in self.created {
-    self.emit(["objects", oid], ObjectValue(pending.object))
+  for oid, _ in self.created {
+    self.emit(["objects", oid], ObjectValue(self.objects[oid]))
     for cid in self.source.order {
       self.emit(
         ["compositions", cid, "states", oid],
@@ -33,6 +33,49 @@ fn Compiler::finish(self : Compiler) -> Plan raise CompileError {
   }
   for _, entry in self.tracks {
     check_track(entry.value, entry.duration)
+    if entry.existing && !entry.keyframe_ids.is_empty() {
+      let original = (self.source.track)(entry.transition, entry.object_id)
+        .bind(fn(t) { t.keyframes })
+        .unwrap_or(Map([]))
+      for id in entry.keyframe_ids {
+        let next = entry.value.keyframes.unwrap()[id]
+        let path = entry.path + ["keyframes", id]
+        match original.get(id) {
+          None => self.emit(path, KeyframeValue(next))
+          Some(previous) => {
+            if previous.at != next.at {
+              self.emit(path + ["at"], ScalarValue(Number(next.at)))
+            }
+            if previous.property != next.property {
+              self.emit(
+                path + ["property"],
+                ScalarValue(Text(@scene.curve_property_name(next.property))),
+              )
+            }
+            if previous.value != next.value {
+              self.emit(
+                path + ["value"],
+                ScalarValue(
+                  match next.value {
+                    CurveNumber(n) => Number(n)
+                    CurveColor(s) => Text(s)
+                  },
+                ),
+              )
+            }
+            if previous.easing != next.easing {
+              self.emit(path + ["easing"], EasingValue(next.easing))
+            }
+            if previous.deleted != next.deleted {
+              self.emit(
+                path + ["deleted"],
+                ScalarValue(Boolean(next.deleted == Some(true))),
+              )
+            }
+          }
+        }
+      }
+    }
     let transition = self.transitions[entry.transition]
     if entry.motion_edited && entry.value.path is Some(_) {
       if entry.value.type_ != Move {

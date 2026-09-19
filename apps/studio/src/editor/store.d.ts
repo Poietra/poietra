@@ -1,3 +1,4 @@
+import type { Keyframe } from "../../shared/scene-types";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -92,6 +93,9 @@ export declare class EditorStore {
     addComposition(sceneId: string): string;
     setComposition(sceneId: string, id: string, patch: Partial<Pick<Composition, 'name' | 'duration'>>): undefined;
     setTransitionDuration(sceneId: string, id: string, duration: number): undefined;
+    setKeyframe(sceneId: string, transitionId: string, objectId: string, id: string, patch: Partial<Keyframe> | null, separate?: boolean): undefined;
+    setParent(sceneId: string, objectId: string, parentId: string | null): undefined;
+    setAnchor(sceneId: string, compositionId: string, objectId: string, x: number, y: number): undefined;
     setTrack(sceneId: string, transitionId: string, objectId: string, patch: Partial<AnimationTrack>, separate?: boolean): undefined;
     setPropertyTiming(sceneId: string, transitionId: string, objectId: string, channel: PropertyChannel, timing: AnimationTiming | null, separate?: boolean): undefined;
     linkedIds(sceneId: string, selected: string[]): string[];

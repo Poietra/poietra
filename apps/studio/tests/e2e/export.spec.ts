@@ -103,3 +103,17 @@ test('reports unavailable WebCodecs without presenting a successful export', asy
   expect(result.rejected).toBe(true);
   expect(result.message.length).toBeGreaterThan(10);
 });
+
+for (const format of ['mp4', 'webm'] as const) {
+  test(`hierarchy, anchors, shear and keyframes match SVG in decoded ${format} frames`, async ({ page }, info) => {
+    const report = await page.evaluate(format => window.exportFixture.primitives(format), format);
+    await info.attach('primitives-export', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
+    expect(report.packets).toBe(42); expect(report.duration).toBeCloseTo(1.4, 3);
+    for (const frame of report.frames) {
+      expect(frame.expectedInk).toBeGreaterThan(1000);
+      expect(frame.actualInk).toBeGreaterThan(frame.expectedInk * .85);
+      expect(frame.actualInk).toBeLessThan(frame.expectedInk * 1.15);
+      expect(frame.meanError).toBeLessThan(18);
+    }
+  });
+}

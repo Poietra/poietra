@@ -107,6 +107,8 @@ fn Compiler::execute(
         self.emit(base + ["path"], PathValue(Some(path)))
       }
     }
+    Parent(oid, parent) => self.reparent(oid, parent)
+    Anchor(cid, oid, x, y) => self.anchor(cid, oid, x, y)
     Track(tid, oid, edit) => self.edit_track(tid, oid, edit)
     CompositionDuration(cid, duration) => {
       let cid = self.resolve(cid, CompositionRef)

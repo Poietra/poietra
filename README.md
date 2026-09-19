@@ -31,9 +31,10 @@ rooms, media storage and account bindings. See [deployment details](#deployment-
 - Share a room link and edit together, with presence, offline reconnection and
   Undo scoped to your own edits.
 - Compose circles, rectangles, text, LaTeX, Bézier paths, arrows, number lines,
-  images and video. Align or group objects and edit their geometry.
+  images and video. Align or group objects, parent them and edit their anchors.
 - Set a separate start, duration and easing for position, opacity and other
-  properties. Use Move, Write, Fade, Grow and Cut, including custom Bézier easing.
+  properties. Add intermediate actual-value keyframes for returns, pauses and
+  color changes. Use Move, Write, Fade, Grow and Cut, including custom Bézier easing.
 - Import audio/video, trim clips, adjust volume and preview the same timeline
   used for export. Save a portable project file with its media embedded.
 - Ask `@codex` in shared chat for structured edits or generated image assets.
@@ -44,6 +45,50 @@ rooms, media storage and account bindings. See [deployment details](#deployment-
 A **Scene** owns the canvas and object identities. A **Composition** is a still
 state with a hold duration. A **Transition** animates between adjacent
 Compositions; changing a state in one Composition does not change another.
+
+### Parenting, anchors and intermediate values — 2026-09-20
+
+The agreed model keeps `parentId` on the Scene object and sparse
+`anchorX/anchorY`, `scaleX/scaleY` and `shear` on each Composition state.
+`x/y` locate the anchor in the parent's coordinates; geometry dimensions remain
+independent. Parent transforms compose as full affine matrices. Shear preserves
+geometry when rebasing rotated, nonuniform scales; evaluated `world` matrices
+are used by SVG, Canvas, selection and pointer projection, never saved.
+
+**Transform → Parent** reparents or detaches while preserving each Composition's
+geometry, including states retained for Undo. **Anchor X/Y** also compensates
+position to preserve geometry. Parents contribute transforms; visibility,
+opacity, groups and paint order remain independent. Singular parent transforms
+are rejected before writing. Missing parents act as roots; concurrent cycles
+retain authored links and deterministically ignore the smallest ID's edge.
+After a peer edits coordinates or motion using a parent relation, Undo retains
+that relation and its compensating transforms, with a notice. Independent
+appearance changes still undo. A new parent used by a peer child is retained
+like other shared creations; this protects received edits, not unseen offline work.
+
+**Property timing → Keyframes** edits actual numbers or `#RRGGBB` colors.
+Endpoints follow adjacent Composition values; intermediate `at` values are
+strictly between 0 and 1 within that property's timing interval. Changing its
+duration stretches all its points. Easing belongs to the outgoing segment; the
+first segment inherits property easing. Explicit curves override the legacy
+interpolation of that field, including motion-path coordinates. Cut retains
+points but does not evaluate them. Reparenting preserves Composition poses;
+intermediate motion paths/keys remain in parent coordinates and may need adjustment.
+
+Keyframes use stable IDs and per-field Yjs changes, including through `setTrack`.
+Deletion leaves a tombstone so Undo can preserve peer value edits. Creation Undo
+retains a new point after a peer has edited it, without undoing earlier local work. Equal times
+retain all records and evaluate the greatest ID. At most 1,024 retained points
+fit in a track. Old rooms receive empty containers from their authoritative host;
+point editing waits for initial synchronization. New features mark the document
+**version 2**, independently of Undo. Version 1 files still load. Collaborators
+with an older open editor must reload before using these features.
+
+AI exposes `setParent`, `setAnchor` and `setKeyframe` with guarded application;
+it shares the same typed plans/evaluator. Playback sorts points and resolves the
+hierarchy once; frame evaluation uses binary search per curve. Enlarged local
+rasters use bounded density steps to retain text/curve detail without rebuilding
+for every fractional scale change.
 
 ## Run locally
 
@@ -160,11 +205,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 143 | 15,404 |
-| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,860 |
+| Regression/browser tests, fixtures and test configurations | 145 | 15,925 |
+| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,906 |
 | Benchmark scripts and root tool configurations | 5 | 138 |
 
-The same inventory has **52,553 application MoonBit lines** and **779 native JS
+The same inventory has **55,557 application MoonBit lines** and **782 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -659,8 +704,8 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 675 Vitest behavioral/backend checks, 40 MoonBit JS tests, 33 MoonBit
-WASM tests, 154 main browser checks, six media/export checks and 25 production-page
+runs 698 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
+WASM tests, 157 main browser checks, seven MP4/WebM rendering checks, six media checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
@@ -672,13 +717,14 @@ selection.
 # Repository root
 pnpm test
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene
 pnpm build
 
 # apps/studio: browser and local runtime checks
 cd apps/studio
 pnpm exec playwright install chromium
 pnpm test:e2e
+pnpm exec playwright test --config tests/e2e/export.config.ts
 pnpm exec playwright test --config tests/e2e/media-export.config.ts
 pnpm exec playwright test --config tests/e2e/site-production.config.ts
 node tests/collaboration-worker.integration.mjs --port 8796

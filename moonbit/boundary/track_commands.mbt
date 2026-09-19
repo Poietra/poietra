@@ -41,6 +41,15 @@ pub fn single_track_changes(
     @editor.ExplicitAnimation(timing_candidate(previous))
   }
   let keys = @core.object_keys(patch)
+  if keys.length() == 1 && keys[0] == "keyframes" && truthy(previous) {
+    return keyframe_changes(
+      [
+        "scenes", scene_id, "transitions", transition_id, "tracks", object_id, "keyframes",
+      ],
+      previous._get("keyframes"),
+      patch._get("keyframes"),
+    )
+  }
   let fields = []
   for key in keys {
     match key {
@@ -102,6 +111,9 @@ pub fn single_track_changes(
       patch,
     )
     value._set("implicit", @core.any(false))
+    if keys.contains("keyframes") {
+      validate_animation_track(value, limit)
+    }
     return [make_change(FixedArray::from_array(base[:]), value)]
   }
   let changes = []
@@ -124,10 +136,20 @@ pub fn single_track_changes(
       property_timing_changes(base + [key], update, patch._get(key)),
     )
   }
+  if keys.contains("keyframes") {
+    changes.append(
+      keyframe_changes(
+        base + ["keyframes"],
+        previous._get("keyframes"),
+        patch._get("keyframes"),
+      ),
+    )
+  }
   // Non-timing patch values keep their native representation. In particular,
   // explicit null, deletion, path replacement and extension fields are distinct.
   for key in keys {
-    if key == "start" ||
+    if key == "keyframes" ||
+      key == "start" ||
       key == "duration" ||
       key == "easing" ||
       property_keys.contains(key) ||
@@ -137,6 +159,70 @@ pub fn single_track_changes(
     changes.push(
       make_change(FixedArray::from_array((base + [key])[:]), patch._get(key)),
     )
+  }
+  changes
+}
+
+///|
+/// Keep each existing CRDT keyframe parent and publish changed leaves only.
+/// A missing ID in a patch is untouched; deletion is a tombstone on that ID.
+pub fn keyframe_changes(
+  base : Array[String],
+  previous : @core.Any,
+  patch : @core.Any,
+) -> Array[@core.Any] {
+  if @core.is_nullish(previous) {
+    @core.throw_error(
+      "キーフレームの初期同期が完了していません。",
+    )
+  }
+  if @core.is_nullish(patch) ||
+    @core.typeof_(patch) != "object" ||
+    @core.is_array(patch) {
+    @core.throw_error(
+      "キーフレームは ID ごとの編集値で指定してください。",
+    )
+  }
+  let ids : Set[String] = Set([])
+  for id in @core.object_keys(previous) {
+    ids.add(id)
+  }
+  let changes = []
+  for id in @core.object_keys(patch) {
+    if !valid_document_id(id) {
+      @core.throw_error("キーフレーム ID が無効です。")
+    }
+    ids.add(id)
+    let old = previous._get(id)
+    let next = if truthy(old) {
+      merge_values(old, patch._get(id))
+    } else {
+      patch._get(id)
+    }
+    validate_keyframe(next)
+    if !truthy(old) {
+      changes.push(
+        make_change(
+          FixedArray::from_array((base + [id])[:]),
+          write_keyframe(read_keyframe(next)),
+        ),
+      )
+    } else {
+      for key in @core.object_keys(patch._get(id)) {
+        if ["at", "value", "easing", "property", "deleted"].contains(key) &&
+          !same_value(old._get(key), next._get(key)) {
+          changes.push(
+            make_change(
+              FixedArray::from_array((base + [id, key])[:]),
+              next._get(key),
+            ),
+          )
+        }
+      }
+    }
+  }
+  if ids.length() > 1024 {
+    @core.throw_error("キーフレームが 1024 個を超えています。")
   }
   changes
 }

@@ -1,4 +1,5 @@
 import {
+  "poietra/poietra/scene",
   "mizchi/js_core" @core,
   "mizchi/npm_typed/zod",
   "poietra/poietra/assets",

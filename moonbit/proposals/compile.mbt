@@ -22,6 +22,12 @@ fn write_value(value : @plan.Value) -> @core.Any {
         Some(value) => @boundary.write_timing(value)
         None => @core.null()
       }
+    KeyframeValue(value) => @boundary.write_keyframe(value)
+    ParentValue(value) =>
+      match value {
+        Some(id) => @core.any(id)
+        None => @core.null()
+      }
     StateValue(value) => @boundary.write_object_state(value)
     ObjectValue(value) => @boundary.write_scene_object(value)
     TrackValue(value, fields) => {

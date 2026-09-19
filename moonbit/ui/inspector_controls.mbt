@@ -197,17 +197,43 @@ fn InspectorController::align(
   let objects : FixedArray[@core.Any] = frame._get("objects").cast()
   let dimension = if axis == "x" { "width" } else { "height" }
   let items : Array[@editor.AlignmentItem] = []
+  let positions : Map[String, @scene.Point] = Map([])
+  let origins : Map[String, @scene.Point] = Map([])
   for item in objects {
     let id : String = item._get("object")._get("id").cast()
     if !self.selected.iter().any(fn(chosen) { chosen == id }) {
       continue
     }
-    let bounds = self.editor._get("renderer")._call("objectBounds", [item])
+    let state = @boundary.read_object_state(item._get("state"))
+    let origin : @scene.Point = { x: state.x, y: state.y, }
+    let matrix = stage_item_matrix(item)
+    let bounds = @geometry.matrix_bounds(
+      stage_bounds(self.editor._get("renderer")._call("objectBounds", [item])),
+      origin,
+      matrix,
+    )
+    let position = @boundary.parent_matrix(self.scene, self.composition_id, id).point(
+      origin,
+    )
+    positions[id] = position
+    origins[id] = origin
     items.push({
       id,
-      position: item._get("state")._get(axis).cast(),
-      low: bounds._get(axis).cast(),
-      extent: bounds._get(dimension).cast(),
+      position: if axis == "x" {
+        position.x
+      } else {
+        position.y
+      },
+      low: if axis == "x" {
+        bounds.x
+      } else {
+        bounds.y
+      },
+      extent: if axis == "x" {
+        bounds.width
+      } else {
+        bounds.height
+      },
     })
   }
   let plan = @editor.alignment_plan(
@@ -218,27 +244,24 @@ fn InspectorController::align(
   if plan.is_empty() {
     return
   }
-  self.store._call("beginGesture", []) |> ignore
-  @core.ffi_wrap_sync(
-    fn() {
-      for (id, position) in plan {
-        self.store._call("updateState", [
-          @core.any(self.scene_id),
-          @core.any(self.composition_id),
-          @core.any(id),
-          host_record(Map([(axis, @core.any(position))])),
-          @core.any(false),
-        ])
-        |> ignore
-      }
-      @core.undefined()
-    },
-    fn(_) { self.store._call("endGesture", []) |> ignore },
-    fn(error) {
-      self.store._call("endGesture", []) |> ignore
-      ui_throw(error)
-    },
+  let moves : Array[@editor.WorldMove] = plan.map(fn(pair) {
+    let (id, position) = pair
+    {
+      id,
+      start: origins[id],
+      delta: if axis == "x" {
+        { x: position - positions[id].x, y: 0.0, }
+      } else {
+        { x: 0.0, y: position - positions[id].y, }
+      },
+    }
+  })
+  let changes = @boundary.object_position_changes(
+    self.scene_id,
+    self.composition_id,
+    @boundary.project_world_moves(self.scene, self.composition_id, moves),
   )
+  self.store._call("edit", [@core.any(host_array(changes))]) |> ignore
 }
 
 ///|

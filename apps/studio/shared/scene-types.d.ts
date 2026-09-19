@@ -2,9 +2,11 @@
 export type ObjectKind = 'circle' | 'rectangle' | 'text' | 'equation' | 'path' | 'arrow' | 'numberline' | 'image' | 'video';
 export type AnimationKind = 'move' | 'write' | 'fade' | 'grow' | 'none';
 export type Effect = 'none' | 'glow';
+export type CurveProperty = 'x' | 'y' | 'width' | 'height' | 'rotation' | 'opacity' | 'fill' | 'stroke' | 'strokeWidth' | 'fontSize' | 'cornerRadius' | 'c1x' | 'c1y' | 'c2x' | 'c2y' | 'reveal' | 'anchorX' | 'anchorY' | 'scaleX' | 'scaleY' | 'shear';
 export type PresetEasing = 'linear' | 'easeInOut' | 'easeIn' | 'easeOut';
 export interface CubicBezierEasing { type: 'cubicBezier'; x1: number; y1: number; x2: number; y2: number }
 export type Easing = PresetEasing | CubicBezierEasing;
+export type CurveValue = number | string;
 export interface Point {
   x: number;
   y: number;
@@ -19,6 +21,11 @@ export interface ObjectState {
   width: number;
   height: number;
   rotation: number;
+  anchorX?: number;
+  anchorY?: number;
+  scaleX?: number;
+  scaleY?: number;
+  shear?: number;
   opacity: number;
   visible: boolean;
   fill: string;
@@ -55,6 +62,7 @@ export interface SceneObject {
   kind: ObjectKind;
   order: number;
   groupId: string | null;
+  parentId?: string | null;
   locked: boolean;
   image?: ImageAsset;
   media?: MediaAsset;
@@ -73,6 +81,21 @@ export interface AnimationTiming {
   start: number;
   duration: number;
   easing: Easing;
+}
+export interface Keyframe {
+  property: CurveProperty;
+  at: number;
+  value: CurveValue;
+  easing: Easing;
+  deleted?: boolean;
+}
+export interface Affine {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
 }
 export interface AnimationTrack {
   implicit?: boolean;
@@ -94,6 +117,7 @@ export interface AnimationTrack {
   cornerRadiusTiming?: AnimationTiming | null;
   pathTiming?: AnimationTiming | null;
   revealTiming?: AnimationTiming | null;
+  keyframes?: Record<string, Keyframe>;
 }
 export interface Transition {
   id: string;
@@ -126,7 +150,7 @@ export interface Scene {
   deleted?: boolean;
 }
 export interface Project {
-  version: 1;
+  version: 1 | 2;
   name: string;
   sceneOrder: string[];
   scenes: Record<string, Scene>;
@@ -143,6 +167,7 @@ export interface RenderObject {
   writeProgress: number;
   order: 'together' | 'sequential';
   videoTimeMs?: number;
+  world?: Affine;
   videoFrame?: string; // Portable SVG preparation only; not stored in a project.
 }
 export interface Frame {

@@ -21,7 +21,23 @@ pub fn set_object(
   id : String,
   patch : @core.Any,
 ) -> Unit {
-  edit(store, changes_for(["scenes", scene, "objects", id], patch))
+  if @core.object_keys(patch).contains("parentId") {
+    let changes = @boundary.reparent_changes(
+      @boundary.get_value(store._get("doc"), ["scenes", scene], host(store)),
+      id,
+      patch._get("parentId"),
+    )
+    for key in @core.object_keys(patch) {
+      if key != "parentId" {
+        changes.push(
+          change(["scenes", scene, "objects", id, key], patch._get(key)),
+        )
+      }
+    }
+    edit(store, changes)
+  } else {
+    edit(store, changes_for(["scenes", scene, "objects", id], patch))
+  }
 }
 
 ///|
@@ -44,7 +60,15 @@ pub fn update_state(
   }
   let base = ["scenes", scene_id, "compositions", composition_id, "states", id]
   if truthy(composition._get("states")._get(id)) {
-    edit(store, changes_for(base, patch), separate~)
+    let changes = changes_for(base, patch)
+    if @core.object_keys(patch)
+      .iter()
+      .any(fn(key) {
+        ["anchorX", "anchorY", "scaleX", "scaleY", "shear"].contains(key)
+      }) {
+      changes.push(change(["version"], @core.any(2)))
+    }
+    edit(store, changes, separate~)
     return
   }
   let mut prior = @core.undefined()
@@ -99,13 +123,25 @@ pub fn translate(
       },
     }
   })
+  let hierarchical = targets.any(fn(t) {
+    t.locked == Some(false) &&
+    t.state is Some(_) &&
+    truthy(objects._get(t.id)._get("parentId"))
+  })
+  let positions = if hierarchical {
+    let moves : Array[@editor.WorldMove] = []
+    for target in targets {
+      if target.locked == Some(false) && target.state is Some(start) {
+        moves.push({ id: target.id, start, delta: { x: dx, y: dy, }, })
+      }
+    }
+    @boundary.project_world_moves(scene, composition_id, moves)
+  } else {
+    @editor.translated_objects(targets, dx, dy)
+  }
   edit(
     store,
-    @boundary.object_position_changes(
-      scene_id,
-      composition_id,
-      @editor.translated_objects(targets, dx, dy),
-    ),
+    @boundary.object_position_changes(scene_id, composition_id, positions),
     separate=false,
   )
 }

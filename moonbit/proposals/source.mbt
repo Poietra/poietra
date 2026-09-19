@@ -42,12 +42,17 @@ fn read_source(
     if state_cache.get(key) is Some(value) {
       return value
     }
-    let composition = native_compositions._get(cid)
-    let result = if !owns(native_compositions, cid) ||
-      !owns(composition._get("states"), oid) {
+    // Reparenting also visits retained Compositions so restoring one with
+    // Undo cannot resurrect coordinates from the previous parent space.
+    let native_state = if owns(native_compositions, cid) {
+      native_compositions._get(cid)._get("states")._get(oid)
+    } else {
+      value(doc, base + ["compositions", cid, "states", oid], yjs)
+    }
+    let result = if @core.is_nullish(native_state) {
       None
     } else {
-      Some(@boundary.read_object_state(composition._get("states")._get(oid)))
+      Some(@boundary.read_object_state(native_state))
     }
     state_cache[key] = result
     result

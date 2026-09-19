@@ -13,6 +13,7 @@ pub fn decode_drawable(value : @core.Any) -> @render.Drawable {
   let image = optional(object._get("image"), fn(v) { v._get("src").cast() })
   {
     id: object._get("id").cast(),
+    world: optional(value._get("world"), decode_Affine),
     kind: decode_ObjectKind(object._get("kind")),
     state: decode_ObjectState(value._get("state")),
     progress: value._get("writeProgress").cast(),

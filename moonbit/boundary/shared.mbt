@@ -70,6 +70,13 @@ pub fn to_shared(value : @core.Any, host : @core.Any) -> @core.Any {
     for key in @core.object_keys(value) {
       map_set(result, key, to_shared(value._get(key), host))
     }
+    if !@core.object_keys(value).contains("keyframes") &&
+      @core.typeof_(value._get("objectId")) == "string" &&
+      @core.typeof_(value._get("start")) == "number" &&
+      @core.typeof_(value._get("duration")) == "number" &&
+      @core.typeof_(value._get("type")) == "string" {
+      map_set(result, "keyframes", new_shared_map(host))
+    }
     result
   } else {
     value
@@ -134,19 +141,25 @@ pub fn apply_changes(
   origin : @core.Any,
   host : @core.Any,
 ) -> Unit {
-  let changes = Array::makei(input.length(), fn(i) {
-    let change = input[i]
+  let changes : Array[@collaboration.Change[@core.Any]] = []
+  let mut upgrade = false
+  for change in input {
     let value = change._get("value")
+    let path = decode_array(change._get("path"), fn(v) { v.cast() })
+    if path == ["version"] && @core.equal(value, @core.any(2)) {
+      upgrade = true
+      continue
+    }
+    if change_requires_v2(path, value) {
+      upgrade = true
+    }
     let mutation = if @core.is_undefined(value) {
       @collaboration.Remove
     } else {
       @collaboration.Put(value)
     }
-    @collaboration.Change::{
-      path: decode_array(change._get("path"), fn(v) { v.cast() }),
-      mutation,
-    }
-  })
+    changes.push({ path, mutation, })
+  }
   let resolved = @collaboration.resolve_changes(changes, fn(path) {
     let parent = get_shared(
       doc,
@@ -168,22 +181,38 @@ pub fn apply_changes(
       }
       @core.throw_error(message)
     }
-    Ok(changes) =>
+    Ok(changes) => {
+      // Resolve and encode every value before the first write: Yjs cannot roll
+      // back a transaction after a failed native conversion.
+      let prepared : Array[(@core.Any, String, (@core.Any, @core.Any)?)] = []
+      for change in changes {
+        match change.mutation {
+          Remove => prepared.push((change.parent, change.key, None))
+          Put(value) =>
+            prepared.push(
+              (change.parent, change.key, Some((value, to_shared(value, host)))),
+            )
+        }
+      }
+      if upgrade && !prepared.is_empty() {
+        upgrade_document_format(doc)
+      }
       transact(
         doc,
         fn() {
-          for change in changes {
-            match change.mutation {
-              Remove => map_delete(change.parent, change.key)
-              Put(value) =>
-                if !same_value(map_get(change.parent, change.key), value) {
-                  map_set(change.parent, change.key, to_shared(value, host))
+          for (parent, key, value) in prepared {
+            match value {
+              None => map_delete(parent, key)
+              Some((original, shared)) =>
+                if !same_value(map_get(parent, key), original) {
+                  map_set(parent, key, shared)
                 }
             }
           }
         },
         origin,
       )
+    }
   }
 }
 
@@ -337,6 +366,12 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
               map_set(tracks, id, to_shared(value, host))
               changed = true
             }
+            let track = map_get(tracks, id)
+            if is_instance(track, host._get("Map")) &&
+              !map_has(track, "keyframes") {
+              map_set(track, "keyframes", new_shared_map(host))
+              changed = true
+            }
           }
         }
       }
@@ -345,4 +380,60 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
   )
   state.dirty = false
   changed
+}
+
+///|
+/// Format upgrades are monotonic and excluded from local editing Undo. A peer's
+/// new feature must remain readable after the first author undoes their own edit.
+pub fn upgrade_document_format(doc : @core.Any) -> Unit {
+  let root = shared_map(doc)
+  if @core.equal(map_get(root, "version"), @core.any(2)) {
+    return
+  }
+  transact(
+    doc,
+    fn() { map_set(root, "version", @core.any(2)) },
+    @core.any("initialize-primitives"),
+  )
+}
+
+///|
+/// Detect format-bearing edits at publication, including AI, clipboard and
+/// structural insertions. Empty keyframe containers remain v1-compatible.
+pub fn change_requires_v2(path : Array[String], value : @core.Any) -> Bool {
+  if @core.is_nullish(value) {
+    return false
+  }
+  let last = path.last().unwrap_or("")
+  if ["anchorX", "anchorY", "scaleX", "scaleY", "shear", "parentId"].contains(
+      last,
+    ) ||
+    (path.contains("keyframes") && last != "keyframes") {
+    return true
+  }
+  let pending = [value]
+  while !pending.is_empty() {
+    let current = pending.pop().unwrap()
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if @core.is_nullish(child) {
+        continue
+      }
+      if ["anchorX", "anchorY", "scaleX", "scaleY", "shear", "parentId"].contains(
+          key,
+        ) ||
+        (key == "keyframes" && @core.object_keys(child).length() > 0) {
+        return true
+      }
+      if @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  last == "keyframes" &&
+  @core.typeof_(value) == "object" &&
+  @core.object_keys(value).length() > 0
 }

@@ -49,6 +49,9 @@ export class EditorStore {
     addComposition(sceneId) { return commands.addComposition(this, sceneId); }
     setComposition(sceneId, id, patch) { return commands.setComposition(this, sceneId, id, patch); }
     setTransitionDuration(sceneId, id, duration) { return commands.setTransitionDuration(this, sceneId, id, duration); }
+    setKeyframe(sceneId, transitionId, objectId, id, patch, separate = true) { return commands.setKeyframe(this, sceneId, transitionId, objectId, id, patch, separate); }
+    setParent(sceneId, objectId, parentId) { return commands.setParent(this, sceneId, objectId, parentId); }
+    setAnchor(sceneId, compositionId, objectId, x, y) { return commands.setAnchor(this, sceneId, compositionId, objectId, x, y); }
     setTrack(sceneId, transitionId, objectId, patch, separate = true) { return commands.setTrack(this, sceneId, transitionId, objectId, patch, separate); }
     setPropertyTiming(sceneId, transitionId, objectId, channel, timing, separate = true) { return commands.setPropertyTiming(this, sceneId, transitionId, objectId, channel, timing, separate); }
     linkedIds(sceneId, selected) { return commands.linkedIds(this, sceneId, selected); }

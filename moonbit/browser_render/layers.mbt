@@ -148,7 +148,11 @@ fn raster_ticket(
 ///|
 fn local_value(item : @core.Any) -> @core.Any {
   let result = copy_record(item)
+  result._set("world", @core.undefined())
   let state = copy_record(item._get("state"))
+  for field in ["anchorX", "anchorY", "scaleX", "scaleY", "shear"] {
+    state._set(field, @core.undefined())
+  }
   for field in ["x", "y", "rotation"] {
     state._set(field, @core.any(0.0))
   }
@@ -456,6 +460,18 @@ async fn RasterCache::get(
 ) -> @core.Any {
   image_check_abort(signal)
   let drawable = @boundary.decode_drawable(input)
+  let enlargement = match drawable.world {
+    Some(matrix) => matrix.max_scale()
+    None =>
+      if drawable.state.has_transform() {
+        drawable.state.local_matrix().max_scale()
+      } else {
+        1.0
+      }
+  }
+  // Scale in whole-density steps to retain sharp enlarged text/curves without
+  // invalidating their rasters for every fractional transform during playback.
+  let scale = scale * (enlargement - 1.0e-9).ceil().max(1.0)
   let id = drawable.id
   if self.pending.get(id) is Some(previous) {
     previous.val = false

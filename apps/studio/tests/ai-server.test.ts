@@ -69,7 +69,7 @@ test('Responses schema exposes absolute motion paths and relative shape paths wi
   const body = parse.mock.calls[0][0];
   const schema = JSON.stringify(body.text.format.schema);
   expect(schema).toContain('setMotionPath'); expect(schema).toContain('setShapePath');
-  expect(body.input[0].content).toContain('absolute Scene pixels');
+  expect(body.input[0].content).toContain('parent-space pixels (Scene pixels for an unparented object)');
   expect(body.input[0].content).toContain('relative to its start');
 });
 

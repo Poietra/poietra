@@ -33,7 +33,7 @@ describe('AI proposal validity', () => {
     const edits = proposal(document, [setTrack('start', 300), setTrack('duration', 500), setTrack('type', 'fade')]);
     expect(edits.changes).toHaveLength(1);
     apply(document, edits);
-    expect(readProject(document)!.scenes['scene-1'].transitions['transition-1'].tracks.circle).toEqual({ objectId: 'circle', type: 'fade', start: 300, duration: 500, easing: 'easeInOut', order: 'together', path: null });
+    expect(readProject(document)!.scenes['scene-1'].transitions['transition-1'].tracks.circle).toEqual({ objectId: 'circle', type: 'fade', start: 300, duration: 500, easing: 'easeInOut', order: 'together', path: null, keyframes: {} });
   });
 
   test('uses the last value for a field, without imposing intermediate timing', () => {

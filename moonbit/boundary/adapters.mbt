@@ -93,6 +93,46 @@ fn decode_Effect(value : @core.Any) -> @scene.Effect {
 }
 
 ///|
+fn decode_CurveProperty(value : @core.Any) -> @scene.CurveProperty {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected CurveProperty string")
+    panic()
+  }
+  match @scene.curve_property(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid CurveProperty")
+      panic()
+    }
+  }
+}
+
+///|
+fn decode_CurveValue(value : @core.Any) -> @scene.CurveValue {
+  if @core.typeof_(value) == "number" {
+    @scene.CurveNumber(value.cast())
+  } else if @core.typeof_(value) == "string" {
+    @scene.CurveColor(value.cast())
+  } else {
+    @core.throw_error("Invalid curve value")
+    panic()
+  }
+}
+
+///|
+fn encode_CurveValue(value : @scene.CurveValue) -> @core.Any {
+  match value {
+    CurveNumber(value) => @core.any(value)
+    CurveColor(value) => @core.any(value)
+  }
+}
+
+///|
+fn encode_CurveProperty(value : @scene.CurveProperty) -> @core.Any {
+  @core.any(@scene.curve_property_name(value))
+}
+
+///|
 fn decode_Point(value : @core.Any) -> @scene.Point {
   { x: value._get("x").cast(), y: value._get("y").cast(), }
 }
@@ -110,6 +150,11 @@ fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     width: value._get("width").cast(),
     height: value._get("height").cast(),
     rotation: value._get("rotation").cast(),
+    anchorX: optional(value._get("anchorX"), fn(v) { v.cast() }),
+    anchorY: optional(value._get("anchorY"), fn(v) { v.cast() }),
+    scaleX: optional(value._get("scaleX"), fn(v) { v.cast() }),
+    scaleY: optional(value._get("scaleY"), fn(v) { v.cast() }),
+    shear: optional(value._get("shear"), fn(v) { v.cast() }),
     opacity: value._get("opacity").cast(),
     visible: value._get("visible").cast(),
     fill: value._get("fill").cast(),
@@ -164,6 +209,7 @@ fn decode_SceneObject(value : @core.Any) -> @scene.SceneObject {
     kind: decode_ObjectKind(value._get("kind")),
     order: value._get("order").cast(),
     groupId: optional(value._get("groupId"), fn(v) { v.cast() }),
+    parentId: optional(value._get("parentId"), fn(v) { v.cast() }),
     locked: value._get("locked").cast(),
     image: optional(value._get("image"), fn(v) { decode_ImageAsset(v) }),
     media: optional(value._get("media"), fn(v) { decode_MediaAsset(v) }),
@@ -192,6 +238,29 @@ fn decode_Timing(value : @core.Any) -> @scene.Timing {
     start: value._get("start").cast(),
     duration: value._get("duration").cast(),
     easing: decode_Easing(value._get("easing")),
+  }
+}
+
+///|
+fn decode_Keyframe(value : @core.Any) -> @scene.Keyframe {
+  {
+    property: decode_CurveProperty(value._get("property")),
+    at: value._get("at").cast(),
+    value: decode_CurveValue(value._get("value")),
+    easing: decode_Easing(value._get("easing")),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+fn decode_Affine(value : @core.Any) -> @scene.Affine {
+  {
+    a: value._get("a").cast(),
+    b: value._get("b").cast(),
+    c: value._get("c").cast(),
+    d: value._get("d").cast(),
+    e: value._get("e").cast(),
+    f: value._get("f").cast(),
   }
 }
 
@@ -232,6 +301,9 @@ fn decode_Track(value : @core.Any) -> @scene.Track {
     pathTiming: optional(value._get("pathTiming"), fn(v) { decode_Timing(v) }),
     revealTiming: optional(value._get("revealTiming"), fn(v) {
       decode_Timing(v)
+    }),
+    keyframes: optional(value._get("keyframes"), fn(v) {
+      decode_map(v, fn(v) { decode_Keyframe(v) })
     }),
   }
 }
@@ -311,6 +383,11 @@ extern "js" fn make_ObjectState(
   width : Double,
   height : Double,
   rotation : Double,
+  anchorX : @core.Any,
+  anchorY : @core.Any,
+  scaleX : @core.Any,
+  scaleY : @core.Any,
+  shear : @core.Any,
   opacity : Double,
   visible : Bool,
   fill : String,
@@ -322,7 +399,7 @@ extern "js" fn make_ObjectState(
   effect : String,
   path : @core.Any,
 ) -> @core.Any =
-  #|(x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => ({x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path})
+  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; return value; }
 
 ///|
 fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
@@ -332,6 +409,26 @@ fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     value.width,
     value.height,
     value.rotation,
+    match value.anchorX {
+      Some(item) => @core.any(item)
+      None => @core.undefined()
+    },
+    match value.anchorY {
+      Some(item) => @core.any(item)
+      None => @core.undefined()
+    },
+    match value.scaleX {
+      Some(item) => @core.any(item)
+      None => @core.undefined()
+    },
+    match value.scaleY {
+      Some(item) => @core.any(item)
+      None => @core.undefined()
+    },
+    match value.shear {
+      Some(item) => @core.any(item)
+      None => @core.undefined()
+    },
     value.opacity,
     value.visible,
     value.fill,
@@ -437,6 +534,13 @@ fn encode_Track(value : @scene.Track) -> @core.Any {
   if value.revealTiming is Some(item) {
     put_own(result, "revealTiming", encode_Timing(item))
   }
+  if value.keyframes is Some(item) {
+    put_own(
+      result,
+      "keyframes",
+      encode_map(item, fn(item) { encode_Keyframe(item) }),
+    )
+  }
   result
 }
 
@@ -510,6 +614,9 @@ fn encode_SceneObject(value : @scene.SceneObject) -> @core.Any {
   } else {
     put_own(result, "groupId", @core.null())
   }
+  if value.parentId is Some(item) {
+    put_own(result, "parentId", @core.any(item))
+  }
   put_own(result, "locked", @core.any(value.locked))
   if value.image is Some(item) {
     put_own(result, "image", encode_ImageAsset(item))
@@ -541,6 +648,31 @@ fn encode_Composition(value : @scene.Composition) -> @core.Any {
   if value.incomingTransitionId is Some(item) {
     put_own(result, "incomingTransitionId", @core.any(item))
   }
+  result
+}
+
+///|
+fn encode_Keyframe(value : @scene.Keyframe) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "property", encode_CurveProperty(value.property))
+  put_own(result, "at", @core.any(value.at))
+  put_own(result, "value", encode_CurveValue(value.value))
+  put_own(result, "easing", encode_Easing(value.easing))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+fn encode_Affine(value : @scene.Affine) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "a", @core.any(value.a))
+  put_own(result, "b", @core.any(value.b))
+  put_own(result, "c", @core.any(value.c))
+  put_own(result, "d", @core.any(value.d))
+  put_own(result, "e", @core.any(value.e))
+  put_own(result, "f", @core.any(value.f))
   result
 }
 

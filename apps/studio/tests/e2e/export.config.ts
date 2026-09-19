@@ -16,17 +16,17 @@ export default defineConfig({
     browserName: 'chromium',
     headless: true,
     viewport: { width: 1440, height: 1100 },
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: process.env.POIETRA_TEST_URL || 'http://127.0.0.1:5174',
     acceptDownloads: true,
     trace: 'retain-on-failure',
     launchOptions: {
       executablePath: process.env.CHROME_PATH ?? (existsSync(windowsChrome) ? windowsChrome : undefined),
     },
   },
-  webServer: {
+  webServer: process.env.POIETRA_TEST_URL ? undefined : {
     command: process.env.EXPORT_PREVIEW
-      ? 'corepack pnpm exec vite preview --outDir test-results/export-build --host 127.0.0.1 --port 5174 --strictPort'
-      : 'corepack pnpm exec vite --host 127.0.0.1 --port 5174 --strictPort',
+      ? 'pnpm exec vite preview --outDir test-results/export-build --host 127.0.0.1 --port 5174 --strictPort'
+      : 'pnpm exec vite --host 127.0.0.1 --port 5174 --strictPort',
     cwd: '../..',
     url: 'http://127.0.0.1:5174/tests/e2e/fixtures/export.html',
     reuseExistingServer: !process.env.CI && !process.env.EXPORT_PREVIEW,

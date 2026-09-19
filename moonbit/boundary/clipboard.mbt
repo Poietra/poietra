@@ -34,13 +34,21 @@ pub fn copy_objects(
     Array::makei(ids.length(), fn(i) { ids[i] }),
   )
   let copied = Map([])
+  let metadata = []
   for id in chosen {
-    copied[id] = decode_ObjectState(states._get(id))
+    let state = decode_ObjectState(states._get(id))
+    let object = decode_SceneObject(objects._get(id))
+    let retained = object.parentId
+      .map(fn(parent) { chosen.contains(parent) })
+      .unwrap_or(true)
+    copied[id] = if retained {
+      state
+    } else {
+      state.with_matrix(object_matrix(scene, composition_id, id))
+    }
+    metadata.push(if retained { object } else { { ..object, parentId: None, } })
   }
-  write_clipboard({
-    objects: chosen.map(fn(id) { decode_SceneObject(objects._get(id)) }),
-    states: copied,
-  })
+  write_clipboard({ objects: metadata, states: copied, })
 }
 
 ///|
@@ -73,7 +81,12 @@ pub fn serialize_objects(value : @core.Any) -> String {
     deleted: None,
   }
   let project : @scene.Project = {
-    version: 1,
+    version: if clipboard.objects.any(fn(o) { o.parentId is Some(_) }) ||
+      clipboard.states.values().any(fn(s) { s.has_transform() }) {
+      2
+    } else {
+      1
+    },
     name: "Clipboard",
     sceneOrder: ["clipboard"],
     scenes: { "clipboard": scene },

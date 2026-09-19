@@ -248,6 +248,20 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
       ]),
     )
   }
+  content.push(
+    component(
+      keyframe_inspector,
+      {
+        "key": @core.any(scene_id + "/" + transition_id + "/" + object_id),
+        "object": object,
+        "transition": transition,
+        "track": input._get("track"),
+        "channel": @core.any(channel_name),
+        "disabled": @core.any(disabled),
+      },
+      [],
+    ),
+  )
   if !error.is_empty() {
     content.push(
       h(

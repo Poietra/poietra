@@ -97,13 +97,13 @@ fn Compiler::prepare(
           order,
           locked: false,
           groupId: None,
+          parentId: None,
           image: creation.image,
           media: None,
           playback: None,
         }
         order += 1.0
         self.created[id] = {
-          object,
           state: creation.state,
           composition,
           declared: false,

@@ -241,6 +241,20 @@ pub fn validate_animation_timing(timing : @core.Any, limit : Double) -> Unit {
 
 ///|
 pub fn validate_animation_track(track : @core.Any, duration : Double) -> Unit {
+  let keys = track._get("keyframes")
+  if !@core.is_nullish(keys) {
+    if @core.typeof_(keys) != "object" ||
+      @core.is_array(keys) ||
+      @core.object_keys(keys).length() > 1024 {
+      @core.throw_error("キーフレームが無効です。")
+    }
+    for id in @core.object_keys(keys) {
+      if !valid_document_id(id) {
+        @core.throw_error("キーフレーム ID が無効です。")
+      }
+      validate_keyframe(keys._get(id))
+    }
+  }
   // Keep validation at the untrusted representation boundary: unknown easing
   // names must not enter the typed evaluator as a silent default.
   let resolved = if truthy(track._get("implicit")) {

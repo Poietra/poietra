@@ -155,3 +155,120 @@ pub impl @json.FromJson for Effect with fn from_json(value, path) {
     None => raise @json.JsonDecodeError((path, "Unknown effect kind"))
   }
 }
+
+///|
+pub(all) enum CurveProperty {
+  PositionX
+  PositionY
+  ObjectWidth
+  ObjectHeight
+  ObjectRotation
+  ObjectOpacity
+  ObjectFill
+  ObjectStroke
+  ObjectStrokeWidth
+  ObjectFontSize
+  ObjectCornerRadius
+  Control1X
+  Control1Y
+  Control2X
+  Control2Y
+  ObjectReveal
+  ObjectAnchorX
+  ObjectAnchorY
+  ObjectScaleX
+  ObjectScaleY
+  ObjectShear
+} derive(Eq)
+
+///|
+pub fn curve_property(value : String) -> CurveProperty? {
+  match value {
+    "x" => Some(PositionX)
+    "y" => Some(PositionY)
+    "width" => Some(ObjectWidth)
+    "height" => Some(ObjectHeight)
+    "rotation" => Some(ObjectRotation)
+    "opacity" => Some(ObjectOpacity)
+    "fill" => Some(ObjectFill)
+    "stroke" => Some(ObjectStroke)
+    "strokeWidth" => Some(ObjectStrokeWidth)
+    "fontSize" => Some(ObjectFontSize)
+    "cornerRadius" => Some(ObjectCornerRadius)
+    "c1x" => Some(Control1X)
+    "c1y" => Some(Control1Y)
+    "c2x" => Some(Control2X)
+    "c2y" => Some(Control2Y)
+    "reveal" => Some(ObjectReveal)
+    "anchorX" => Some(ObjectAnchorX)
+    "anchorY" => Some(ObjectAnchorY)
+    "scaleX" => Some(ObjectScaleX)
+    "scaleY" => Some(ObjectScaleY)
+    "shear" => Some(ObjectShear)
+    _ => None
+  }
+}
+
+///|
+pub fn curve_property_name(value : CurveProperty) -> String {
+  match value {
+    PositionX => "x"
+    PositionY => "y"
+    ObjectWidth => "width"
+    ObjectHeight => "height"
+    ObjectRotation => "rotation"
+    ObjectOpacity => "opacity"
+    ObjectFill => "fill"
+    ObjectStroke => "stroke"
+    ObjectStrokeWidth => "strokeWidth"
+    ObjectFontSize => "fontSize"
+    ObjectCornerRadius => "cornerRadius"
+    Control1X => "c1x"
+    Control1Y => "c1y"
+    Control2X => "c2x"
+    Control2Y => "c2y"
+    ObjectReveal => "reveal"
+    ObjectAnchorX => "anchorX"
+    ObjectAnchorY => "anchorY"
+    ObjectScaleX => "scaleX"
+    ObjectScaleY => "scaleY"
+    ObjectShear => "shear"
+  }
+}
+
+///|
+pub impl @json.FromJson for CurveProperty with fn from_json(json, path) {
+  if json is String(name) && curve_property(name) is Some(property) {
+    property
+  } else {
+    raise @json.JsonDecodeError((path, "Invalid curve property"))
+  }
+}
+
+///|
+pub impl ToJson for CurveProperty with fn to_json(self) {
+  curve_property_name(self).to_json()
+}
+
+///|
+pub(all) enum CurveValue {
+  CurveNumber(Double)
+  CurveColor(String)
+} derive(Eq)
+
+///|
+pub impl @json.FromJson for CurveValue with fn from_json(json, path) {
+  match json {
+    Number(value, ..) => CurveNumber(value)
+    String(value) => CurveColor(value)
+    _ => raise @json.JsonDecodeError((path, "Invalid curve value"))
+  }
+}
+
+///|
+pub impl ToJson for CurveValue with fn to_json(self) {
+  match self {
+    CurveNumber(value) => value.to_json()
+    CurveColor(value) => value.to_json()
+  }
+}

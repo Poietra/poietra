@@ -402,6 +402,15 @@ fn composition_inspector(
       ]),
     )
   }
+  if truthy(object) && truthy(state) {
+    content.push(
+      component(
+        transform_inspector,
+        { "key": object._get("id"), "object": object, "state": state },
+        [],
+      ),
+    )
+  }
   let alignment : Array[&@react.ReactNode] = []
   for
     (image, axis, position, label) in [

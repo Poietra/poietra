@@ -1,3 +1,4 @@
+import type { Keyframe } from "./scene-types";
 import type { z } from 'zod';
 import { type Change } from './document';
 import type { ObjectKind, Project } from './model';
@@ -52,6 +53,22 @@ export type ProposalOperation = {
     property: 'type' | 'start' | 'duration' | 'easing' | 'order';
     value: number | string | CubicBezierEasing;
 } | {
+    action: 'setParent';
+    objectId: string;
+    parentId: string | null;
+} | {
+    action: 'setAnchor';
+    objectId: string;
+    compositionId: string;
+    x: number;
+    y: number;
+} | {
+    action: 'setKeyframe';
+    transitionId: string;
+    objectId: string;
+    keyframeId: string;
+    keyframe: Keyframe | null;
+} | {
     action: 'setPropertyTiming';
     transitionId: string;
     objectId: string;
@@ -90,7 +107,7 @@ export type ProposalOperation = {
     duration: number;
     transitionDuration: number;
 } | GenerateImageOperation;
-declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect'];
+declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear'];
 export declare const GENERATED_IMAGE_SIZES: {
     readonly square: {
         readonly width: 1024;

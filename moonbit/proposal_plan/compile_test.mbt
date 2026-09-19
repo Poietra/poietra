@@ -11,6 +11,7 @@ test "the pure plan reads only the edited state and leaves the source unchanged"
         order: 0.0,
         locked: false,
         groupId: None,
+        parentId: None,
         image: None,
         media: None,
         playback: None,

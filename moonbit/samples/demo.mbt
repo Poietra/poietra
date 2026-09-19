@@ -12,6 +12,7 @@ fn sample_object(
     kind,
     order: order.to_double(),
     groupId: group,
+    parentId: None,
     locked: false,
     image: None,
     media: None,

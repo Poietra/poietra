@@ -23,6 +23,16 @@ files or flatten AI edits into an uneditable generated video.
 - Scene owns object identities. Composition owns each object's independent state
   and its hold duration. Transition owns the animation between neighboring states.
   Editing one Composition must not modify another's state.
+- 2026-09-20: Parent identity is shared by the Scene; transform values belong to
+  each Composition. Parenting inherits transforms only, with independent
+  visibility/opacity and flat paint order. Preserve every Composition pose on
+  reparent/detach, including retained states, and keep grouping separate.
+  Matrix composition precedes rendering, selection, pointer projection and export.
+- 2026-09-20: Intermediate keys contain actual field values and normalized time
+  inside the property's interval; endpoints follow adjacent Compositions. The
+  outgoing segment uses the point's easing; the first uses property timing.
+  Cut retains but disables intermediate points. Preview, inspector graphs, AI
+  and export use the same typed evaluator and pose-preserving editor plans.
 - Object-level timing is the fallback for optional per-property timing. Preserve
   old projects' motion when adding timing features. Custom easing is a cubic
   Bézier with control coordinates in `0..1`; spatial Bézier paths are separate.

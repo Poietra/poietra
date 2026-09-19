@@ -145,13 +145,70 @@ fn StageController::hit(
     }
     let kind = @boundary.read_object_kind(object._get("kind"))
     if (kind is Text || kind is Equation || kind is Image || kind is Video) &&
-      @geometry.point_in_bounds(
+      @geometry.point_in_matrix_bounds(
         at,
         stage_bounds(self.renderer._call("objectBounds", [item])),
-        stage_placement(state),
+        { x: state._get("x").cast(), y: state._get("y").cast(), },
+        stage_item_matrix(item),
       ) {
       return Some(id)
     }
   }
   None
+}
+
+///|
+fn stage_item_matrix(item : @core.Any) -> @scene.Affine {
+  if truthy(item._get("world")) {
+    @boundary.read_affine(item._get("world"))
+  } else {
+    @boundary.read_object_state(item._get("state")).local_matrix()
+  }
+}
+
+///|
+fn stage_matrix_string(matrix : @scene.Affine) -> @core.Any {
+  @core.any(
+    "matrix(\{matrix.a} \{matrix.b} \{matrix.c} \{matrix.d} \{matrix.e} \{matrix.f})",
+  )
+}
+
+///|
+fn stage_box_transform(item : @core.Any) -> @core.Any {
+  let state = item._get("state")
+  let matrix = stage_item_matrix(item)
+  let offset = matrix.vector({
+    x: state._get("x").cast(),
+    y: state._get("y").cast(),
+  })
+  stage_matrix_string({
+    ..matrix,
+    e: matrix.e - offset.x,
+    f: matrix.f - offset.y,
+  })
+}
+
+///|
+fn StageController::frame_item(
+  self : StageController,
+  id : String,
+) -> @core.Any? {
+  let items : FixedArray[@core.Any] = self.frame._get("objects").cast()
+  items
+  .iter()
+  .find_first(fn(item) { string_value(item._get("object")._get("id")) == id })
+}
+
+///|
+fn StageController::path_parent(
+  self : StageController,
+  id : String,
+) -> @scene.Affine {
+  if self.frame_item(id) is Some(item) {
+    let state = @boundary.read_object_state(item._get("state"))
+    if state.local_matrix().inverse() is Some(inverse) {
+      return stage_item_matrix(item).compose(inverse)
+    }
+  }
+  @boundary.parent_matrix(self.scene, self.composition_id, id)
 }

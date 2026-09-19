@@ -38,7 +38,7 @@ async function field(page: Page, name: string, value: number) {
 }
 const undo = (page: Page) => page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
 const redo = (page: Page) => page.getByRole('button', { name: 'やり直す (⌘⇧Z)', exact: true }).click();
-const retainedNotice = '共同編集者が変更した 1 個の新規アニメーションを保持しました。';
+const retainedNotice = '共同編集者が変更した 1 個のアニメーションと、その中間点を保持しました。';
 
 test('a group-created track survives peer offline edits and creator Undo while other batch fields Undo normally', async ({ browser }) => {
   const room = crypto.randomUUID(), alice = await editor(browser, room), bob = await editor(browser, room);

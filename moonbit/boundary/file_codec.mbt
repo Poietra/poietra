@@ -19,6 +19,8 @@ priv enum FileField {
   Playback
   Audio
   SceneObject
+  Keyframe
+  CurveValue
 }
 
 ///|
@@ -156,6 +158,19 @@ fn parse_file_field(
       }
       parsed
     }
+    CurveValue =>
+      if @core.typeof_(value) == "number" {
+        parse_file_field(value, file_number)
+      } else {
+        parse_file_field(value, Color)
+      }
+    Keyframe => {
+      let parsed = parse_file_field(value, keyframe_file_field)
+      if !@scene.valid_keyframe(decode_Keyframe(parsed)) {
+        raise InvalidFileField
+      }
+      parsed
+    }
     SceneObject => {
       let parsed = parse_file_field(value, object_file_field)
       let object = decode_SceneObject(parsed)
@@ -235,6 +250,7 @@ let object_file_field : FileField = Record({
   ]),
   "order": file_number,
   "groupId": Nullable(Identifier),
+  "parentId": Optional(Nullable(Identifier)),
   "locked": Boolean,
   "image": Optional(Image),
   "media": Optional(Media),
@@ -254,6 +270,11 @@ let state_file_field : FileField = Record({
   "width": file_number,
   "height": file_number,
   "rotation": file_number,
+  "anchorX": Optional(file_number),
+  "anchorY": Optional(file_number),
+  "scaleX": Optional(file_number),
+  "scaleY": Optional(file_number),
+  "shear": Optional(file_number),
   "opacity": Numeric(0.0, 1.0, false),
   "visible": Boolean,
   "fill": Color,
@@ -274,9 +295,27 @@ let timing_file_field : FileField = Record({
 })
 
 ///|
+let keyframe_file_field : FileField = Record({
+  "property": Strings(
+    {
+      let names = []
+      for c in @scene.property_channels() {
+        names.append(@scene.curve_properties(c).map(@scene.curve_property_name))
+      }
+      names
+    },
+  ),
+  "at": Numeric(0.0, 1.0, false),
+  "value": CurveValue,
+  "easing": Easing,
+  "deleted": Optional(Boolean),
+})
+
+///|
 fn track_file_fields() -> FileField {
   let fields = {
     "implicit": Optional(Boolean),
+    "keyframes": Optional(Dictionary(Keyframe)),
     "objectId": Identifier,
     "type": Strings(["move", "write", "fade", "grow", "none"]),
     "start": file_duration,
@@ -297,7 +336,7 @@ fn track_file_fields() -> FileField {
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 1.0, true),
+  "version": Numeric(1.0, 2.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(
@@ -331,3 +370,28 @@ let project_file_field : FileField = Record({
     }),
   ),
 })
+
+///|
+pub fn read_keyframe(value : @core.Any) -> @scene.Keyframe {
+  decode_Keyframe(value)
+}
+
+///|
+pub fn write_keyframe(value : @scene.Keyframe) -> @core.Any {
+  encode_Keyframe(value)
+}
+
+///|
+pub fn validate_keyframe(value : @core.Any) -> Unit {
+  (parse_file_field(value, Keyframe) |> ignore) catch {
+    _ =>
+      @core.throw_error(
+        "キーフレームの時刻・値・イージングが無効です。時刻は区間の 0〜100% の間に指定してください。",
+      )
+  }
+}
+
+///|
+pub fn valid_document_id(value : String) -> Bool {
+  @assets.document_id(value)
+}

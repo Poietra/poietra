@@ -15,6 +15,11 @@ pub fn state_field(value : String) -> StateField? {
     "fontSize" => Some(FontSize)
     "cornerRadius" => Some(CornerRadius)
     "effect" => Some(Effect)
+    "anchorX" => Some(AnchorX)
+    "anchorY" => Some(AnchorY)
+    "scaleX" => Some(ScaleX)
+    "scaleY" => Some(ScaleY)
+    "shear" => Some(Shear)
     _ => None
   }
 }
@@ -36,6 +41,11 @@ pub fn field_name(value : StateField) -> String {
     FontSize => "fontSize"
     CornerRadius => "cornerRadius"
     Effect => "effect"
+    AnchorX => "anchorX"
+    AnchorY => "anchorY"
+    ScaleX => "scaleX"
+    ScaleY => "scaleY"
+    Shear => "shear"
   }
 }
 
@@ -68,7 +78,12 @@ pub fn validate_state(
       | Opacity
       | StrokeWidth
       | FontSize
-      | CornerRadius,
+      | CornerRadius
+      | AnchorX
+      | AnchorY
+      | ScaleX
+      | ScaleY
+      | Shear,
       Number(number),
     ) if @assets.bounded_number(number, -10000.0, 10000.0) => {
       let endpoint = kind == Some(Path) ||
@@ -107,6 +122,11 @@ fn change_state(
 ) -> @scene.ObjectState raise CompileError {
   validate_state(field, value, Some(kind))
   match (field, value) {
+    (AnchorX, Number(value)) => { ..state, anchorX: Some(value), }
+    (AnchorY, Number(value)) => { ..state, anchorY: Some(value), }
+    (ScaleX, Number(value)) => { ..state, scaleX: Some(value), }
+    (ScaleY, Number(value)) => { ..state, scaleY: Some(value), }
+    (Shear, Number(value)) => { ..state, shear: Some(value), }
     (X, Number(x)) => { ..state, x, }
     (Y, Number(y)) => { ..state, y, }
     (Width, Number(width)) => { ..state, width, }

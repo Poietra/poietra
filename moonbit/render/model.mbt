@@ -9,6 +9,7 @@ pub(all) struct Drawable {
   id : String
   kind : @scene.ObjectKind
   state : @scene.ObjectState
+  world : @scene.Affine?
   progress : Double
   order : WriteOrder
   image : String?

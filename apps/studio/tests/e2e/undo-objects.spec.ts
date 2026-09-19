@@ -37,7 +37,7 @@ async function observer(page: Page, room: string) {
 const layer = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
 const undo = (page: Page) => layer(page, '元に戻す (⌘Z)').click();
 const redo = (page: Page) => layer(page, 'やり直す (⌘⇧Z)').click();
-const retainedNotice = '共同編集者が変更した 1 個の新規オブジェクトと、その状態・アニメーションを保持しました。';
+const retainedNotice = '共同編集者が使っている 1 個のオブジェクトと、その親子関係・状態・動きを保持しました。';
 async function number(page: Page, label: string, value: number) {
   const field = page.getByRole('spinbutton', { name: label, exact: true }); await field.fill(String(value)); await field.press('Tab');
 }

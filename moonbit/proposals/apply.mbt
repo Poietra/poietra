@@ -71,7 +71,19 @@ fn check_projected_timing(
       }
       // Only a touched track is copied. All untouched timing values remain
       // shared read-only inputs while coupled constraints are checked together.
-      track._set(path[6], change.value)
+      let mut target = track
+      for index = 6; index < path.length() - 1; index = index + 1 {
+        let previous = target._get(path[index])
+        if @core.is_nullish(previous) || @core.typeof_(previous) != "object" {
+          return fail(
+            "編集対象のキーフレームが見つかりません。",
+          )
+        }
+        let child = copy_record(previous)
+        target._set(path[index], child)
+        target = child
+      }
+      target._set(path[path.length() - 1], change.value)
       entry.tracks[path[5]] = track
     }
   }
@@ -128,6 +140,11 @@ pub fn apply_proposal(
   let appends = validated.appends.map(fn(append) {
     (append.order, FixedArray::from_array(append.ids[:]))
   })
+  if validated.changes.any(fn(change) {
+      @boundary.change_requires_v2(change.path, change.value)
+    }) {
+    @boundary.upgrade_document_format(doc)
+  }
   doc._call("transact", [
     @core.any(fn() {
       for write in writes {

@@ -44,13 +44,15 @@ jobs:
       - name: Check generated public bindings
         run: git diff --exit-code -- apps/studio/src apps/studio/shared apps/studio/server apps/studio/worker
       - run: node scripts/moon.mjs test --target js
-      - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor
+      - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene
       - run: pnpm build
       - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
       - name: Install video verification tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Check collaborative editing, custom easing and actual video output
-        run: pnpm --dir apps/studio exec playwright test tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/keyboard.spec.ts tests/e2e/images.spec.ts tests/e2e/connection.spec.ts tests/e2e/painter-preview.spec.ts tests/e2e/export-dialog.spec.ts tests/e2e/text-editing.spec.ts tests/e2e/ime.spec.ts tests/e2e/layers.spec.ts tests/e2e/dogfood-property-timing.spec.ts tests/e2e/dogfood-media.spec.ts tests/e2e/dogfood-feedback.spec.ts tests/e2e/timeline.spec.ts tests/e2e/playback.spec.ts tests/e2e/chat.spec.ts tests/e2e/ai.spec.ts tests/e2e/ai-create.spec.ts tests/e2e/ai-compositions.spec.ts tests/e2e/ai-paths.spec.ts tests/e2e/ai-dogfood.spec.ts tests/e2e/dogfood-accounts.spec.ts tests/e2e/projects.spec.ts tests/e2e/dogfood-site-lifecycle.spec.ts
+        run: pnpm --dir apps/studio exec playwright test tests/e2e/primitives.spec.ts tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/keyboard.spec.ts tests/e2e/images.spec.ts tests/e2e/connection.spec.ts tests/e2e/painter-preview.spec.ts tests/e2e/export-dialog.spec.ts tests/e2e/text-editing.spec.ts tests/e2e/ime.spec.ts tests/e2e/layers.spec.ts tests/e2e/dogfood-property-timing.spec.ts tests/e2e/dogfood-media.spec.ts tests/e2e/dogfood-feedback.spec.ts tests/e2e/timeline.spec.ts tests/e2e/playback.spec.ts tests/e2e/chat.spec.ts tests/e2e/ai.spec.ts tests/e2e/ai-create.spec.ts tests/e2e/ai-compositions.spec.ts tests/e2e/ai-paths.spec.ts tests/e2e/ai-dogfood.spec.ts tests/e2e/dogfood-accounts.spec.ts tests/e2e/projects.spec.ts tests/e2e/dogfood-site-lifecycle.spec.ts
+      - name: Check MP4/WebM rendering of hierarchy and value curves
+        run: pnpm --dir apps/studio exec playwright test --config tests/e2e/export.config.ts
       - name: Check media decoding, stereo mixing and actual browser audio playback
         run: pnpm --dir apps/studio exec playwright test --config tests/e2e/media-export.config.ts
       - name: Check prerendered pages, hydration and project creation in production

@@ -3,7 +3,7 @@ import { LOCAL_ORIGIN } from "./document.js";
 import * as Y from "yjs";
 // Runtime schemas are constructed by MoonBit with mizchi's typed Zod bindings.
 import * as schemas from "../../../_build/js/release/build/schemas/schemas.js";
-const stateProperties = ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect'];
+const stateProperties = ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear'];
 export const GENERATED_IMAGE_SIZES = { square: { width: 1024, height: 1024 }, landscape: { width: 1536, height: 1024 }, portrait: { width: 1024, height: 1536 } };
 export const MAX_GENERATED_IMAGES = 2;
 export const EditProposalSchema = /* @__PURE__ */ schemas.editProposalSchema();

@@ -75,6 +75,13 @@ pub fn valid_project_references(project : @scene.Project) -> Bool {
 
 ///|
 fn valid_file_track(track : @scene.Track, limit : Double) -> Bool {
+  if track.keyframes is Some(keys) &&
+    (
+      keys.length() > 1024 ||
+      keys.values().any(fn(k) { !@scene.valid_keyframe(k) })
+    ) {
+    return false
+  }
   let start = if track.implicit == Some(true) { 0.0 } else { track.start }
   let duration = if track.implicit == Some(true) {
     limit

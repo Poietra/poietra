@@ -8,6 +8,51 @@ fn Compiler::edit_track(
   let tid = self.resolve(reference, TransitionRef)
   let oid = self.resolve(object_reference, ObjectRef)
   let (entry, transition) = self.editable_track(tid, oid)
+  if edit is KeyframeEdit(id, next) {
+    if !@assets.document_id(id) {
+      raise CompileError("キーフレーム ID が無効です。")
+    }
+    if entry.existing && entry.value.keyframes is None {
+      raise CompileError(
+        "キーフレームの初期同期が完了していません。",
+      )
+    }
+    let keys = entry.value.keyframes
+      .map(fn(keys) { keys.copy() })
+      .unwrap_or(Map([]))
+    match next {
+      Some(key) => {
+        if !@scene.valid_keyframe(key) {
+          raise CompileError(
+            "キーフレームの時刻・値・イージングが無効です。",
+          )
+        }
+        if !keys.contains(id) && keys.length() >= 1024 {
+          raise CompileError(
+            "キーフレームが 1024 個を超えています。",
+          )
+        }
+        keys[id] = key
+      }
+      None =>
+        if keys.get(id) is Some(key) {
+          keys[id] = { ..key, deleted: Some(true), }
+        } else {
+          return
+        }
+    }
+    entry.value = { ..entry.value, keyframes: Some(keys), }
+    if entry.existing &&
+      (self.source.track)(tid, oid)
+      .bind(fn(t) { t.keyframes })
+      .bind(fn(keys) { keys.get(id) })
+      is Some(_) {
+      self.depend(entry.path + ["keyframes", id, "property"])
+      self.depend(entry.path + ["keyframes", id, "deleted"])
+    }
+    entry.keyframe_ids.add(id)
+    return
+  }
   if edit is PropertyTiming(channel, timing) {
     if !entry.existing &&
       !self.created.contains(oid) &&
@@ -89,7 +134,7 @@ fn Compiler::edit_track(
       }
       ("path", PathValue(path), { ..entry.value, path, })
     }
-    PropertyTiming(_, _) =>
+    PropertyTiming(_, _) | KeyframeEdit(_, _) =>
       abort("Timing is handled before base-track promotion")
   }
   entry.value = track
@@ -100,6 +145,13 @@ fn Compiler::edit_track(
 
 ///|
 fn check_track(track : @scene.Track, limit : Double) -> Unit raise CompileError {
+  if track.keyframes is Some(keys) &&
+    (
+      keys.length() > 1024 ||
+      keys.values().any(fn(key) { !@scene.valid_keyframe(key) })
+    ) {
+    raise CompileError("キーフレームが無効です。")
+  }
   let resolved = @scene.resolve_track(Some(track), track.objectId, limit)
   let timings = [
     Some(@scene.Timing::{

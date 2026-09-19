@@ -57,11 +57,38 @@ fn draw_layer(
 ) -> Unit {
   let bounds = layer._get("sceneBounds")
   saved_canvas(context, fn() {
-    context.translate(
-      @render.finite(item.state.x),
-      @render.finite(item.state.y),
-    )
-    context.rotate(@render.finite(item.state.rotation) * @math.PI / 180.0)
+    if item.world is Some(matrix) {
+      context
+      .as_any()
+      ._call("transform", [
+        @core.any(matrix.a),
+        @core.any(matrix.b),
+        @core.any(matrix.c),
+        @core.any(matrix.d),
+        @core.any(matrix.e),
+        @core.any(matrix.f),
+      ])
+      |> ignore
+    } else if item.state.has_transform() {
+      let matrix = item.state.local_matrix()
+      context
+      .as_any()
+      ._call("transform", [
+        @core.any(matrix.a),
+        @core.any(matrix.b),
+        @core.any(matrix.c),
+        @core.any(matrix.d),
+        @core.any(matrix.e),
+        @core.any(matrix.f),
+      ])
+      |> ignore
+    } else {
+      context.translate(
+        @render.finite(item.state.x),
+        @render.finite(item.state.y),
+      )
+      context.rotate(@render.finite(item.state.rotation) * @math.PI / 180.0)
+    }
     context.globalAlpha = @render.unit(item.state.opacity)
     context.drawImageScaled(
       layer._get("canvas"),

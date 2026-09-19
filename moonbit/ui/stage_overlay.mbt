@@ -23,7 +23,6 @@ fn stage_selection(
   item : @core.Any,
 ) -> @react.Element {
   let object = item._get("object")
-  let state = item._get("state")
   let id : String = object._get("id").cast()
   let b = stage_bounds(controller.renderer._call("objectBounds", [item]))
   let scale = controller.scale
@@ -178,7 +177,7 @@ fn stage_selection(
       } else {
         @core.undefined()
       },
-      "transform": stage_rotation(state),
+      "transform": stage_box_transform(item),
     },
     content,
   )

@@ -44,15 +44,47 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "objectId": @zod.string(),
       "property": @zod.enum_([
         "x", "y", "width", "height", "rotation", "opacity", "visible", "fill", "stroke",
-        "strokeWidth", "text", "fontSize", "cornerRadius", "effect",
+        "strokeWidth", "text", "fontSize", "cornerRadius", "effect", "anchorX", "anchorY",
+        "scaleX", "scaleY", "shear",
       ]),
       "value": @zod.union([@zod.number(), @zod.string(), @zod.boolean()]),
+    }),
+    operation("setParent", {
+      "objectId": @zod.string(),
+      "parentId": @zod.string().nullable(),
+    }),
+    operation("setAnchor", {
+      "objectId": @zod.string(),
+      "compositionId": @zod.string(),
+      "x": coordinate,
+      "y": coordinate,
     }),
     operation("setTrack", {
       "transitionId": @zod.string(),
       "objectId": @zod.string(),
       "property": @zod.enum_(["type", "start", "duration", "easing", "order"]),
       "value": @zod.union([@zod.number(), @zod.string(), cubic_easing()]),
+    }),
+    operation("setKeyframe", {
+      "transitionId": @zod.string(),
+      "objectId": @zod.string(),
+      "keyframeId": @zod.string().regex("^[a-zA-Z0-9_-]{1,80}$"),
+      "keyframe": @zod.object({
+        "property": @zod.enum_(
+          {
+            let names = []
+            for channel in @scene.property_channels() {
+              names.append(
+                @scene.curve_properties(channel).map(@scene.curve_property_name),
+              )
+            }
+            names
+          },
+        ),
+        "at": @zod.number().finite().min(0).max(1),
+        "value": @zod.union([@zod.number().finite(), @zod.string()]),
+        "easing": easing(),
+      }).nullable(),
     }),
     operation("setPropertyTiming", {
       "transitionId": @zod.string(),

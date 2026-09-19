@@ -41,7 +41,7 @@ describe('AI Bézier path editing', () => {
     const operations: Operation[] = [motion(), { action: 'setTrack', transitionId: 'transition-1', objectId: 'circle', property: 'start', value: 250 }, { action: 'setTrack', transitionId: 'transition-1', objectId: 'circle', property: 'duration', value: 550 }];
     const proposal = edit(doc, reverse ? operations.reverse() : operations);
     expect(proposal.changes).toHaveLength(1);
-    expect(readProject(doc)!.scenes['scene-1'].transitions['transition-1'].tracks.circle).toEqual({ objectId: 'circle', type: 'move', start: 250, duration: 550, easing: 'easeInOut', order: 'together', path: curve });
+    expect(readProject(doc)!.scenes['scene-1'].transitions['transition-1'].tracks.circle).toEqual({ objectId: 'circle', type: 'move', start: 250, duration: 550, easing: 'easeInOut', order: 'together', path: curve, keyframes: {} });
   });
 
   test('multiple path operations use the final path and invalid final timing rejects the whole batch', () => {

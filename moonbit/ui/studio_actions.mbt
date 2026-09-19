@@ -303,11 +303,11 @@ fn StudioController::undo(self : StudioController) -> Unit {
         if compositions > 0 {
           "共同編集者が使っている \{compositions} 個の新しい場面と、そのオブジェクト・動きを保持しました。"
         } else if objects > 0 {
-          "共同編集者が変更した \{objects} 個の新規オブジェクトと、その状態・アニメーションを保持しました。"
+          "共同編集者が使っている \{objects} 個のオブジェクトと、その親子関係・状態・動きを保持しました。"
         } else if audio > 0 {
           "共同編集者が変更した \{audio} 個の音声トラックを保持しました。"
         } else if retained > 0 {
-          "共同編集者が変更した \{retained} 個の新規アニメーションを保持しました。"
+          "共同編集者が変更した \{retained} 個のアニメーションと、その中間点を保持しました。"
         } else if durations > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
         } else {

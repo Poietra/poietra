@@ -80,10 +80,11 @@ fn StageController::pointer_move(
           truthy(state._get("visible")) &&
           opacity > 0.0 &&
           progress > 0.0 &&
-          @geometry.rectangle_contains_bounds(
+          @geometry.rectangle_contains_matrix(
             rectangle,
             stage_bounds(self.renderer._call("objectBounds", [item])),
-            stage_placement(state),
+            { x: state._get("x").cast(), y: state._get("y").cast(), },
+            stage_item_matrix(item),
           ) &&
           !enclosed.contains(id) {
           enclosed.push(id)
@@ -143,7 +144,10 @@ fn StageController::pointer_move(
           }
           if truthy(track) && truthy(track._get("path")) {
             let path = ui_shallow_copy(track._get("path"))
-            path._set(key, stage_point(at))
+            guard self.path_parent(id).inverse() is Some(inverse) else {
+              return
+            }
+            path._set(key, stage_point(inverse.point(at)))
             self.store._call("setTrack", [
               @core.any(current.scene_id),
               @core.any(transition_id),
@@ -160,7 +164,13 @@ fn StageController::pointer_move(
             let path = ui_shallow_copy(state._get("path"))
             path._set(
               key,
-              stage_point(@geometry.world_to_local(at, stage_placement(state))),
+              stage_point(
+                match
+                  @boundary.object_matrix(scene, current.composition_id, id).inverse() {
+                  Some(inverse) => inverse.point(at)
+                  None => return
+                },
+              ),
             )
             self.store._call("updateState", [
               @core.any(current.scene_id),
@@ -176,14 +186,20 @@ fn StageController::pointer_move(
       self.feedback(current, at, None)
     }
     TransformObject(id, transform, state, width, height) => {
+      guard @boundary.parent_matrix(scene, current.composition_id, id).inverse()
+        is Some(inverse) else {
+        return
+      }
+      let start_local = inverse.point(current.start)
+      let at_local = inverse.point(at)
       let kind = @boundary.read_object_kind(object._get("kind"))
       let patch = if transform is RotateObject {
         host_record({
           "rotation": @core.any(
             @geometry.rotation_from_pointer(
               { x: state.x, y: state.y, rotation: state.rotation, },
-              current.start,
-              at,
+              start_local,
+              at_local,
               shift,
             ),
           ),
@@ -194,7 +210,7 @@ fn StageController::pointer_move(
           width,
           height,
           @editor.stage_transform_name(transform),
-          { x: at.x - current.start.x, y: at.y - current.start.y, },
+          { x: at_local.x - start_local.x, y: at_local.y - start_local.y, },
           if kind is Image || kind is Video {
             !shift
           } else {

@@ -33,6 +33,11 @@ pub(all) enum StateField {
   FontSize
   CornerRadius
   Effect
+  AnchorX
+  AnchorY
+  ScaleX
+  ScaleY
+  Shear
 } derive(Eq)
 
 ///|
@@ -44,6 +49,7 @@ pub(all) enum TrackEdit {
   Order(String)
   MotionPath(@scene.Bezier?)
   PropertyTiming(@scene.PropertyChannel, @scene.Timing?)
+  KeyframeEdit(String, @scene.Keyframe?)
 }
 
 ///|
@@ -62,6 +68,8 @@ pub(all) enum Operation {
   Append(String, String, String, Double, Double)
   State(String, String, StateField, Scalar)
   ShapePath(String, String, @scene.Bezier)
+  Parent(String, String?)
+  Anchor(String, String, Double, Double)
   Track(String, String, TrackEdit)
   CompositionDuration(String, Double)
   TransitionDuration(String, Double)
@@ -105,6 +113,8 @@ pub(all) enum Value {
   EasingValue(@scene.Easing)
   PathValue(@scene.Bezier?)
   TimingValue(@scene.Timing?)
+  KeyframeValue(@scene.Keyframe)
+  ParentValue(String?)
   StateValue(@scene.ObjectState)
   ObjectValue(@scene.SceneObject)
   TrackValue(@scene.Track, Array[@scene.PropertyChannel])
@@ -127,7 +137,6 @@ pub(all) struct Plan {
 
 ///|
 priv struct PendingObject {
-  object : @scene.SceneObject
   state : @scene.ObjectState
   composition : String
   mut declared : Bool
@@ -143,6 +152,7 @@ priv struct EditedTrack {
   mut value : @scene.Track
   mut motion_edited : Bool
   timing_fields : Array[@scene.PropertyChannel]
+  keyframe_ids : Set[String]
 }
 
 ///|

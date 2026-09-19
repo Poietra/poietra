@@ -100,7 +100,14 @@ pub fn resize_from_corner(
   preserve_aspect : Bool,
   text : Bool,
 ) -> Resize {
-  let relative = rotate(delta, -state.rotation)
+  let relative = if state.has_transform() {
+    match state.local_matrix().inverse() {
+      Some(inverse) => inverse.vector(delta)
+      None => { x: 0.0, y: 0.0, }
+    }
+  } else {
+    rotate(delta, -state.rotation)
+  }
   let sign : @scene.Point = match corner {
     "nw" => { x: -1.0, y: -1.0, }
     "ne" => { x: 1.0, y: -1.0, }
@@ -139,13 +146,12 @@ pub fn resize_from_corner(
     next_width = next_width.min(16000.0)
     next_height = next_height.min(16000.0)
   }
-  let center = rotate(
-    {
+  let center = state
+    .local_matrix()
+    .vector({
       x: sign.x * (next_width - width) / 2.0,
       y: sign.y * (next_height - height) / 2.0,
-    },
-    state.rotation,
-  )
+    })
   {
     x: state.x + center.x,
     y: state.y + center.y,
@@ -182,4 +188,59 @@ pub fn rotation_from_pointer(
     rotation = @math.floor(rotation / 15.0 + 0.5) * 15.0
   }
   ((rotation + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
+}
+
+///|
+pub fn point_in_matrix_bounds(
+  point : @scene.Point,
+  bounds : Rectangle,
+  origin : @scene.Point,
+  matrix : @scene.Affine,
+) -> Bool {
+  guard matrix.inverse() is Some(inverse) else { return false }
+  let point = inverse.point(point)
+  point.x >= bounds.x - origin.x &&
+  point.x <= bounds.x - origin.x + bounds.width &&
+  point.y >= bounds.y - origin.y &&
+  point.y <= bounds.y - origin.y + bounds.height
+}
+
+///|
+pub fn matrix_bounds(
+  bounds : Rectangle,
+  origin : @scene.Point,
+  matrix : @scene.Affine,
+) -> Rectangle {
+  let corner = matrix.point({ x: bounds.x - origin.x, y: bounds.y - origin.y, })
+  let mut left = corner.x
+  let mut right = corner.x
+  let mut top = corner.y
+  let mut bottom = corner.y
+  for
+    (x, y) in [
+      (bounds.x + bounds.width, bounds.y),
+      (bounds.x, bounds.y + bounds.height),
+      (bounds.x + bounds.width, bounds.y + bounds.height),
+    ] {
+    let point = matrix.point({ x: x - origin.x, y: y - origin.y, })
+    left = left.min(point.x)
+    right = right.max(point.x)
+    top = top.min(point.y)
+    bottom = bottom.max(point.y)
+  }
+  { x: left, y: top, width: right - left, height: bottom - top, }
+}
+
+///|
+pub fn rectangle_contains_matrix(
+  rectangle : Rectangle,
+  bounds : Rectangle,
+  origin : @scene.Point,
+  matrix : @scene.Affine,
+) -> Bool {
+  let bounds = matrix_bounds(bounds, origin, matrix)
+  bounds.x >= rectangle.x &&
+  bounds.y >= rectangle.y &&
+  bounds.x + bounds.width <= rectangle.x + rectangle.width &&
+  bounds.y + bounds.height <= rectangle.y + rectangle.height
 }

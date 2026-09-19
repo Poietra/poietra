@@ -46,6 +46,7 @@ pub fn default_track(object_id : String, duration : Double) -> Track {
     cornerRadiusTiming: None,
     pathTiming: None,
     revealTiming: None,
+    keyframes: Some(Map([])),
   }
 }
 

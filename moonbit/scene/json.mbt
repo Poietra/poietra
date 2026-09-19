@@ -10,6 +10,7 @@ pub fn normalize_nullable_fields(value : Json) -> Json {
         if value is Null &&
           (
             key == "groupId" ||
+            key == "parentId" ||
             key == "path" ||
             key == "positionTiming" ||
             key == "opacityTiming" ||

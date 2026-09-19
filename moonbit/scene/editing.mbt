@@ -155,6 +155,11 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
       100.0
     },
     rotation: 0.0,
+    anchorX: None,
+    anchorY: None,
+    scaleX: None,
+    scaleY: None,
+    shear: None,
     opacity: 1.0,
     visible: true,
     fill: "#d7d8e4",

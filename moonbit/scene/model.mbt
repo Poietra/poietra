@@ -65,6 +65,11 @@ pub(all) struct ObjectState {
   width : Double
   height : Double
   rotation : Double
+  anchorX : Double?
+  anchorY : Double?
+  scaleX : Double?
+  scaleY : Double?
+  shear : Double?
   opacity : Double
   visible : Bool
   fill : String
@@ -109,6 +114,7 @@ pub(all) struct SceneObject {
   kind : ObjectKind
   order : Double
   groupId : String?
+  parentId : String?
   locked : Bool
   image : ImageAsset?
   media : MediaAsset?
@@ -134,6 +140,25 @@ pub(all) struct Timing {
 } derive(FromJson, ToJson)
 
 ///|
+pub(all) struct Keyframe {
+  property : CurveProperty
+  at : Double
+  value : CurveValue
+  easing : Easing
+  deleted : Bool?
+} derive(FromJson, ToJson)
+
+///|
+pub(all) struct Affine {
+  a : Double
+  b : Double
+  c : Double
+  d : Double
+  e : Double
+  f : Double
+} derive(Eq, Debug, FromJson, ToJson)
+
+///|
 pub(all) struct Track {
   implicit : Bool?
   objectId : String
@@ -154,6 +179,7 @@ pub(all) struct Track {
   cornerRadiusTiming : Timing?
   pathTiming : Timing?
   revealTiming : Timing?
+  keyframes : Map[String, Keyframe]?
 } derive (
   FromJson(fields(type_(rename="type"))),
   ToJson(fields(type_(rename="type"))),
@@ -218,6 +244,7 @@ pub(all) struct RenderObject {
   writeProgress : Double
   order : String
   videoTimeMs : Double?
+  world : Affine?
 } derive(ToJson)
 
 ///|

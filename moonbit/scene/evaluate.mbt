@@ -196,12 +196,23 @@ pub fn composition_objects(
   composition : Composition,
   time : Double,
 ) -> Array[RenderObject] {
+  let extended = ordered.any(fn(o) { o.parentId is Some(_) }) ||
+    composition.states.values().any(fn(s) { s.has_transform() })
+  let matrices = if extended {
+    Some(prepare_hierarchy(ordered).matrices(composition.states))
+  } else {
+    None
+  }
   let objects : Array[RenderObject] = []
   for object in ordered {
     if composition.states.get(object.id) is Some(state) && state.visible {
       objects.push({
         object,
         state,
+        world: match matrices {
+          Some(matrices) => matrices.get(object.id)
+          None => None
+        },
         videoTimeMs: video_time(object, time),
         writeProgress: 1.0,
         order: "together",
@@ -218,18 +229,43 @@ pub fn prepare_transition(
   kernel : Kernel,
 ) -> PreparedTransition {
   guard scene.compositions.get(transition.fromId) is Some(from) else {
-    return PreparedTransition::{ items: [], }
+    return PreparedTransition::{ items: [], hierarchy: None, }
   }
   guard scene.compositions.get(transition.toId) is Some(to) else {
-    return PreparedTransition::{ items: [], }
+    return PreparedTransition::{ items: [], hierarchy: None, }
   }
+  let ordered = ordered_objects(scene, kernel.compare_ids)
+  let extended = ordered.any(fn(o) { o.parentId is Some(_) }) ||
+    from.states.values().any(fn(s) { s.has_transform() }) ||
+    to.states.values().any(fn(s) { s.has_transform() }) ||
+    transition.tracks
+    .values()
+    .any(fn(t) {
+      match t.keyframes {
+        Some(keys) =>
+          keys
+          .values()
+          .any(fn(k) {
+            match k.property {
+              ObjectAnchorX
+              | ObjectAnchorY
+              | ObjectScaleX
+              | ObjectScaleY
+              | ObjectShear => true
+              _ => false
+            }
+          })
+        None => false
+      }
+    })
+  let hierarchy = if extended { Some(prepare_hierarchy(ordered)) } else { None }
   let items : Array[AnimatedObject] = []
-  for object in ordered_objects(scene, kernel.compare_ids) {
+  for object in ordered {
     let a_state = from.states.get(object.id)
     let b_state = to.states.get(object.id)
     let a_visible = a_state.map(fn(s) { s.visible }).unwrap_or(false)
     let b_visible = b_state.map(fn(s) { s.visible }).unwrap_or(false)
-    if !a_visible && !b_visible {
+    if !extended && !a_visible && !b_visible {
       continue
     }
     let (a, b) = match (a_state, b_state) {
@@ -248,7 +284,9 @@ pub fn prepare_transition(
       a,
       b,
       track,
-      presence: if !a_visible {
+      presence: if !a_visible && !b_visible {
+        Hidden
+      } else if !a_visible {
         Entering
       } else if !b_visible {
         Leaving
@@ -258,9 +296,10 @@ pub fn prepare_transition(
       animation: track.type_,
       fill: prepare_color(a.fill, b.fill),
       stroke: prepare_color(a.stroke, b.stroke),
+      curves: prepare_object_curves(track, a, b, a_visible, b_visible),
     })
   }
-  PreparedTransition::{ items, }
+  PreparedTransition::{ items, hierarchy, }
 }
 
 ///|
@@ -272,13 +311,24 @@ pub fn evaluate_transition(
 ) -> Array[RenderObject] {
   let objects : Array[RenderObject] = []
   for item in prepared.items {
-    let { object, a, b, track, presence: visibility, animation, fill, stroke, } = item
+    let {
+      object,
+      a,
+      b,
+      track,
+      presence: visibility,
+      animation,
+      fill,
+      stroke,
+      curves,
+    } = item
     let (a_visible, b_visible) = match visibility {
       Persistent => (true, true)
       Entering => (false, true)
       Leaving => (true, false)
+      Hidden => (false, false)
     }
-    if !video_active(object, scene_time) {
+    if prepared.hierarchy is None && !video_active(object, scene_time) {
       continue
     }
     let base = progress(track, None, time, kernel)
@@ -292,7 +342,13 @@ pub fn evaluate_transition(
     let position = channel(track.positionTiming)
     let size = channel(track.sizeTiming)
     let shape_path = channel(track.pathTiming)
-    let reveal = channel(track.revealTiming)
+    let mut reveal = channel(track.revealTiming)
+    for curve in curves {
+      if curve.property == ObjectReveal &&
+        curve.evaluate(time, kernel) is CurveNumber(value) {
+        reveal = value
+      }
+    }
     let opacity = channel(track.opacityTiming)
     let interpolate = kernel.interpolate
     let path_point = fn(a : Point, b : Point) -> Point {
@@ -301,7 +357,29 @@ pub fn evaluate_transition(
         y: interpolate(a.y, b.y, shape_path),
       }
     }
+    let optional_transform = fn(
+      a : Double?,
+      b : Double?,
+      default : Double,
+      progress : Double,
+    ) {
+      if a is None && b is None {
+        None
+      } else {
+        Some(interpolate(a.unwrap_or(default), b.unwrap_or(default), progress))
+      }
+    }
     let mut state : ObjectState = {
+      anchorX: optional_transform(a.anchorX, b.anchorX, 0.0, position),
+      anchorY: optional_transform(a.anchorY, b.anchorY, 0.0, position),
+      scaleX: optional_transform(a.scaleX, b.scaleX, 1.0, size),
+      scaleY: optional_transform(a.scaleY, b.scaleY, 1.0, size),
+      shear: optional_transform(
+        a.shear,
+        b.shear,
+        0.0,
+        channel(track.rotationTiming),
+      ),
       x: interpolate(a.x, b.x, position),
       y: interpolate(a.y, b.y, position),
       width: interpolate(a.width, b.width, size),
@@ -312,7 +390,7 @@ pub fn evaluate_transition(
         channel(track.rotationTiming),
       ),
       opacity: interpolate(a.opacity, b.opacity, opacity),
-      visible: true,
+      visible: (a_visible || b_visible) && video_active(object, scene_time),
       fill: color(fill, channel(track.fillTiming)),
       stroke: color(stroke, channel(track.strokeTiming)),
       strokeWidth: interpolate(
@@ -400,9 +478,19 @@ pub fn evaluate_transition(
         fontSize: state.fontSize * presence,
       }
     }
+    for curve in curves {
+      if curve.property != ObjectReveal {
+        state = with_curve_value(
+          state,
+          curve.property,
+          curve.evaluate(time, kernel),
+        )
+      }
+    }
     objects.push({
       object,
       state,
+      world: None,
       videoTimeMs: video_time(object, scene_time),
       writeProgress: if animation == Write {
         if !b_visible {
@@ -416,7 +504,19 @@ pub fn evaluate_transition(
       order: track.order,
     })
   }
-  objects
+  match prepared.hierarchy {
+    None => objects
+    Some(hierarchy) => {
+      let states : Map[String, ObjectState] = Map([])
+      for item in objects {
+        states[item.object.id] = item.state
+      }
+      let matrices = hierarchy.matrices(states)
+      objects
+      .filter(fn(item) { item.state.visible })
+      .map(fn(item) { { ..item, world: matrices.get(item.object.id), } })
+    }
+  }
 }
 
 ///|

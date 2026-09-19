@@ -108,6 +108,17 @@ fn read_operation(input : @core.Any) -> @plan.Operation {
         @plan.state_field(input._get("property").cast()).unwrap(),
         scalar(input._get("value")),
       )
+    "setParent" =>
+      Parent(
+        oid,
+        if @core.is_nullish(input._get("parentId")) {
+          None
+        } else {
+          Some(input._get("parentId").cast())
+        },
+      )
+    "setAnchor" =>
+      Anchor(cid, oid, input._get("x").cast(), input._get("y").cast())
     "setShapePath" =>
       ShapePath(cid, oid, @boundary.read_bezier(input._get("path")))
     "setMotionPath" =>
@@ -119,6 +130,19 @@ fn read_operation(input : @core.Any) -> @plan.Operation {
             None
           } else {
             Some(@boundary.read_bezier(input._get("path")))
+          },
+        ),
+      )
+    "setKeyframe" =>
+      Track(
+        tid,
+        oid,
+        KeyframeEdit(
+          input._get("keyframeId").cast(),
+          if @core.is_nullish(input._get("keyframe")) {
+            None
+          } else {
+            Some(@boundary.read_keyframe(input._get("keyframe")))
           },
         ),
       )

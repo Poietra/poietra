@@ -73,6 +73,7 @@ pub fn create_object(
       kind,
       order: order + 1.0,
       groupId: None,
+      parentId: None,
       locked: false,
       image,
       media: None,

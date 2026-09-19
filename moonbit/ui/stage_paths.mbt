@@ -81,6 +81,7 @@ fn stage_paths(controller : StageController) -> Array[&@react.ReactNode] {
           h(
             "g",
             {
+              "transform": stage_matrix_string(controller.path_parent(id)),
               "fill": @core.any("none"),
               "stroke": @core.any("#9292e7"),
               "strokeWidth": @core.any(scale),
@@ -137,7 +138,10 @@ fn stage_paths(controller : StageController) -> Array[&@react.ReactNode] {
         h(
           "g",
           {
-            "transform": stage_rotation(stored),
+            "transform": match controller.frame_item(id) {
+              Some(item) => stage_box_transform(item)
+              None => stage_rotation(stored)
+            },
             "stroke": @core.any("#9292e7"),
             "strokeWidth": @core.any(scale),
           },
@@ -167,7 +171,7 @@ fn stage_overlay(
           "rect",
           {
             "data-hover-id": @core.any(id),
-            "transform": stage_rotation(item._get("state")),
+            "transform": stage_box_transform(item),
             "x": @core.any(b.x),
             "y": @core.any(b.y),
             "width": @core.any(b.width.max(1.0)),

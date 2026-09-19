@@ -52,7 +52,7 @@ try {
     files: ['check.ts', '../worker/auth-secrets.d.ts'],
   }));
   execFileSync('pnpm', ['exec', 'tsc', '-p', resolve(directory, 'tsconfig.json')], { cwd: app, stdio: 'inherit' });
-  console.log(`Public API contracts: ${files.length} modules compatible with ${snapshot.revision.slice(0, 7)}.`);
+  console.log(`Public API contracts: ${files.length} modules compatible with ${snapshot.revision.slice(0, 7)}${snapshot.amendments?.length ? " + recorded API extensions" : ""}.`);
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

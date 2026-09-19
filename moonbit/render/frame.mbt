@@ -105,7 +105,7 @@ pub fn frame_to_svg(
       )
     }
     objects.write_string(
-      "<g data-object-id=\"\{escape_xml(item.id)}\" transform=\"translate(\{number(s.x)} \{number(s.y)}) rotate(\{number(s.rotation)})\" opacity=\"\{number(unit(s.opacity))}\" fill=\"\{escape_xml(color(s.fill))}\" color=\"\{escape_xml(color(s.fill, fallback="#d7d8e4"))}\" stroke=\"\{escape_xml(color(s.stroke))}\" stroke-width=\"\{number(finite(s.strokeWidth).max(0.0))}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"",
+      "<g data-object-id=\"\{escape_xml(item.id)}\" transform=\"\{drawable_transform(item)}\" opacity=\"\{number(unit(s.opacity))}\" fill=\"\{escape_xml(color(s.fill))}\" color=\"\{escape_xml(color(s.fill, fallback="#d7d8e4"))}\" stroke=\"\{escape_xml(color(s.stroke))}\" stroke-width=\"\{number(finite(s.strokeWidth).max(0.0))}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"",
     )
     if glow {
       objects.write_string(" filter=\"url(#\{id}-glow)\"")
@@ -127,4 +127,22 @@ pub fn frame_to_svg(
   output.write_string(objects.to_string())
   output.write_string("</svg>")
   output.to_string()
+}
+
+///|
+pub fn affine_transform(matrix : @scene.Affine) -> String {
+  "matrix(\{number(matrix.a)} \{number(matrix.b)} \{number(matrix.c)} \{number(matrix.d)} \{number(matrix.e)} \{number(matrix.f)})"
+}
+
+///|
+pub fn drawable_transform(item : Drawable) -> String {
+  match item.world {
+    Some(matrix) => affine_transform(matrix)
+    None =>
+      if item.state.has_transform() {
+        affine_transform(item.state.local_matrix())
+      } else {
+        "translate(\{number(item.state.x)} \{number(item.state.y)}) rotate(\{number(item.state.rotation)})"
+      }
+  }
 }

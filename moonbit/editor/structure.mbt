@@ -88,6 +88,7 @@ pub fn copy_scene(
       ..object,
       id,
       groupId: object.groupId.bind(fn(group) { groups.get(group) }),
+      parentId: object.parentId.bind(fn(parent) { objects.get(parent) }),
       media: object.media.map(copy_media),
     }
   }
@@ -115,7 +116,11 @@ pub fn copy_scene(
     let tracks : Map[String, @scene.Track] = Map([])
     for key, track in transition.tracks {
       if objects.get(key) is Some(object_id) {
-        tracks[object_id] = { ..track, objectId: object_id, }
+        tracks[object_id] = {
+          ..track,
+          objectId: object_id,
+          keyframes: track.keyframes.map(fn(keys) { keys.copy() }),
+        }
       }
     }
     copied_transitions[id] = {

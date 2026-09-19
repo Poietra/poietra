@@ -4,6 +4,7 @@ priv struct CreationPlan {
   containers : @collection.JsSet[@core.Any]
   activated_tracks : @collection.JsSet[@core.Any]
   timing_parents : @collection.JsMap[@core.Any, Set[String]]
+  retained_fields : @collection.JsMap[@core.Any, Set[String]]
   audio : @collection.JsSet[@core.Any]
   tracks : @collection.JsSet[@core.Any]
   objects : @collection.JsSet[@core.Any]
@@ -20,6 +21,7 @@ fn empty_creations() -> CreationPlan {
     containers: @collection.JsSet::new(),
     activated_tracks: @collection.JsSet::new(),
     timing_parents: @collection.JsMap::new(),
+    retained_fields: @collection.JsMap::new(),
     audio: @collection.JsSet::new(),
     tracks: @collection.JsSet::new(),
     objects: @collection.JsSet::new(),
@@ -94,6 +96,49 @@ fn Session::protect_object(
 }
 
 ///|
+fn Session::protect_coordinate_space(
+  self : Session,
+  plan : CreationPlan,
+  action : @core.Any,
+  scene : @core.Any,
+  id : String,
+  object : @core.Any,
+) -> Unit {
+  let relation = get(object._get("_map"), "parentId")
+  if @core.is_nullish(relation) ||
+    self.added(action, object) ||
+    !(if truthy(relation._get("deleted")) {
+      self.peer_detached.has(relation)
+    } else {
+      self.peer_parented.has(relation)
+    }) ||
+    @core.equal(
+      get(object, "parentId"),
+      self.field_after_step(action, object, "parentId"),
+    ) {
+    return
+  }
+  plan.objects.add(object) |> ignore
+  plan.retained_fields.set(object, Set(["parentId"])) |> ignore
+  let compositions = get(scene, "compositions")
+  if !self.is_map(compositions) {
+    return
+  }
+  for composition in values(compositions) {
+    let states = get(composition, "states")
+    if !self.is_map(states) {
+      continue
+    }
+    let state = get(states, id)
+    if self.is_map(state) {
+      // Compensating transforms and the relation are a single coordinate
+      // change. Retain only these leaves; unrelated appearance still undoes.
+      plan.retained_fields.set(state, Set(transform_fields())) |> ignore
+    }
+  }
+}
+
+///|
 fn Session::shared_creations(
   self : Session,
   action : @core.Any,
@@ -125,6 +170,7 @@ fn Session::shared_creations(
         let object = get(objects, id)
         if self.is_map(object) && self.peer_objects.has(object) {
           self.protect_object(plan, action, scene, id)
+          self.protect_coordinate_space(plan, action, scene, id, object)
         }
       }
     }
@@ -147,6 +193,19 @@ fn Session::shared_creations(
           continue
         }
         if !self.added(action, track) {
+          let points = get(track, "keyframes")
+          if self.is_map(points) {
+            for point in values(points) {
+              if self.added(action, point) && self.peer_keyframes.has(point) {
+                plan.roots.add(point) |> ignore
+                plan.tracks.add(track) |> ignore
+                plan.dependent_tracks.add(track) |> ignore
+                if self.added(action, points) {
+                  plan.containers.add(points) |> ignore
+                }
+              }
+            }
+          }
           for key in timing_keys() {
             let timing = get(track, key)
             if self.added(action, timing) &&

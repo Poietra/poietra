@@ -65,7 +65,7 @@ pub fn parse_project_file(text : String) -> @core.Any {
     }
   }
   let project : @scene.Project = {
-    version: 1,
+    version: parsed._get("version").cast(),
     name: parsed._get("name").cast(),
     sceneOrder: decode_array(parsed._get("sceneOrder"), fn(id) { id.cast() }),
     scenes: decode_map(parsed._get("scenes"), decode_Scene),

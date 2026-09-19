@@ -110,7 +110,7 @@ test('multiple Japanese titles can enter and exit together with Write order and 
     await page.getByRole('combobox', { name: 'Selected Write order', exact: true }).selectOption('sequential');
     await field(page, 'Selected animation duration', 400); await field(page, 'Selected animation start', 200);
     await page.getByRole('combobox', { name: 'Selected animation easing', exact: true }).selectOption('linear');
-    await expect.poll(() => ids.map(id => tracks()[id])).toEqual(ids.map(objectId => ({ objectId, type: 'write', start: 200, duration: 400, easing: 'linear', order: 'sequential', path: null })));
+    await expect.poll(() => ids.map(id => tracks()[id])).toEqual(ids.map(objectId => ({ objectId, type: 'write', start: 200, duration: 400, easing: 'linear', order: 'sequential', path: null, keyframes: {} })));
     const fromId = room.scene().compositionOrder[0], toId = room.scene().compositionOrder[1];
     expect(ids.map(id => [room.scene().compositions[fromId].states[id].visible, room.scene().compositions[toId].states[id].visible])).toEqual([[false, true], [false, true]]);
     applyChanges(room.doc, [{ path: ['scenes', room.id, 'compositions', toId, 'states', first, 'fill'], value: '#f4ce55' }], 'peer');

@@ -29,6 +29,12 @@ pub fn object_insertion_changes(
       )
     }
   }
+  if additions.any(fn(item) {
+      item.object.parentId is Some(_) ||
+      item.states.any(fn(s) { s.1.has_transform() })
+    }) {
+    changes.push(make_change(["version"], @core.any(2)))
+  }
   changes
 }
 

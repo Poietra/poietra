@@ -6,6 +6,9 @@ pub struct Session {
   peer_audio : @weak.WeakSet[@core.Any]
   peer_tracks : @weak.WeakSet[@core.Any]
   peer_timings : @weak.WeakSet[@core.Any]
+  peer_keyframes : @weak.WeakSet[@core.Any]
+  peer_parented : @weak.WeakSet[@core.Any]
+  peer_detached : @weak.WeakSet[@core.Any]
   peer_activations : @weak.WeakMap[@core.Any, @weak.WeakSet[@core.Any]]
   peer_objects : @weak.WeakSet[@core.Any]
   peer_compositions : @weak.WeakSet[@core.Any]
@@ -39,6 +42,9 @@ pub fn create_session(manager : @core.Any, yjs : @core.Any) -> Session {
     peer_audio: @weak.WeakSet::new(),
     peer_tracks: @weak.WeakSet::new(),
     peer_timings: @weak.WeakSet::new(),
+    peer_keyframes: @weak.WeakSet::new(),
+    peer_parented: @weak.WeakSet::new(),
+    peer_detached: @weak.WeakSet::new(),
     peer_activations: @weak.WeakMap::new(),
     peer_objects: @weak.WeakSet::new(),
     peer_compositions: @weak.WeakSet::new(),
@@ -86,9 +92,58 @@ fn Session::remember_object(
   scene : String,
   id : String,
 ) -> Unit {
-  let object = self.shared(["scenes", scene, "objects", id])
-  if self.is_map(object) {
+  let visited : Set[String] = Set([])
+  let mut id = id
+  while !visited.contains(id) {
+    visited.add(id)
+    let object = self.shared(["scenes", scene, "objects", id])
+    if !self.is_map(object) {
+      break
+    }
     self.peer_objects.add(object) |> ignore
+    let parent = get(object, "parentId")
+    if @core.typeof_(parent) != "string" {
+      break
+    }
+    id = parent.cast()
+  }
+}
+
+///|
+fn transform_fields() -> Array[String] {
+  ["x", "y", "rotation", "anchorX", "anchorY", "scaleX", "scaleY", "shear"]
+}
+
+///|
+fn Session::remember_coordinate_space(
+  self : Session,
+  scene : String,
+  id : String,
+) -> Unit {
+  let visited : Set[String] = Set([])
+  let mut id = id
+  while !visited.contains(id) {
+    visited.add(id)
+    let object = self.shared(["scenes", scene, "objects", id])
+    if !self.is_map(object) {
+      break
+    }
+    // Remember this activation, including a detach, rather than the object's
+    // lifetime. A peer edit before a later reparent must not retain that edit.
+    let relation = get(object._get("_map"), "parentId")
+    if !@core.is_nullish(relation) {
+      let edits = if truthy(relation._get("deleted")) {
+        self.peer_detached
+      } else {
+        self.peer_parented
+      }
+      edits.add(relation) |> ignore
+    }
+    let parent = get(object, "parentId")
+    if @core.typeof_(parent) != "string" {
+      break
+    }
+    id = parent.cast()
   }
 }
 
@@ -164,6 +219,17 @@ fn Session::remember_peer_edits(
       for id in ids {
         self.remember_object(path[1], id)
         let track = get(entries, id)
+        if collection == "states" &&
+          (
+            path.length() < 6 ||
+            (
+              path.length() == 6 &&
+              changed.iter().any(fn(key) { transform_fields().contains(key) })
+            ) ||
+            (path.length() > 6 && transform_fields().contains(path[6]))
+          ) {
+          self.remember_coordinate_space(path[1], id)
+        }
         if collection != "tracks" || !self.is_map(track) {
           continue
         }
@@ -181,6 +247,33 @@ fn Session::remember_peer_edits(
             self.peer_timings.add(timing) |> ignore
           }
         }
+        let points = get(track, "keyframes")
+        if self.is_map(points) &&
+          (
+            path.length() < 6 ||
+            (path.length() == 6 && changed.contains("keyframes")) ||
+            (path.length() > 6 && path[6] == "keyframes")
+          ) {
+          let ids : FixedArray[String] = if path.length() < 7 {
+            keys(points)
+          } else if path.length() == 7 {
+            changed
+          } else {
+            [path[7]]
+          }
+          for key in ids {
+            let point = get(points, key)
+            if self.is_map(point) {
+              self.peer_keyframes.add(point) |> ignore
+              if (transform_fields() +
+                ["width", "height", "c1x", "c1y", "c2x", "c2y"]).contains(
+                  string_value(get(point, "property")),
+                ) {
+                self.remember_coordinate_space(path[1], id)
+              }
+            }
+          }
+        }
         // Retain an activation identity, not an automatic parent's lifetime.
         // A peer's independent timing does not depend on a promoted base track.
         let base = [
@@ -192,6 +285,14 @@ fn Session::remember_peer_edits(
           } else {
             base.contains(path[6])
           })
+        if edits_base ||
+          changed_timings
+          .iter()
+          .any(fn(key) {
+            ["positionTiming", "sizeTiming", "rotationTiming"].contains(key)
+          }) {
+          self.remember_coordinate_space(path[1], id)
+        }
         let activation = get(track._get("_map"), "implicit")
         if edits_base &&
           @core.equal(get(track, "implicit"), @core.any(false)) &&

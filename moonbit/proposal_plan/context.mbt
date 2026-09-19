@@ -227,6 +227,7 @@ fn Compiler::editable_track(
     value: track,
     motion_edited: false,
     timing_fields: [],
+    keyframe_ids: Set([]),
   }
   self.tracks[key] = entry
   if existing {

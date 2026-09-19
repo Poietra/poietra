@@ -134,6 +134,54 @@ const fixture = {
     element('status').textContent = `${format.toUpperCase()} verified: ${report.width} × ${report.height}, ${report.packetCount} frames, ${report.duration.toFixed(3)} s.\nJapanese preview / decoded error: ${report.japanese.meanAbsoluteError.toFixed(2)}. Math error: ${report.equation.meanAbsoluteError.toFixed(2)}.\nSource edited during export: ${mutationApplied}.`;
     return report;
   },
+  async primitives(format: 'mp4' | 'webm') {
+    const scene = makeScene(); scene.width = 640; scene.height = 360;
+    scene.objects.circle.kind = 'rectangle';
+    scene.objects.circle.parentId = 'equation';
+    scene.objects.japanese.parentId = 'equation';
+    for (const [index, composition] of Object.values(scene.compositions).entries()) {
+      composition.duration = 200;
+      for (const state of Object.values(composition.states)) state.visible = false;
+      Object.assign(composition.states.equation, { x: 320, y: 180, rotation: index ? 45 : -25, scaleX: 2, scaleY: .7, anchorX: 10, anchorY: -5 });
+      Object.assign(composition.states.circle, { visible: true, x: index ? 70 : -70, y: 20, width: 55, height: 40, fill: '#44ddaa', strokeWidth: 0, rotation: 33, anchorX: 8, anchorY: -3, scaleX: .8, scaleY: 1.2, shear: .3 });
+      Object.assign(composition.states.japanese, { visible: true, x: -35, y: -100, fontSize: 22, text: '動きの構造', width: 160, height: 30, fill: '#ffffff', effect: 'none' });
+    }
+    const transition = scene.transitions['transition-1']; transition.duration = 1000;
+    for (const track of Object.values(transition.tracks)) Object.assign(track, { type: 'move', start: 0, duration: 1000, easing: 'linear', path: null });
+    transition.tracks.circle.keyframes = {
+      middle: { property: 'x', at: .5, value: 0, easing: 'easeOut' },
+      turn: { property: 'rotation', at: .5, value: 105, easing: 'linear' },
+      color: { property: 'fill', at: .5, value: '#ffdd22', easing: 'linear' },
+    };
+    await prepareScene(scene);
+    const result = await exportScene(scene, kernel, { format, fps: 30, width: 640, height: 360 });
+    const input = new Input({ source: new BlobSource(result.blob), formats: ALL_FORMATS });
+    try {
+      const video = (await input.getPrimaryVideoTrack())!; const sink = new VideoSampleSink(video);
+      const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360;
+      const frames = [];
+      for (const time of [0, .2, .4, .7, 1.2]) {
+        const expected = await rasterize(scene, time * 1000);
+        const sample = (await sink.getSample(time))!;
+        try { sample.draw(canvas.getContext('2d')!, 0, 0); } finally { sample.close(); }
+        const a = expected.getContext('2d')!.getImageData(0, 0, 640, 360).data;
+        const b = canvas.getContext('2d')!.getImageData(0, 0, 640, 360).data;
+        let union = 0, difference = 0, expectedInk = 0, actualInk = 0;
+        for (let index = 0; index < a.length; index += 4) {
+          const expectedPixel = a[index] + a[index + 1] + a[index + 2] > 150;
+          const actualPixel = b[index] + b[index + 1] + b[index + 2] > 150;
+          expectedInk += Number(expectedPixel); actualInk += Number(actualPixel);
+          if (expectedPixel || actualPixel) {
+            union++;
+            difference += Math.abs(a[index] - b[index]) + Math.abs(a[index + 1] - b[index + 1]) + Math.abs(a[index + 2] - b[index + 2]);
+          }
+        }
+        frames.push({ time, expectedInk, actualInk, meanError: difference / (union * 3) });
+      }
+      let packets = 0; for await (const _ of new EncodedPacketSink(video).packets()) packets++;
+      return { frames, packets, bytes: result.blob.size, duration: await input.computeDuration() };
+    } finally { input.dispose(); }
+  },
   async cancel(format: 'mp4' | 'webm', preAborted = false) {
     const controller = new AbortController();
     let lastProgress = -1;

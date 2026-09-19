@@ -78,10 +78,13 @@ pub fn paste_objects(
       counts[group] = counts.get(group).unwrap_or(0) + 1
     }
   }
-  let result = []
+  let result : Array[ObjectInsertion] = []
+  let copied_ids : Map[String, String] = Map([])
   for object in clipboard.objects {
     let original = clipboard.states[object.id]
     let object_id = id("obj")
+    copied_ids[object.id] = object_id
+    let offset = if object.parentId is Some(_) { 0.0 } else { offset }
     let group = match object.groupId {
       Some(group) =>
         if counts.get(group).unwrap_or(0) > 1 {
@@ -148,5 +151,15 @@ pub fn paste_objects(
     })
     order += 1.0
   }
-  Ok(result)
+  Ok(
+    result.map(fn(item) {
+      {
+        ..item,
+        object: {
+          ..item.object,
+          parentId: item.object.parentId.bind(fn(id) { copied_ids.get(id) }),
+        },
+      }
+    }),
+  )
 }

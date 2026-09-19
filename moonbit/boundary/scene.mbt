@@ -18,13 +18,17 @@ fn kernel(value : @core.Any) -> @scene.Kernel {
 fn frame_value(frame : @scene.Frame, input : @core.Any) -> @core.Any {
   let objects = FixedArray::makei(frame.objects.length(), fn(i) {
     let item = frame.objects[i]
-    make_render_object(
+    let result = make_render_object(
       input._get("objects")._get(item.object.id),
       encode_ObjectState(item.state),
       item.writeProgress,
       item.order,
       @core.from_option(item.videoTimeMs),
     )
+    if item.world is Some(world) {
+      put_own(result, "world", encode_Affine(world))
+    }
+    result
   })
   make_frame(objects, frame.background, frame.width, frame.height)
 }
@@ -152,4 +156,9 @@ pub fn track_progress(
     time,
     kernel(host),
   )
+}
+
+///|
+pub fn read_kernel(value : @core.Any) -> @scene.Kernel {
+  kernel(value)
 }

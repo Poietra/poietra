@@ -14,11 +14,17 @@ pub(all) struct RasterPlan {
 pub fn local_drawable(item : Drawable) -> Drawable {
   {
     ..item,
+    world: None,
     state: {
       ..item.state,
       x: 0.0,
       y: 0.0,
       rotation: 0.0,
+      anchorX: None,
+      anchorY: None,
+      scaleX: None,
+      scaleY: None,
+      shear: None,
       opacity: 1.0,
       visible: true,
       effect: @scene.Normal,

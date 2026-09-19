@@ -36,6 +36,7 @@ priv struct AnimatedObject {
   animation : AnimationKind
   fill : ColorProgram
   stroke : ColorProgram
+  curves : Array[PreparedCurve]
 }
 
 ///|
@@ -44,6 +45,7 @@ priv enum Presence {
   Persistent
   Entering
   Leaving
+  Hidden
 }
 
 ///|
@@ -57,6 +59,7 @@ priv enum ColorProgram {
 ///|
 pub struct PreparedTransition {
   priv items : Array[AnimatedObject]
+  priv hierarchy : Hierarchy?
 }
 
 ///|

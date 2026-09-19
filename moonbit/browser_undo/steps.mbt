@@ -15,6 +15,12 @@ fn Session::allow_delete(
   }
   let parent = item._get("parent")
   let key = item._get("parentSub")
+  if self.is_map(parent) &&
+    @core.typeof_(key) == "string" &&
+    plan.retained_fields.get(parent) is Some(fields) &&
+    fields.contains(key.cast()) {
+    return false
+  }
   if @core.equal(key, @core.any("duration")) &&
     self.is_map(parent) &&
     durations.has(parent) {
@@ -76,6 +82,11 @@ fn Session::protected_step(
       omitted.append(field_history(track, key))
     }
   })
+  plan.retained_fields.forEach(fn(fields, parent) {
+    for key in fields {
+      omitted.append(field_history(parent, key))
+    }
+  })
   plan.revived_compositions.forEach(fn(composition) {
     omitted.append(field_history(composition, "deleted"))
   })
@@ -111,7 +122,9 @@ fn Session::undo_step(self : Session) -> Int raise {
     self.assert_tracks_fit(action, durations, Undo, plan.roots, transitions)
     let tracks = plan.track_count()
     let changed = self.protected_step(Undo, plan, durations)
-    if plan.roots.size() > 0 || durations.size() > 0 {
+    if plan.roots.size() > 0 ||
+      plan.retained_fields.size() > 0 ||
+      durations.size() > 0 {
       plan.dependent_tracks.forEach(fn(track) {
         self.retained_tracks.add(track) |> ignore
       })
