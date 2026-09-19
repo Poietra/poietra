@@ -18,4 +18,5 @@ import {
   "mizchi/js_node@0.13.0",
   "mizchi/js_builtin@0.13.0",
   "mizchi/npm_typed@0.1.16",
+  "mizchi/cloudflare@0.1.12",
 }

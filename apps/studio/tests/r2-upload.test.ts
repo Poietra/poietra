@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IMAGE_BYTES_LIMIT } from '../shared/images';
-import { MEDIA_CHUNK_BYTES, MEDIA_FILE_LIMIT } from '../shared/media';
+import { MEDIA_CHUNK_BYTES, MEDIA_FILE_LIMIT, MediaUploadError } from '../shared/media';
 // Keep Workers' generated globals out of the app's DOM TypeScript compilation.
 // The helper is typechecked by tsconfig.worker.json and exercised here in Node.
 const helperPath = '../worker/r2-upload';
@@ -65,6 +65,14 @@ function request(bytes: Uint8Array, options: { declaredSize?: number | string; c
 }
 
 afterEach(() => vi.useRealTimers());
+
+it('preserves native error identity across independently linked MoonBit entry points', async () => {
+  const { bucket } = mockBucket();
+  await expect(uploadMediaToR2(bucket, key, request(wav(44), { declaredSize: MEDIA_FILE_LIMIT + 1 }).input)).rejects.toBeInstanceOf(MediaUploadError);
+  await expect(uploadImageToR2(bucket, key, png(), 'image/jpeg')).rejects.toBeInstanceOf(MediaUploadError);
+  vi.mocked(bucket.put).mockResolvedValue({ size: 0 });
+  await expect(uploadImageToR2(bucket, key, png(), 'image/png')).rejects.toMatchObject({ status: 502, message: '素材を保存できませんでした。もう一度お試しください。' });
+});
 
 describe('bounded media upload to R2', () => {
   it.each([undefined, PART_BYTES * 2 + 73])('streams exact bytes and digest through sequential uniform parts (declared size %s)', async declaredSize => {

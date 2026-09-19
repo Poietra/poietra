@@ -1,0 +1,24 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "mizchi/js_web/streams",
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/cloudflare_runtime" @cloud,
+  "poietra/poietra/assets",
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "upload_image:uploadImageToR2",
+        "upload_image_request:uploadImageRequestToR2",
+        "upload_media:uploadMediaToR2",
+      ],
+    },
+  },
+)

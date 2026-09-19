@@ -1,0 +1,7 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"

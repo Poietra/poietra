@@ -21,6 +21,8 @@
     "zod": "4.6.5"
   },
   "imports": {
+    "#poietra/http-host": "./apps/studio/shared/http-host.mjs",
+    "#poietra/node-host": "./apps/studio/server/node-host.mjs",
     "#poietra/ui-host": "./apps/studio/src/platform/ui-host.mjs",
     "#poietra/media-host": "./apps/studio/src/platform/media-host.mjs",
     "#poietra/site-shell-host": "./apps/studio/src/platform/site-shell-host.mjs",

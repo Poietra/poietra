@@ -162,6 +162,13 @@ node scripts/moon.mjs check --target js
   inactive-room eviction. Out-of-order Yjs updates schedule persistence even when
   missing dependencies prevent an immediate document event; disposal cancels
   pending saves, and one failed peer cannot interrupt broadcasts to the others.
+- `moonbit/room_assets`, `r2_upload`, `worker_assets` and `node_assets`: typed
+  asset routes, atomic SQLite publication, R2 multipart uploads, HTTP delivery
+  and local file storage. R2 parts share one 5 MiB buffer with backpressure;
+  cancellation waits for outstanding storage writes before retiring a unique key.
+  Local image uploads use bounded memory and asynchronous files, with serialized
+  quota/publication checks and atomic private files. Native error identity is
+  shared across independently linked MoonBit modules.
 - The Worker host defers generated modules inside its request/DO initialization
   gate. The pinned MoonBit core initializes hash seeds with Web Crypto, which
   workerd forbids at global scope. Wrangler bundles the deferred import into a
@@ -191,7 +198,8 @@ node scripts/moon.mjs check --target js
 - `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Remaining migration areas are the Workers/Node services and shared HTTP helpers.
+Remaining migration areas are AI/authentication services and the main Worker/Node
+request handlers, including the Worker's room synchronization and legacy storage.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -201,10 +209,10 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: **628 regression/differential tests**, 15 MoonBit tests on JS,
+Locally verified: **630 regression/differential tests**, 15 MoonBit tests on JS,
 3 kernel tests and the pure proposal planner test on WASM, typechecking and the
 production build. The complete studio,
-selective Undo and editor Store passed the **152-test CI browser selection**, covering
+selective Undo and editor Store passed the **154-test CI browser selection**, covering
 offline collaboration, guarded AI edits, IME/clipboard, gestures, independent timing,
 portable media, seeking and actual MP4/WebM output. An additional 15 chat/structure
 checks passed with both the dev server and browsers restricted to two CPU cores;
@@ -330,7 +338,16 @@ decisions kept in MoonBit. The upstream variadic path/process helpers use Common
 passed its JS typecheck and four upstream R2 tests. A workerd probe also verified
 SQLite bound writes, row/column iteration, single-row reads and safe-integer values.
 Its full suite stalled in D1; hibernating-WebSocket APIs are absent and would need
-an additional boundary before adoption. [mars.mbt](https://github.com/mizchi/mars.mbt/tree/ff4485e0309a8532d03002eb588ab06dcd252848)
+an additional boundary. Its synchronous SQLite bindings and R2 resource/metadata
+types are now adopted. Its R2 awaits require the separate `moonbitlang/async`
+coroutine scheduler; `cloudflare_runtime` binds native promises to the application's
+existing request lifetimes. Alarm timestamps use `Double` because the upstream
+alarm API uses `Int`. The migrated storage passed 32 multipart/image tests, a
+concurrent local-image quota/dedup check, and actual Node/workerd restart, range,
+R2 migration, fault injection and concurrent-quota integrations.
+The production build also passed 18 image/media browser checks, including portable
+imports, peer Undo and MP4/WebM pixel verification, on two CPU cores.
+[mars.mbt](https://github.com/mizchi/mars.mbt/tree/ff4485e0309a8532d03002eb588ab06dcd252848)
 was inspected, but its Cloudflare adapter is a placeholder and is not adopted.
 
 ## Repository and deployment

@@ -1,0 +1,26 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_web/http" @web,
+  "mizchi/js_web/streams",
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/assets",
+  "poietra/poietra/http_policy" @policy,
+  "poietra/poietra/http_runtime" @http,
+  "poietra/poietra/cloudflare_runtime" @cloud,
+  "poietra/poietra/r2_upload" @upload,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "asset_value:assetValue",
+        "asset_response:r2AssetResponse",
+        "handle_asset_request:handleAssetRequest",
+      ],
+    },
+  },
+)

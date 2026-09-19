@@ -9,10 +9,8 @@ priv suberror UploadFailure {
 }
 
 ///|
-extern "js" fn error_class(fields : (@core.Any) -> @core.Any) -> @core.Any =
-  #|fields => class extends Error {
-  #|  constructor(message, ...args) { super(message); Object.assign(this, fields(...args)); }
-  #|}
+#module("#poietra/http-host")
+extern "js" fn error_class(fields : (@core.Any) -> @core.Any) -> @core.Any = "uploadErrorClass"
 
 ///|
 let upload_error_class : @core.Any = error_class(fn(status) {

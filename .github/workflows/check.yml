@@ -55,6 +55,10 @@ jobs:
         run: pnpm --dir apps/studio exec playwright test --config tests/e2e/site-production.config.ts
       - name: Check real Worker startup, hibernation and restart recovery
         run: pnpm --dir apps/studio exec node tests/collaboration-worker.integration.mjs --port 8796
+      - name: Check local media persistence and R2 migration/failure recovery
+        run: |
+          pnpm --dir apps/studio exec node tests/media-storage.integration.mjs node
+          pnpm --dir apps/studio exec node tests/r2-assets-worker.integration.mjs
       - name: Preserve browser failure evidence
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

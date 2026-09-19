@@ -1,0 +1,21 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/arraybuffer" @buffer,
+  "poietra/poietra/assets",
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "save_image:saveRoomImage",
+        "handle_images:handleImages",
+        "handle_media:handleMedia",
+      ],
+    },
+  },
+)

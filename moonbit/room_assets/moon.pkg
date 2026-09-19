@@ -1,0 +1,18 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/cloudflare" @cf,
+  "poietra/poietra/cloudflare_runtime" @cloud,
+  "poietra/poietra/assets",
+  "poietra/poietra/http_runtime" @http,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [ "room_assets_class:roomAssetsClass" ],
+    },
+  },
+)
