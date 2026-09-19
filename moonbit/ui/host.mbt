@@ -105,3 +105,41 @@ fn optional_number(
 ///|
 extern "js" fn blur(event : @core.Any) -> Unit =
   #|event => event.currentTarget.blur()
+
+///|
+#module("#poietra/ui-host")
+extern "js" fn shared_runtime() -> @core.Any = "sharedRuntime"
+
+///|
+extern "js" fn error_message(value : @core.Any, fallback : String) -> String =
+  #|(value, fallback) => value instanceof Error ? value.message : fallback
+
+///|
+fn attempt(
+  action : () -> Unit,
+  on_error : (String) -> Unit,
+  fallback : String,
+) -> Unit {
+  @core.ffi_wrap_sync(
+    fn() {
+      action()
+      @core.undefined()
+    },
+    fn(_) { () },
+    fn(error) { on_error(error_message(error, fallback)) },
+  )
+}
+
+///|
+fn component(
+  render : (@core.Any) -> @react.Element,
+  props : Map[String, @core.Any],
+  nodes : Array[&@react.ReactNode],
+) -> @react.Element {
+  @react.jsx(@core.any(render), nodes, props~)
+}
+
+///|
+fn prevent_default(event : @core.Any) -> Unit {
+  event._call("preventDefault", []) |> ignore
+}

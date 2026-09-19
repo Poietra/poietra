@@ -3,12 +3,16 @@
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Dialog } from '@base-ui/react/dialog';
 import { Popover } from '@base-ui/react/popover';
-import { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Tabs } from '@base-ui/react/tabs';
+import { Menu } from '@base-ui/react/menu';
+import * as Y from 'yjs';
+import { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-const icons = { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw };
-const libraries = { Tooltip, Dialog, Popover };
+const icons = { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles };
+const libraries = { Tooltip, Dialog, Popover, Tabs, Menu };
 export const iconComponent = name => icons[name];
 export const uiComponent = (library, name) => libraries[library][name];
 export const classNames = values => twMerge(clsx(values));
+export const sharedRuntime = () => Y;

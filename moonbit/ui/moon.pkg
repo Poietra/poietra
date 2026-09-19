@@ -3,6 +3,7 @@ import {
   "mizchi/npm_typed/react",
   "poietra/poietra/scene",
   "poietra/poietra/editor",
+  "poietra/poietra/boundary",
 }
 
 supported_targets = "js"
@@ -12,6 +13,9 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "scene_tabs:SceneTabs",
+        "playback_panel:PlaybackPanel",
+        "chat_thinking:ChatThinking",
         "connection_presentation:connectionPresentation",
         "connection_status:ConnectionStatus",
         "use_operation_feedback:useOperationFeedback",

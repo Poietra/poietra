@@ -1,8 +1,10 @@
-import * as moonbit from '../../../../../_build/js/release/build/boundary/boundary.js';
+// Public original 3f49040; independent migration oracle.
+import { escapeXml, number, unit } from './svg';
 
 // MathJax SVG uses 1000 units per em. Share the Write stroke with visual bounds.
 export const EQUATION_UNITS_PER_EM = 1000;
 export const EQUATION_WRITE_STROKE_UNITS = 18;
+const WRITE_FILL_START = 0.55;
 
 interface MathNode { tag: string; attributes: Record<string, string>; children: MathNode[] }
 export interface Equation { width: number; height: number; x: number; y: number; tree: MathNode; glyphs: number }
@@ -67,6 +69,25 @@ export async function prepareEquations(sources: string[]): Promise<void> {
 
 export function getEquation(source: string): Equation | null { return cache.get(source) ?? null; }
 
-export const equationGlyphProgress: (progress: number, order: 'together' | 'sequential', glyphs: number, index: number) => number = moonbit.equationGlyphProgress;
-export const equationFillProgress: (progress: number) => number = moonbit.equationFillProgress;
-export const equationMarkup: (equation: Equation, progress: number, order: 'together' | 'sequential') => string = moonbit.equationMarkup;
+export function equationGlyphProgress(progress: number, order: 'together' | 'sequential', glyphs: number, index: number): number {
+  return order === 'sequential' ? unit(progress * glyphs - index) : unit(progress);
+}
+
+export function equationFillProgress(progress: number): number {
+  return unit((progress - WRITE_FILL_START) / (1 - WRITE_FILL_START));
+}
+
+export function equationMarkup(equation: Equation, progress: number, order: 'together' | 'sequential'): string {
+  let index = 0;
+  const render = (node: MathNode): string => {
+    const attributes = Object.entries(node.attributes).map(([key, value]) => ` ${key}="${escapeXml(value)}"`).join('');
+    if (node.tag === 'g') return `<g${attributes}>${node.children.map(render).join('')}</g>`;
+    const glyphProgress = equationGlyphProgress(progress, order, equation.glyphs, index++);
+    if (glyphProgress === 0) return '';
+    if (glyphProgress === 1) return `<${node.tag}${attributes}/>`;
+    // Each glyph is drawn along its own outline; fills settle in at the end of its stroke.
+    const fillProgress = equationFillProgress(glyphProgress);
+    return `<g fill-opacity="${number(fillProgress)}" stroke="currentColor" stroke-width="${EQUATION_WRITE_STROKE_UNITS}" stroke-linecap="round" stroke-linejoin="round"><${node.tag}${attributes} pathLength="1" stroke-dasharray="1" stroke-dashoffset="${number(1 - glyphProgress)}"/></g>`;
+  };
+  return render(equation.tree);
+}

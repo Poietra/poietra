@@ -4,10 +4,12 @@ import {
   "poietra/poietra/geometry",
   "poietra/poietra/editor",
   "poietra/poietra/collaboration",
+  "poietra/poietra/render",
 }
 
 options(
   targets: {
+    "render.mbt": [ "js" ],
     "scene.mbt": [ "js" ],
     "playback.mbt": [ "js" ],
     "structure.mbt": [ "js" ],
@@ -23,6 +25,24 @@ options(
   link: {
     "js": {
       "exports": [
+        "prepare_render_scene:prepareRenderScene",
+        "frame_to_svg:frameToSvg",
+        "object_bounds:objectBounds",
+        "text_markup:textMarkup",
+        "equation_markup:equationMarkup",
+        "equation_glyph_progress:equationGlyphProgress",
+        "equation_fill_progress:equationFillProgress",
+        "shape_geometry:shapeGeometry",
+        "arrow_head_path:arrowHeadPath",
+        "arrow_head_progress:arrowHeadProgress",
+        "numberline_tick_path:numberlineTickPath",
+        "numberline_tick_progress:numberlineTickProgress",
+        "svg_color:svgColor",
+        "svg_escape:svgEscape",
+        "svg_finite:svgFinite",
+        "svg_unit:svgUnit",
+        "svg_number:svgNumber",
+        "svg_id:svgId",
         "rename_scene:renameScene",
         "duplicate_scene:duplicateScene",
         "delete_scene:deleteScene",

@@ -5,8 +5,10 @@ MoonBit rewrite of [Poietra's collaborative browser motion editor](https://githu
 **Migration in progress.** The running editor currently uses MoonBit for its
 motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
-controls, connection status, operation feedback, group animation commands and Scene/Composition management. Most editor screens, higher-level
-editor/Undo commands, AI, media renderer, and service orchestration still contain
+controls, connection status, operation feedback, group animation commands,
+Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
+rendering. Most editor screens, higher-level editor/Undo commands, AI, Canvas/GPU
+and media resource orchestration, and service orchestration still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -44,12 +46,15 @@ node scripts/moon.mjs check --target js
   Seeking uses binary search; preview and export share this same evaluator.
   Object/animation/effect kinds are enums, not arbitrary strings in the core.
 - `moonbit/geometry`: selection, rotation and constrained corner resizing.
+- `moonbit/render`: typed shape geometry, exact cubic bounds, text/equation Write,
+  and self-contained SVG generation. Prepared MathJax trees are decoded once per
+  resource lifetime. The pure renderer receives explicit font/image resources.
 - `moonbit/editor`: typed connection/persistence states, operation feedback,
   group membership, animation edit plans, and Scene/Composition copy/delete plans. Complete batches are validated
   before writing; existing tracks change only intended leaves. A delayed
   completion cannot clear a newer gesture or another Scene.
 - `moonbit/ui`: MoonBit components using mizchi's typed React bindings. Shared
-  controls and status displays retain the existing CSS and accessible Base UI
+  controls, Scene tabs, playback information and status displays retain the existing CSS and accessible Base UI
   primitives. `src/platform/ui-host.mjs` only exposes npm runtime values.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
@@ -62,11 +67,11 @@ node scripts/moon.mjs check --target js
   Frames do not serialize embedded media to JSON.
 - `apps/studio`: the running editor and original regression tests, imported from
   public `poietra-hackathon` commit `3f49040ee4bcf06bfcf02e269712833f3729c536`.
-- `apps/studio/tests/oracle`: the pinned original evaluator and Rust WASM used for
+- `apps/studio/tests/oracle`: the pinned original evaluator, SVG renderer and Rust WASM used for
   differential testing, not runtime imports.
 
-Next migration areas are shared editing operations and CRDT projections, UI,
-rendering/media/export, shared chat/AI, and Workers/Node service orchestration.
+Remaining migration areas include higher-level editing and Undo, UI screens,
+Canvas/GPU resources and media/export, shared chat/AI, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -76,9 +81,13 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 531 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 535 regression/differential tests, 4 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
-actual MP4/WebM export and decoding. CI runs these checks with a pinned compiler.
+actual MP4/WebM export and decoding. An additional 42 browser rendering checks
+passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
+replacement, cancellation and resource release. The Scene/chat migration passed
+17 browser checks, including shared waiting state and reduced motion. CI runs
+the core suite and editor selection with a pinned compiler.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts
