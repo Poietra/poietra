@@ -19,18 +19,4 @@ export const AiHistorySchema = z.array(turn).max(AI_HISTORY_MAX_ENTRIES).refine(
   '会話履歴は合計 24000 文字以内にしてください。',
 );
 
-/** Bound completed turns from the current Scene; the caller excludes the latest request. */
-export function trimAiHistory(history: readonly AiConversationTurn[]): AiConversationTurn[] {
-  const kept: AiConversationTurn[] = [];
-  let characters = 0;
-  for (let index = history.length - 1; index >= 0 && kept.length < AI_HISTORY_MAX_ENTRIES; index--) {
-    const entry = history[index];
-    const text = entry.content.slice(0, AI_HISTORY_MAX_CONTENT);
-    if (characters + text.length > AI_HISTORY_MAX_CHARACTERS) break;
-    kept.push(entry.role === 'assistant'
-      ? { role: entry.role, content: text, ...(entry.proposalStatus ? { proposalStatus: entry.proposalStatus } : {}) }
-      : { role: entry.role, content: text });
-    characters += text.length;
-  }
-  return kept.reverse();
-}
+export { trimAiHistory } from '../../../_build/js/release/build/boundary/boundary.js';

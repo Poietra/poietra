@@ -8,9 +8,9 @@ CRDT structure projection, model defaults/validation, project timelines, shared 
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures, object/property inspectors,
 audio/video track editing, the animation timeline and canvas interaction,
-Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared AI waiting indicators and SVG
+Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared room chat, AI request/apply controls and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. App orchestration, remaining dialogs,
-higher-level editor/Undo commands, AI and services still contain
+higher-level editor/Undo commands, AI proposal compilation and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
 while each implementation is replaced; this is not yet a complete rewrite.
 
@@ -92,6 +92,9 @@ node scripts/moon.mjs check --target js
   earlier edits and peer changes. Hit testing uses the published painted frame.
   Ruler presses seek precisely even when the wide moving playhead overlaps them.
   `src/platform/ui-host.mjs` only exposes npm runtime values.
+- `moonbit/browser_chat`: validated room messages, per-entry snapshot caching and
+  owned Yjs subscriptions. Typed request sessions suppress canceled or stale AI
+  replies; history limits and proposal-target labels live in the pure editor model.
 - `moonbit/collaboration`: typed edit batches, full target validation before a
   transaction, and structural invalidation rules. Yjs remains the CRDT runtime.
 - Shared snapshots invalidate only changed branches before observers run.
@@ -107,7 +110,7 @@ node scripts/moon.mjs check --target js
   differential testing, not runtime imports.
 
 Remaining migration areas include higher-level editing and Undo, UI screens,
-shared chat/AI, and Workers/Node services.
+AI proposal compilation, and Workers/Node services.
 Unmigrated TypeScript remains visible until its replacement passes the same tests.
 Rust is no longer required to build the running application.
 
@@ -117,7 +120,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 589 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 591 regression/differential tests, 11 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry
@@ -141,6 +144,9 @@ Esc/blur cancellation, peer replacements and independent timing edits.
 The canvas migration passed 35 browser checks for drawing, selection, group moves,
 corner resizing, rotation, text editing and preview scheduling. The timeline passed
 13 checks including a deterministic regression for clicks underneath the playhead.
+Shared chat and AI controls passed 35 browser checks covering concurrent requests,
+offline history, cancel/retry, automatic application, new Scenes/objects/images,
+guarded peer conflicts and selective Undo.
 
 ```sh
 pnpm --dir apps/studio exec node --import tsx scripts/benchmark-moonbit.ts

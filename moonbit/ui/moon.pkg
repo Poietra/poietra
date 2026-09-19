@@ -18,6 +18,7 @@ options(
     "js": {
       "format": "esm",
       "exports": [
+        "assistant_panel:AssistantPanel",
         "property_timing_inspector:PropertyTimingInspector",
         "group_controls:GroupControls",
         "group_animation_inspector:GroupAnimationInspector",

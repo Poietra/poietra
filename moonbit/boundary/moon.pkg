@@ -9,6 +9,9 @@ import {
 
 options(
   targets: {
+    "chat.mbt": [ "js" ],
+    "chat_validation.mbt": [ "js" ],
+    "proposal_targets.mbt": [ "js" ],
     "render.mbt": [ "js" ],
     "tex.mbt": [ "js" ],
     "scene.mbt": [ "js" ],
@@ -26,6 +29,10 @@ options(
   link: {
     "js": {
       "exports": [
+        "codex_prompt:codexPrompt",
+        "proposal_targets:proposalTargets",
+        "chat_history:chatHistory",
+        "trim_ai_history:trimAiHistory",
         "prepare_render_scene:prepareRenderScene",
         "tex_completions:texCompletions",
         "tex_completion_context:texCompletionContext",

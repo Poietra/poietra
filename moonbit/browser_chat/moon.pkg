@@ -1,0 +1,13 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/boundary",
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": { "format": "esm", "exports": [ "create_room_chat:createRoomChat" ] },
+  },
+)

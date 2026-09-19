@@ -52,3 +52,33 @@ it('bounds retained messages and ignores malformed synchronized entries', () => 
   doc.getArray('chat').push([new Y.Map(Object.entries({ ...message('broken'), createdAt: 1e20 }))]);
   expect(chat.snapshot().find(item => item.id === 'broken')).toBeUndefined();
 });
+
+it('refreshes only changed chat entries and retries validation when a malformed entry is repaired', () => {
+  const doc = new Y.Doc(), chat = new RoomChat(doc);
+  chat.append(message('first')); chat.append(message('second'));
+  const before = chat.snapshot();
+  chat.patch('second', { status: 'pending' });
+  expect(chat.snapshot()).not.toBe(before);
+  expect(chat.snapshot()[0]).toBe(before[0]);
+  expect(chat.snapshot()[1]).not.toBe(before[1]);
+  const entry = doc.getArray<Y.Map<unknown>>('chat').get(1);
+  entry.set('createdAt', Infinity);
+  expect(chat.snapshot().map(item => item.id)).toEqual(['first']);
+  entry.set('createdAt', 123);
+  expect(chat.snapshot()[1]).toMatchObject({ id: 'second', createdAt: 123, status: 'pending' });
+  expect(chat.snapshot()[0]).toBe(before[0]);
+});
+
+it('rejects malformed local chat data before writing and releases its observer on document destruction', () => {
+  const doc = new Y.Doc(), chat = new RoomChat(doc);
+  let notifications = 0;
+  chat.subscribe(() => notifications++);
+  expect(() => chat.append({ ...message('invalid'), color: '#nothex' })).toThrow();
+  expect(doc.getArray('chat').length).toBe(0);
+  expect(notifications).toBe(0);
+  chat.append(message('valid'));
+  expect(notifications).toBe(1);
+  doc.destroy();
+  doc.getArray<Y.Map<unknown>>('chat').get(0).set('status', 'pending');
+  expect(notifications).toBe(1);
+});
