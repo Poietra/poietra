@@ -39,6 +39,15 @@ describe('TeX completion matching', () => {
 });
 
 describe('applying a completion', () => {
+  it('keeps DOM UTF-16 caret positions after Japanese and supplementary characters', () => {
+    const prefix = '数式 🎬 = ';
+    const text = prefix + '\\fr + 1';
+    const caret = prefix.length + 3;
+    expect(texCompletionContext(text, caret)).toEqual({ start: prefix.length, query: 'fr' });
+    const next = applyTexCompletion(text, prefix.length, caret, matchTexCompletions('fr')[0]);
+    expect(next.text).toBe(prefix + '\\frac{}{} + 1');
+    expect(next.text.slice(next.caret - 1, next.caret + 1)).toBe('{}');
+  });
   it('replaces the typed prefix and moves the caret into the first braces', () => {
     const frac = matchTexCompletions('frac')[0];
     expect(applyTexCompletion('x = \\fr + 1', 4, 7, frac)).toEqual({ text: 'x = \\frac{}{} + 1', caret: 10 });

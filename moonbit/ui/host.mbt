@@ -143,3 +143,17 @@ fn component(
 fn prevent_default(event : @core.Any) -> Unit {
   event._call("preventDefault", []) |> ignore
 }
+
+///|
+fn host_record(fields : Map[String, @core.Any]) -> @core.Any {
+  let value = @core.new_object()
+  for key, field in fields {
+    value._set(key, field)
+  }
+  value
+}
+
+///|
+fn[T] host_array(values : Array[T]) -> FixedArray[T] {
+  FixedArray::makei(values.length(), fn(i) { values[i] })
+}

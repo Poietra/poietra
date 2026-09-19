@@ -10,6 +10,7 @@ import {
 options(
   targets: {
     "render.mbt": [ "js" ],
+    "tex.mbt": [ "js" ],
     "scene.mbt": [ "js" ],
     "playback.mbt": [ "js" ],
     "structure.mbt": [ "js" ],
@@ -26,6 +27,10 @@ options(
     "js": {
       "exports": [
         "prepare_render_scene:prepareRenderScene",
+        "tex_completions:texCompletions",
+        "tex_completion_context:texCompletionContext",
+        "match_tex_completions:matchTexCompletions",
+        "apply_tex_completion:applyTexCompletion",
         "frame_to_svg:frameToSvg",
         "object_bounds:objectBounds",
         "text_markup:textMarkup",

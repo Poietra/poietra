@@ -7,7 +7,7 @@ motion kernel, scene evaluation, canvas geometry, shared-document operations and
 CRDT structure projection, model defaults/validation, project timelines, shared UI
 controls, connection status, operation feedback, group animation commands and inspectors,
 property timing controls, collaborative easing gestures,
-Scene/Composition management, Scene tabs, shared AI waiting indicators and SVG
+Scene/Composition management, Scene tabs, layer/group browsing and TeX completion, shared AI waiting indicators and SVG
 rendering, font preparation, MathJax conversion, Canvas drawing, frame composition, raster caching, GPU Glow, image loading, video decoding, audio mixing, MP4/WebM export and live preview scheduling. Most editor screens,
 higher-level editor/Undo commands, AI and services still contain
 TypeScript implementations. Keeping those running preserves the original regression suite
@@ -113,7 +113,7 @@ do not constrain the MoonBit design.
 
 ## Checks and performance
 
-Locally verified: 588 regression/differential tests, 9 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
+Locally verified: 589 regression/differential tests, 9 MoonBit tests on JS and 3 kernel tests on WASM, typechecking and the production build. A 43-test browser selection
 also passed, including offline concurrent edits, deletion/Undo, custom curves, seeking, and
 actual MP4/WebM export and decoding. An additional 42 browser rendering checks
 passed for SVG/Canvas agreement, Japanese text, equation Write, seeks, geometry

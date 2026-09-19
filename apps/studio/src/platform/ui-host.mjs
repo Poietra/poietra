@@ -7,11 +7,11 @@ import { Tabs } from '@base-ui/react/tabs';
 import { Menu } from '@base-ui/react/menu';
 import * as Y from 'yjs';
 import { createContext } from 'react';
-import { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles, LoaderCircle, RotateCcw, Download, Play, Pause, Group, Ungroup } from 'lucide-react';
+import { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles, LoaderCircle, RotateCcw, Download, Play, Pause, Group, Ungroup, ChevronDown, ChevronRight, Circle, Eye, EyeOff, Layers2, UnlockKeyhole, Search, Square, Spline, Sigma, Type, ArrowUpRight, Minus, Image, Film } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-const icons = { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles, LoaderCircle, RotateCcw, Download, Play, Pause, Group, Ungroup };
+const icons = { X, Clapperboard, PencilLine, Check, LockKeyhole, MousePointer2, Move, AlertTriangle, RefreshCw, ArrowLeft, ArrowRight, ChartNoAxesColumnIncreasing, Copy, MoreHorizontal, Pencil, Plus, Trash2, Sparkles, LoaderCircle, RotateCcw, Download, Play, Pause, Group, Ungroup, ChevronDown, ChevronRight, Circle, Eye, EyeOff, Layers2, UnlockKeyhole, Search, Square, Spline, Sigma, Type, ArrowUpRight, Minus, Image, Film };
 const libraries = { Tooltip, Dialog, Popover, Tabs, Menu };
 export const iconComponent = name => icons[name];
 export const uiComponent = (library, name) => libraries[library][name];
