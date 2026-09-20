@@ -20,8 +20,8 @@ adapters for browser APIs and JavaScript libraries. Executable application TS/TS
 has been removed; internal refactoring and performance work continue.
 
 Documentation reviewed **2026-09-21**, against application revision
-[`0cda0c5`](https://github.com/Poietra/poietra/commit/0cda0c5382fb33e7468aa81a06bffc10607e10d2).
-The MoonBit service was last verified in production on **2026-09-20**;
+[`8b3370a`](https://github.com/Poietra/poietra/commit/8b3370a0b4fc80cd85a22e3ce2368cfbb75b1914).
+The MoonBit service was last verified in production on **2026-09-21**;
 see [deployment status and operations](#deployment-and-limits).
 
 ## What you can make
@@ -252,17 +252,19 @@ compare 219 function exports and their arity.
 
 ## Checks
 
-The last application revision, `0cda0c5`, passed
-[CI run 35499218054](https://github.com/Poietra/poietra/actions/runs/35499218054):
-700 Vitest checks, five build/API checks, 48 MoonBit JS tests, 41 WASM tests,
-170 main browser checks, eight export checks, six media checks and 26 production
+Application revision `8b3370a` passed
+[CI run 35527411897](https://github.com/Poietra/poietra/actions/runs/35527411897):
+700 Vitest checks, five build/API checks, 49 MoonBit JS tests, 42 WASM tests,
+173 main browser checks, eight export checks, six media checks and 26 production
 page checks, plus actual Node/workerd persistence, hibernation, restart, R2 and
 account/TTL integrations. [.github/workflows/check.yml](.github/workflows/check.yml)
 is the authoritative selection; these counts describe that run.
 
-The broader local development suite passed all 180 checks on frozen sources.
-An earlier 178/180 run overlapped a Vite restart while the build plugin was being
-edited; the complete suite was rerun after freezing the configuration.
+The targeted local account/project suite also passed all 15 browser checks on
+frozen sources. It covers search/order, failed reads, restoration retries,
+identity changes, delayed replies and guest project operations. Authentication
+HTTP responses are mocked in those UI tests; separate Node/workerd integrations
+exercise persistent account isolation, callback races and expiry.
 
 ```sh
 # Repository root
@@ -448,18 +450,21 @@ configuration is for isolated `poietra-moonbit` validation. The explicit
 Yumaboda's account, preserving `poietra.com`, old workers.dev links, three Durable
 Object namespaces, migration tag `v2-accounts`, secrets and `poietra-assets-prod`.
 
-**Last recorded deployment: 2026-09-20 17:32 JST.** Application `0cda0c5`
-served at 100% as Worker version `9d95a13c-c383-4c14-89f5-4af572ab85a4` after CI
-passed. All 16 bindings and runtime settings matched the preceding release;
+**Last recorded deployment: 2026-09-21 02:57 JST.** Application `8b3370a`
+served at 100% as Worker version `ae562112-171c-4e79-9c0c-2839be28b03b`.
+All 16 bindings, runtime settings and handlers matched the preceding release;
 there was no document/storage migration. The recorded predecessor is
-`83767c03-c8ae-49bb-8151-194d35af64a3` (application `99a349d`). Confirm the active
+`9d95a13c-c383-4c14-89f5-4af572ab85a4` (application `0cda0c5`). Confirm the active
 version before the next deployment instead of assuming this record is live state.
 
 Verification used a dedicated room: release JS/WASM hashes, existing room/R2
 restoration, upload deduplication, two-browser edits and selective Undo,
 guest/account UI, GitHub authorization start, playback and seeking. A downloaded
 720p MP4 decoded all 102 expected frames. Full provider login and paid AI calls
-were outside that smoke check.
+were outside that smoke check. With account HTTP responses mocked in the browser,
+the deployed UI also passed search/order, failed-read recovery and retryable
+shortcut restoration checks, with non-overlapping controls at 1440/720/420 px.
+Those UI checks do not constitute live OAuth or private-account persistence tests.
 
 Use the [studio deployment procedure](apps/studio/README.md#実行と配置) for local
 workerd, version upload, activation and rollback. `pnpm --dir apps/studio run deploy`
