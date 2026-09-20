@@ -104,7 +104,13 @@ async fn AccountController::refresh_projects(self : AccountController) -> Unit {
         let values : FixedArray[@core.Any] = response._get("projects").cast()
         Array::makei(values.length(), fn(i) { account_project(values[i]) })
       })
-      self.update({ ..self.view, projects, error: "", })
+      let excluded = match self.view.excluded {
+        Some(entry) if projects.any(fn(project) {
+            project.room_id == entry.room
+          }) => None
+        entry => entry
+      }
+      self.update({ ..self.view, projects, excluded, error: "", })
     }
   } catch {
     failure =>
@@ -240,6 +246,7 @@ async fn AccountController::mutate_async(
               project.room_id != room
             }),
           })
+          self.list()
           return
         }
         let project = @core.throwable(fn() {

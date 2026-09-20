@@ -140,6 +140,34 @@ test('returning to a tab refreshes changes to the same account list made elsewhe
   await expect(page.getByText('Alice', { exact: true })).toBeVisible();
 });
 
+test('a skipped visit recovers a slow list read and a shortcut restored on another device resumes title refreshes', async ({ page }) => {
+  const room = crypto.randomUUID();
+  let lists = 0, listed = false, title = 'Restored elsewhere', releaseFirst!: () => void;
+  const firstList = new Promise<void>(resolve => { releaseFirst = resolve; });
+  await page.route('**/api/auth/session', route => route.fulfill({ json: { user: { id: 'github:alice', name: 'Alice', provider: 'github' }, providers: { google: false, github: true } } }));
+  await page.route('**/api/projects**', async route => {
+    if (route.request().method() === 'GET') {
+      if (++lists === 1) await firstList;
+      return route.fulfill({ json: { projects: [
+        { roomId: 'unrelated-private-room', name: 'Unrelated work', updatedAt: 1 },
+        ...(listed ? [{ roomId: room, name: title, updatedAt: 2 }] : []),
+      ] } });
+    }
+    title = route.request().postDataJSON().name;
+    return route.fulfill({ json: { project: listed ? { roomId: room, name: title, updatedAt: 3 } : null } });
+  });
+  try {
+    await page.goto(`/?room=${room}&projects=1`);
+    await expect(page.getByRole('link', { name: /Unrelated work/ })).toBeVisible();
+    listed = true;
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(page.getByRole('button', { name: '一覧に追加済み', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: '閉じる', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Project name', exact: true }).fill('Title after restoration');
+    await expect.poll(() => title).toBe('Title after restoration');
+  } finally { releaseFirst(); }
+});
+
 test('a cancelled login returns to the same guest project with an actionable message', async ({ page }) => {
   const room = crypto.randomUUID();
   await page.route('**/api/auth/session', route => route.fulfill({ json: { user: null, providers: { google: true, github: true } } }));
