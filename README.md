@@ -198,6 +198,12 @@ The rewrite changes the data flow as well as the language:
   This uses Mediabunny 1.56.2's
   [sequential canvas iterator](https://mediabunny.dev/guide/reading-media-files),
   with explicit ownership and cancellation around the host binding.
+- **Retain rendered objects.** One typed SVG view drives both serialized output
+  and keyed stage elements. Moving or recoloring a shape keeps its geometry DOM;
+  changed geometry replaces only that object's content. The Canvas painter draws
+  opaque shapes without effects directly with cached Path2D geometry. Opacity and
+  Glow retain isolated compositing, with the same evaluator and transforms for
+  preview and export.
 - **Plan typed edits.** Manual creation, clipboard and media imports share an
   `ObjectInsertion` plan. Drag/hide eligibility and animation selection use typed
   values in `editor`, which is checked on both JS and WASM. Adapters read only
@@ -229,7 +235,7 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20 at application revision `54d0314`, after removing the historical implementations.
+Audited 2026-09-20 at application revision `8357a35`, after removing the historical implementations.
 GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
@@ -237,11 +243,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 145 | 16,066 |
-| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,911 |
+| Regression/browser tests, fixtures and test configurations | 145 | 16,151 |
+| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,932 |
 | Benchmark scripts and root tool configurations | 5 | 139 |
 
-The same inventory has **55,784 application MoonBit lines** and **782 native JS
+The same inventory has **56,071 application MoonBit lines** and **783 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -253,6 +259,19 @@ still merge native patches before validation. Parts of the UI and host
 orchestration also use `Any`. Move remaining domain decisions into typed plans;
 React/DOM, Yjs and platform object interactions belong in host bindings. The
 zero-TS count is an inventory result, not completion of this internal refactoring.
+
+The architecture review on 2026-09-20 used mizchi's `moonbit-practice` and
+`frontend-review-performance` guidance: typed ownership and measured hot paths
+are the criteria, rather than language percentages. The pure editing/evaluation
+core and immutable collaboration boundary are well separated. The UI boundary
+is less precise: `studio` still distributes document, selection, presence and
+playback time through one Context, so clock changes reach panels that do not need
+them. Memoized leaf rows reduce work, but do not isolate Context subscriptions
+([React's Context guidance](https://react.dev/reference/react/memo#updating-a-memoized-component-using-a-context)).
+The next architectural work is to separate those subscriptions and make resource
+preparation depend on resource changes; initial editor delivery and remaining
+`Any` orchestration also need attention. These are remaining tasks, not completed
+optimizations or changes to the document model.
 
 Run `pnpm audit:source` to reproduce the inventory, or
 `node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also
@@ -293,6 +312,67 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Retained SVG and direct shape painting — 2026-09-20
+
+Fresh builds of [`4b2ae74`](https://github.com/Poietra/poietra/commit/4b2ae74435d6f7b75ace1430aee4f1f44368fb74)
+and [`8357a35`](https://github.com/Poietra/poietra/commit/8357a35c1bb0085eb645144d771db25fee618de1)
+were compared. Each result records the application source hash and runtime
+artifacts; the export baseline was rebuilt in an isolated checkout. Workloads
+ran sequentially, with frozen sources, on the Intel Core Ultra 7 255H/WSL2 host,
+Node 24.13.0, MoonBit `0.10.13+cbb11c36f` and Chromium 153.0.8010.12 with
+SwiftShader. Processes could use CPUs `0–15`, unlike the preceding pinned runs.
+Other host activity was not isolated. Values below are medians (min–max).
+
+| Workload | Before | After |
+| --- | ---: | ---: |
+| 100-object drag, DOM change + two rAF callbacks | 38.5 ms (31.9–42.7) | 33.5 ms (32.9–66.9) |
+| 500-object drag, same measurement | 34.4 ms (33.2–61.0) | 33.4 ms (32.9–61.8) |
+| 500-object playback rAF interval | 16.7 ms (16.6–116.6) | 16.7 ms (16.6–83.4) |
+| Demo MP4, 102 frames, 720p/30 fps | 256.9 ms (250.1–295.3) | 246.0 ms (237.0–251.9) |
+| Demo WebM, same frames/settings | 315.8 ms (303.2–328.5) | 290.6 ms (285.6–294.6) |
+| 100-shape MP4, 90 frames | 260.9 ms (257.9–273.2) | 244.9 ms (244.9–248.1) |
+| 500-shape MP4, 90 frames | 387.7 ms (382.5–395.2) | 342.0 ms (336.6–342.6) |
+| Painting within that 500-shape export | 154.9 ms (154.4–160.2) | 124.6 ms (123.0–125.9) |
+
+The 500-shape export took 12% less time; its painting stage took 20% less time.
+The 100-object drag median improved 13%, while its worst observation increased.
+The 500-object drag median changed little. Playback's 95th-percentile interval
+remained 50 ms, although intervals above 25 ms fell from 33/159 to 24/167 samples
+in this three-second fixture. This does **not** establish smooth playback on
+user devices. These are instrumented local measurements, not field INP or GPU FPS.
+
+The interaction fixture uses one client at 1440×900, 100/500 circles, two one-second
+holds and one one-second transition. Dragging has one warmup and three runs of
+60 trusted pointer moves at nominal 60 Hz; the browser may delay input delivery.
+Exports use one full warmup and three measured runs per case, with unchanged
+codec/settings, every timestamp retained and packet/decode checks. CDP CPU
+sampling at 1 ms adds overhead; downloads, source media and WAN are excluded.
+[Interaction before](benchmarks/2026-09-20-retained-rendering/ui-before.json),
+[after](benchmarks/2026-09-20-retained-rendering/ui-after.json),
+[export before](benchmarks/2026-09-20-retained-rendering/export-before.json) and
+[after](benchmarks/2026-09-20-retained-rendering/export-after.json) retain all
+samples; their adjacent compressed CPU profiles preserve the diagnostic evidence.
+
+Startup was **not improved**: initial editor JS is 1,874,113 B raw / 521,212 B gzip,
+up from 1,867,813 / 519,548 B (+0.3% gzip). Home JS remains 290,391 B raw.
+In three fresh mobile contexts (412×823, 150 ms HTTP latency, 200,000 B/s download,
+4× CPU slowdown, cache disabled), stage DOM plus two rAF callbacks changed from
+11,672 ms (11,666–11,724) to 11,842 ms (11,797–11,931). FCP was 1,664 → 1,688 ms;
+LCP was 11,184 → 11,268 ms. The local server delivers uncompressed files; these
+are not production load times. [Startup before](benchmarks/2026-09-20-retained-rendering/startup-before.json),
+[after](benchmarks/2026-09-20-retained-rendering/startup-after.json),
+[bundle before](benchmarks/2026-09-20-retained-rendering/bundle-before.json) and
+[after](benchmarks/2026-09-20-retained-rendering/bundle-after.json) contain details.
+
+Use the existing `measure-interaction.mjs`, `benchmark-export.mjs`,
+`measure-startup.mjs` and `measure-bundle.mjs` scripts under
+`apps/studio/scripts`; their environment variables are described in the following
+measurement section. The new tests retain actual DOM identities across edits,
+compare retained/serialized SVG pixels, and verify fill/stroke opacity when
+switching painting paths. Local shape/text comparisons passed 31 cases, stage
+checks passed 8, and MP4/WebM checks passed 8, including real decoding, hierarchy,
+keyframes and cancellation. No document, account or persistence schema changed.
 
 ### Parent transforms and value curves — 2026-09-20
 
@@ -805,7 +885,7 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
 runs 700 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
-WASM tests, 161 main browser checks, seven MP4/WebM rendering checks, six media checks and 25 production-page
+WASM tests, 163 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
@@ -856,8 +936,18 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
+The rendering release [`8357a35`](https://github.com/Poietra/poietra/commit/8357a35c1bb0085eb645144d771db25fee618de1)
+is deployed at 100% as `b5709485-5574-4ff9-8bf5-f242e76bb355` since
+**2026-09-20 13:54 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35489644696)
+passed every check. Bindings and runtime settings match the account release;
+no stored-data format changed. Production smoke verified release JS/WASM hashes,
+the existing room and R2 image, deduplication, two-browser editing and selective
+Undo, retained SVG group/geometry nodes across edits, guest/account UI, GitHub
+authorization start and display-name persistence. A real production MP4 download
+decoded all 102 frames. Full provider login was not exercised.
+
 The account release [`54d0314`](https://github.com/Poietra/poietra/commit/54d031495e618134a20612fa8cb5820d3777a7c8)
-is deployed at 100% as `8b1850ca-7509-4c64-82d3-6ddebdf00743` since
+was deployed at 100% as `8b1850ca-7509-4c64-82d3-6ddebdf00743` on
 **2026-09-20 13:10 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35487784040)
 passed every check. All production bindings and runtime settings match the preceding
 primitives release. Production smoke verified the deployed JS/WASM, exact restoration

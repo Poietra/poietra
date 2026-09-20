@@ -1,0 +1,1164 @@
+{
+  "measuredAt": "2026-09-20T04:23:51.505Z",
+  "environment": {
+    "applicationRevision": "4b2ae74435d6f7b75ace1430aee4f1f44368fb74",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "67a239ccb287da47403607e6e1188f0bae1622e0630fd24238df42cf78664851",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      0.49,
+      0.32,
+      0.33
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "53814463fdf305776fc2ff38d5c37d1b97707705b4f533fbe0dd92d457383ecc",
+    "boundarySha256": "237bebc0cece3410f71804b24013decc736657174b8461cc7269a0baa78cd43b"
+  },
+  "browser": "153.0.8010.12",
+  "conditions": {
+    "viewport": {
+      "width": 412,
+      "height": 823
+    },
+    "deviceScaleFactor": 1,
+    "locale": "ja-JP",
+    "isMobile": true,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "uploadBytesPerSecond": 93750,
+    "cpuSlowdown": 4,
+    "cache": "New browser context per navigation; HTTP cache disabled; no warmup",
+    "fixture": "One Scene/Composition/circle, seeded through a separate local WebSocket before timing; no equation/media/font preparation for text objects",
+    "stageReady": "First matching circle in the stage DOM plus two animation frames; a presentation opportunity, not physical display or a Web Vital",
+    "observation": "Until the stage is ready, then network idle, fonts ready and two animation frames; no user input",
+    "network": "CDP HTTP throttling with local Node/WebSocket persistence; does not model WAN WebSocket latency or workerd",
+    "longTasks": "Sum of max(0, duration-50ms) across observed long tasks; not Lighthouse TBT"
+  },
+  "summary": {
+    "fcpMs": {
+      "n": 3,
+      "median": 1664,
+      "min": 1664,
+      "max": 1668
+    },
+    "lcpMs": {
+      "n": 3,
+      "median": 11184,
+      "min": 11180,
+      "max": 11192
+    },
+    "stageReadyMs": {
+      "n": 3,
+      "median": 11671.79999999702,
+      "min": 11666.30000000447,
+      "max": 11723.79999999702
+    },
+    "longTaskBlockingMs": {
+      "n": 3,
+      "median": 261,
+      "min": 259,
+      "max": 289
+    },
+    "javascriptDecodedBytes": {
+      "n": 3,
+      "median": 1872664,
+      "min": 1872664,
+      "max": 1872664
+    },
+    "resourceTransferBytes": {
+      "n": 3,
+      "median": 2309767,
+      "min": 2309767,
+      "max": 2309767
+    }
+  },
+  "samples": [
+    {
+      "run": 1,
+      "stageReadyMs": 11723.79999999702,
+      "lcpMs": 11192,
+      "lcpElement": "P",
+      "longTaskBlockingMs": 289,
+      "observedUntilMs": 13028.20000000298,
+      "fcpMs": 1668,
+      "resources": [
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "transferBytes": 239681,
+          "decodedBytes": 239381,
+          "startMs": 173.5,
+          "durationMs": 1365.2999999970198
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 173.60000000149012,
+          "durationMs": 173.69999999552965
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 174.39999999850988,
+          "durationMs": 165.30000000447035
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "transferBytes": 1360076,
+          "decodedBytes": 1359776,
+          "startMs": 1599.1000000014901,
+          "durationMs": 9405.19999999553
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "transferBytes": 191494,
+          "decodedBytes": 191194,
+          "startMs": 1599.2000000029802,
+          "durationMs": 3442.5
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "transferBytes": 72363,
+          "decodedBytes": 72063,
+          "startMs": 1600.1000000014901,
+          "durationMs": 1694.2999999970198
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 1600.2999999970198,
+          "durationMs": 313.6000000014901
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "transferBytes": 179259,
+          "decodedBytes": 178959,
+          "startMs": 1601.7000000029802,
+          "durationMs": 3320.2999999970198
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "transferBytes": 5151,
+          "decodedBytes": 4851,
+          "startMs": 1604.1000000014901,
+          "durationMs": 324.8999999985099
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 1622.8999999985099,
+          "durationMs": 546.3999999985099
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "transferBytes": 4069,
+          "decodedBytes": 3769,
+          "startMs": 3305.2999999970198,
+          "durationMs": 236.60000000149012
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 4943.79999999702,
+          "durationMs": 390.6000000014901
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 11148,
+          "durationMs": 561.2000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "transferBytes": 42984,
+          "decodedBytes": 42684,
+          "startMs": 11162,
+          "durationMs": 922.2000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "transferBytes": 8804,
+          "decodedBytes": 8504,
+          "startMs": 11166.10000000149,
+          "durationMs": 393.5
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "transferBytes": 8376,
+          "decodedBytes": 8076,
+          "startMs": 11166.10000000149,
+          "durationMs": 400.5
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "transferBytes": 8556,
+          "decodedBytes": 8256,
+          "startMs": 11168.20000000298,
+          "durationMs": 405.59999999403954
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "transferBytes": 7052,
+          "decodedBytes": 6752,
+          "startMs": 11172.79999999702,
+          "durationMs": 371
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "transferBytes": 9168,
+          "decodedBytes": 8868,
+          "startMs": 11175,
+          "durationMs": 773.7999999970198
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "transferBytes": 9480,
+          "decodedBytes": 9180,
+          "startMs": 11175,
+          "durationMs": 796.7999999970198
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "transferBytes": 9108,
+          "decodedBytes": 8808,
+          "startMs": 11177.60000000149,
+          "durationMs": 801.8999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "transferBytes": 9548,
+          "decodedBytes": 9248,
+          "startMs": 11178.60000000149,
+          "durationMs": 815.8999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "transferBytes": 9764,
+          "decodedBytes": 9464,
+          "startMs": 11183.29999999702,
+          "durationMs": 870.7000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "transferBytes": 10552,
+          "decodedBytes": 10252,
+          "startMs": 11183.60000000149,
+          "durationMs": 1035.1000000014901
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "transferBytes": 9232,
+          "decodedBytes": 8932,
+          "startMs": 11211.5,
+          "durationMs": 1113
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "transferBytes": 24752,
+          "decodedBytes": 24452,
+          "startMs": 11466.70000000298,
+          "durationMs": 1044.7999999970198
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "transferBytes": 9612,
+          "decodedBytes": 9312,
+          "startMs": 11478.89999999851,
+          "durationMs": 882.6000000014901
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "transferBytes": 9988,
+          "decodedBytes": 9688,
+          "startMs": 11486.29999999702,
+          "durationMs": 950.7000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "transferBytes": 10936,
+          "decodedBytes": 10636,
+          "startMs": 11491.5,
+          "durationMs": 975.3999999985099
+        },
+        {
+          "path": "/api/health",
+          "transferBytes": 322,
+          "decodedBytes": 22,
+          "startMs": 11515.60000000149,
+          "durationMs": 883.8999999985099
+        },
+        {
+          "path": "/api/auth/session",
+          "transferBytes": 357,
+          "decodedBytes": 57,
+          "startMs": 11518.29999999702,
+          "durationMs": 971.3000000044703
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/health",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/auth/session",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "contentEncoding": "identity"
+        }
+      ],
+      "javascriptDecodedBytes": 1872664,
+      "resourceTransferBytes": 2309767
+    },
+    {
+      "run": 2,
+      "stageReadyMs": 11666.30000000447,
+      "lcpMs": 11180,
+      "lcpElement": "P",
+      "longTaskBlockingMs": 261,
+      "observedUntilMs": 13013.10000000149,
+      "fcpMs": 1664,
+      "resources": [
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "transferBytes": 239681,
+          "decodedBytes": 239381,
+          "startMs": 166.70000000298023,
+          "durationMs": 1366.5
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 166.80000000447035,
+          "durationMs": 166.79999999701977
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 167.60000000149012,
+          "durationMs": 173.5
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "transferBytes": 1360076,
+          "decodedBytes": 1359776,
+          "startMs": 1594,
+          "durationMs": 9403.70000000298
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 1594.2000000029802,
+          "durationMs": 321.3999999985099
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "transferBytes": 72363,
+          "decodedBytes": 72063,
+          "startMs": 1594.2000000029802,
+          "durationMs": 1694.1000000014901
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "transferBytes": 191494,
+          "decodedBytes": 191194,
+          "startMs": 1594.2000000029802,
+          "durationMs": 3440.89999999851
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "transferBytes": 179259,
+          "decodedBytes": 178959,
+          "startMs": 1595.3000000044703,
+          "durationMs": 3320.39999999851
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "transferBytes": 5151,
+          "decodedBytes": 4851,
+          "startMs": 1597.3000000044703,
+          "durationMs": 325.5
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 1618.1000000014901,
+          "durationMs": 559.7000000029802
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "transferBytes": 4069,
+          "decodedBytes": 3769,
+          "startMs": 3300.8000000044703,
+          "durationMs": 234.19999999552965
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 4936.4000000059605,
+          "durationMs": 384
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 11136.60000000149,
+          "durationMs": 581.3999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "transferBytes": 42984,
+          "decodedBytes": 42684,
+          "startMs": 11150.70000000298,
+          "durationMs": 926.6000000014901
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "transferBytes": 8376,
+          "decodedBytes": 8076,
+          "startMs": 11154.60000000149,
+          "durationMs": 398.20000000298023
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "transferBytes": 8804,
+          "decodedBytes": 8504,
+          "startMs": 11154.60000000149,
+          "durationMs": 405.80000000447035
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "transferBytes": 8556,
+          "decodedBytes": 8256,
+          "startMs": 11156.80000000447,
+          "durationMs": 419
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "transferBytes": 7052,
+          "decodedBytes": 6752,
+          "startMs": 11160.5,
+          "durationMs": 370.20000000298023
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "transferBytes": 9168,
+          "decodedBytes": 8868,
+          "startMs": 11163.80000000447,
+          "durationMs": 764.3999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "transferBytes": 9480,
+          "decodedBytes": 9180,
+          "startMs": 11164.30000000447,
+          "durationMs": 786.3999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "transferBytes": 9108,
+          "decodedBytes": 8808,
+          "startMs": 11166,
+          "durationMs": 814.4000000059605
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "transferBytes": 9548,
+          "decodedBytes": 9248,
+          "startMs": 11167.40000000596,
+          "durationMs": 828.0999999940395
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "transferBytes": 9764,
+          "decodedBytes": 9464,
+          "startMs": 11172.20000000298,
+          "durationMs": 883.2000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "transferBytes": 10552,
+          "decodedBytes": 10252,
+          "startMs": 11172.20000000298,
+          "durationMs": 988.7000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "transferBytes": 9232,
+          "decodedBytes": 8932,
+          "startMs": 11196.80000000447,
+          "durationMs": 1046.8999999985099
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "transferBytes": 24752,
+          "decodedBytes": 24452,
+          "startMs": 11446.10000000149,
+          "durationMs": 1044.3000000044703
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "transferBytes": 9612,
+          "decodedBytes": 9312,
+          "startMs": 11458.90000000596,
+          "durationMs": 881
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "transferBytes": 9988,
+          "decodedBytes": 9688,
+          "startMs": 11465.80000000447,
+          "durationMs": 949.7999999970198
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "transferBytes": 10936,
+          "decodedBytes": 10636,
+          "startMs": 11470.80000000447,
+          "durationMs": 974.3999999985099
+        },
+        {
+          "path": "/api/health",
+          "transferBytes": 322,
+          "decodedBytes": 22,
+          "startMs": 11490.40000000596,
+          "durationMs": 858.2999999970198
+        },
+        {
+          "path": "/api/auth/session",
+          "transferBytes": 357,
+          "decodedBytes": 57,
+          "startMs": 11492.70000000298,
+          "durationMs": 930.7999999970198
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/health",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/auth/session",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "contentEncoding": "identity"
+        }
+      ],
+      "javascriptDecodedBytes": 1872664,
+      "resourceTransferBytes": 2309767
+    },
+    {
+      "run": 3,
+      "stageReadyMs": 11671.79999999702,
+      "lcpMs": 11184,
+      "lcpElement": "P",
+      "longTaskBlockingMs": 259,
+      "observedUntilMs": 13012.69999999553,
+      "fcpMs": 1664,
+      "resources": [
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "transferBytes": 239681,
+          "decodedBytes": 239381,
+          "startMs": 166.79999999701977,
+          "durationMs": 1367.1000000014901
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "transferBytes": 1016,
+          "decodedBytes": 716,
+          "startMs": 167,
+          "durationMs": 174.5
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "transferBytes": 1109,
+          "decodedBytes": 809,
+          "startMs": 167.10000000149012,
+          "durationMs": 166.79999999701977
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "transferBytes": 1360076,
+          "decodedBytes": 1359776,
+          "startMs": 1593.3999999985099,
+          "durationMs": 9404.70000000298
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "transferBytes": 191494,
+          "decodedBytes": 191194,
+          "startMs": 1594.5,
+          "durationMs": 3434.2999999970198
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "transferBytes": 72363,
+          "decodedBytes": 72063,
+          "startMs": 1594.6000000014901,
+          "durationMs": 1693.3999999985099
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "transferBytes": 4983,
+          "decodedBytes": 4683,
+          "startMs": 1595.1000000014901,
+          "durationMs": 320.8999999985099
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "transferBytes": 179259,
+          "decodedBytes": 178959,
+          "startMs": 1595.1999999955297,
+          "durationMs": 3321.10000000149
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "transferBytes": 5151,
+          "decodedBytes": 4851,
+          "startMs": 1596.6000000014901,
+          "durationMs": 327.19999999552965
+        },
+        {
+          "path": "/poietra.svg",
+          "transferBytes": 3439,
+          "decodedBytes": 3139,
+          "startMs": 1617.3999999985099,
+          "durationMs": 561.1000000014901
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "transferBytes": 4069,
+          "decodedBytes": 3769,
+          "startMs": 3300.6999999955297,
+          "durationMs": 235.5
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "transferBytes": 23964,
+          "decodedBytes": 23664,
+          "startMs": 4937,
+          "durationMs": 384.1000000014901
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "transferBytes": 24572,
+          "decodedBytes": 24272,
+          "startMs": 11140.10000000149,
+          "durationMs": 578.0999999940395
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "transferBytes": 42984,
+          "decodedBytes": 42684,
+          "startMs": 11154.5,
+          "durationMs": 923.6999999955297
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "transferBytes": 8804,
+          "decodedBytes": 8504,
+          "startMs": 11158.10000000149,
+          "durationMs": 402.5
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "transferBytes": 8376,
+          "decodedBytes": 8076,
+          "startMs": 11158.10000000149,
+          "durationMs": 410.19999999552965
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "transferBytes": 8556,
+          "decodedBytes": 8256,
+          "startMs": 11160.19999999553,
+          "durationMs": 415.30000000447035
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "transferBytes": 7052,
+          "decodedBytes": 6752,
+          "startMs": 11165.29999999702,
+          "durationMs": 373.30000000447035
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "transferBytes": 9168,
+          "decodedBytes": 8868,
+          "startMs": 11167.29999999702,
+          "durationMs": 754.3999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "transferBytes": 9480,
+          "decodedBytes": 9180,
+          "startMs": 11167.39999999851,
+          "durationMs": 798.2000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "transferBytes": 9108,
+          "decodedBytes": 8808,
+          "startMs": 11169.60000000149,
+          "durationMs": 811.0999999940395
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "transferBytes": 9548,
+          "decodedBytes": 9248,
+          "startMs": 11171.5,
+          "durationMs": 816.8999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "transferBytes": 9764,
+          "decodedBytes": 9464,
+          "startMs": 11176.60000000149,
+          "durationMs": 879.0999999940395
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "transferBytes": 10552,
+          "decodedBytes": 10252,
+          "startMs": 11176.69999999553,
+          "durationMs": 962.3000000044703
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "transferBytes": 9232,
+          "decodedBytes": 8932,
+          "startMs": 11212.69999999553,
+          "durationMs": 1075.9000000059605
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "transferBytes": 24752,
+          "decodedBytes": 24452,
+          "startMs": 11448.39999999851,
+          "durationMs": 1042.8999999985099
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "transferBytes": 9612,
+          "decodedBytes": 9312,
+          "startMs": 11459.29999999702,
+          "durationMs": 888.7000000029802
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "transferBytes": 9988,
+          "decodedBytes": 9688,
+          "startMs": 11465.69999999553,
+          "durationMs": 950.5
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "transferBytes": 10936,
+          "decodedBytes": 10636,
+          "startMs": 11469.69999999553,
+          "durationMs": 975.8000000044703
+        },
+        {
+          "path": "/api/health",
+          "transferBytes": 322,
+          "decodedBytes": 22,
+          "startMs": 11487.60000000149,
+          "durationMs": 838.5
+        },
+        {
+          "path": "/api/auth/session",
+          "transferBytes": 357,
+          "decodedBytes": 57,
+          "startMs": 11489.5,
+          "durationMs": 972
+        }
+      ],
+      "responses": [
+        {
+          "path": "/",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-DvinGZ7V.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/rolldown-runtime-hePW80VL.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/index-BKzjgASm.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-62okd6PZ.css",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/sliders-horizontal-CssUT3Kv.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/kernel-g8_v07MO.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/poietra.svg",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/boundary-BNRV5K6A.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/wasm/poietra_core.wasm",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/browser_media-ClgM13sJ.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-400-normal-C38fXH4l.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/bootstrap-BWyv1uJC.js",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-117-400-normal-CrstwLGx.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-109-400-normal-xEBKZRmM.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-114-400-normal-CA2GAVSn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-113-400-normal-YRkJ1_1L.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-500-normal-Cerq10X2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-110-400-normal-DYtQIFat.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-107-400-normal-C77Cy03w.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-112-400-normal-CJdOV8cA.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-116-400-normal-kfiVyUul.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-111-400-normal-CPn5PrM3.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-119-400-normal-BMFExh-2.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-108-400-normal-DWYqCABI.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-115-400-normal-DiB5bWj9.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/health",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-103-400-normal-6TVFD4dl.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-102-400-normal-D6qQEZXn.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/noto-sans-jp-106-400-normal-B7kjGxrQ.woff2",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/api/auth/session",
+          "contentEncoding": "identity"
+        },
+        {
+          "path": "/assets/inter-latin-600-normal-LgqL8muc.woff2",
+          "contentEncoding": "identity"
+        }
+      ],
+      "javascriptDecodedBytes": 1872664,
+      "resourceTransferBytes": 2309767
+    }
+  ]
+}
