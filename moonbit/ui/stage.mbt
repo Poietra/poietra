@@ -127,17 +127,17 @@ pub fn stage(input : @core.Any) -> @react.Element {
   } else {
     prepared._get("frame")
   }
-  let svg : String = @react.use_memo(
+  let svg = @react.use_memo(
     fn() {
-      renderer
-      ._call("frameToSvg", [
-        displayed,
-        host_record({
-          "idPrefix": @core.any(prefix),
-          "hitVideo": @core.any(canvas_visible),
-        }),
-      ])
-      .cast()
+      let options = host_record({
+        "idPrefix": @core.any(prefix),
+        "hitVideo": @core.any(canvas_visible),
+      })
+      if truthy(renderer._get("frameToSvgView")) {
+        SvgView(renderer._call("frameToSvgView", [displayed, options]))
+      } else {
+        SvgMarkup(renderer._call("frameToSvg", [displayed, options]).cast())
+      }
     },
     [displayed, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )

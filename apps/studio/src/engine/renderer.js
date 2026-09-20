@@ -7,3 +7,4 @@ export const renderResources = { getEquation, prepareEquations, embeddedFontStyl
 export function prepareScene(scene) { return moonbit.prepareRenderScene(scene, renderResources); }
 export function objectBounds(item) { return moonbit.objectBounds(item, renderResources); }
 export function frameToSvg(frame, options = {}) { return moonbit.frameToSvg(frame, options, renderResources); }
+export function frameToSvgView(frame, options = {}) { return moonbit.frameToSvgView(frame, options, renderResources); }

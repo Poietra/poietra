@@ -72,6 +72,18 @@ test('keeps IDs unique when previews share one document', async ({ page }) => {
   await expect(page.locator('#preview [data-object-id="equation"]')).toBeVisible();
 });
 
+test('switching between direct shapes and isolated opacity preserves fill/stroke compositing', async ({ page }) => {
+  const report = await page.evaluate(() => window.exportFixture.shapeOpacity());
+  expect(report.backend).toBe('webgl2');
+  for (const sample of report.samples) {
+    const value = Math.round(sample.opacity * 255);
+    // The stroke covers the fill before the object's opacity is applied.
+    // Applying .5 to each draw separately would leave red under a blue stroke.
+    expect(sample.fill).toEqual([value, 0, 0, 255]);
+    expect(sample.overlap).toEqual([0, 0, value, 255]);
+  }
+});
+
 test('supports cancellation before starting and while encoding', async ({ page }) => {
   const capabilities = await page.evaluate(() => window.exportFixture.capabilities());
   const format: 'mp4' | 'webm' = capabilities.mp4 ? 'mp4' : 'webm';

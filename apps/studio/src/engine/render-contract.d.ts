@@ -16,6 +16,24 @@ export interface SvgOptions {
     /** Transparent video hit regions for the SVG overlay of a painted canvas. */
     hitVideo?: boolean;
 }
+/** Prepared SVG attributes and trusted markup from the same pure renderer as frameToSvg. */
+export interface SvgView {
+    width: string;
+    height: string;
+    fonts: string;
+    background: string | null;
+    objects: Array<{
+        id: string;
+        transform: string;
+        opacity: string;
+        fill: string;
+        color: string;
+        stroke: string;
+        strokeWidth: string;
+        filter: string | null;
+        body: string;
+    }>;
+}
 export interface ExportOptions {
     format: 'mp4' | 'webm';
     fps: 24 | 30 | 60;
@@ -42,7 +60,7 @@ export interface ExportCapabilities {
 }
 /**
  * Implement these exports in moonbit/browser_render and moonbit/render.
- * The UI calls prepareScene whenever content changes, then frameToSvg for each frame.
+ * The UI prepares resources after content changes, then retains keyed SVG objects when supported.
  * SVG object groups carry data-object-id="<SceneObject.id>" for pointer hit testing.
  * Implementations must escape authored text and IDs and use local bundled assets.
  */
@@ -51,6 +69,8 @@ export interface RendererContract {
     /** Decode video snapshots for this exact frame before synchronous SVG rendering. */
     prepareFrame?(frame: Frame, signal?: AbortSignal): Promise<void>;
     frameToSvg(frame: Frame, options?: SvgOptions): string;
+    /** Optional retained view; older renderers keep their complete SVG path. */
+    frameToSvgView?(frame: Frame, options?: SvgOptions): SvgView;
     objectBounds(item: RenderObject): ObjectBounds;
 }
 /** Implement these exports in moonbit/browser_export; the UI owns the download dialog. */

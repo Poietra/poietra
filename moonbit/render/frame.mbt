@@ -70,17 +70,17 @@ fn shape_markup(
 
 ///|
 /// The caller supplies prepared resources; this stage has no DOM, I/O or global clock.
-pub fn frame_to_svg(
+pub fn svg_frame(
   frame : RenderFrame,
   prefix : String,
   background : Bool,
   resources : Resources,
   video_hits? : Bool = false,
-) -> String {
+) -> SvgFrame {
   let prefix = "poietra-" + safe_id(prefix)
   let width = finite(frame.width, fallback=1280.0).max(1.0)
   let height = finite(frame.height, fallback=720.0).max(1.0)
-  let objects = StringBuilder()
+  let objects : Array[SvgObject] = []
   let sources = []
   for index, item in frame.objects {
     if item.kind == @scene.Text ||
@@ -98,35 +98,78 @@ pub fn frame_to_svg(
     let s = item.state
     let id = "\{prefix}-\{index}"
     let glow = s.effect == @scene.Glow
+    let definitions = StringBuilder()
     if glow {
       let bounds = object_bounds(item, resources)
-      objects.write_string(
+      definitions.write_string(
         "<defs><filter id=\"\{id}-glow\" filterUnits=\"userSpaceOnUse\" x=\"\{number(bounds.x - s.x - 16.0)}\" y=\"\{number(bounds.y - s.y - 16.0)}\" width=\"\{number(bounds.width + 32.0)}\" height=\"\{number(bounds.height + 32.0)}\" color-interpolation-filters=\"sRGB\"><feGaussianBlur stdDeviation=\"4\"/><feMerge><feMergeNode/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs>",
       )
     }
-    objects.write_string(
-      "<g data-object-id=\"\{escape_xml(item.id)}\" transform=\"\{drawable_transform(item)}\" opacity=\"\{number(unit(s.opacity))}\" fill=\"\{escape_xml(color(s.fill))}\" color=\"\{escape_xml(color(s.fill, fallback="#d7d8e4"))}\" stroke=\"\{escape_xml(color(s.stroke))}\" stroke-width=\"\{number(finite(s.strokeWidth).max(0.0))}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"",
-    )
-    if glow {
-      objects.write_string(" filter=\"url(#\{id}-glow)\"")
-    }
-    objects.write_string(">")
-    objects.write_string(shape_markup(item, id, resources, video_hits))
-    objects.write_string("</g>")
+    objects.push({
+      id: item.id,
+      transform: drawable_transform(item),
+      opacity: number(unit(s.opacity)),
+      fill: color(s.fill),
+      color: color(s.fill, fallback="#d7d8e4"),
+      stroke: color(s.stroke),
+      stroke_width: number(finite(s.strokeWidth).max(0.0)),
+      filter: if glow {
+        Some("url(#\{id}-glow)")
+      } else {
+        None
+      },
+      definitions: definitions.to_string(),
+      body: shape_markup(item, id, resources, video_hits),
+    })
   }
+  {
+    width: number(width),
+    height: number(height),
+    fonts: (resources.font_styles)(sources),
+    background: if background {
+      Some(color(frame.background, fallback="#08090b"))
+    } else {
+      None
+    },
+    objects,
+  }
+}
+
+///|
+pub fn SvgFrame::to_svg(self : SvgFrame) -> String {
   let output = StringBuilder()
   output.write_string(
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\{number(width)}\" height=\"\{number(height)}\" viewBox=\"0 0 \{number(width)} \{number(height)}\">",
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\{self.width}\" height=\"\{self.height}\" viewBox=\"0 0 \{self.width} \{self.height}\">",
   )
-  output.write_string((resources.font_styles)(sources))
-  if background {
+  output.write_string(self.fonts)
+  if self.background is Some(background) {
     output.write_string(
-      "<rect width=\"\{number(width)}\" height=\"\{number(height)}\" fill=\"\{escape_xml(color(frame.background, fallback="#08090b"))}\"/>",
+      "<rect width=\"\{self.width}\" height=\"\{self.height}\" fill=\"\{escape_xml(background)}\"/>",
     )
   }
-  output.write_string(objects.to_string())
+  for item in self.objects {
+    output.write_string(item.definitions)
+    output.write_string(
+      "<g data-object-id=\"\{escape_xml(item.id)}\" transform=\"\{item.transform}\" opacity=\"\{item.opacity}\" fill=\"\{escape_xml(item.fill)}\" color=\"\{escape_xml(item.color)}\" stroke=\"\{escape_xml(item.stroke)}\" stroke-width=\"\{item.stroke_width}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"",
+    )
+    if item.filter is Some(filter) {
+      output.write_string(" filter=\"\{filter}\"")
+    }
+    output.write_string(">\{item.body}</g>")
+  }
   output.write_string("</svg>")
   output.to_string()
+}
+
+///|
+pub fn frame_to_svg(
+  frame : RenderFrame,
+  prefix : String,
+  background : Bool,
+  resources : Resources,
+  video_hits? : Bool = false,
+) -> String {
+  svg_frame(frame, prefix, background, resources, video_hits~).to_svg()
 }
 
 ///|

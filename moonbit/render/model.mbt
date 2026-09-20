@@ -105,3 +105,27 @@ pub(all) struct RenderFrame {
   background : String
   objects : Array[Drawable]
 }
+
+///|
+/// One representation feeds both serialized SVG and the retained browser view.
+pub(all) struct SvgObject {
+  id : String
+  transform : String
+  opacity : String
+  fill : String
+  color : String
+  stroke : String
+  stroke_width : String
+  filter : String?
+  definitions : String
+  body : String
+}
+
+///|
+pub(all) struct SvgFrame {
+  width : String
+  height : String
+  fonts : String
+  background : String?
+  objects : Array[SvgObject]
+}

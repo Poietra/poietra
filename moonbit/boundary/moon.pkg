@@ -66,6 +66,7 @@ options(
         "match_tex_completions:matchTexCompletions",
         "apply_tex_completion:applyTexCompletion",
         "frame_to_svg:frameToSvg",
+        "frame_to_svg_view:frameToSvgView",
         "object_bounds:objectBounds",
         "text_markup:textMarkup",
         "equation_markup:equationMarkup",

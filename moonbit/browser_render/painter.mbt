@@ -9,9 +9,16 @@ priv struct FramePainter {
   target : Surface
   staging : Surface
   layers : RasterCache
+  shapes : Map[String, DirectShape]
   videos : @browser_media.VideoFrames
   lifetime : @core.Any
   mut backend : PainterBackend
+}
+
+///|
+priv struct DirectShape {
+  geometry : @render.Shape
+  drawing : @core.Any
 }
 
 ///|
@@ -36,6 +43,7 @@ fn FramePainter::use_svg(self : FramePainter) -> Unit {
     glow._call("dispose", []) |> ignore
   }
   self.layers.clear()
+  self.shapes.clear()
 }
 
 ///|
@@ -50,12 +58,11 @@ fn FramePainter::dispose(self : FramePainter) -> Unit {
 }
 
 ///|
-fn draw_layer(
+fn transformed_object(
   context : @canvas.CanvasRenderingContext2D,
   item : @render.Drawable,
-  layer : @core.Any,
+  draw : () -> Unit,
 ) -> Unit {
-  let bounds = layer._get("sceneBounds")
   saved_canvas(context, fn() {
     if item.world is Some(matrix) {
       context
@@ -90,6 +97,18 @@ fn draw_layer(
       context.rotate(@render.finite(item.state.rotation) * @math.PI / 180.0)
     }
     context.globalAlpha = @render.unit(item.state.opacity)
+    draw()
+  })
+}
+
+///|
+fn draw_layer(
+  context : @canvas.CanvasRenderingContext2D,
+  item : @render.Drawable,
+  layer : @core.Any,
+) -> Unit {
+  let bounds = layer._get("sceneBounds")
+  transformed_object(context, item, fn() {
     context.drawImageScaled(
       layer._get("canvas"),
       bounds._get("x").cast(),
@@ -101,11 +120,50 @@ fn draw_layer(
 }
 
 ///|
+fn draw_shape_directly(
+  context : @canvas.CanvasRenderingContext2D,
+  item : @render.Drawable,
+  input : @core.Any,
+  shapes : Map[String, DirectShape],
+) -> Bool {
+  // Opacity applies to the composed object, not independently to overlapping
+  // fill/stroke operations. Keep that isolation, and Glow, in the raster path.
+  if item.state.effect != @scene.Normal ||
+    @render.unit(item.state.opacity) != 1.0 {
+    shapes.remove(item.id)
+    return false
+  }
+  guard @render.shape_geometry(item.kind, item.state) is Some(geometry) else {
+    shapes.remove(item.id)
+    return false
+  }
+  let drawing = match shapes.get(item.id) {
+    Some(previous) if previous.geometry == geometry => previous.drawing
+    _ => {
+      let drawing = prepare_shape_drawing(
+        @boundary.shape_geometry(input),
+        @core.undefined(),
+      )
+      if @core.is_nullish(drawing) {
+        return false
+      }
+      shapes[item.id] = { geometry, drawing, }
+      drawing
+    }
+  }
+  transformed_object(context, item, fn() {
+    drawing._call("paint", [context.as_any(), input]) |> ignore
+  })
+  true
+}
+
+///|
 async fn paint_layers(
   surface : Surface,
   frame : @render.RenderFrame,
   items : FixedArray[@core.Any],
   layers : RasterCache,
+  shapes : Map[String, DirectShape],
   glow : @core.Any,
   signal : @core.Any,
   videos : @browser_media.VideoSurfaces?,
@@ -124,6 +182,11 @@ async fn paint_layers(
     context.fillStyle = @render.color(frame.background, fallback="#08090b")
     context.fillRect(0.0, 0.0, width, height)
     layers.retain(fn(id) { ids.contains(id) })
+    for id in shapes.keys() {
+      if !ids.contains(id) {
+        shapes.remove(id)
+      }
+    }
     context.save()
   })
   defer context.restore()
@@ -142,6 +205,12 @@ async fn paint_layers(
     if !item.state.visible ||
       @render.unit(item.state.opacity) == 0.0 ||
       @render.unit(item.progress) == 0.0 {
+      continue
+    }
+    if @core.throwable(fn() {
+        draw_shape_directly(context, item, items[index], shapes)
+      }) {
+      layers.remove(item.id)
       continue
     }
     let layer = layers.get(
@@ -250,6 +319,7 @@ async fn FramePainter::render(
           frame,
           items,
           self.layers,
+          self.shapes,
           glow,
           signal,
           videos,
@@ -327,6 +397,7 @@ pub fn create_frame_painter(
       videos,
       lifetime,
       layers: new_raster_cache(resources),
+      shapes: Map([]),
       backend: if @core.is_nullish(glow) {
         Svg
       } else {

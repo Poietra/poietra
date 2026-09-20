@@ -10,7 +10,7 @@ fn stage_view(
   feedback : @core.Any,
   prepared : @core.Any,
   key : String,
-  svg : String,
+  svg : StageSvg,
   canvas_visible : Bool,
   on_failure : () -> Unit,
 ) -> @react.Element {
@@ -119,20 +119,7 @@ fn stage_view(
       ),
     )
   }
-  content.push(
-    h(
-      "div",
-      {
-        "key": @core.any("svg"),
-        "className": classes([
-          @core.any("scene-svg"),
-          @core.any(if canvas_visible { "scene-hit-svg" } else { "" }),
-        ]),
-        "dangerouslySetInnerHTML": host_record({ "__html": @core.any(svg) }),
-      },
-      [],
-    ),
-  )
+  content.push(stage_svg(svg, canvas_visible))
   content.push(stage_overlay(controller, selection, hovered, marquee))
   let active = truthy(feedback) && feedback._get("kind").cast() == "active"
   let cancelled = truthy(feedback) &&

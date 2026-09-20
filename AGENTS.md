@@ -86,6 +86,11 @@ and measurements belong in [README.md](README.md).
   prepared frames only for static holds without visible video. Export must retain
   every timestamp/frame, Scene boundaries, video timing and encoder backpressure.
   Load export/file I/O on demand while capturing export inputs before any await.
+- 2026-09-20: Profiling found whole-SVG DOM replacement and per-shape raster
+  compositing in playback/dragging. Serialize SVG and retain keyed stage nodes
+  from the same typed render view. Draw opaque, effect-free shapes directly with
+  cached native geometry; preserve isolated fill/stroke compositing for opacity
+  and Glow. Keep cache lifetime, fallback and preview/export checks explicit.
 - Shared reads return immutable, structurally shared snapshots. Invalidate
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers

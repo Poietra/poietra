@@ -1,6 +1,6 @@
 import type { Scene } from '../../shared/model';
 import type { Frame, RenderObject } from './evaluate';
-import type { ObjectBounds, SvgOptions } from './render-contract';
+import type { ObjectBounds, SvgOptions, SvgView } from './render-contract';
 import { prepareEquations } from './rendering/equations';
 import { prepareFonts } from './rendering/fonts';
 export { prepareVideoFrame as prepareFrame } from './rendering/videos';
@@ -16,3 +16,4 @@ export declare const renderResources: {
 export declare function prepareScene(scene: Scene): Promise<void>;
 export declare function objectBounds(item: RenderObject): ObjectBounds;
 export declare function frameToSvg(frame: Frame, options?: SvgOptions): string;
+export declare function frameToSvgView(frame: Frame, options?: SvgOptions): SvgView;

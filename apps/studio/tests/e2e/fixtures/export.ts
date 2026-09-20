@@ -1,7 +1,8 @@
 import { ALL_FORMATS, BlobSource, EncodedPacketSink, Input, VideoSampleSink } from 'mediabunny';
 import { makeDemoProject } from '../../../shared/demo';
 import { defaultState, type Scene } from '../../../shared/model';
-import { evaluateScene } from '../../../src/engine/evaluate';
+import { evaluateScene, type Frame } from '../../../src/engine/evaluate';
+import { createFramePainter } from '../../../src/engine/painter';
 import { exportScene, getExportCapabilities } from '../../../src/engine/export';
 import { loadKernel } from '../../../src/engine/kernel';
 import { frameToSvg, objectBounds, prepareScene } from '../../../src/engine/renderer';
@@ -181,6 +182,25 @@ const fixture = {
       let packets = 0; for await (const _ of new EncodedPacketSink(video).packets()) packets++;
       return { frames, packets, bytes: result.blob.size, duration: await input.computeDuration() };
     } finally { input.dispose(); }
+  },
+  async shapeOpacity() {
+    const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
+    const painter = await createFramePainter(canvas);
+    const frame: Frame = { width: 32, height: 32, background: '#000000', objects: [{
+      object: { id: 'rectangle', kind: 'rectangle', name: '', order: 0, groupId: null, locked: false },
+      state: defaultState('rectangle', { x: 16, y: 16, width: 20, height: 20, cornerRadius: 0, fill: '#ff0000', stroke: '#0000ff', strokeWidth: 8 }),
+      writeProgress: 1, order: 'together',
+    }] };
+    const samples = [];
+    try {
+      for (const opacity of [1, .5, 1]) {
+        frame.objects[0].state.opacity = opacity;
+        await painter.render(frame);
+        const pixel = (x: number) => Array.from(canvas.getContext('2d')!.getImageData(x, 16, 1, 1).data);
+        samples.push({ opacity, fill: pixel(16), overlap: pixel(23) });
+      }
+      return { backend: painter.backend, samples };
+    } finally { painter.dispose(); }
   },
   async cancel(format: 'mp4' | 'webm', preAborted = false) {
     const controller = new AbortController();

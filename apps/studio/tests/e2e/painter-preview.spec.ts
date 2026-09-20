@@ -7,6 +7,48 @@ async function open(page: Page) {
 }
 const circle = (page: Page, stage = 'main') => page.locator(`[data-testid="stage-${stage}"] .scene-svg [data-object-id="circle"]`);
 
+test('moving and recoloring retain SVG geometry; resizing and hiding update it', async ({ page }) => {
+  await open(page);
+  const group = await circle(page).elementHandle();
+  const shape = await circle(page).locator('ellipse').elementHandle();
+  const sibling = await page.locator('.scene-svg [data-object-id="sigmoid"]').elementHandle();
+  await page.evaluate(() => window.painterPreview.updateCircle({ x: 430, fill: '#123456' }));
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(430 520) rotate(0)');
+  await expect(circle(page)).toHaveAttribute('fill', '#123456');
+  expect(await group!.evaluate(node => node === document.querySelector('.scene-svg [data-object-id="circle"]'))).toBe(true);
+  expect(await shape!.evaluate(node => node === document.querySelector('.scene-svg [data-object-id="circle"] ellipse'))).toBe(true);
+  expect(await sibling!.evaluate(node => node === document.querySelector('.scene-svg [data-object-id="sigmoid"]'))).toBe(true);
+  await page.evaluate(() => window.painterPreview.updateCircle({ width: 160 }));
+  await expect(circle(page).locator('ellipse')).toHaveAttribute('rx', '80');
+  expect(await group!.evaluate(node => node.isConnected)).toBe(true);
+  expect(await shape!.evaluate(node => node.isConnected)).toBe(false);
+  await page.evaluate(() => window.painterPreview.updateCircle({ visible: false }));
+  await expect(circle(page)).toHaveCount(0);
+  await page.evaluate(() => window.painterPreview.updateCircle({ visible: true }));
+  await expect(circle(page).locator('ellipse')).toHaveAttribute('rx', '80');
+});
+
+test('retained SVG and serialized export SVG produce identical pixels with transforms and Glow', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => window.painterPreview.updateCircle({ effect: 'glow', rotation: 23, scaleX: 1.3, scaleY: .8 }));
+  await expect(circle(page)).toHaveAttribute('filter', /glow/);
+  const difference = await page.evaluate(async () => {
+    const source = document.querySelector('.scene-svg svg')!.outerHTML;
+    async function pixels(svg: string) {
+      const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+      try {
+        const image = new Image(); image.src = url; await image.decode();
+        const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
+        const context = canvas.getContext('2d')!; context.drawImage(image, 0, 0);
+        return context.getImageData(0, 0, 1280, 720).data;
+      } finally { URL.revokeObjectURL(url); }
+    }
+    const [view, reference] = await Promise.all([pixels(source), pixels(window.painterPreview.referenceSvg())]);
+    return view.reduce((count, value, index) => count + Number(value !== reference[index]), 0);
+  });
+  expect(difference).toBe(0);
+});
+
 test('cursor updates keep the unchanged canvas and SVG frame instead of repainting the scene', async ({ page }) => {
   await open(page);
   for (const compare of [false, true]) {

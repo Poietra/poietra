@@ -6,6 +6,8 @@ import '../../../src/styles.css';
 import { App } from '../../../src/App';
 import { EditorStore, currentRoom } from '../../../src/editor/store';
 import { loadKernel } from '../../../src/engine/kernel';
+import { compositionFrame } from '../../../src/engine/evaluate';
+import type { ObjectState } from '../../../shared/model';
 import * as renderer from '../../../src/engine/renderer';
 import { drawSvgFrame } from '../../../src/engine/exporting/rasterize';
 import type { PainterContract } from '../../../src/engine/painter-contract';
@@ -14,6 +16,11 @@ const heldRenders = new Set<() => void>();
 const probe = {
   delay: 35, failNext: false, creations: 0, disposals: 0, active: 0, maximumConcurrentPerInstance: 0,
   svgCalls: 0,
+  updateCircle(patch: Partial<ObjectState>) { store.updateState('scene-1', 'comp-1', 'circle', patch); },
+  referenceSvg() {
+    const scene = store.scene('scene-1');
+    return renderer.frameToSvg(compositionFrame(scene, scene.compositions['comp-1']), { idPrefix: 'reference', hitVideo: true });
+  },
   hold: false,
   release() { probe.hold = false; for (const resume of heldRenders) resume(); heldRenders.clear(); },
   renders: [] as { instance: number; x: number | null; finished: boolean; aborted: boolean }[],
@@ -35,6 +42,10 @@ const observedRenderer = {
   frameToSvg(...args: Parameters<typeof renderer.frameToSvg>) {
     probe.svgCalls++;
     return renderer.frameToSvg(...args);
+  },
+  frameToSvgView(...args: Parameters<typeof renderer.frameToSvgView>) {
+    probe.svgCalls++;
+    return renderer.frameToSvgView(...args);
   },
 };
 const factory: PainterContract['createFramePainter'] = async canvas => {

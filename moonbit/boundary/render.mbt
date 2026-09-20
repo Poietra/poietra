@@ -154,11 +154,11 @@ pub fn prepare_render_scene(
 let svg_sequence : Ref[Int] = Ref(0)
 
 ///|
-pub fn frame_to_svg(
+fn svg_view(
   frame : @core.Any,
   options : @core.Any,
   host : @core.Any,
-) -> String {
+) -> @render.SvgFrame {
   let prefix = if @core.is_nullish(options._get("idPrefix")) {
     let value = "frame-\{svg_sequence.val}"
     svg_sequence.val += 1
@@ -166,7 +166,7 @@ pub fn frame_to_svg(
   } else {
     options._get("idPrefix").cast()
   }
-  @render.frame_to_svg(
+  @render.svg_frame(
     {
       width: frame._get("width").cast(),
       height: frame._get("height").cast(),
@@ -178,6 +178,44 @@ pub fn frame_to_svg(
     render_resources(host),
     video_hits=strict_equal(options._get("hitVideo"), @core.any(true)),
   )
+}
+
+///|
+pub fn frame_to_svg(
+  frame : @core.Any,
+  options : @core.Any,
+  host : @core.Any,
+) -> String {
+  svg_view(frame, options, host).to_svg()
+}
+
+///|
+pub fn frame_to_svg_view(
+  frame : @core.Any,
+  options : @core.Any,
+  host : @core.Any,
+) -> @core.Any {
+  let view = svg_view(frame, options, host)
+  let objects = view.objects.map(fn(item) {
+    @core.from_entries([
+      ("id", @core.any(item.id)),
+      ("transform", @core.any(item.transform)),
+      ("opacity", @core.any(item.opacity)),
+      ("fill", @core.any(item.fill)),
+      ("color", @core.any(item.color)),
+      ("stroke", @core.any(item.stroke)),
+      ("strokeWidth", @core.any(item.stroke_width)),
+      ("filter", @core.from_option(item.filter)),
+      ("body", @core.any(item.definitions + item.body)),
+    ])
+  })
+  @core.from_entries([
+    ("width", @core.any(view.width)),
+    ("height", @core.any(view.height)),
+    ("fonts", @core.any(view.fonts)),
+    ("background", @core.from_option(view.background)),
+    ("objects", @core.any(FixedArray::from_array(objects[:]))),
+  ])
 }
 
 ///|
