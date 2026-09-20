@@ -244,7 +244,7 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20 at application revision `8357a35`, after removing the historical implementations.
+Audited 2026-09-20 at application revision `fa0b627`, after removing the historical implementations.
 GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
@@ -252,11 +252,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 145 | 16,151 |
+| Regression/browser tests, fixtures and test configurations | 147 | 16,256 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,932 |
 | Benchmark scripts and root tool configurations | 5 | 139 |
 
-The same inventory has **56,071 application MoonBit lines** and **783 native JS
+The same inventory has **56,448 application MoonBit lines** and **783 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -337,6 +337,68 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### UI subscription boundaries — 2026-09-20
+
+[`fa0b627`](https://github.com/Poietra/poietra/commit/fa0b627c62e9b9e9c287f5c1730dd1a0bdc0b70b)
+separates the playback clock, immutable project, presence, connection/history and
+chat subscriptions. The baseline is `b6ee6fb`, whose application source hash is
+identical to the preceding `8357a35` rendering release. The final application
+hash is `88d9067a…e96cc5`; both final timing traces match it, including the initial
+trial recorded before committing the three clock files.
+
+Development-only function probes in React StrictMode show the update boundary:
+
+| Trigger | Before | After |
+| --- | ---: | ---: |
+| 12 presence updates: each of Studio, sidebar, inspector, timeline, main workspace, dialogs and Scene tabs | 24 calls | 0 calls |
+| 24 playback frames: each of Studio, sidebar, timeline, main workspace, dialogs, Scene tabs and chat | 48 calls | 0 calls |
+| Stage during those 24 frames of a static hold | 48 calls | 0 calls |
+
+Time labels continued advancing. Presence still updates peer overlays and chat's
+peer/request tracking. These counts include StrictMode's repeated invocations;
+they are not production timing or physical FPS measurements. Browser regressions
+also verify chat/unread isolation, external `useEditor` compatibility, seeking,
+pause, Scene changes, late audio/painter cancellation and peer edits.
+
+Production timing used the existing 100/500-object workload, one warmup plus
+three 60-move drag runs, and one three-second playback per trace. There is one
+baseline and two final traces. Node 24.13.0, MoonBit `0.10.13+cbb11c36f`, Chromium
+153.0.8010.12, Intel Core Ultra 7 255H/WSL2, CPUs `0–15` and SwiftShader match the
+preceding measurements. Runs were sequential with frozen sources and no local
+builds/tests running. Other host activity was not isolated; CDP sampling at 1 ms
+adds overhead. Drag measures DOM change plus two rAF callbacks after pointer
+delivery; playback measures rAF spacing. Neither is field INP or hardware FPS.
+
+| Measurement | Before | Final traces |
+| --- | ---: | ---: |
+| 100-object drag median | 38.7 ms | 38.9 / 39.0 ms |
+| 500-object drag median | 33.4 ms | 33.4 / 33.4 ms |
+| 500-object playback interval median | 16.7 ms | 16.7 / 16.7 ms |
+| 500-object playback interval p95 | 50.0 ms | 33.5 / 49.9 ms |
+| 500-object maximum playback interval | 100.0 ms | 99.9 / 83.3 ms |
+| Initial editor JS, gzip | 521,212 B | 522,608 B (+0.27%) |
+
+The subscription reduction is repeatable; drag speed is unchanged and playback
+timing still varies. Intervals over 25 ms remain (22/169 before, 23/169 and 23/167
+after). This is not evidence of eliminating long frames or accelerating startup
+or encoding. The bundle baseline reuses the preceding release's measurement with
+the identical application source hash; home JS remains 290,391 B raw.
+
+An intermediate external-store clock (`5fece87`) forced synchronous React
+updates and measured 66.7 ms playback p95 in both trials. The final clock uses
+ordinary React state in a dedicated provider, while document subscriptions remain
+synchronous. The intermediate results are retained and were not deployed.
+
+[All samples, counter results, sizes and final/baseline CPU profiles](benchmarks/2026-09-20-ui-subscriptions/)
+are committed. Reproduce with isolated production/development Node servers and
+the corresponding URL, from `apps/studio`:
+
+```sh
+POIETRA_PERF_URL=http://127.0.0.1:5287 node scripts/measure-interaction.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5288 node scripts/measure-subscriptions.mjs
+node scripts/measure-bundle.mjs
+```
 
 ### Retained SVG and direct shape painting — 2026-09-20
 
@@ -910,7 +972,7 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
 runs 700 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
-WASM tests, 163 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
+WASM tests, 166 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
@@ -961,8 +1023,22 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
+The UI subscription release [`fa0b627`](https://github.com/Poietra/poietra/commit/fa0b627c62e9b9e9c287f5c1730dd1a0bdc0b70b)
+is deployed at 100% as `47fbb2cc-fc00-489f-8f4d-cf6e62b95337` since
+**2026-09-20 15:18 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35493085372)
+passed every check. All 16 bindings and runtime settings match the preceding
+rendering release; the document model and storage format are unchanged.
+Production smoke verified the deployed JS/WASM hashes, exact restoration of the
+existing room and R2 image, upload deduplication, two-browser editing and selective
+Undo, retained SVG nodes, guest/account UI, GitHub authorization start and display
+name persistence. The independent clock advances, pauses and seeks, and returns to
+the displayed Composition without writing the document. A production MP4 download
+decoded all 102 expected frames. Only the dedicated verification room was used;
+provider login completion and paid AI calls were not exercised. The recorded
+rollback version is `b5709485-5574-4ff9-8bf5-f242e76bb355`.
+
 The rendering release [`8357a35`](https://github.com/Poietra/poietra/commit/8357a35c1bb0085eb645144d771db25fee618de1)
-is deployed at 100% as `b5709485-5574-4ff9-8bf5-f242e76bb355` since
+was deployed at 100% as `b5709485-5574-4ff9-8bf5-f242e76bb355` on
 **2026-09-20 13:54 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35489644696)
 passed every check. Bindings and runtime settings match the account release;
 no stored-data format changed. Production smoke verified release JS/WASM hashes,
