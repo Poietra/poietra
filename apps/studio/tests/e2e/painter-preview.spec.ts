@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { countEditorRenders } from './render-counts';
 
 async function open(page: Page) {
   await page.goto(`/tests/e2e/fixtures/painter-preview.html?room=${crypto.randomUUID()}`);
@@ -6,6 +7,67 @@ async function open(page: Page) {
   await expect(page.locator('[data-testid="stage-main"] .scene-hit-svg')).toHaveCount(1);
 }
 const circle = (page: Page, stage = 'main') => page.locator(`[data-testid="stage-${stage}"] .scene-svg [data-object-id="circle"]`);
+
+test('public useEditor accepts an external Context and keeps unchanged snapshots stable', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/tests/e2e/fixtures/editor-context.html');
+  await expect(page.locator('output')).toHaveText('125:Alice');
+  await page.getByRole('button', { name: 'Local render', exact: true }).click();
+  await expect(page.getByTestId('stable')).toHaveText('true');
+  await page.getByRole('button', { name: 'Update context', exact: true }).click();
+  await expect(page.locator('output')).toHaveText('375:Bob');
+  expect(errors).toEqual([]);
+});
+
+test('presence and playback notify their consumers without rendering document panels', async ({ page }) => {
+  await countEditorRenders(page);
+  await open(page);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const presence = await page.evaluate(async () => {
+    window.renderCounts = {};
+    await window.painterPreview.cursors(12);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return window.renderCounts;
+  });
+  for (const name of ['studio', 'sidebar', 'inspector', 'timeline', 'media__timeline', 'studio__main', 'studio__dialogs', 'scene__tabs']) expect(presence[name] ?? 0, name).toBe(0);
+  expect(presence.stage).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  const playback = await page.evaluate(async () => {
+    for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame);
+    window.renderCounts = {};
+    const before = Number(document.querySelector('.time-code strong')!.textContent!.replaceAll(',', ''));
+    for (let i = 0; i < 24; i++) await new Promise(requestAnimationFrame);
+    const after = Number(document.querySelector('.time-code strong')!.textContent!.replaceAll(',', ''));
+    return { counts: window.renderCounts, before, after };
+  });
+  expect(playback.after).toBeGreaterThan(playback.before);
+  for (const name of ['studio', 'sidebar', 'timeline', 'media__timeline', 'studio__main', 'studio__dialogs', 'scene__tabs', 'assistant__panel']) expect(playback.counts[name] ?? 0, name).toBe(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('2500');
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(955 190) rotate(0)');
+  await page.getByRole('button', { name: 'この場面を編集', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Composition 2', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('incoming chat updates and marking messages read stay inside the chat panel', async ({ page }) => {
+  await countEditorRenders(page);
+  await open(page);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  for (const active of [false, true]) {
+    if (active) {
+      await page.getByRole('button', { name: 'Chat', exact: true }).click();
+      await expect(page.getByLabel('1 件の未読', { exact: true })).toHaveCount(0);
+    }
+    await page.evaluate(active => { window.renderCounts = {}; window.painterPreview.message(active ? 'Visible message' : 'Unread message'); }, active);
+    if (active) await expect(page.getByRole('log').getByText('Visible message', { exact: true })).toBeVisible();
+    else await expect(page.getByLabel('1 件の未読', { exact: true })).toBeVisible();
+    const counts = await page.evaluate(() => window.renderCounts);
+    expect(counts.assistant__panel).toBeGreaterThan(0);
+    for (const name of ['studio', 'sidebar', 'inspector', 'timeline', 'media__timeline', 'stage', 'studio__main', 'studio__dialogs', 'scene__tabs']) expect(counts[name] ?? 0, name).toBe(0);
+  }
+});
 
 test('moving and recoloring retain SVG geometry; resizing and hiding update it', async ({ page }) => {
   await open(page);

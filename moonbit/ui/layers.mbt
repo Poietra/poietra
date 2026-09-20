@@ -1,10 +1,4 @@
 ///|
-#module("react")
-extern "js" fn memo_component(
-  render : (@core.Any) -> @react.Element,
-) -> @core.Any = "memo"
-
-///|
 let cached_layer_row : @core.Any = memo_component(layer_row)
 
 ///|
@@ -154,7 +148,7 @@ pub fn object_icon(input : @core.Any) -> @react.Element {
 
 ///|
 pub fn sidebar(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let scene_id : String = scene._get("id").cast()
   let composition_id : String = editor._get("compositionId").cast()

@@ -1,6 +1,6 @@
 ///|
 pub fn group_controls(_input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let store = editor._get("store")
   let ids : FixedArray[String] = editor._get("selectedIds").cast()

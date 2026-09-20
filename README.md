@@ -187,6 +187,12 @@ The rewrite changes the data flow as well as the language:
 - **Share unchanged data.** Yjs reads reuse immutable branches and invalidate
   touched branches before observers run. Presence/chat updates retain unchanged
   Scene identities; a one-field proposal reads only the state it needs.
+- **Subscribe at the point of use.** `StudioPosition` owns the browser-local
+  playback time. Stage evaluation, audio and time indicators subscribe directly;
+  the document/selection Context does not carry clock notifications. Store
+  projections isolate project, connection/history and presence consumers, while
+  chat and its read marker stay in the aside. Public `useEditor` still supplies
+  a complete live view for consumers that request it.
 - **Own asynchronous work.** Renderers, decoders, imports and AI requests have
   explicit lifetimes. Stale completions cannot publish into a replacement view;
   cancellation releases resources. Uploads use bounded buffers and backpressure.
@@ -260,18 +266,34 @@ orchestration also use `Any`. Move remaining domain decisions into typed plans;
 React/DOM, Yjs and platform object interactions belong in host bindings. The
 zero-TS count is an inventory result, not completion of this internal refactoring.
 
-The architecture review on 2026-09-20 used mizchi's `moonbit-practice` and
-`frontend-review-performance` guidance: typed ownership and measured hot paths
+The architecture review on 2026-09-20 used mizchi's `moonbit-practice`,
+`frontend-review-state` and `frontend-review-performance` guidance: typed ownership and measured hot paths
 are the criteria, rather than language percentages. The pure editing/evaluation
-core and immutable collaboration boundary are well separated. The UI boundary
-is less precise: `studio` still distributes document, selection, presence and
-playback time through one Context, so clock changes reach panels that do not need
-them. Memoized leaf rows reduce work, but do not isolate Context subscriptions
-([React's Context guidance](https://react.dev/reference/react/memo#updating-a-memoized-component-using-a-context)).
-The next architectural work is to separate those subscriptions and make resource
-preparation depend on resource changes; initial editor delivery and remaining
-`Any` orchestration also need attention. These are remaining tasks, not completed
-optimizations or changes to the document model.
+core and immutable collaboration boundary are separated. UI subscriptions now
+follow their update frequency and owner:
+
+```mermaid
+flowchart LR
+  document[Immutable project] --> session[Edit session and selection]
+  session --> panels[Document panels]
+  clock[Local playback position] --> frame[Stage and audio]
+  clock --> indicators[Time labels and seek markers]
+  awareness[Presence] --> people[Peer overlays and participant UI]
+  chat[Room chat] --> aside[Chat and unread count]
+  status[Connection and Undo status] --> header[Status and history controls]
+```
+
+Prepared playback belongs to the stage view; finding the current segment and
+transition-local time derives from the document and current clock rather than
+storing a second synchronized copy. Stable holds retain their Stage component.
+New UI features should select a document field, presence, chat or local time
+explicitly; ordinary property panels should not use the aggregate `useEditor`
+compatibility hook. No document schema or collaboration semantics changed.
+
+Remaining work includes resource preparation keyed to resource changes, finer
+subscriptions within document edits, initial editor delivery and remaining `Any`
+orchestration. This is a narrower update boundary, not a claim that all UI work
+or startup costs have been removed.
 
 Run `pnpm audit:source` to reproduce the inventory, or
 `node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also

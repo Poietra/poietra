@@ -16,11 +16,30 @@ fn studio_callbacks(controller : StudioController) -> @core.Any {
     "play": @core.any(fn(value : @core.Any) {
       controller.play(studio_scope(value))
     }),
+    "appendComposition": @core.any(fn() { controller.append() }),
+    "requestTextEdit": @core.any(fn(object : String, composition : String) {
+      controller.text_edit(object, composition)
+    }),
     "setSelectedIds": @core.any(fn(ids : FixedArray[String]) {
       controller.update({
         ..controller.state,
         objects: Array::makei(ids.length(), fn(i) { ids[i] }),
       })
+    }),
+    "chooseObjects": @core.any(fn(ids : FixedArray[String]) {
+      controller.choose(Array::makei(ids.length(), fn(i) { ids[i] }))
+    }),
+    "seek": @core.any(fn(time : Double, value : @core.Any) {
+      let scope = if @core.is_undefined(value) {
+        if truthy(controller.document.transition) && !controller.state.viewing() {
+          SelectedTransition
+        } else {
+          WholeScene
+        }
+      } else {
+        studio_scope(value)
+      }
+      controller.seek(time, scope)
     }),
     "setPlaying": @core.any(fn(value : Bool) { if !value { controller.stop() } }),
     "setTransportView": @core.any(fn(value : Bool) {
@@ -55,7 +74,6 @@ fn studio_callbacks(controller : StudioController) -> @core.Any {
 ///|
 fn use_studio_effects(
   controller : StudioController,
-  chat : FixedArray[@core.Any],
   panel : @react.ReactRef[@core.Any],
 ) -> Unit {
   let doc = controller.document
@@ -85,20 +103,6 @@ fn use_studio_effects(
   )
   @react.use_effect(
     fn() {
-      if state.panel == ChatPanel && !state.preview_open {
-        let last : String? = if chat.is_empty() {
-          None
-        } else {
-          Some(chat[chat.length() - 1]._get("id").cast())
-        }
-        controller.update({ ..controller.state, last_read: last, })
-      }
-      fn() { () }
-    },
-    [@core.any(state.panel), @core.any(state.preview_open), @core.any(chat)],
-  )
-  @react.use_effect(
-    fn() {
       controller.stop()
       fn() { () }
     },
@@ -111,10 +115,10 @@ fn use_studio_effects(
   @react.use_effect(
     fn() {
       controller.stop()
+      controller.position.set(0.0)
       controller.update({
         ..controller.state,
         cursor: SelectedState,
-        playhead: 0.0,
         objects: [],
         path_editing: false,
       })
@@ -144,8 +148,8 @@ fn use_studio_effects(
         doc.total
       }
       controller.clock = { ..controller.clock, end, }
-      if controller.state.playhead > doc.total {
-        controller.update({ ..controller.state, playhead: doc.total, })
+      if controller.position.time > doc.total {
+        controller.position.set(doc.total)
       }
       fn() { () }
     },
@@ -268,15 +272,10 @@ fn use_studio_effects(
           return
         }
         let next = controller.clock.position + now - controller.clock.time
-        controller.update({
-          ..controller.state,
-          playhead: next.min(controller.clock.end),
-          transport: if next >= controller.clock.end {
-            Stopped
-          } else {
-            controller.state.transport
-          },
-        })
+        controller.position.set(next.min(controller.clock.end))
+        if next >= controller.clock.end {
+          controller.update({ ..controller.state, transport: Stopped, })
+        }
         if next < controller.clock.end {
           request.val = @core.global_this()._call("requestAnimationFrame", [
             @core.any(tick),

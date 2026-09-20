@@ -1,9 +1,13 @@
 ///|
 fn transition_ruler(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let duration : Double = input._get("duration").cast()
-  let scene_time : Double = input._get("local").cast()
   let start : Double = input._get("start").cast()
+  let scene_time = @scene.clamp(
+    use_editor_position(editor) - start,
+    0.0,
+    duration,
+  )
   let marks : Array[&@react.ReactNode] = []
   for index = 0; index < 5; index = index + 1 {
     marks.push(
@@ -107,12 +111,11 @@ fn transition_ruler(input : @core.Any) -> @react.Element {
 }
 
 ///|
-fn scene_ruler(
-  editor : @core.Any,
-  segments : FixedArray[@core.Any],
-  total : Double,
-  playhead : Double,
-) -> @react.Element {
+fn scene_ruler(input : @core.Any) -> @react.Element {
+  let editor = use_editor_state()
+  let segments : FixedArray[@core.Any] = input._get("segments").cast()
+  let total : Double = input._get("total").cast()
+  let playhead = use_editor_position(editor)
   let nodes : Array[&@react.ReactNode] = []
   for part in segments {
     let start : Double = part._get("start").cast()
@@ -216,12 +219,7 @@ fn timeline_transport(
           }),
         ],
       ),
-      h("span", { "className": @core.any("time-code") }, [
-        h("strong", Map([]), [
-          @boundary.format_milliseconds(editor._get("playhead").cast()),
-        ]),
-        h("span", Map([]), ["/ " + @boundary.format_milliseconds(total) + " ms"]),
-      ]),
+      component(timeline_timecode, { "total": @core.any(total) }, []),
     ]),
     h("span", { "className": @core.any("canvas-meta") }, [
       string_value(scene._get("width")) +
@@ -247,4 +245,43 @@ fn timeline_transport(
       options,
     ),
   ])
+}
+
+///|
+fn timeline_timecode(input : @core.Any) -> @react.Element {
+  let time = use_editor_position(use_editor_state())
+  h("span", { "className": @core.any("time-code") }, [
+    h("strong", Map([]), [@boundary.format_milliseconds(time)]),
+    h("span", Map([]), [
+      "/ " + @boundary.format_milliseconds(input._get("total").cast()) + " ms",
+    ]),
+  ])
+}
+
+///|
+fn timeline_playhead(input : @core.Any) -> @react.Element {
+  let time = use_editor_position(use_editor_state())
+  let start : Double = input._get("start").cast()
+  let duration : Double = input._get("duration").cast()
+  h(
+    "div",
+    {
+      "className": @core.any("track-playhead"),
+      "style": host_record({
+        "left": @core.any(
+          "calc(var(--track-label-width, 190px) + (100% - var(--track-label-width, 190px)) * " +
+          string_value(
+            @core.any(
+              timeline_fraction(
+                @scene.clamp(time - start, 0.0, duration),
+                duration,
+              ),
+            ),
+          ) +
+          ")",
+        ),
+      }),
+    },
+    [],
+  )
 }

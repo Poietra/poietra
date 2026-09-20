@@ -176,3 +176,9 @@ fn host_record(fields : Map[String, @core.Any]) -> @core.Any {
 fn[T] host_array(values : Array[T]) -> FixedArray[T] {
   FixedArray::makei(values.length(), fn(i) { values[i] })
 }
+
+///|
+#module("react")
+extern "js" fn memo_component(
+  render : (@core.Any) -> @react.Element,
+) -> @core.Any = "memo"

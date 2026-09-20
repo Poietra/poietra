@@ -1,6 +1,6 @@
 ///|
 pub fn inspector(_input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let store = editor._get("store")
   let scene_id : String = scene._get("id").cast()
@@ -163,3 +163,6 @@ pub fn inspector(_input : @core.Any) -> @react.Element {
   )
   h("div", { "className": @core.any("inspector-content") }, content)
 }
+
+///|
+let cached_inspector : @core.Any = memo_component(inspector)

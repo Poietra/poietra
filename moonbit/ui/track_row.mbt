@@ -9,7 +9,7 @@ fn timeline_fraction(value : Double, duration : Double) -> Double {
 
 ///|
 fn track_row(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let store = editor._get("store")
   let scene_id : String = scene._get("id").cast()

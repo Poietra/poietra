@@ -5,7 +5,6 @@ fn media_lane(
   timing : @scene.MediaPlayback,
   chosen : Bool,
   total : Double,
-  playhead : Double,
 ) -> @react.Element {
   let kind = if clip.kind is AudioClip { "audio" } else { "video" }
   let label = if clip.kind is AudioClip { "音声" } else { "動画" }
@@ -189,19 +188,7 @@ fn media_lane(
       h("div", { "className": @core.any("media-track-label") }, heading),
       h("div", { "className": @core.any("media-track-lane") }, [
         bar,
-        h(
-          "i",
-          {
-            "className": @core.any("media-playhead"),
-            "style": host_record({
-              "left": @core.any(
-                string_value(@core.any((playhead / total).min(1.0) * 100.0)) +
-                "%",
-              ),
-            }),
-          },
-          [],
-        ),
+        component(media_playhead, { "total": @core.any(total) }, []),
       ]),
     ],
   )
@@ -354,5 +341,23 @@ fn media_properties(
       "disabled": @core.any(controller.busy || clip.locked),
     },
     content,
+  )
+}
+
+///|
+fn media_playhead(input : @core.Any) -> @react.Element {
+  let total : Double = input._get("total").cast()
+  let playhead = use_editor_position(use_editor_state())
+  h(
+    "i",
+    {
+      "className": @core.any("media-playhead"),
+      "style": host_record({
+        "left": @core.any(
+          string_value(@core.any((playhead / total).min(1.0) * 100.0)) + "%",
+        ),
+      }),
+    },
+    [],
   )
 }

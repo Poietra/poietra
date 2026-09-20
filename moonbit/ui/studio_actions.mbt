@@ -13,12 +13,12 @@ fn StudioController::select(
   } else {
     0.0
   }
+  self.position.set(start)
   self.update({
     ..self.state,
     selection: next,
     cursor: SelectedState,
     path_editing: false,
-    playhead: start,
   })
 }
 
@@ -36,11 +36,11 @@ fn StudioController::change_scene(self : StudioController, id : String) -> Unit 
   } else {
     self.state.selection
   }
+  self.position.set(0.0)
   self.update({
     ..self.state,
     scene_id: id,
     selection,
-    playhead: 0.0,
     cursor: SelectedState,
     objects: [],
     path_editing: false,
@@ -107,10 +107,11 @@ fn StudioController::edit_moment(
   composition_only : Bool,
 ) -> Unit {
   let doc = self.document
-  if !truthy(doc.scene) || !truthy(doc.at_time) {
+  let at_time = doc.segment_at(self.position.time)
+  if !truthy(doc.scene) || !truthy(at_time) {
     return
   }
-  let next = studio_selection(doc.at_time)
+  let next = studio_selection(at_time)
   let next = match next {
     TransitionSelection(id) if composition_only =>
       CompositionSelection(
@@ -118,15 +119,12 @@ fn StudioController::edit_moment(
       )
     _ => next
   }
-  let time = self.state.playhead
+  let time = self.position.time
   self.select(next)
   if next is TransitionSelection(_) {
-    let start : Double = doc.at_time._get("start").cast()
-    let duration : Double = doc.at_time._get("duration").cast()
-    self.update({
-      ..self.state,
-      playhead: @scene.clamp(time, start, start + duration),
-    })
+    let start : Double = at_time._get("start").cast()
+    let duration : Double = at_time._get("duration").cast()
+    self.position.set(@scene.clamp(time, start, start + duration))
   }
 }
 
@@ -167,6 +165,7 @@ fn StudioController::seek(
   scope : StudioScope,
 ) -> Unit {
   self.stop()
+  self.position.set(@scene.clamp(time, 0.0, self.document.total))
   self.update({
     ..self.state,
     path_editing: false,
@@ -174,7 +173,6 @@ fn StudioController::seek(
       WholeScene => ScenePosition
       SelectedTransition => TransitionPosition
     },
-    playhead: @scene.clamp(time, 0.0, self.document.total),
   })
 }
 
@@ -215,21 +213,21 @@ fn StudioController::play(self : StudioController, scope : StudioScope) -> Unit 
       } else {
         doc.total
       }
-      let position = if self.state.playhead < begin ||
-        self.state.playhead >= end - 1.0 {
+      let position = if self.position.time < begin ||
+        self.position.time >= end - 1.0 {
         begin
       } else {
-        self.state.playhead
+        self.position.time
       }
       self.clock = {
         time: @core.global_this()._get("performance")._call("now", []).cast(),
         position,
         end,
       }
+      self.position.set(position)
       self.update({
         ..self.state,
         transport: Playing(scope),
-        playhead: position,
         cursor: match scope {
           WholeScene => ScenePosition
           SelectedTransition => TransitionPosition

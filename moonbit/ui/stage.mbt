@@ -1,6 +1,9 @@
 ///|
 pub fn stage(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let state = use_editor_state()
+  let peers = use_editor_peers(state)
+  let editor = ui_shallow_copy(state)
+  editor._set("peers", peers)
   let scene = editor._get("scene")
   let store = editor._get("store")
   let scene_id : String = scene._get("id").cast()
@@ -226,3 +229,6 @@ pub fn stage(input : @core.Any) -> @react.Element {
     fn() { set_failed_canvas(Some(key)) },
   )
 }
+
+///|
+let cached_stage : @core.Any = memo_component(stage)

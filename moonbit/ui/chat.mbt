@@ -1,6 +1,9 @@
 ///|
 pub fn assistant_panel(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let state = use_editor_state()
+  let peers = use_editor_peers(state)
+  let editor = ui_shallow_copy(state)
+  editor._set("peers", peers)
   let store = editor._get("store")
   let chat = store._get("chat")
   let scene_id : String = editor._get("scene")._get("id").cast()

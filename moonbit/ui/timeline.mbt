@@ -3,7 +3,6 @@ fn timeline_tracks(
   editor : @core.Any,
   transition : @core.Any,
   start : Double,
-  scene_time : Double,
   animations : FixedArray[@core.Any],
   feedback : @core.Any,
 ) -> @react.Element {
@@ -115,18 +114,12 @@ fn timeline_tracks(
     )
   }
   rows.push(
-    h(
-      "div",
+    component(
+      timeline_playhead,
       {
-        "className": @core.any("track-playhead"),
         "key": @core.any("playhead"),
-        "style": host_record({
-          "left": @core.any(
-            "calc(var(--track-label-width, 190px) + (100% - var(--track-label-width, 190px)) * " +
-            string_value(@core.any(timeline_fraction(scene_time, duration))) +
-            ")",
-          ),
-        }),
+        "start": @core.any(start),
+        "duration": @core.any(duration),
       },
       [],
     ),
@@ -168,11 +161,7 @@ fn timeline_tracks(
     ]),
     component(
       transition_ruler,
-      {
-        "duration": @core.any(duration),
-        "local": @core.any(scene_time),
-        "start": @core.any(start),
-      },
+      { "duration": @core.any(duration), "start": @core.any(start) },
       [],
     ),
     h("div", { "className": @core.any("track-rows") }, rows),
@@ -181,12 +170,11 @@ fn timeline_tracks(
 
 ///|
 pub fn timeline(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let selection = editor._get("selection")
   let selected_id : String = selection._get("id").cast()
   let scene_id : String = scene._get("id").cast()
-  let playhead : Double = editor._get("playhead").cast()
   // The playback clock does not rebuild structural timelines or target lists.
   let segments : FixedArray[@core.Any] = @react.use_memo(
     fn() { @boundary.scene_segments(scene).cast() },
@@ -321,15 +309,17 @@ pub fn timeline(input : @core.Any) -> @react.Element {
     let start : Double = part
       .map(fn(part) { part._get("start").cast() })
       .unwrap_or(0.0)
-    let duration : Double = transition._get("duration").cast()
-    let scene_time = @scene.clamp(playhead - start, 0.0, duration)
     content.push(
-      timeline_tracks(
-        editor, transition, start, scene_time, animations, feedback,
-      ),
+      timeline_tracks(editor, transition, start, animations, feedback),
     )
   } else {
-    content.push(scene_ruler(editor, segments, total, playhead))
+    content.push(
+      component(
+        scene_ruler,
+        { "segments": @core.any(segments), "total": @core.any(total) },
+        [],
+      ),
+    )
   }
   content.push(children(input))
   content.push(timeline_transport(input, editor, total))

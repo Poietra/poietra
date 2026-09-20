@@ -236,6 +236,7 @@ fn studio_import_status(imports : @core.Any) -> @react.Element {
 fn studio_transition_stages(
   controller : StudioController,
   frames : StudioFrames,
+  time : Double,
 ) -> Array[&@react.ReactNode] {
   let doc = controller.document
   let state = controller.state
@@ -283,8 +284,8 @@ fn studio_transition_stages(
               value: doc.scene._get("compositions")._get(from)._get("name"),
             },
           ]),
-          component(
-            stage,
+          keyed_element(
+            cached_stage,
             {
               "frame": frames.from,
               "compositionId": @core.any(from),
@@ -317,8 +318,8 @@ fn studio_transition_stages(
               value: doc.scene._get("compositions")._get(to)._get("name"),
             },
           ]),
-          component(
-            stage,
+          keyed_element(
+            cached_stage,
             {
               "frame": if truthy(frames.transition) {
                 frames.transition
@@ -365,7 +366,7 @@ fn studio_transition_stages(
           icon_props={ "fill": @core.any("currentColor") },
         ),
         h("span", Map([]), [
-          @boundary.format_milliseconds(doc.local_time) +
+          @boundary.format_milliseconds(doc.local_time(time)) +
           " / " +
           @boundary.format_milliseconds(doc.transition._get("duration").cast()) +
           " ms",
@@ -377,7 +378,7 @@ fn studio_transition_stages(
             "type": @core.any("range"),
             "min": @core.any(0),
             "max": doc.transition._get("duration"),
-            "value": @core.any(doc.local_time),
+            "value": @core.any(doc.local_time(time)),
             "step": @core.any(1),
             "onChange": @core.any(fn(event : @core.Any) {
               let start = if truthy(controller.document.selected) {
@@ -459,8 +460,8 @@ fn studio_composition_stage(
     ),
   )
   let nodes : Array[&@react.ReactNode] = [
-    component(
-      stage,
+    keyed_element(
+      cached_stage,
       {
         "frame": frames.current,
         "compositionId": @core.any(controller.document.composition),
@@ -493,7 +494,6 @@ fn studio_composition_stage(
 fn studio_main(
   controller : StudioController,
   imports : @core.Any,
-  frames : StudioFrames,
   image_input : @react.ReactRef[@core.Any],
   media_input : @react.ReactRef[@core.Any],
 ) -> @react.Element {
@@ -593,10 +593,14 @@ fn studio_main(
         ],
       ),
     )
-  } else if truthy(doc.transition) && !state.viewing() {
-    workspace.append(studio_transition_stages(controller, frames))
   } else {
-    workspace.push(studio_composition_stage(controller, frames))
+    workspace.push(
+      component(
+        studio_stage_view,
+        { "key": @core.any("stage"), "controller": @core.any(controller) },
+        [],
+      ),
+    )
   }
   let nodes : Array[&@react.ReactNode] = []
   if state.image_drag {

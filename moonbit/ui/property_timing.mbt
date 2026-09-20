@@ -1,6 +1,6 @@
 ///|
 pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let store = editor._get("store")
   let object = input._get("object")

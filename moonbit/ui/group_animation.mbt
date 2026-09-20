@@ -14,7 +14,7 @@ fn animation_label(value : @core.Any) -> String {
 
 ///|
 pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let selection = editor._get("selection")
   if selection._get("kind").cast() != "transition" {
     return @react.fragment([])

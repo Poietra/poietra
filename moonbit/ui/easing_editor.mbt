@@ -58,7 +58,7 @@ fn curve_handle(
 
 ///|
 pub fn easing_editor(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let plot = @react.use_ref((None : @core.Any?))
   let editor_node = @react.use_ref((None : @core.Any?))
   let gesture = @react.use_ref((None : CurveGesture?))

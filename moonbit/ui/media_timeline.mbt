@@ -1,10 +1,9 @@
 ///|
 pub fn media_timeline(input : @core.Any) -> @react.Element {
-  let editor = use_editor()
+  let editor = use_editor_state()
   let scene = editor._get("scene")
   let scene_id : String = scene._get("id").cast()
   let store = editor._get("store")
-  let playhead : Double = editor._get("playhead").cast()
   let playing = truthy(editor._get("playing"))
   let disabled = truthy(input._get("disabled"))
   let busy = playing || disabled
@@ -124,29 +123,7 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
         ),
       )
     }
-    marks.push(
-      h(
-        "input",
-        {
-          "aria-label": @core.any("素材トラックの再生位置"),
-          "type": @core.any("range"),
-          "min": @core.any(0),
-          "max": @core.any(total),
-          "value": @core.any(playhead.min(total)),
-          "step": @core.any(1),
-          "onChange": @core.any(fn(event : @core.Any) {
-            editor
-            ._get("seek")
-            ._invoke([
-              @core.any(number_value(event._get("target")._get("value").cast())),
-              @core.any("scene"),
-            ])
-            |> ignore
-          }),
-        },
-        [],
-      ),
-    )
+    marks.push(component(media_seek, { "total": @core.any(total) }, []))
     content.push(
       h("div", { "className": @core.any("media-track-ruler") }, [
         h("span", Map([]), ["Scene time"]),
@@ -161,7 +138,7 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
       } else {
         clip.timing
       }
-      lanes.push(media_lane(controller, clip, timing, chosen, total, playhead))
+      lanes.push(media_lane(controller, clip, timing, chosen, total))
     }
     content.push(h("div", { "className": @core.any("media-lanes") }, lanes))
     if current is Some(clip) {
@@ -207,5 +184,33 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
       "aria-label": @core.any("音声・動画トラック"),
     },
     content,
+  )
+}
+
+///|
+fn media_seek(input : @core.Any) -> @react.Element {
+  let editor = use_editor_state()
+  let total : Double = input._get("total").cast()
+  let playhead = use_editor_position(editor)
+  h(
+    "input",
+    {
+      "aria-label": @core.any("素材トラックの再生位置"),
+      "type": @core.any("range"),
+      "min": @core.any(0),
+      "max": @core.any(total),
+      "value": @core.any(playhead.min(total)),
+      "step": @core.any(1),
+      "onChange": @core.any(fn(event : @core.Any) {
+        editor
+        ._get("seek")
+        ._invoke([
+          @core.any(number_value(event._get("target")._get("value").cast())),
+          @core.any("scene"),
+        ])
+        |> ignore
+      }),
+    },
+    [],
   )
 }

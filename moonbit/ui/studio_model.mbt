@@ -73,7 +73,6 @@ priv struct StudioState {
   selection : StudioSelection
   objects : Array[String]
   tool : @editor.StageTool
-  playhead : Double
   transport : StudioTransport
   cursor : StudioCursor
   path_editing : Bool
@@ -86,7 +85,6 @@ priv struct StudioState {
   shortcuts_open : Bool
   image_drag : Bool
   text_edit : TextEditTarget?
-  last_read : String?
   user_name : String
   copied : Bool
   saving : Bool
@@ -117,7 +115,6 @@ fn studio_initial(store : @core.Any) -> StudioState {
     selection: CompositionSelection("comp-1"),
     objects: [],
     tool: @editor.SelectTool,
-    playhead: 0.0,
     transport: Stopped,
     cursor: SelectedState,
     path_editing: false,
@@ -131,7 +128,6 @@ fn studio_initial(store : @core.Any) -> StudioState {
     shortcuts_open: false,
     image_drag: false,
     text_edit: None,
-    last_read: None,
     user_name: store._get("userName").cast(),
     copied: false,
     saving: false,
@@ -153,8 +149,7 @@ priv struct StudioDocument {
   objects : Array[String]
   total : Double
   selected : @core.Any
-  at_time : @core.Any
-  local_time : Double
+  segments : FixedArray[@core.Any]
 }
 
 ///|
@@ -220,20 +215,6 @@ fn studio_document(
       @core.equal(segment._get("id"), @core.any(selection.id()))
     })
     .unwrap_or(@core.undefined())
-  let at_time = segments
-    .iter()
-    .find_first(fn(segment) {
-      let start : Double = segment._get("start").cast()
-      let duration : Double = segment._get("duration").cast()
-      state.playhead < start + duration
-    })
-    .unwrap_or(
-      if segments.is_empty() {
-        @core.undefined()
-      } else {
-        segments[segments.length() - 1]
-      },
-    )
   let total = if segments.is_empty() {
     0.0
   } else {
@@ -254,20 +235,10 @@ fn studio_document(
     transition,
     total,
     selected,
-    at_time,
+    segments,
     objects: state.objects.filter(fn(id) {
       has_scene && truthy(scene._get("objects")._get(id))
     }),
-    local_time: if truthy(transition) {
-      @scene.clamp(
-        state.playhead -
-        (if truthy(selected) { selected._get("start").cast() } else { 0.0 }),
-        0.0,
-        transition._get("duration").cast(),
-      )
-    } else {
-      0.0
-    },
   }
 }
 
@@ -321,6 +292,7 @@ priv struct StudioController {
   mut mounted : Bool
   mut generation : Int
   mut clock : StudioClock
+  position : StudioPosition
   mut toast_timer : @core.Any?
   mut copy_timer : @core.Any?
   mut save : @core.Any?

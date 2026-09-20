@@ -16,6 +16,9 @@ const heldRenders = new Set<() => void>();
 const probe = {
   delay: 35, failNext: false, creations: 0, disposals: 0, active: 0, maximumConcurrentPerInstance: 0,
   svgCalls: 0,
+  message(content: string) {
+    store.chat.append({ id: crypto.randomUUID(), role: 'user', content, authorId: 'peer-probe', authorName: 'Peer', color: '#123456', createdAt: Date.now(), scope: { sceneId: 'scene-1', selection: { kind: 'composition', id: 'comp-1' }, selectedIds: [], label: 'Composition 1' } });
+  },
   updateCircle(patch: Partial<ObjectState>) { store.updateState('scene-1', 'comp-1', 'circle', patch); },
   referenceSvg() {
     const scene = store.scene('scene-1');

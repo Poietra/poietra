@@ -95,6 +95,12 @@ and measurements belong in [README.md](README.md).
   changed branches before Yjs observers and bypass caches during unobserved
   writes. Preserve nested/observer-queued transaction tests. Mutable consumers
   clone explicitly; commands write only intended fields.
+- 2026-09-20: Profiling found clock/presence notifications rendering every editor
+  panel. Keep browser-local playback position outside document/selection Context;
+  subscribe only stage/audio/time indicators to it. Project, connection/history,
+  presence and chat consumers select their own immutable snapshot fields. Keep
+  chat read state local to its panel and preserve the public `useEditor` adapter.
+  Test subscription isolation alongside seeking, cancellation and peer editing.
 - Preserve cancellation, late-completion suppression, backpressure and cleanup
   across async boundaries. Keep native error identity where host contracts need it.
 - Inspect upstream source, license, compatibility and tests before adopting a

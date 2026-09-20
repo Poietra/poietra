@@ -179,7 +179,6 @@ fn studio_shortcuts(controller : StudioController) -> @react.Element {
 fn studio_dialogs(
   controller : StudioController,
   snapshot : @core.Any,
-  participants : Array[@core.Any],
 ) -> Array[&@react.ReactNode] {
   let doc = controller.document
   let state = controller.state
@@ -200,7 +199,11 @@ fn studio_dialogs(
       },
       [],
     ),
-    studio_share_dialog(controller, participants),
+    component(
+      studio_share_view,
+      { "key": @core.any("share"), "controller": @core.any(controller) },
+      [],
+    ),
     studio_shortcuts(controller),
     component(
       project_preview,
@@ -218,10 +221,10 @@ fn studio_dialogs(
           controller.change_scene(id)
           let next = studio_selection(value)
           let scene = input._get("store")._call("scene", [@core.any(id)])
+          controller.position.set(studio_segment_start(scene, next.id()))
           controller.update({
             ..controller.state,
             selection: next,
-            playhead: studio_segment_start(scene, next.id()),
             panel: DesignPanel,
           })
         }),
