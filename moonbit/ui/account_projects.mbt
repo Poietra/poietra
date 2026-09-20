@@ -103,11 +103,11 @@ pub fn account_projects(input : @core.Any) -> @react.Element {
     )
     account.push(
       h("p", { "className": @core.any("account-hint") }, [
-        "ここには、あなたが開いたプロジェクトだけが表示されます。",
+        "このアカウントの一覧を、別の端末でも開けます。ログアウト後も共有リンクから編集できます。",
       ]),
     )
-  } else {
-    account.push(h("h3", Map([]), ["プロジェクトを、次の制作へ"]))
+  } else if view.session is Some(_) {
+    account.push(h("h3", Map([]), ["ゲストで編集中"]))
     account.push(
       h("p", { "className": @core.any("account-hint") }, [
         "ログインすると、自分のプロジェクト一覧を別の端末でも開けます。共有リンクからの参加・編集はログインなしで使えます。",
@@ -153,6 +153,13 @@ pub fn account_projects(input : @core.Any) -> @react.Element {
         account.push(
           h("div", { "className": @core.any("account-login-actions") }, links),
         )
+        if session.google && session.github {
+          account.push(
+            h("p", { "className": @core.any("account-hint") }, [
+              "Google と GitHub は別のアカウントです。以前と同じ方法でログインすると、自分の一覧に戻れます。",
+            ]),
+          )
+        }
       } else {
         account.push(
           h("p", { "className": @core.any("account-hint") }, [
@@ -161,6 +168,10 @@ pub fn account_projects(input : @core.Any) -> @react.Element {
         )
       }
     }
+  } else {
+    account.push(
+      h("h3", Map([]), ["ログイン状態を確認できませんでした"]),
+    )
   }
   if !login_error.is_empty() {
     account.push(
@@ -225,24 +236,44 @@ fn account_project_list(
   let room : String = input._get("roomId").cast()
   let name : String = input._get("name").cast()
   let synced : Bool = input._get("synced").cast()
+  let listed = view.projects.any(fn(project) { project.room_id == room })
   let content : Array[&@react.ReactNode] = [
     h("div", { "className": @core.any("saved-projects-heading") }, [
-      h("h3", Map([]), ["My projects"]),
+      h("h3", Map([]), ["自分のプロジェクト一覧"]),
       h(
         "button",
         {
           "className": @core.any("subtle-button"),
-          "disabled": @core.any(disabled || !synced),
+          "disabled": @core.any(disabled || !synced || listed),
           "onClick": @core.any(fn() {
             if synced {
               controller.mutate(@editor.RememberProject(room, name), room)
             }
           }),
         },
-        [icon("Plus", 14), "このプロジェクトを一覧に保存"],
+        [
+          icon(if listed { "Check" } else { "Plus" }, 14),
+          if listed {
+            "一覧に追加済み"
+          } else {
+            "このプロジェクトを一覧に追加"
+          },
+        ],
       ),
     ]),
+    h("p", { "className": @core.any("account-hint") }, [
+      "ログイン中に開いたプロジェクトへのショートカットです。この一覧は自分だけに表示され、共有リンクを知っている人は一緒に編集できます。",
+    ]),
   ]
+  if !view.notice.is_empty() {
+    content.push(
+      h(
+        "p",
+        { "className": @core.any("account-hint"), "role": @core.any("status") },
+        [view.notice],
+      ),
+    )
+  }
   if view.projects.is_empty() {
     let props = { "className": @core.any("account-hint") }
     if view.list_loading {
@@ -253,7 +284,7 @@ fn account_project_list(
         if view.list_loading {
           "プロジェクト一覧を読み込んでいます…"
         } else {
-          "まだプロジェクトがありません。新しく作るか、このプロジェクトを一覧に保存できます。"
+          "一覧は空です。このプロジェクトを追加すると、別の端末からも開けます。"
         },
       ]),
     )
@@ -299,6 +330,7 @@ fn account_project_list(
                 if current {
                   "編集中"
                 } else {
+                  "一覧の更新: " +
                   string_value(
                     date_format._call("format", [@core.any(item.updated_at)]),
                   )

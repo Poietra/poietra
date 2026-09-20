@@ -66,6 +66,18 @@ async fn AuthService::projects(
         400,
       )
     }
+    // Older editors also auto-register with PUT. Only an explicit action may
+    // restore a dismissed shortcut; opening a shared link is not that action.
+    let intent = string(value, "intent").unwrap_or("visit")
+    if (
+        !@core.is_nullish(value._get("intent")) &&
+        @core.typeof_(value._get("intent")) != "string"
+      ) ||
+      (intent != "visit" && intent != "remember") {
+      return error_response(
+        "一覧への追加方法を確認してください。", 400,
+      )
+    }
     let project : @policy.Project = {
       room,
       name: @editor.trim_text(name).to_owned(),
@@ -75,13 +87,18 @@ async fn AuthService::projects(
     let accepted : Bool = @http.call_promise(self.repository, "putProject", [
         @core.any(session.user.id),
         value,
+        @core.any(intent),
       ])
       .wait()
       .cast()
     if !accepted {
+      if intent == "visit" {
+        return response(@core.from_entries([("project", @core.null())]))
+      }
       return error_response(
         "一覧は 500 件まで保存できます。不要な項目を一覧から外してください。",
         409,
+        code="project_limit",
       )
     }
     return response(@core.from_entries([("project", value)]))

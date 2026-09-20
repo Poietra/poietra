@@ -51,6 +51,7 @@ async fn AccountController::refresh_session(self : AccountController) -> Unit {
         excluded: None,
         pending: "",
         list_loading: false,
+        notice: "",
       })
     }
     self.update({ ..self.view, session: Some(session), error: "", })
@@ -154,6 +155,11 @@ async fn AccountController::mutate_async(
   if self.write is Some(_) {
     return
   }
+  match operation {
+    VisitProject(room, name) | RememberProject(room, name) =>
+      self.attempted = Some({ account: identity, room, name, })
+    _ => ()
+  }
   let request : AccountWrite = {
     controller: new_controller(),
     identity,
@@ -164,6 +170,7 @@ async fn AccountController::mutate_async(
     ..self.view,
     pending: @editor.account_operation_key(operation),
     error: "",
+    notice: "",
   })
   defer (if self.owns_write(request) {
     self.write = None
@@ -173,7 +180,7 @@ async fn AccountController::mutate_async(
   let headers = host_record({ "X-Poietra-Account": @core.any(identity) })
   try {
     let path = match operation {
-      RememberProject(room, _) | RemoveProject(room) =>
+      VisitProject(room, _) | RememberProject(room, _) | RemoveProject(room) =>
         "/api/projects/" +
         string_value(
           @core.global_this()._call("encodeURIComponent", [@core.any(room)]),
@@ -185,20 +192,34 @@ async fn AccountController::mutate_async(
       "headers": headers,
       "method": @core.any(
         match operation {
-          RememberProject(_, _) => "PUT"
+          VisitProject(_, _) | RememberProject(_, _) => "PUT"
           RemoveProject(_) => "DELETE"
           SignOut => "POST"
         },
       ),
     })
-    if operation is @editor.RememberProject(_, name) {
-      headers._set("Content-Type", @core.any("application/json"))
-      options._set(
-        "body",
-        @core.global_this()
-        ._get("JSON")
-        ._call("stringify", [host_record({ "name": @core.any(name) })]),
-      )
+    match operation {
+      VisitProject(_, name) | RememberProject(_, name) => {
+        headers._set("Content-Type", @core.any("application/json"))
+        options._set(
+          "body",
+          @core.global_this()
+          ._get("JSON")
+          ._call("stringify", [
+            host_record({
+              "name": @core.any(name),
+              "intent": @core.any(
+                if operation is VisitProject(_, _) {
+                  "visit"
+                } else {
+                  "remember"
+                },
+              ),
+            }),
+          ]),
+        )
+      }
+      _ => ()
     }
     let response = account_request(path, options)
     if !self.owns_write(request) ||
@@ -209,7 +230,18 @@ async fn AccountController::mutate_async(
     account_cancel(self.list_request)
     self.update({ ..self.view, list_loading: false, })
     match request.operation {
-      RememberProject(room, name) => {
+      VisitProject(room, name) | RememberProject(room, name) => {
+        if @core.is_nullish(response._get("project")) {
+          self.saved = None
+          self.update({
+            ..self.view,
+            excluded: Some({ account: identity, room, }),
+            projects: self.view.projects.filter(fn(project) {
+              project.room_id != room
+            }),
+          })
+          return
+        }
         let project = @core.throwable(fn() {
           account_project(response._get("project"))
         })
@@ -220,7 +252,16 @@ async fn AccountController::mutate_async(
             projects.push(item)
           }
         }
-        self.update({ ..self.view, excluded: None, projects, })
+        self.update({
+          ..self.view,
+          excluded: None,
+          projects,
+          notice: if request.operation is RememberProject(_, _) {
+            "自分の一覧に追加しました。"
+          } else {
+            ""
+          },
+        })
         self.list()
       }
       RemoveProject(room) => {
@@ -236,6 +277,7 @@ async fn AccountController::mutate_async(
           projects: self.view.projects.filter(fn(project) {
             project.room_id != room
           }),
+          notice: "自分の一覧から外しました。共有リンクからは引き続き開けます。",
         })
       }
       SignOut => {

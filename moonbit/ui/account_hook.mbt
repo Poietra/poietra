@@ -12,6 +12,7 @@ fn use_account(
     list_loading: false,
     pending: "",
     error: "",
+    notice: "",
     excluded: None,
   })
   let owner = @react.use_ref((None : AccountController?))
@@ -73,7 +74,7 @@ fn use_account(
       }
       fn() { () }
     },
-    [@core.any(open), @core.any(identity)],
+    [@core.any(open), @core.any(identity), @core.any(view.session)],
   )
   @react.use_effect(
     fn() {
@@ -90,7 +91,7 @@ fn use_account(
       let timer = window._call("setTimeout", [
         @core.any(fn() {
           controller.attempted = Some(key)
-          controller.mutate(@editor.RememberProject(room, name), room)
+          controller.mutate(@editor.VisitProject(room, name), room)
         }),
         @core.any(600),
       ])

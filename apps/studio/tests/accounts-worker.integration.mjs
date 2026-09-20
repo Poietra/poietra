@@ -141,6 +141,21 @@ try {
   assert.equal((await complete(flow)).headers.get('Location'), '/?auth_error=expired');
   assert.equal((await mutate('/api/projects/' + room, 'DELETE', alice)).status, 204);
   assert.deepEqual(await list(alice), []); assert.equal((await list(bob)).length, 1);
+  await stop(); await start();
+  // A dismissed shortcut stays dismissed after a DO/process restart and from
+  // older open editors that send an automatic PUT without an intent field.
+  for (const body of [{ name: 'A later visit', intent: 'visit' }, { name: 'Older editor' }]) {
+    const skipped = await mutate('/api/projects/' + room, 'PUT', alice, body);
+    assert.equal(skipped.status, 200); assert.deepEqual(await skipped.json(), { project: null });
+  }
+  assert.deepEqual(await list(alice), []); assert.equal((await list(bob)).length, 1);
+  assert.equal((await mutate('/api/projects/' + room, 'PUT', alice, { name: 'Added again', intent: 'remember' })).status, 200);
+  assert.equal((await list(alice))[0].name, 'Added again');
+  await Promise.all([
+    mutate('/api/projects/' + room, 'DELETE', alice),
+    mutate('/api/projects/' + room, 'PUT', alice, { name: 'Concurrent visit', intent: 'visit' }),
+  ]);
+  assert.deepEqual(await list(alice), []);
   assert.equal((await mutate('/api/auth/logout', 'POST', alice)).status, 204);
   assert.equal((await request('/api/projects', { headers: { Cookie: alice } })).status, 401);
   await stop(); await start();
@@ -153,6 +168,6 @@ try {
   const starts = [];
   for (let index = 0; index < 21; index++) starts.push((await request('/__test/production/api/auth/login/google')).status);
   assert.equal(starts.at(-1), 429); assert(starts.includes(303));
-  console.log('PASS: real Worker DO persistence across two restarts; isolated users; state race/replay/expiry; TTL alarm; logout; rate limit; guest WebSocket convergence. Provider HTTP was mocked.');
+  console.log('PASS: real Worker DO persistence across three restarts; private dismissal/visit/restore; isolated users; state race/replay/expiry; TTL alarm; logout; rate limit; guest WebSocket convergence. Provider HTTP was mocked.');
   console.log('Artifacts: ' + root);
 } finally { await stop(); }

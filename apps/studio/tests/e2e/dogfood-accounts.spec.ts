@@ -24,10 +24,12 @@ test('guest editing and project creation remain available alongside both optiona
   expect(indexRequests).toBe(0);
 });
 
-test('signed-in project list remembers rooms, updates titles, removes only bookmarks, and clears on logout', async ({ page }) => {
+test('private shortcuts survive removal and reload while collaboration names and guest editing stay independent', async ({ page }) => {
   const room = crypto.randomUUID();
   let session: AuthSession = { user: { id: 'google:example', name: 'Studio friend', provider: 'google' }, providers: { google: true, github: true } };
   const saved = new Map<string, AccountProject>([['another-private-room', { roomId: 'another-private-room', name: 'Earlier work', updatedAt: Date.now() - 86400000 }]]);
+  const dismissed = new Set<string>();
+  await page.addInitScript(() => { if (!localStorage.getItem('poietra-user-name')) localStorage.setItem('poietra-user-name', 'Workshop friend'); });
   let puts = 0;
   await page.route('**/api/auth/session', route => route.fulfill({ json: session }));
   await page.route('**/api/auth/logout', route => { session = { ...session, user: null }; return route.fulfill({ status: 204 }); });
@@ -39,32 +41,49 @@ test('signed-in project list remembers rooms, updates titles, removes only bookm
     const id = path.split('/').at(-1)!;
     if (request.method() === 'PUT') {
       puts++;
+      if (request.postDataJSON().intent !== 'remember' && dismissed.has(id)) { await route.fulfill({ json: { project: null } }); return; }
+      dismissed.delete(id);
       const project = { roomId: id, name: request.postDataJSON().name, updatedAt: Date.now() };
       saved.set(id, project); await route.fulfill({ json: { project } });
-    } else { saved.delete(id); await route.fulfill({ status: 204 }); }
+    } else { saved.delete(id); dismissed.add(id); await route.fulfill({ status: 204 }); }
   });
   await page.goto(`/?room=${room}&projects=1`);
-  await expect(page.getByRole('dialog', { name: 'Your projects' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Projects' })).toBeVisible();
   await expect(page.getByText('Studio friend', { exact: true })).toBeVisible();
   await expect.poll(() => saved.get(room)?.name).toBe('A little motion');
   await expect(page.getByRole('link', { name: /Earlier work/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '一覧に追加済み', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: '共同編集の表示名と共有', exact: true }).click();
+  const displayName = page.getByRole('textbox', { name: '共同編集での表示名', exact: true });
+  await expect(displayName).toHaveValue('Workshop friend');
+  await displayName.fill('Collaborator name');
+  await displayName.blur();
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('textbox', { name: 'Project name', exact: true }).fill('A new title');
   await expect.poll(() => saved.get(room)?.name).toBe('A new title');
   await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
   await page.getByRole('button', { name: 'A new title を自分の一覧から外す', exact: true }).click();
   await expect.poll(() => saved.has(room)).toBe(false);
+  await expect(page.getByRole('status').filter({ hasText: '自分の一覧から外しました' })).toBeVisible();
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('textbox', { name: 'Project name', exact: true }).fill('Still shared');
-  await page.waitForTimeout(900);
-  expect(saved.has(room)).toBe(false);
+  const revisit = page.waitForResponse(response => response.url().endsWith('/api/projects/' + room) && response.request().method() === 'PUT');
+  await page.reload();
+  expect(await (await revisit).json()).toEqual({ project: null });
+  await expect(page.getByText('Live', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
-  await page.getByRole('button', { name: 'このプロジェクトを一覧に保存', exact: true }).click();
+  await expect(page.getByText('Studio friend', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Still shared/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'このプロジェクトを一覧に追加', exact: true }).click();
   await expect.poll(() => saved.get(room)?.name).toBe('Still shared');
   await page.getByRole('button', { name: 'ログアウト', exact: true }).click();
   await expect(page.getByRole('region', { name: '自分のプロジェクト', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Google でログイン' })).toBeVisible();
   const before = puts;
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: '共同編集の表示名と共有', exact: true }).click();
+  await expect(displayName).toHaveValue('Collaborator name');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('textbox', { name: 'Project name', exact: true }).fill('Edited as guest');
   await page.waitForTimeout(800);
@@ -73,11 +92,59 @@ test('signed-in project list remembers rooms, updates titles, removes only bookm
   await expect(page).toHaveURL(new RegExp(room));
 });
 
+test('reaching the private list limit keeps existing shortcuts and the signed-in session visible', async ({ page }) => {
+  const room = crypto.randomUUID();
+  const existing = { roomId: 'existing-private-room', name: 'Earlier work', updatedAt: Date.now() };
+  await page.route('**/api/auth/session', route => route.fulfill({ json: { user: { id: 'google:alice', name: 'Alice', provider: 'google' }, providers: { google: true, github: true } } }));
+  await page.route('**/api/projects**', route => {
+    const request = route.request();
+    if (request.method() === 'GET') return route.fulfill({ json: { projects: [existing] } });
+    if (request.postDataJSON().intent === 'visit') return route.fulfill({ json: { project: null } });
+    return route.fulfill({ status: 409, json: { code: 'project_limit', error: '一覧は 500 件まで保存できます。' } });
+  });
+  await page.goto(`/?room=${room}&projects=1`);
+  const add = page.getByRole('button', { name: 'このプロジェクトを一覧に追加', exact: true });
+  await expect(add).toBeEnabled();
+  await add.click();
+  await expect(page.getByRole('alert')).toContainText('500 件');
+  await expect(page.getByRole('link', { name: /Earlier work/ })).toBeVisible();
+  await expect(page.getByText('Alice', { exact: true })).toBeVisible();
+});
+
+test('a session lookup failure stays distinguishable from guest mode and can be retried', async ({ page }) => {
+  let failed = true;
+  await page.route('**/api/auth/session', route => failed
+    ? route.fulfill({ status: 503, json: { error: '接続を再確認してください。' } })
+    : route.fulfill({ json: { user: null, providers: { google: true, github: true } } }));
+  await page.goto(`/?room=${crypto.randomUUID()}&projects=1`);
+  await expect(page.getByRole('heading', { name: 'ログイン状態を確認できませんでした' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ゲストで編集中' })).toHaveCount(0);
+  failed = false;
+  await page.getByRole('button', { name: '再試行', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'ゲストで編集中' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'GitHub でログイン', exact: true })).toBeVisible();
+});
+
+test('returning to a tab refreshes changes to the same account list made elsewhere', async ({ page }) => {
+  let visible = true;
+  await page.route('**/api/auth/session', route => route.fulfill({ json: { user: { id: 'google:alice', name: 'Alice', provider: 'google' }, providers: { google: true, github: true } } }));
+  await page.route('**/api/projects**', route => route.fulfill({ json: route.request().method() === 'GET'
+    ? { projects: visible ? [{ roomId: 'elsewhere-private-room', name: 'Work from another device', updatedAt: Date.now() }] : [] }
+    : { project: null } }));
+  await page.goto(`/?room=${crypto.randomUUID()}&projects=1`);
+  const shortcut = page.getByRole('link', { name: /Work from another device/ });
+  await expect(shortcut).toBeVisible();
+  visible = false;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(shortcut).toHaveCount(0);
+  await expect(page.getByText('Alice', { exact: true })).toBeVisible();
+});
+
 test('a cancelled login returns to the same guest project with an actionable message', async ({ page }) => {
   const room = crypto.randomUUID();
   await page.route('**/api/auth/session', route => route.fulfill({ json: { user: null, providers: { google: true, github: true } } }));
   await page.goto(`/?room=${room}&projects=1&auth_error=denied`);
-  await expect(page.getByRole('dialog', { name: 'Your projects' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Projects' })).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('ログインをキャンセルしました');
   await expect(page).toHaveURL(new RegExp(`room=${room}$`));
   await page.getByRole('button', { name: '閉じる', exact: true }).click();

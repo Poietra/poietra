@@ -193,7 +193,7 @@ pub fn project_dialog(input : @core.Any) -> @react.Element {
       @react.jsx(@core.any(modal), content, props={
         "open": @core.any(open),
         "onOpenChange": on_open_change,
-        "title": @core.any("Your projects"),
+        "title": @core.any("Projects"),
         "description": @core.any(
           "新しいプロジェクトには、新しい共有リンクが作られます。",
         ),

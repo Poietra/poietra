@@ -102,3 +102,25 @@ pub fn read_project(value : @core.Any) -> @policy.Project {
     updated: value._get("updatedAt").cast(),
   }
 }
+
+///|
+/// Legacy arrays contain listed projects only.
+pub fn read_library_entry(value : @core.Any) -> @policy.LibraryEntry {
+  if @core.equal(value._get("dismissed"), @core.any(true)) {
+    @policy.Dismissed(value._get("roomId").cast())
+  } else {
+    @policy.Listed(read_project(value))
+  }
+}
+
+///|
+pub fn library_entry_value(entry : @policy.LibraryEntry) -> @core.Any {
+  match entry {
+    Listed(project) => project_value(project)
+    Dismissed(room) =>
+      @core.from_entries([
+        ("roomId", @core.any(room)),
+        ("dismissed", @core.any(true)),
+      ])
+  }
+}

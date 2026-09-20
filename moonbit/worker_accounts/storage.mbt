@@ -85,6 +85,10 @@ fn create_account(ctx : @core.Any) -> @core.Any {
     "CREATE TABLE IF NOT EXISTS projects (room_id TEXT PRIMARY KEY, name TEXT NOT NULL, updated_at INTEGER NOT NULL)",
   )
   |> ignore
+  sql.exec_raw(
+    "CREATE TABLE IF NOT EXISTS project_dismissals (room_id TEXT PRIMARY KEY)",
+  )
+  |> ignore
   @core.from_entries([
     (
       "listProjects",
@@ -99,8 +103,18 @@ fn create_account(ctx : @core.Any) -> @core.Any {
     ),
     (
       "putProject",
-      @core.any(fn(value) {
+      @core.any(fn(value, intent : @core.Any) {
         let project = @auth.read_project(value)
+        if @core.equal(intent, @core.any("visit")) &&
+          !sql
+          .exec1(
+            "SELECT room_id FROM project_dismissals WHERE room_id=?",
+            @core.any(project.room),
+          )
+          .to_array()
+          .is_empty() {
+          return false
+        }
         let exists = !sql
           .exec1(
             "SELECT room_id FROM projects WHERE room_id=?",
@@ -120,12 +134,24 @@ fn create_account(ctx : @core.Any) -> @core.Any {
         if !exists && count >= @policy.project_limit.to_double() {
           return false
         }
-        sql.exec3(
-          "INSERT INTO projects (room_id,name,updated_at) VALUES (?,?,?) ON CONFLICT(room_id) DO UPDATE SET name=excluded.name,updated_at=excluded.updated_at",
-          @core.any(project.room),
-          @core.any(project.name),
-          @core.any(project.updated),
-        )
+        ctx
+        ._get("storage")
+        ._call("transactionSync", [
+          @core.any(fn() {
+            sql.exec3(
+              "INSERT INTO projects (room_id,name,updated_at) VALUES (?,?,?) ON CONFLICT(room_id) DO UPDATE SET name=excluded.name,updated_at=excluded.updated_at",
+              @core.any(project.room),
+              @core.any(project.name),
+              @core.any(project.updated),
+            )
+            |> ignore
+            sql.exec1(
+              "DELETE FROM project_dismissals WHERE room_id=?",
+              @core.any(project.room),
+            )
+            |> ignore
+          }),
+        ])
         |> ignore
         true
       }),
@@ -133,7 +159,19 @@ fn create_account(ctx : @core.Any) -> @core.Any {
     (
       "deleteProject",
       @core.any(fn(room : String) {
-        sql.exec1("DELETE FROM projects WHERE room_id=?", @core.any(room))
+        ctx
+        ._get("storage")
+        ._call("transactionSync", [
+          @core.any(fn() {
+            sql.exec1("DELETE FROM projects WHERE room_id=?", @core.any(room))
+            |> ignore
+            sql.exec1(
+              "INSERT OR IGNORE INTO project_dismissals (room_id) VALUES (?)",
+              @core.any(room),
+            )
+            |> ignore
+          }),
+        ])
         |> ignore
       }),
     ),
@@ -197,8 +235,8 @@ pub fn repository(env : @core.Any) -> @core.Any {
     ),
     (
       "putProject",
-      @core.any(fn(user, value : @core.Any) {
-        account(user)._call("putProject", [value])
+      @core.any(fn(user, value : @core.Any, intent : @core.Any) {
+        account(user)._call("putProject", [value, intent])
       }),
     ),
     (

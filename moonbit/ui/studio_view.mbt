@@ -88,7 +88,8 @@ fn studio_rail(controller : StudioController) -> @react.Element {
           {
             "className": @core.any("avatar own-avatar"),
             "style": host_record({ "background": store._get("color") }),
-            "aria-label": @core.any("プロフィールと共有"),
+            "aria-label": @core.any("共同編集の表示名と共有"),
+            "title": @core.any("共同編集の表示名と共有"),
             "onClick": @core.any(fn() {
               controller.update({ ..controller.state, share_open: true, })
             }),

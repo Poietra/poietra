@@ -84,11 +84,12 @@ fn studio_share_dialog(
       ]),
       studio_div("share-participants", peers),
       h("label", { "className": @core.any("name-field") }, [
-        "表示名",
+        "共同編集での表示名",
         h(
           "input",
           {
             "value": @core.any(state.user_name),
+            "aria-describedby": @core.any("collaboration-name-hint"),
             "maxLength": @core.any(40),
             "onChange": @core.any(fn(event : @core.Any) {
               controller.update({
@@ -99,11 +100,25 @@ fn studio_share_dialog(
             "onBlur": @core.any(fn() {
               store._call("setName", [@core.any(controller.state.user_name)])
               |> ignore
+              controller.update({
+                ..controller.state,
+                user_name: store._get("userName").cast(),
+              })
             }),
           },
           [],
         ),
       ]),
+      h(
+        "p",
+        {
+          "id": @core.any("collaboration-name-hint"),
+          "className": @core.any("account-hint"),
+        },
+        [
+          "参加者やチャットに表示する名前です。このブラウザに保存され、ログイン先の名前とは別に変更できます。",
+        ],
+      ),
       studio_div("share-footer", [
         h("span", Map([]), [
           icon("Link2", 12),

@@ -46,6 +46,38 @@ A **Scene** owns the canvas and object identities. A **Composition** is a still
 state with a hold duration. A **Transition** animates between adjacent
 Compositions; changing a state in one Composition does not change another.
 
+### Accounts, collaborators and personal project lists — 2026-09-20
+
+The account model separates these concepts:
+
+| Concept | Meaning and lifetime |
+| --- | --- |
+| Account | The private identity that holds your project shortcuts across devices. Its stable ID comes from the provider and provider user ID. |
+| Login method | Google or GitHub verifies that identity. They currently create separate accounts, even when their email addresses match. Explicit linking is not implemented. |
+| Session | An authenticated browser session, valid for seven days. Signing out revokes that session and clears its private list from the screen; other devices' sessions continue. |
+| Collaboration display name | A name stored in this browser and shown to participants and in chat. It can be edited independently of the provider's profile name, including while editing as a guest. It is not verified account identity. |
+| Personal project shortcut | A private reference to a shared room, with its last observed title and the time the shortcut was refreshed. It does not establish project ownership or describe the room's latest edit time. |
+| Shared project / room | The document and shared-link editing space. Anyone with its link can edit, including guests. The account list, sessions and login identities are outside the collaborative document and portable files. |
+
+The logo opens **Projects**, including the account and personal list. The avatar
+opens **共同編集の表示名と共有** for the collaboration name and shared link.
+Signing in remembers rooms opened while signed in. **一覧に追加済み** shows that
+the current room already has a shortcut; file download remains a separate action.
+Removing a shortcut retains a private dismissal, so reloads, other devices and
+automatic title refreshes cannot recreate it. **このプロジェクトを一覧に追加**
+explicitly restores it. Removing it or signing out leaves shared-link editing
+available. A failed session lookup is shown as an error with retry, rather than
+being reported as a confirmed guest session.
+
+`PUT /api/projects/:room` distinguishes `intent: "visit"` (also the default for
+older editors' automatic requests) from `intent: "remember"`. A skipped automatic
+visit returns `{ project: null }`; explicit additions report the 500-shortcut limit
+without clearing the signed-in list. Node reads the original JSON arrays and
+stores typed listed/dismissed entries. The Worker retains the existing `projects`
+table and adds `project_dismissals`, updating both atomically. Dismissals store only
+room IDs, are private to the account, and do not count toward the visible list limit.
+Shared room schemas, account IDs, cookies and Durable Object namespaces stay stable.
+
 ### Parenting, anchors and intermediate values — 2026-09-20
 
 The agreed model keeps `parentId` on the Scene object and sparse

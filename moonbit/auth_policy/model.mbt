@@ -68,6 +68,22 @@ pub(all) struct Project {
 }
 
 ///|
+/// A personal shortcut, never ownership of the shared room. A dismissal is
+/// retained so automatic visits cannot undo the user's removal on another device.
+pub(all) enum LibraryEntry {
+  Listed(Project)
+  Dismissed(String)
+}
+
+///|
+pub fn LibraryEntry::room(self : LibraryEntry) -> String {
+  match self {
+    Listed(project) => project.room
+    Dismissed(room) => room
+  }
+}
+
+///|
 pub(all) struct Flow {
   provider : Provider
   browser_hash : String

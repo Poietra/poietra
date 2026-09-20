@@ -1,4 +1,4 @@
-import type { AccountProject, AuthProvider } from '../shared/accounts';
+import type { AccountProject, AuthProvider, ProjectListIntent } from '../shared/accounts';
 import type { AuthFlow, AuthRecordValue, AuthRepository, AuthService, StoredSession } from '../server/auth';
 export interface AuthRecord {
     put(value: AuthRecordValue): Promise<void>;
@@ -12,7 +12,7 @@ export declare const AuthRecord: {
 };
 export interface UserAccount {
     listProjects(): AccountProject[];
-    putProject(project: AccountProject): boolean;
+    putProject(project: AccountProject, intent?: ProjectListIntent): boolean;
     deleteProject(roomId: string): void;
 }
 export declare const UserAccount: {

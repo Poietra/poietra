@@ -121,8 +121,16 @@ fn response(
 }
 
 ///|
-fn error_response(message : String, status : Int) -> @core.Any {
-  response(@core.from_entries([("error", @core.any(message))]), status~)
+fn error_response(
+  message : String,
+  status : Int,
+  code? : String = "",
+) -> @core.Any {
+  let value = @core.from_entries([("error", @core.any(message))])
+  if !code.is_empty() {
+    value._set("code", @core.any(code))
+  }
+  response(value, status~)
 }
 
 ///|

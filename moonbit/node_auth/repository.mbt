@@ -86,20 +86,20 @@ fn active(path : String, now : Double) -> @policy.Record? raise {
 }
 
 ///|
-fn projects(path : String) -> Array[@policy.Project] raise {
+fn entries(path : String) -> Array[@policy.LibraryEntry] raise {
   let value = read(path)
   if @core.is_nullish(value) {
     return []
   }
   let values : FixedArray[@core.Any] = value.cast()
-  Array::makei(values.length(), fn(i) { @auth.read_project(values[i]) })
+  Array::makei(values.length(), fn(i) { @auth.read_library_entry(values[i]) })
 }
 
 ///|
-fn project_values(projects : Array[@policy.Project]) -> @core.Any {
+fn entry_values(entries : Array[@policy.LibraryEntry]) -> @core.Any {
   @core.any(
-    FixedArray::makei(projects.length(), fn(i) {
-      @auth.project_value(projects[i])
+    FixedArray::makei(entries.length(), fn(i) {
+      @auth.library_entry_value(entries[i])
     }),
   )
 }
@@ -202,7 +202,12 @@ fn create_repository(directory : String) -> @core.Any raise {
       "listProjects",
       @core.any(fn(user) {
         @core.from_async(fn() raise {
-          let values = projects(repository.account_path(user))
+          let values : Array[@policy.Project] = []
+          for entry in entries(repository.account_path(user)) {
+            if entry is Listed(project) {
+              values.push(project)
+            }
+          }
           values.sort_by(fn(a, b) {
             if a.updated > b.updated {
               -1
@@ -212,29 +217,46 @@ fn create_repository(directory : String) -> @core.Any raise {
               locale_compare(a.room, b.room)
             }
           })
-          project_values(values)
+          @core.any(
+            FixedArray::makei(values.length(), fn(i) {
+              @auth.project_value(values[i])
+            }),
+          )
         })
         |> @http.native_errors
       }),
     ),
     (
       "putProject",
-      @core.any(fn(user, value) {
+      @core.any(fn(user, value, intent : @core.Any) {
         @core.from_async(fn() raise {
           let path = repository.account_path(user)
-          let values = projects(path)
+          let values = entries(path)
           let project = @auth.read_project(value)
-          let index = values.search_by(fn(item) { item.room == project.room })
-          match index {
-            Some(index) => values[index] = project
-            None => {
-              if values.length() >= @policy.project_limit {
-                return false
+          let index = values.search_by(fn(item) { item.room() == project.room })
+          let listed = match index {
+            Some(index) =>
+              match values[index] {
+                Listed(_) => true
+                Dismissed(_) => {
+                  if @core.equal(intent, @core.any("visit")) {
+                    return false
+                  }
+                  false
+                }
               }
-              values.push(project)
-            }
+            None => false
           }
-          write(path, project_values(values))
+          if !listed &&
+            values.filter(fn(item) { item is Listed(_) }).length() >=
+            @policy.project_limit {
+            return false
+          }
+          match index {
+            Some(index) => values[index] = @policy.Listed(project)
+            None => values.push(@policy.Listed(project))
+          }
+          write(path, entry_values(values))
           true
         })
         |> @http.native_errors
@@ -245,14 +267,12 @@ fn create_repository(directory : String) -> @core.Any raise {
       @core.any(fn(user, room) {
         @core.from_async(fn() raise {
           let path = repository.account_path(user)
-          if @fs.existsSync(path) {
-            write(
-              path,
-              project_values(
-                projects(path).filter(fn(item) { item.room != room }),
-              ),
-            )
+          let values = entries(path)
+          match values.search_by(fn(item) { item.room() == room }) {
+            Some(index) => values[index] = @policy.Dismissed(room)
+            None => values.push(@policy.Dismissed(room))
           }
+          write(path, entry_values(values))
         })
         |> @http.native_errors
       }),

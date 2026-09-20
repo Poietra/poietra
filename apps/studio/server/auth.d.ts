@@ -1,4 +1,4 @@
-import type { AccountProject, AccountUser, AuthProvider } from '../shared/accounts';
+import type { AccountProject, AccountUser, AuthProvider, ProjectListIntent } from '../shared/accounts';
 export declare const AUTH_FLOW_TTL: number;
 export declare const AUTH_SESSION_TTL: number;
 export declare const ACCOUNT_PROJECT_LIMIT = 500;
@@ -31,7 +31,8 @@ export interface AuthRepository {
     takeFlow(key: string, provider: AuthProvider, browserHash: string, origin: string, now: number): Promise<AuthFlow | null>;
     deleteRecord(key: string): Promise<void>;
     listProjects(userId: string): Promise<AccountProject[]>;
-    putProject(userId: string, project: AccountProject): Promise<boolean>;
+    /** Visits respect a persisted dismissal; explicit remembering restores it. */
+    putProject(userId: string, project: AccountProject, intent?: ProjectListIntent): Promise<boolean>;
     deleteProject(userId: string, roomId: string): Promise<void>;
 }
 export interface AuthService {

@@ -147,7 +147,7 @@ for (const query of ['projects=1', 'auth_error=denied']) test(`existing OAuth en
   const room = crypto.randomUUID(); await priorRoom(page, room);
   await page.route('**/api/auth/session', route => route.fulfill({ json: { user: null, providers: { google: false, github: false } } }));
   await page.goto('/?' + query);
-  await expect(page.getByRole('dialog', { name: 'Your projects' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('dialog', { name: 'Projects' })).toBeVisible({ timeout: 15000 });
   expect(currentRoom(page)).toBe(room);
   if (query.startsWith('auth_error')) await expect(page.getByRole('alert')).toContainText('ログインをキャンセルしました');
   await page.getByRole('button', { name: '閉じる', exact: true }).click(); await live(page);

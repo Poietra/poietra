@@ -40,6 +40,7 @@ pub(all) struct AccountSave {
 
 ///|
 pub(all) enum AccountOperation {
+  VisitProject(String, String)
   RememberProject(String, String)
   RemoveProject(String)
   SignOut
@@ -48,7 +49,7 @@ pub(all) enum AccountOperation {
 ///|
 pub fn account_operation_key(operation : AccountOperation) -> String {
   match operation {
-    RememberProject(_, _) => "save"
+    VisitProject(_, _) | RememberProject(_, _) => "save"
     RemoveProject(id) => "remove:" + id
     SignOut => "logout"
   }

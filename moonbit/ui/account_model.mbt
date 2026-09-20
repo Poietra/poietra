@@ -6,6 +6,7 @@ priv struct AccountView {
   list_loading : Bool
   pending : String
   error : String
+  notice : String
   excluded : @editor.AccountRoom?
 }
 
@@ -115,6 +116,9 @@ async fn account_request(path : String, init : @core.Any) -> @core.Any {
       @core.any(message),
     ])
     error._set("status", @core.any(status))
+    if !@core.is_nullish(body) {
+      error._set("code", body._get("code"))
+    }
     @core.throwable(fn() { @core.throw_(error) })
   }
   if status == 204 {
@@ -130,7 +134,10 @@ fn account_failure(error : Error) -> Bool {
   !@core.is_nullish(native) &&
   (
     @core.equal(native._get("status"), @core.any(401)) ||
-    @core.equal(native._get("status"), @core.any(409))
+    (
+      @core.equal(native._get("status"), @core.any(409)) &&
+      !@core.equal(native._get("code"), @core.any("project_limit"))
+    )
   )
 }
 

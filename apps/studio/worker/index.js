@@ -44,6 +44,6 @@ export class UserAccount extends DurableObject {
         this.#ready = ctx.blockConcurrencyWhile(async () => new (await runtime()).UserAccount(ctx, env));
     }
     async listProjects() { return (await this.#ready).listProjects(); }
-    async putProject(project) { return (await this.#ready).putProject(project); }
+    async putProject(project, intent) { return (await this.#ready).putProject(project, intent); }
     async deleteProject(room) { return (await this.#ready).deleteProject(room); }
 }

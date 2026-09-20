@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import type { AccountProject, AuthProvider } from '../shared/accounts';
+import type { AccountProject, AuthProvider, ProjectListIntent } from '../shared/accounts';
 import type { AuthRecordValue } from '../server/auth';
 import type { AiRequest } from '../server/ai';
 import type { AssetKind } from './room-assets';
@@ -40,6 +40,6 @@ export declare class UserAccount extends DurableObject<Env> {
     #private;
     constructor(ctx: DurableObjectState, env: Env);
     listProjects(): Promise<AccountProject[]>;
-    putProject(project: AccountProject): Promise<boolean>;
+    putProject(project: AccountProject, intent?: ProjectListIntent): Promise<boolean>;
     deleteProject(room: string): Promise<void>;
 }

@@ -84,6 +84,31 @@ describe('optional accounts and private project index', () => {
     expect((await result!.json()).projects[0]).toMatchObject({ roomId: room, name: 'Persistent' });
     expect(result!.headers.get('Cache-Control')).toBe('no-store');
   });
+  it('keeps removals private and persistent across visits, restarts and delayed legacy clients until explicitly restored', async () => {
+    const f = fixture(), cookie = await f.login(), bob = await f.login('Bob');
+    const visit = { name: 'Shared title', intent: 'visit' };
+    expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, visit)).status).toBe(200);
+    await f.mutate('/api/projects/' + room, 'DELETE', cookie);
+    const restarted = new AuthService(config, new NodeAuthRepository(f.directory));
+    for (const body of [visit, { name: 'Older editor title' }]) {
+      const result = await restarted.handle(new Request(origin + '/api/projects/' + room, {
+        method: 'PUT', headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      }));
+      expect(result!.status).toBe(200);
+      expect(await result!.json()).toEqual({ project: null });
+    }
+    expect((await (await f.request('/api/projects', { headers: { Cookie: cookie } })).json()).projects).toEqual([]);
+    expect((await (await f.mutate('/api/projects/' + room, 'PUT', bob, visit)).json()).project.name).toBe('Shared title');
+    const restored = await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Re-added', intent: 'remember' });
+    expect((await restored.json()).project.name).toBe('Re-added');
+    expect((await (await f.mutate('/api/projects/' + room, 'PUT', cookie, visit)).json()).project.name).toBe('Shared title');
+    // A removal wins against an automatic visit in either arrival order.
+    await Promise.all([
+      f.mutate('/api/projects/' + room, 'DELETE', cookie),
+      f.mutate('/api/projects/' + room, 'PUT', cookie, visit),
+    ]);
+    expect((await (await f.request('/api/projects', { headers: { Cookie: cookie } })).json()).projects).toEqual([]);
+  });
   it('rejects cross-origin mutation and stale UI account identity without changing the current account', async () => {
     const f = fixture(), cookie = await f.login();
     for (const method of ['PUT', 'DELETE']) {
@@ -115,12 +140,17 @@ describe('optional accounts and private project index', () => {
   it('validates bounded project names/room IDs and limits only this account index', async () => {
     const f = fixture(), cookie = await f.login();
     for (const name of ['', ' ', 'a'.repeat(201), 42]) expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, { name })).status).toBe(400);
+    for (const intent of ['restore-everything', true, 1, {}]) expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Title', intent })).status).toBe(400);
     expect((await f.mutate('/api/projects/x', 'PUT', cookie, { name: 'Name' })).status).toBe(400);
     expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'x', padding: 'x'.repeat(4096) })).status).toBe(400);
     const id = await authHash('google:Alice');
     for (let index = 0; index < ACCOUNT_PROJECT_LIMIT; index++) await f.repository.putProject(id, { roomId: `room-${String(index).padStart(16, '0')}`, name: 'Saved', updatedAt: index });
-    expect((await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Overflow' })).status).toBe(409);
+    expect(await (await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Overflow', intent: 'visit' })).json()).toEqual({ project: null });
+    const full = await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Overflow', intent: 'remember' });
+    expect(full.status).toBe(409); expect((await full.json()).code).toBe('project_limit');
     expect((await f.mutate('/api/projects/room-0000000000000000', 'PUT', cookie, { name: 'Rename' })).status).toBe(200);
+    await f.mutate('/api/projects/room-0000000000000000', 'DELETE', cookie);
+    expect((await (await f.mutate('/api/projects/' + room, 'PUT', cookie, { name: 'Fits after removal' })).json()).project.name).toBe('Fits after removal');
   }, 20000); // Fills the whole account index; allow slower shared CI runners.
 });
 

@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AuthService, authHash } from '../server/auth';
@@ -8,6 +8,21 @@ import { createNodeAuth, NodeAuthRepository } from '../server/auth-node';
 
 const cleanups: Array<() => Promise<void> | void> = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
+it('reads the original account array and persists dismissals without retaining removed shortcut titles', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'poietra-account-legacy-'));
+  cleanups.push(() => rmSync(directory, { recursive: true, force: true }));
+  const repository = new NodeAuthRepository(directory), id = await authHash('github:legacy');
+  const project = { roomId: 'legacy-project-123456', name: 'Original title', updatedAt: 42 };
+  writeFileSync(join(directory, 'users', id + '.json'), JSON.stringify([project]));
+  expect(await repository.listProjects(id)).toEqual([project]);
+  await repository.deleteProject(id, project.roomId);
+  expect(JSON.parse(readFileSync(join(directory, 'users', id + '.json'), 'utf8'))).toEqual([{ roomId: project.roomId, dismissed: true }]);
+  const restarted = new NodeAuthRepository(directory);
+  expect(await restarted.putProject(id, project, 'visit')).toBe(false);
+  expect(await restarted.listProjects(id)).toEqual([]);
+  expect(await restarted.putProject(id, project, 'remember')).toBe(true);
+  expect(await restarted.listProjects(id)).toEqual([project]);
+});
 it('serves persisted private accounts over real local HTTP; guest routes pass through and logout revokes the cookie', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'poietra-node-account-'));
   cleanups.push(() => rmSync(directory, { recursive: true, force: true }));

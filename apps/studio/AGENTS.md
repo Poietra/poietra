@@ -82,6 +82,12 @@ files or flatten AI edits into an uneditable generated video.
 - Google and GitHub logins are optional, independent identities. Do not merge by
   email. Private project lists and sessions are separate from rooms; removing a
   list entry does not delete the room or restrict shared-link access.
+- 2026-09-20: The founder requested clearer account concepts. Distinguish account,
+  login method, browser session, browser-local collaboration display name, private
+  shortcut and shared room. Automatic visits respect persistent account-scoped
+  dismissals; only explicit re-addition restores a shortcut. Keep removed titles
+  out of dismissal records and preserve guest editing. A failed session lookup
+  must not be presented as confirmed guest mode. Account linking remains separate.
 
 ## Media and hosts
 
