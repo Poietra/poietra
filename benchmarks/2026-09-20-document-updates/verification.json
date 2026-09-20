@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-09-20T07:23:39.892Z",
+  "origin": "https://poietra.com",
+  "release": "99a349d490a7ef895ce7494ea3e902c7ff9806de",
+  "checks": [
+    "Health and existing GitHub/OpenAI configuration",
+    "English/Japanese pages and deployed JS/WASM match the MoonBit release",
+    "Pre-update room restored exactly; existing R2 image readable and upload deduplicated",
+    "GitHub OAuth start and AuthRecord write; provider callback is outside this smoke",
+    "Production keeps SVG object and geometry nodes across local and peer edits",
+    "Two browsers edit together; Undo preserves peer color; reload and fresh WebSocket recover edits without page errors",
+    "Guest account UI, private-list isolation, collaboration alias propagation and browser-local persistence",
+    "Independent clock advances, pauses, seeks and returns to the displayed Composition without document writes",
+    "Production MP4 download decodes every expected frame"
+  ],
+  "workerVersion": "83767c03-c8ae-49bb-8151-194d35af64a3",
+  "rollbackVersion": "56c37647-0bc4-4a51-9089-7238ad8b6425",
+  "deployedAt": "2026-09-20T07:22:40.141342Z",
+  "ci": {
+    "url": "https://github.com/Poietra/poietra/actions/runs/35496062233",
+    "conclusion": "success",
+    "vitest": 700,
+    "moonbitJs": 48,
+    "moonbitWasm": 41,
+    "browser": 170,
+    "export": 8,
+    "media": 6,
+    "productionPages": 25,
+    "integrations": "Node/workerd recovery, R2 persistence/migration/faults and account isolation/TTL passed"
+  },
+  "local": {
+    "fullBrowserInitial": {
+      "passed": 178,
+      "failed": 2,
+      "failures": "Initial account display in delayed GET/PUT response tests"
+    },
+    "accountSuiteRerun": {
+      "passed": 9,
+      "codeChanges": false
+    },
+    "export": 8,
+    "media": 6,
+    "note": "Initial local account startup failures did not recur in the focused suite or CI; cause was not established."
+  }
+}

@@ -1,0 +1,22 @@
+--- a/apps/studio/tests/e2e/fixtures/painter-preview.tsx
++++ b/apps/studio/tests/e2e/fixtures/painter-preview.tsx
+@@ -15,7 +15,7 @@
+ const heldRenders = new Set<() => void>();
+ const probe = {
+   delay: 35, failNext: false, creations: 0, disposals: 0, active: 0, maximumConcurrentPerInstance: 0,
+-  svgCalls: 0,
++  svgCalls: 0, preparations: 0,
+   message(content: string) {
+     store.chat.append({ id: crypto.randomUUID(), role: 'user', content, authorId: 'peer-probe', authorName: 'Peer', color: '#123456', createdAt: Date.now(), scope: { sceneId: 'scene-1', selection: { kind: 'composition', id: 'comp-1' }, selectedIds: [], label: 'Composition 1' } });
+   },
+@@ -42,6 +42,10 @@
+ };
+ const observedRenderer = {
+   ...renderer,
++  prepareScene(...args: Parameters<typeof renderer.prepareScene>) {
++    probe.preparations++;
++    return renderer.prepareScene(...args);
++  },
+   frameToSvg(...args: Parameters<typeof renderer.frameToSvg>) {
+     probe.svgCalls++;
+     return renderer.frameToSvg(...args);

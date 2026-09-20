@@ -52,23 +52,28 @@ try {
         await page.evaluate(({ x, scale }) => {
           const target = document.querySelector('[data-testid="stage-main"] .scene-svg [data-object-id="circle"]');
           const position = () => Number(target?.getAttribute('transform')?.match(/translate\(([^ ,)]+)/)?.[1]);
-          const initial = position(), pending = [], measured = [], intervals = [];
+          const initial = position(), pending = [], measured = [], domLatencies = [], inputTimes = [], intervals = [];
           let previous = 0, raf;
           const tick = now => { if (previous) intervals.push(now - previous); previous = now; raf = requestAnimationFrame(tick); }; raf = requestAnimationFrame(tick);
-          const onMove = e => { if (e.buttons) pending.push({ x: initial + (e.clientX - x) * scale, start: performance.now() }); };
+          const onMove = e => {
+            if (!e.buttons) return;
+            const start = performance.now(); inputTimes.push(start);
+            pending.push({ x: initial + (e.clientX - x) * scale, start });
+          };
           window.addEventListener('pointermove', onMove, true);
           const observer = new MutationObserver(() => {
             const value = Number(document.querySelector('[data-testid="stage-main"] .scene-svg [data-object-id="circle"]')?.getAttribute('transform')?.match(/translate\(([^ ,)]+)/)?.[1]);
             const index = pending.findLastIndex(sample => Math.abs(sample.x - value) < .2);
             if (index < 0) return;
             const sample = pending[index]; pending.splice(0, index + 1);
+            domLatencies.push(performance.now() - sample.start);
             requestAnimationFrame(() => requestAnimationFrame(() => measured.push(performance.now() - sample.start)));
           });
           observer.observe(document.querySelector('[data-testid="stage-main"]'), { subtree: true, attributes: true, childList: true });
           window.stopDragMeasurement = async () => {
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             observer.disconnect(); window.removeEventListener('pointermove', onMove, true); cancelAnimationFrame(raf);
-            return { latencies: measured, intervals };
+            return { latencies: measured, domLatencies, inputIntervals: inputTimes.slice(1).map((time, i) => time - inputTimes[i]), intervals };
           };
         }, { x, scale: 1280 / surface.width });
         // Deliver trusted input at a nominal 60 Hz; a busy page can delay delivery.
@@ -93,9 +98,9 @@ try {
       const { profile } = await cdp.send('Profiler.stop');
       await writeFile(`${output}.${count}.cpuprofile`, JSON.stringify(profile));
       if (errors.length) throw new Error(errors.join('\n'));
-      const result = { objects: count, drag, playbackIntervalsMs: playback, dragLatencyMs: stats(drag.flatMap(s => s.latencies)), playbackIntervalMs: stats(playback) };
-      results.push(result); console.log(JSON.stringify({ objects: count, dragLatencyMs: result.dragLatencyMs, playbackIntervalMs: result.playbackIntervalMs }));
+      const result = { objects: count, drag, playbackIntervalsMs: playback, dragLatencyMs: stats(drag.flatMap(s => s.latencies)), dragDomLatencyMs: stats(drag.flatMap(s => s.domLatencies)), deliveredInputIntervalMs: stats(drag.flatMap(s => s.inputIntervals)), playbackIntervalMs: stats(playback) };
+      results.push(result); console.log(JSON.stringify({ objects: count, dragLatencyMs: result.dragLatencyMs, dragDomLatencyMs: result.dragDomLatencyMs, deliveredInputIntervalMs: result.deliveredInputIntervalMs, playbackIntervalMs: result.playbackIntervalMs }));
     } finally { provider.destroy(); doc.destroy(); await context.close(); }
   }
-  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', objects: [100, 500], clients: 1, viewport: { width: 1440, height: 900 }, drag: '60 trusted pointer moves at nominal 60 Hz, 1 warmup + 3 runs; DOM update + two rAF callbacks after pointer delivery', playback: 'Three-second Scene, two one-second holds and one-second transition; rAF spacing, not physical FPS', profiling: 'CDP CPU sampler at 1 ms; includes measurement overhead', exclusions: 'No media, WAN or hardware GPU; not field INP' }, results }, null, 2) + '\n');
+  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', objects: [100, 500], clients: 1, viewport: { width: 1440, height: 900 }, drag: '60 trusted pointer moves at nominal 60 Hz, 1 warmup + 3 runs; DOM update + two rAF callbacks after pointer delivery', inputDiagnostics: 'Also records capture-listener to DOM mutation and actual delivered pointer spacing; excludes pre-delivery waiting and is not paint latency', playback: 'Three-second Scene, two one-second holds and one-second transition; rAF spacing, not physical FPS', profiling: 'CDP CPU sampler at 1 ms; includes measurement overhead', exclusions: 'No media, WAN or hardware GPU; not field INP' }, results }, null, 2) + '\n');
 } finally { await browser.close(); }

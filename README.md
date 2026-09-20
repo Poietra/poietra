@@ -250,7 +250,7 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20 at application revision `fa0b627`, after removing the historical implementations.
+Audited 2026-09-20 at application revision `99a349d`, after removing the historical implementations.
 GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
@@ -258,11 +258,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 147 | 16,256 |
+| Regression/browser tests, fixtures and test configurations | 147 | 16,348 |
 | API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,932 |
 | Benchmark scripts and root tool configurations | 5 | 139 |
 
-The same inventory has **56,448 application MoonBit lines** and **783 native JS
+The same inventory has **56,786 application MoonBit lines** and **783 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -351,6 +351,72 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Document edits and resource preparation — 2026-09-20
+
+[`99a349d`](https://github.com/Poietra/poietra/commit/99a349d490a7ef895ce7494ea3e902c7ff9806de)
+reuses unchanged panel content and prepared text/image resources. The baseline
+is `394af00` (application `0981b5f`). Application source hashes are
+`15a127d5…548cf` before and `35f8a7c0…93b05` after; every corresponding trace
+matches. Both versions were built separately with the same pinned dependencies.
+
+One baseline and two final development traces applied 12 position changes,
+one per rAF, using the delayed-Canvas fixture and React StrictMode:
+
+| Work during those edits | Before | After, both traces |
+| --- | ---: | ---: |
+| `prepareScene` calls | 17 | 0 |
+| Each of Scene tabs, layers, timeline structure and media-row content | 46 | 0 |
+| Studio root calls | 46 | 24 |
+
+The four Context/props adapters still ran 24 times after the change; the content
+behind them was retained. Before the split, each original component included its
+content. These are diagnostic invocation counts, including StrictMode repeats
+and asynchronous preparation completions, not production timings.
+
+Production measurements ran sequentially with frozen builds on Node 24.13.0,
+MoonBit `0.10.13+cbb11c36f`, Chromium 153.0.8010.12 with SwiftShader,
+Intel Core Ultra 7 255H/WSL2, CPUs `0–15`, loopback and a 1440×900 viewport. No local builds/tests ran during
+measurement; other host activity was not isolated. Each trace includes one
+warmup and three 60-move drag runs, then one three-second playback. CDP CPU
+sampling at 1 ms adds overhead. Drag includes two rAF callbacks after the DOM
+change; playback measures rAF spacing, not physical FPS or field INP.
+
+| Measurement | Baseline traces 1 / 2 | Final traces 1 / 2 |
+| --- | ---: | ---: |
+| 100-object drag median | 33.3 / 39.0 ms | 38.3 / 38.4 ms |
+| 500-object drag median | 33.6 / 33.4 ms | 42.0 / 42.0 ms |
+| 500-object drag p95 | 63.5 / 60.8 ms | 43.0 / 44.4 ms |
+| 500-object playback interval p95 | 50.1 / 50.0 ms | 33.4 / 33.4 ms |
+| 500-object maximum playback interval | 100.0 / 100.0 ms | 83.5 / 83.3 ms |
+| Initial editor JS, gzip | 522,628 B | 524,141 B (+0.29%) |
+
+The higher drag median prompted one additional pair of traces with input
+diagnostics. Input-to-DOM median fell from **11.4 to 8.0 ms** for 100 objects and
+**20.8 to 13.7 ms** for 500. In the latter case, the automation's actual input
+spacing changed from 50.0 to 33.4 ms despite the nominal 60 Hz schedule. The
+DOM-plus-two-rAF median remained 33.4 → 42.0 ms, and playback p95 was 49.9 →
+50.0 ms. Thus processing work decreased, but neither overall drag latency nor
+playback pacing improved uniformly. All 500-object playback traces still contain
+22 intervals above 25 ms. No startup or encoding speedup is claimed; home JS
+remains 91,072 B gzip.
+
+[All samples, source inventory and compressed CPU profiles](benchmarks/2026-09-20-document-updates/)
+are retained, including the slower observations. The follow-up adds DOM/input
+timings to `measure-interaction.mjs`; these exclude waiting before input delivery
+and do not measure physical paint. Reproduce from `apps/studio`, using separate
+isolated production/development servers, one command at a time:
+
+```sh
+POIETRA_PERF_URL=http://127.0.0.1:5287 node scripts/measure-interaction.mjs
+POIETRA_PERF_URL=http://127.0.0.1:5288 node scripts/measure-document-updates.mjs
+node scripts/measure-bundle.mjs
+```
+
+For the baseline counter trace, check out `394af00`, apply
+[`baseline-probes.patch`](benchmarks/2026-09-20-document-updates/baseline-probes.patch)
+and copy `measure-document-updates.mjs` from this release. Keep that checkout's
+`render-counts.ts`, whose probes match the original component names.
 
 ### UI subscription boundaries — 2026-09-20
 
@@ -986,7 +1052,7 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
 runs 700 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
-WASM tests, 166 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
+WASM tests, 170 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
@@ -995,6 +1061,13 @@ The default development run excludes those three production-only suites; the
 production configuration selects them explicitly.
 The [workflow definition](.github/workflows/check.yml) is the authoritative command
 selection.
+
+For `99a349d`, all CI checks passed. The broader local 180-test development run
+initially passed 178; two account-dialog startup cases failed to display the
+initial account. The complete nine-test account suite then passed without code
+changes, and CI's 170 browser checks passed on their first run. Local export and
+media suites also passed (8 and 6). The local initial failures remain recorded
+here; their cause was not established.
 
 ```sh
 # Repository root
@@ -1036,6 +1109,21 @@ local validation. The explicit `production` environment updates the existing
 and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
+
+The document-rendering release
+[`99a349d`](https://github.com/Poietra/poietra/commit/99a349d490a7ef895ce7494ea3e902c7ff9806de)
+was deployed at 100% as `83767c03-c8ae-49bb-8151-194d35af64a3` on
+**2026-09-20 16:22 JST**, after its
+[CI run](https://github.com/Poietra/poietra/actions/runs/35496062233) passed every
+check. All 16 bindings and runtime settings match the preceding layout release;
+there is no document/storage migration. Production verification matched JS/WASM
+hashes, restored the existing verification room and R2 image, checked upload
+deduplication, two-browser edits and selective Undo, guest/account UI, GitHub
+authorization start, display-name persistence, playback and seeking. A production
+MP4 download decoded all 102 expected frames. The screenshot retains the corrected
+toolbar and transform-label spacing. Only the dedicated verification room was
+used; full provider login and paid AI calls were not exercised. The recorded
+rollback version is `56c37647-0bc4-4a51-9089-7238ad8b6425`.
 
 The layout fix [`0981b5f`](https://github.com/Poietra/poietra/commit/0981b5f9e87faa01116d9354a17ac503802a8aae)
 is deployed at 100% as `56c37647-0bc4-4a51-9089-7238ad8b6425` since
