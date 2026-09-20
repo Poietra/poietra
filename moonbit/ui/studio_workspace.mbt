@@ -106,8 +106,7 @@ fn studio_workspace_heading(
     truthy(imports._get("mediaImport")) ||
     state.viewing() ||
     state.playing()
-  let nodes : Array[&@react.ReactNode] = [
-    studio_div("workspace-breadcrumb", crumbs),
+  let actions : Array[&@react.ReactNode] = [
     h(
       "button",
       {
@@ -140,7 +139,7 @@ fn studio_workspace_heading(
       [icon("Film", 14), "Add media"],
     ),
   ]
-  nodes.push(
+  actions.push(
     if compare {
       h(
         "button",
@@ -169,7 +168,10 @@ fn studio_workspace_heading(
   h(
     "div",
     { "key": @core.any("heading"), "className": @core.any("workspace-heading") },
-    nodes,
+    [
+      studio_div("workspace-breadcrumb", crumbs),
+      studio_div("workspace-actions", actions),
+    ],
   )
 }
 

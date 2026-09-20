@@ -78,38 +78,46 @@ fn transform_inspector(input : @core.Any) -> @react.Element {
     h("p", { "className": @core.any("property-timing-note") }, [
       "親の移動・回転・拡縮に追従します。親の変更時は各 Composition の見た目を保ちます。",
     ]),
-    h("div", { "className": @core.any("property-grid") }, [
-      number_field(
-        "Scale X",
-        "Scale X",
-        state.scaleX.unwrap_or(1.0) * 100.0,
-        fn(v) { update("scaleX", v / 100.0) },
-        suffix="%",
-      ),
-      number_field(
-        "Scale Y",
-        "Scale Y",
-        state.scaleY.unwrap_or(1.0) * 100.0,
-        fn(v) { update("scaleY", v / 100.0) },
-        suffix="%",
-      ),
-    ]),
-    h("div", { "className": @core.any("property-grid") }, [
-      number_field(
-        "Anchor X",
-        "Anchor X",
-        state.anchorX.unwrap_or(0.0),
-        fn(v) { anchor("x", v) },
-        suffix="px",
-      ),
-      number_field(
-        "Anchor Y",
-        "Anchor Y",
-        state.anchorY.unwrap_or(0.0),
-        fn(v) { anchor("y", v) },
-        suffix="px",
-      ),
-    ]),
+    h(
+      "div",
+      { "className": @core.any("property-grid property-grid-stacked") },
+      [
+        number_field(
+          "Scale X",
+          "Scale X",
+          state.scaleX.unwrap_or(1.0) * 100.0,
+          fn(v) { update("scaleX", v / 100.0) },
+          suffix="%",
+        ),
+        number_field(
+          "Scale Y",
+          "Scale Y",
+          state.scaleY.unwrap_or(1.0) * 100.0,
+          fn(v) { update("scaleY", v / 100.0) },
+          suffix="%",
+        ),
+      ],
+    ),
+    h(
+      "div",
+      { "className": @core.any("property-grid property-grid-stacked") },
+      [
+        number_field(
+          "Anchor X",
+          "Anchor X",
+          state.anchorX.unwrap_or(0.0),
+          fn(v) { anchor("x", v) },
+          suffix="px",
+        ),
+        number_field(
+          "Anchor Y",
+          "Anchor Y",
+          state.anchorY.unwrap_or(0.0),
+          fn(v) { anchor("y", v) },
+          suffix="px",
+        ),
+      ],
+    ),
   ]
   if state.shear.unwrap_or(0.0).abs() > 0.000001 {
     content.push(
