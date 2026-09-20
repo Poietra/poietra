@@ -222,8 +222,7 @@ pub fn account_projects(input : @core.Any) -> @react.Element {
   ]
   if user is Some(user) {
     content.push(
-      @react.jsx(@core.any(account_project_list), [], props={
-        "key": @core.any(user.id),
+      @react.jsx(@core.any(account_project_list), [], key=user.id, props={
         "controller": @core.any(controller),
         "view": @core.any(view),
         "input": input,

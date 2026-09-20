@@ -199,7 +199,7 @@ Source audit rerun **2026-09-21**, including personal project search and recover
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 282 | 57,272 |
+| MoonBit application | 282 | 57,271 |
 | Native JS runtime adapters | 112 | 783 |
 | Executable application TS/TSX (`src/shared/server/worker`) | 0 | 0 |
 | TypeScript tests, fixtures and test configurations | 147 | 16,505 |
