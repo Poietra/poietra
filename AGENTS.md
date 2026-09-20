@@ -62,6 +62,12 @@ and measurements belong in [README.md](README.md).
   JS facades. Do not manually duplicate domain records or edit generated output.
   `pnpm typecheck` checks the captured public API; `pnpm test:extensions` compiles
   and runs a new MoonBit record/API in an isolated directory.
+- 2026-09-20: Independent browser foreign libraries duplicated transitive MoonBit
+  definitions and slowed startup. Generate `client_runtime` export tables from
+  package `moon.pkg` files and link the six editor packages once. Keep domain
+  package boundaries and standalone Node/Worker/SSR artifacts; preserve lazy
+  site, file/export, MathJax and Mediabunny loading. New exports must work through
+  both artifacts in the extension test. Do not hand-edit generated export tables.
 - Keep pure domain packages independent of UI/host types. Compile motion
   primitives to WASM and host integrations to JS. Use the pinned `.moon-version`
   through `node scripts/moon.mjs`; verify generated release artifacts.

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 // Run against a production build: pnpm build:web && PORT=5188 pnpm start
 // POIETRA_TEST_URL=http://127.0.0.1:5188 pnpm exec playwright test dogfood-home-seo
@@ -62,5 +63,34 @@ test('hydration keeps the static page and limits Japanese font requests', async 
   await expect(slider).toHaveValue('2000');
   await page.evaluate(() => document.fonts.ready);
   expect(fonts.length).toBeLessThanOrEqual(4);
+  expect(errors).toEqual([]);
+});
+
+test('production editor shares one MoonBit runtime and loads codecs only when export opens', async ({ page }) => {
+  const manifest = JSON.parse(readFileSync(new URL('../../dist/.vite/manifest.json', import.meta.url), 'utf8')) as Record<string, { file: string }>;
+  const files = Object.values(manifest).map(entry => entry.file);
+  const runtime = files.find(file => /\/client_runtime-[^/]+\.js$/.test(file))!;
+  const exporter = files.find(file => /\/browser_export-[^/]+\.js$/.test(file))!;
+  const codecs = Object.entries(manifest).find(([key]) => key.includes('/mediabunny/'))?.[1].file;
+  expect(runtime).toBeTruthy(); expect(exporter).toBeTruthy(); expect(codecs).toBeTruthy();
+  const requests: string[] = [], errors: string[] = [];
+  // Project creation navigates from home to a new document. Count its imports
+  // separately from the creator's cached imports on the previous page.
+  page.on('framenavigated', frame => { if (frame === page.mainFrame()) requests.length = 0; });
+  page.on('request', request => requests.push(new URL(request.url()).pathname));
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/?lang=en');
+  await page.getByRole('button', { name: 'New project', exact: true }).click();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
+  await page.waitForLoadState('networkidle');
+  expect(requests.filter(path => path === `/${runtime}`)).toHaveLength(1);
+  expect(requests).not.toContain(`/${exporter}`);
+  expect(requests).not.toContain(`/${codecs}`);
+  expect(requests.filter(path => /\/assets\/(?:boundary|browser_(?:editor|media|render|undo)|svg)-[^/]+\.js$/.test(path))).toEqual([]);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled({ timeout: 30000 });
+  expect(requests).toContain(`/${exporter}`);
+  expect(requests).toContain(`/${codecs}`);
+  expect(requests.filter(path => path === `/${runtime}`)).toHaveLength(1);
   expect(errors).toEqual([]);
 });

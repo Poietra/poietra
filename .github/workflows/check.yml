@@ -37,6 +37,7 @@ jobs:
       - name: Check generated adapters and MoonBit types
         run: |
           python3 scripts/generate-adapters.py
+          node scripts/client-runtime.mjs
           moon fmt
           git diff --exit-code -- moonbit apps/studio/shared/scene-types.d.ts
           moon check --target js --deny-warn

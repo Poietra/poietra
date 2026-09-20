@@ -14,7 +14,8 @@ export function environment() {
   const sources = git('ls-files', '--cached', '--others', '--exclude-standard', '-z', '--',
     'moonbit', 'apps/studio/src', 'apps/studio/shared', 'apps/studio/server', 'apps/studio/worker',
     'moon.mod', '.moon-version', 'pnpm-lock.yaml', 'scripts/build.mjs', 'scripts/generate-adapters.py',
-    'scripts/bindings.json', 'scripts/generate-bindings.mjs').split('\0').filter(Boolean)
+    'scripts/bindings.json', 'scripts/generate-bindings.mjs', 'scripts/client-runtime.mjs',
+    'apps/studio/vite.config.ts', 'apps/studio/scripts/moonbit-client.mjs').split('\0').filter(Boolean)
     .filter(path => !path.endsWith('.mbti') && existsSync(join(root, path))).sort();
   const sourceHash = createHash('sha256');
   for (const path of sources) sourceHash.update(path).update('\0').update(readFileSync(join(root, path))).update('\0');
@@ -29,6 +30,10 @@ export function environment() {
     wasmSha256: hash('../public/wasm/poietra_core.wasm'),
     browserEditorSha256: hash('../../../_build/js/release/build/browser_editor/browser_editor.js'),
     boundarySha256: hash('../../../_build/js/release/build/boundary/boundary.js'),
+    ...(existsSync(join(root, '_build/js/release/build/client_runtime/client_runtime.js'))
+      ? { clientRuntimeSha256: hash('../../../_build/js/release/build/client_runtime/client_runtime.js') } : {}),
+    ...(existsSync(join(root, 'apps/studio/dist/.vite/manifest.json'))
+      ? { viteManifestSha256: hash('../dist/.vite/manifest.json') } : {}),
   };
 }
 export function stats(values) {

@@ -6,7 +6,7 @@ const components = ['studio', 'sidebar', 'inspector', 'timeline', 'stage', 'assi
 declare global { interface Window { renderCounts: Record<string, number> } }
 
 export async function countEditorRenders(page: Page) {
-  await page.route('**/_build/js/release/build/ui/ui.js*', async route => {
+  await page.route(/\/_build\/js\/release\/build\/(?:ui\/ui|client_runtime\/client_runtime)\.js(?:\?|$)/, async route => {
     const response = await route.fetch();
     let source = await response.text();
     for (const name of components) {

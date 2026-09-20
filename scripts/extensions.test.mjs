@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { generateClientRuntime } from './client-runtime.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 test('a new typed MoonBit record becomes a callable JS API with matching public types', async () => {
@@ -14,6 +15,9 @@ test('a new typed MoonBit record becomes a callable JS API with matching public 
     for (const file of ['moon.mod', 'package.json']) cpSync(join(root, file), join(directory, file));
     for (const file of ['.mooncakes', '.tools', 'node_modules']) symlinkSync(join(root, file), join(directory, file));
     mkdirSync(join(directory, 'apps/studio/shared'), { recursive: true });
+    // Reuse native host bindings, but compile the extended MoonBit packages in
+    // isolation so both standalone and shared-browser exports must be generated.
+    symlinkSync(join(root, 'apps/studio/src'), join(directory, 'apps/studio/src'));
     const model = join(directory, 'moonbit/scene/model.mbt');
     writeFileSync(model, readFileSync(model, 'utf8') + `
 ///|
@@ -31,9 +35,10 @@ pub fn extension_roundtrip(value : @core.Any) -> @core.Any {
   encode_ExtensionRecord(decode_ExtensionRecord(value))
 }
 `);
+    generateClientRuntime(directory);
     const local = join(root, '.tools/moon');
     const moon = process.env.POIETRA_MOON ?? (existsSync(join(local, 'bin/moon')) ? join(local, 'bin/moon') : 'moon');
-    execFileSync(moon, ['build', '--release', '--target', 'js', 'moonbit/boundary'], {
+    execFileSync(moon, ['build', '--release', '--target', 'js'], {
       cwd: directory, env: { ...process.env, ...(moon === join(local, 'bin/moon') ? { MOON_HOME: local } : {}) }, stdio: 'pipe',
     });
     const api = await import(join(directory, '_build/js/release/build/boundary/boundary.js'));
@@ -41,6 +46,10 @@ pub fn extension_roundtrip(value : @core.Any) -> @core.Any {
     assert.deepEqual(api.extensionRoundtrip(fixture), fixture);
     assert.deepEqual(api.extensionRoundtrip({ id: 'absent' }), { id: 'absent' });
     assert.deepEqual(api.extensionRoundtrip({ id: 'nullable', metadata: null }), { id: 'nullable' });
+    const client = (await import(join(directory, '_build/js/release/build/client_runtime/client_runtime.js'))).boundary();
+    assert.deepEqual(client.extensionRoundtrip(fixture), fixture);
+    assert.deepEqual(client.extensionRoundtrip({ id: 'absent' }), { id: 'absent' });
+    assert.deepEqual(client.extensionRoundtrip({ id: 'nullable', metadata: null }), { id: 'nullable' });
     writeFileSync(join(directory, 'consumer.ts'), `
 import type { ExtensionRecord } from './apps/studio/shared/scene-types';
 const example: ExtensionRecord = ${JSON.stringify(fixture)};

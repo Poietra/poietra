@@ -57,7 +57,7 @@ test('home is an accessible entry without creating a room or loading the editor 
   expect(await page.evaluate(() => localStorage.getItem('poietra-last-room'))).toBeNull();
   expect(await page.evaluate(() => (window as unknown as { landingRoomWrites: string[] }).landingRoomWrites)).toEqual([]);
   expect(sockets).toEqual([]);
-  expect(requests.filter(path => /\.wasm$|\/src\/engine\/|\/src\/editor\/bootstrap|mathjax|mediabunny|\/assets\/(?:bootstrap|editor|studio|svg|media|kernel|painter|renderer|export)[^/]*\.js$/i.test(path))).toEqual([]);
+  expect(requests.filter(path => /\.wasm$|\/src\/engine\/|\/src\/editor\/bootstrap|client_runtime|mathjax|mediabunny|\/assets\/(?:bootstrap|editor|studio|svg|media|kernel|painter|renderer|export)[^/]*\.js$/i.test(path))).toEqual([]);
   const resources = await page.evaluate(() => (performance.getEntriesByType('resource') as PerformanceResourceTiming[]).map(entry => ({ path: new URL(entry.name).pathname, transferBytes: entry.transferSize, decodedBytes: entry.decodedBodySize })));
   await writeFile(info.outputPath('home-loading.json'), JSON.stringify({ javascriptBytes: resources.filter(entry => /\.[cm]?js$/.test(entry.path)).reduce((total, entry) => total + entry.decodedBytes, 0), resources }, null, 2));
   // The primary action remains reachable without a pointing device.

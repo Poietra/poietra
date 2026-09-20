@@ -27,6 +27,11 @@ CPU 計測は Node 24 の標準機能で起動するように変更し、`tsx` �
 
 [セットアップ・構成・最新の性能計測](../../README.md) · [開発方針](AGENTS.md) · [不具合の報告](https://github.com/Poietra/poietra/issues)
 
+ブラウザ用ビルドは UI・文書・編集・Undo・描画・素材の6パッケージを `client_runtime` にまとめてリンクし、
+共通の MoonBit コードを重複配信しない構成です。パッケージの責務と公開 JS API は維持し、
+公開関数の一覧を `moon.pkg` から生成します。新機能の型・APIは単独出力と共通出力の両方で拡張テストを行います。
+Node・Worker・SSR は単独出力を使い、トップページ・ファイル操作・書き出し・MathJax・Mediabunny は別に読み込みます。
+
 ## 制作を始める
 
 [ルートの手順](../../README.md#run-locally)でツールチェーンを用意し、リポジトリのルートで `pnpm dev` を実行します。

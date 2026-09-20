@@ -168,6 +168,7 @@ Vite's native source watching does not compile MoonBit.
 | Services | `schemas`, `proposals`, `ai_service`, `auth_policy`, `auth_service` | Validated AI operations, bounded requests, OAuth and private project indexes |
 | Hosts and storage | `node_server`, `node_rooms`, `node_assets`, `node_auth`, `worker_server`, `worker_room`, `worker_assets`, `worker_accounts`, `room_assets`, `r2_upload`, `http_policy`, `http_runtime` | HTTP/WebSockets, persistence, quotas, streaming uploads and atomic publication |
 | Public site | `site`, `site_shell`, `site_boundary`, `browser_site`, `site_build` | English/Japanese content, lazy editor entry, prerendering and content negotiation |
+| Browser linking | `client_runtime` (generated) | One shared browser artifact for UI, document, editing, Undo, rendering and media entry points |
 
 The implementation lives in [moonbit/](moonbit/). [apps/studio/](apps/studio/)
 contains native adapters, styles, assets and regression tests. Generated release
@@ -178,6 +179,20 @@ ignored `.wrangler/`, rather than committed as 15,408 lines of application sourc
 Historical source is available in
 [poietra-hackathon](https://github.com/Poietra/poietra-hackathon) and Git history.
 Copied TypeScript/Rust implementations were removed on 2026-09-20.
+
+Browser builds link `boundary`, `browser_editor`, `browser_media`,
+`browser_render`, `browser_undo` and `ui` together through `client_runtime`.
+Previously, each standalone foreign library included its own transitive MoonBit
+code. The shared entry removes those duplicate definitions while retaining package
+responsibilities and public JS facades. `scripts/client-runtime.mjs` derives its
+export tables from each package's `moon.pkg`; adding an export does not require
+maintaining a second list. The compiler checks function references, and tests
+compare all 219 foreign exports and their arity with standalone artifacts.
+Vite redirects only browser imports and rejects leaked standalone copies.
+Node, Workers and SSR keep their existing entry points. The public site,
+file/export operations, MathJax and Mediabunny remain separate or lazy.
+The linking rule follows MoonBit's
+[foreign-library export boundary](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html#foreign-library).
 
 The rewrite changes the data flow as well as the language:
 
