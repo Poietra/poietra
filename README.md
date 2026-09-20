@@ -229,7 +229,7 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20 after removing the historical implementations.
+Audited 2026-09-20 at application revision `54d0314`, after removing the historical implementations.
 GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
@@ -237,11 +237,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 145 | 15,926 |
-| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,906 |
+| Regression/browser tests, fixtures and test configurations | 145 | 16,066 |
+| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,911 |
 | Benchmark scripts and root tool configurations | 5 | 139 |
 
-The same inventory has **55,557 application MoonBit lines** and **782 native JS
+The same inventory has **55,784 application MoonBit lines** and **782 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -804,8 +804,8 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 ## Checks
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
-runs 698 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
-WASM tests, 157 main browser checks, seven MP4/WebM rendering checks, six media checks and 25 production-page
+runs 700 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
+WASM tests, 161 main browser checks, seven MP4/WebM rendering checks, six media checks and 25 production-page
 checks. It also checks a newly generated feature/API, 108 captured public API
 contracts, and actual Node/workerd persistence, hibernation, restart, R2
 migration/fault/quota and account/TTL integrations. The production configuration
@@ -856,8 +856,18 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
+The account release [`54d0314`](https://github.com/Poietra/poietra/commit/54d031495e618134a20612fa8cb5820d3777a7c8)
+is deployed at 100% as `8b1850ca-7509-4c64-82d3-6ddebdf00743` since
+**2026-09-20 13:10 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35487784040)
+passed every check. All production bindings and runtime settings match the preceding
+primitives release. Production smoke verified the deployed JS/WASM, exact restoration
+of the existing version 2 room, its R2 image and upload deduplication, two-browser
+editing and selective Undo, GitHub authorization start, guest account UI, and the
+collaboration display name's propagation and persistence. Full provider login was
+not part of that smoke. Reload older editors to use the explicit re-add action.
+
 The primitives release [`4392255`](https://github.com/Poietra/poietra/commit/4392255b5d335c58e86f7a13354c62b74bb20662)
-is deployed at 100% as `7cc7168f-e149-4170-9078-b245c3cde006` since
+was deployed at 100% as `7cc7168f-e149-4170-9078-b245c3cde006` on
 **2026-09-20 05:34 JST**. Every binding and runtime setting matches the preceding
 performance release `e9eacce` / `0aa7fa1f-ac38-46b8-bc8a-8ea4b1fea4b9`.
 The [application CI run](https://github.com/Poietra/poietra/actions/runs/35467081415)
@@ -874,9 +884,10 @@ drag/resize, normalized timing, endpoint edits, reload and save/open into a new 
 Only dedicated verification rooms were used. Provider callbacks and paid AI calls
 remain outside these checks. Reload older open editors before using the new features.
 
-The preceding Worker version is recorded for audit, but does not understand the
-new version 2 model. Any rollback must use compatible code and preserve the new
-document data: [Worker versions do not roll back stored data](https://developers.cloudflare.com/workers/versions-and-deployments/).
+The older performance release `e9eacce` does not understand the version 2 document
+model. The primitives release supports those documents but predates persistent
+account dismissals. Any rollback must preserve both forms of stored state:
+[Worker versions do not roll back stored data](https://developers.cloudflare.com/workers/versions-and-deployments/).
 
 The initial cutover deployed source [`7b8c903`](https://github.com/Poietra/poietra/commit/7b8c903c9b50926829014565d1c73ff9d385a094)
 as Worker version `b9df5edd-9b0c-44f3-a488-1db05f9b8049` at 100% on
