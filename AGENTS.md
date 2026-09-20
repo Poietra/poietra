@@ -134,5 +134,11 @@ and measurements belong in [README.md](README.md).
   Distinguish tests with mocked provider HTTP from live OAuth/OpenAI verification.
 - Keep current documentation in the existing READMEs. Historical application text
   stays historical. Avoid new ADRs/research logs unless they are needed.
+- 2026-09-21: Repeated release/benchmark narratives obscured setup and current
+  behavior. Keep architecture, extension steps, checks, measured results and the
+  last verified release in the root README; keep Japanese usage, configuration
+  and operations in the studio guide. Link between them instead of duplicating
+  counts and release records. Keep raw benchmark evidence and link older
+  explanations at a fixed Git revision. Date verification records explicitly.
 - Date decisions and state the problem they resolve. Do not label untested behavior
   verified, or describe a local build/dry-run as a production deployment.
