@@ -1023,8 +1023,18 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
+The layout fix [`0981b5f`](https://github.com/Poietra/poietra/commit/0981b5f9e87faa01116d9354a17ac503802a8aae)
+is deployed at 100% as `56c37647-0bc4-4a51-9089-7238ad8b6425` since
+**2026-09-20 15:34 JST**. Workspace actions now keep their spacing and wrap;
+Scale/Anchor labels have separate rows above their inputs. The production build,
+26 related browser checks, seven viewport widths (760–1920 px) and 125% layout
+zoom passed. Production verification covered those layouts, release artifacts,
+existing room/media restoration, two-browser editing, Undo and a 102-frame MP4.
+Bindings and runtime settings match the previous release; the rollback version
+is `47fbb2cc-fc00-489f-8f4d-cf6e62b95337`.
+
 The UI subscription release [`fa0b627`](https://github.com/Poietra/poietra/commit/fa0b627c62e9b9e9c287f5c1730dd1a0bdc0b70b)
-is deployed at 100% as `47fbb2cc-fc00-489f-8f4d-cf6e62b95337` since
+was deployed at 100% as `47fbb2cc-fc00-489f-8f4d-cf6e62b95337` on
 **2026-09-20 15:18 JST**. Its [CI run](https://github.com/Poietra/poietra/actions/runs/35493085372)
 passed every check. All 16 bindings and runtime settings match the preceding
 rendering release; the document model and storage format are unchanged.

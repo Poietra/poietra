@@ -246,8 +246,15 @@ Node はローカルファイル、Worker は SQLite Durable Objects と非公�
 Yumaboda アカウントの既存 `poietra-hackathon` Worker を更新します。3 種類の Durable Object、
 `poietra-assets-prod` バケット、認証・AI の秘密情報、`poietra.com` と旧 workers.dev の接続先を維持します。
 
+文字の重なりを修正した `0981b5f` は **2026-09-20 15:34 JST** に公開しました。
+現在の Worker version は `56c37647-0bc4-4a51-9089-7238ad8b6425`、配信率は 100% です。
+素材追加・解像度表示の余白と折り返し、Scale / Anchor のラベル配置を修正しました。
+ビルド・関連ブラウザテスト 26 件と、本番の幅 760〜1920px の 7 段階・125% 拡大表示を確認しています。
+本番で既存ルーム・素材の復元、共同編集・Undo・102 フレームの MP4 出力も確認しました。
+保存先と実行設定を維持し、復帰先は `47fbb2cc-fc00-489f-8f4d-cf6e62b95337` です。
+
 UI の購読を分離した `fa0b627` は **2026-09-20 15:18 JST** に公開しました。
-現在の Worker version は `47fbb2cc-fc00-489f-8f4d-cf6e62b95337`、配信率は 100% です。
+当時の Worker version は `47fbb2cc-fc00-489f-8f4d-cf6e62b95337`、配信率は 100% でした。
 [実装版の CI](https://github.com/Poietra/poietra/actions/runs/35493085372) は全項目を通過しています。
 16 個の binding と実行設定、保存モデルを維持し、本番の JS/WASM、既存ルームと R2 画像、
 共同編集・Undo、SVG 要素の保持、ゲスト画面、GitHub 認証開始と共同編集名を確認しました。
