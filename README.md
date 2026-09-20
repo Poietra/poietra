@@ -193,6 +193,9 @@ The rewrite changes the data flow as well as the language:
   projections isolate project, connection/history and presence consumers, while
   chat and its read marker stay in the aside. Public `useEditor` still supplies
   a complete live view for consumers that request it.
+  A dedicated clock provider publishes one consistent React Context snapshot
+  using ordinary state updates, allowing pending ticks to yield to input. Shared
+  document subscriptions continue to use `useSyncExternalStore`.
 - **Own asynchronous work.** Renderers, decoders, imports and AI requests have
   explicit lifetimes. Stale completions cannot publish into a replacement view;
   cancellation releases resources. Uploads use bounded buffers and backpressure.

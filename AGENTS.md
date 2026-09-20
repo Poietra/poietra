@@ -101,6 +101,9 @@ and measurements belong in [README.md](README.md).
   presence and chat consumers select their own immutable snapshot fields. Keep
   chat read state local to its panel and preserve the public `useEditor` adapter.
   Test subscription isolation alongside seeking, cancellation and peer editing.
+  The clock provider publishes one React state/Context snapshot; keep ordinary
+  scheduling for playback ticks. An external-store clock forced synchronous
+  rendering and worsened the measured 500-object playback interval.
 - Preserve cancellation, late-completion suppression, backpressure and cleanup
   across async boundaries. Keep native error identity where host contracts need it.
 - Inspect upstream source, license, compatibility and tests before adopting a

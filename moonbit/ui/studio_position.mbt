@@ -18,20 +18,53 @@ fn StudioPosition::set(self : StudioPosition, time : Double) -> Unit {
 }
 
 ///|
-fn use_studio_position(position : StudioPosition) -> Double {
-  let (subscribe, snapshot) = @react.use_memo(
+priv struct StudioPositionView {
+  source : StudioPosition
+  time : Double
+}
+
+///|
+// The generic binding wraps the initial value in another Option. Pass the
+// nullable native default directly so a component outside the provider sees None.
+#module("react")
+extern "js" fn create_position_context(
+  initial : StudioPositionView?,
+) -> @react.Context[StudioPositionView?] = "createContext"
+
+///|
+let studio_position_context : @react.Context[StudioPositionView?] = create_position_context(
+  None,
+)
+
+///|
+/// One React state update distributes a consistent clock snapshot to its own
+/// consumers. Clock ticks can yield to input; document subscriptions stay sync.
+fn studio_position_provider(input : @core.Any) -> @react.Element {
+  let position : StudioPosition = input._get("position").cast()
+  let (time, publish) = @react.use_state_lazy(fn() { position.time })
+  @react.use_layout_effect(
     fn() {
-      (
-        fn(listener : () -> Unit) {
-          position.listeners.add(listener) |> ignore
-          fn() { position.listeners.delete(listener) |> ignore }
-        },
-        fn() { position.time },
-      )
+      let listener = fn() { publish(position.time) }
+      position.listeners.add(listener) |> ignore
+      listener()
+      fn() { position.listeners.delete(listener) |> ignore }
     },
     [@core.any(position)],
   )
-  @react.use_sync_external_store(subscribe, snapshot)
+  let view = @react.use_memo(fn() { { source: position, time, } }, [
+    @core.any(position),
+    @core.any(time),
+  ])
+  @react.provider(studio_position_context, [children(input)], value=Some(view))
+}
+
+///|
+fn use_studio_position(position : StudioPosition) -> Double {
+  match @react.use_context(studio_position_context) {
+    Some(view) if @core.equal(@core.any(view.source), @core.any(position)) =>
+      view.time
+    _ => position.time
+  }
 }
 
 ///|

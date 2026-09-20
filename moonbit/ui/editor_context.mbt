@@ -55,22 +55,13 @@ fn use_store_field(
 
 ///|
 fn use_editor_position(editor : @core.Any) -> Double {
-  let source = editor._get("positionSource")
-  // Public components also support the original externally supplied Context.
-  let position : StudioPosition = @react.use_memo(
-    fn() {
-      if truthy(source) {
-        source.cast()
-      } else {
-        {
-          time: editor._get("playhead").cast(),
-          listeners: @collection.JsSet::new(),
-        }
-      }
-    },
-    [source, editor._get("playhead")],
-  )
-  use_studio_position(position)
+  match @react.use_context(studio_position_context) {
+    Some(view) if @core.equal(
+        @core.any(view.source),
+        editor._get("positionSource"),
+      ) => view.time
+    _ => editor._get("playhead").cast()
+  }
 }
 
 ///|

@@ -149,8 +149,14 @@ pub fn studio(input : @core.Any) -> @react.Element {
       editor_context_runtime()._get("Provider"),
       { "value": context },
       [
-        component(studio_audio, { "controller": @core.any(self) }, []),
-        studio_view(self, imports, right_panel, image_input, media_input),
+        component(
+          studio_position_provider,
+          { "position": @core.any(self.position) },
+          [
+            component(studio_audio, { "controller": @core.any(self) }, []),
+            studio_view(self, imports, right_panel, image_input, media_input),
+          ],
+        ),
       ],
     ),
   ])
