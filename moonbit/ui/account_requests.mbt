@@ -51,7 +51,9 @@ async fn AccountController::refresh_session(self : AccountController) -> Unit {
         excluded: None,
         pending: "",
         list_loading: false,
+        list_error: "",
         notice: "",
+        removed: None,
       })
     }
     self.update({ ..self.view, session: Some(session), error: "", })
@@ -110,20 +112,20 @@ async fn AccountController::refresh_projects(self : AccountController) -> Unit {
           }) => None
         entry => entry
       }
-      self.update({ ..self.view, projects, excluded, error: "", })
+      self.update({ ..self.view, projects, excluded, list_error: "", })
     }
   } catch {
     failure =>
       if self.list_current(request, identity) {
         self.update({
           ..self.view,
-          error: error_message(
+          list_error: error_message(
             ui_native_error(failure),
             "プロジェクト一覧を取得できませんでした。",
           ),
         })
         if account_failure(failure) {
-          self.update({ ..self.view, projects: [], })
+          self.update({ ..self.view, projects: [], removed: None, })
           self.refresh()
         }
       }
@@ -170,13 +172,24 @@ async fn AccountController::mutate_async(
     controller: new_controller(),
     identity,
     operation,
+    removed: match operation {
+      RemoveProject(room) =>
+        self.view.projects
+        .iter()
+        .find_first(fn(project) { project.room_id == room })
+      _ => None
+    },
   }
   self.write = Some(request)
   self.update({
     ..self.view,
     pending: @editor.account_operation_key(operation),
     error: "",
-    notice: "",
+    notice: if operation is VisitProject(_, _) {
+      self.view.notice
+    } else {
+      ""
+    },
   })
   defer (if self.owns_write(request) {
     self.write = None
@@ -266,7 +279,12 @@ async fn AccountController::mutate_async(
           notice: if request.operation is RememberProject(_, _) {
             "自分の一覧に追加しました。"
           } else {
-            ""
+            self.view.notice
+          },
+          removed: if request.operation is RememberProject(_, _) {
+            None
+          } else {
+            self.view.removed
           },
         })
         self.list()
@@ -285,6 +303,7 @@ async fn AccountController::mutate_async(
             project.room_id != room
           }),
           notice: "自分の一覧から外しました。共有リンクからは引き続き開けます。",
+          removed: request.removed,
         })
       }
       SignOut => {
@@ -294,6 +313,9 @@ async fn AccountController::mutate_async(
           ..self.view,
           projects: [],
           pending: "",
+          removed: None,
+          list_error: "",
+          notice: "",
           session: self.view.session.map(fn(session) {
             { ..session, user: None, }
           }),
@@ -314,7 +336,7 @@ async fn AccountController::mutate_async(
           ),
         })
         if account_failure(failure) {
-          self.update({ ..self.view, projects: [], })
+          self.update({ ..self.view, projects: [], removed: None, })
           self.refresh()
         }
       }

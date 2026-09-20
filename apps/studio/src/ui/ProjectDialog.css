@@ -14,7 +14,14 @@
 .account-error { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .account-error p { flex: 1; }
 .saved-projects { margin-bottom: 18px; }
-.saved-projects-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.saved-projects-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.saved-project-tools { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.saved-project-tools label { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--muted); font-size: 11px; }
+.saved-project-search { flex: 1 1 180px; }
+.saved-project-tools input, .saved-project-tools select { min-width: 0; width: 100%; height: 34px; padding: 0 8px; color: #cdccd8; background: var(--color-field); border: 1px solid var(--line); border-radius: 5px; font: inherit; }
+.saved-project-tools input:focus-visible, .saved-project-tools select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.saved-project-tools > button { min-height: 34px; flex-shrink: 0; }
+.saved-project-restore { margin-top: 8px; }
 .saved-project-list { list-style: none; margin: 10px 0 0; padding: 0; max-height: 216px; overflow-y: auto; }
 .saved-project-list li { display: flex; align-items: center; border-radius: 5px; }
 .saved-project-list li:hover { background: var(--color-field); }

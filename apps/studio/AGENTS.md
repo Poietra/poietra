@@ -88,6 +88,12 @@ files or flatten AI edits into an uneditable generated video.
   dismissals; only explicit re-addition restores a shortcut. Keep removed titles
   out of dismissal records and preserve guest editing. A failed session lookup
   must not be presented as confirmed guest mode. Account linking remains separate.
+- 2026-09-21: Improve private-list usability with local name search/order, explicit
+  refresh and restoration of the last removed shortcut. Failed reads retain
+  loaded entries and expose retry; initial failure is not an empty list. Restore
+  through the existing explicit remember operation, retaining retry after write
+  failure. Scope search/order/restoration to the signed-in identity; no shared
+  document, account schema or provider-linking change is needed.
 
 ## Media and hosts
 

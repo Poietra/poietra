@@ -220,22 +220,37 @@ pub fn account_projects(input : @core.Any) -> @react.Element {
       account,
     ),
   ]
-  if user is Some(_) {
-    content.push(account_project_list(controller, view, input, disabled))
+  if user is Some(user) {
+    content.push(
+      @react.jsx(@core.any(account_project_list), [], props={
+        "key": @core.any(user.id),
+        "controller": @core.any(controller),
+        "view": @core.any(view),
+        "input": input,
+        "disabled": @core.any(disabled),
+      }),
+    )
   }
   input._get("children")._invoke([@core.any(@react.fragment(content))]).cast()
 }
 
 ///|
-fn account_project_list(
-  controller : AccountController,
-  view : AccountView,
-  input : @core.Any,
-  disabled : Bool,
-) -> @react.Element {
+fn account_project_list(props : @core.Any) -> @react.Element {
+  let controller : AccountController = props._get("controller").cast()
+  let view : AccountView = props._get("view").cast()
+  let input = props._get("input")
+  let disabled : Bool = props._get("disabled").cast()
   let room : String = input._get("roomId").cast()
   let name : String = input._get("name").cast()
   let synced : Bool = input._get("synced").cast()
+  let (query, set_query) = @react.use_state("")
+  let (order, set_order) = @react.use_state(
+    @editor.ProjectListOrder::RecentlyUpdated,
+  )
+  let projects = @react.use_memo(
+    fn() { @editor.account_project_view(view.projects, query, order) },
+    [@core.any(view.projects), @core.any(query), @core.any(order)],
+  )
   let listed = view.projects.any(fn(project) { project.room_id == room })
   let content : Array[&@react.ReactNode] = [
     h("div", { "className": @core.any("saved-projects-heading") }, [
@@ -265,12 +280,108 @@ fn account_project_list(
       "ログイン中に開いたプロジェクトへのショートカットです。この一覧は自分だけに表示され、共有リンクを知っている人は一緒に編集できます。",
     ]),
   ]
+  content.push(
+    h("div", { "className": @core.any("saved-project-tools") }, [
+      h("label", { "className": @core.any("saved-project-search") }, [
+        "検索",
+        h(
+          "input",
+          {
+            "type": @core.any("search"),
+            "aria-label": @core.any("プロジェクトを検索"),
+            "placeholder": @core.any("プロジェクト名"),
+            "value": @core.any(query),
+            "onChange": @core.any(fn(event : @core.Any) {
+              set_query(event._get("target")._get("value").cast())
+            }),
+          },
+          [],
+        ),
+      ]),
+      h("label", Map([]), [
+        "並び順",
+        h(
+          "select",
+          {
+            "aria-label": @core.any("プロジェクトの並び順"),
+            "value": @core.any(
+              if order == @editor.RecentlyUpdated {
+                "recent"
+              } else {
+                "name"
+              },
+            ),
+            "onChange": @core.any(fn(event : @core.Any) {
+              set_order(
+                if @core.equal(
+                    event._get("target")._get("value"),
+                    @core.any("name"),
+                  ) {
+                  @editor.ProjectName
+                } else {
+                  @editor.RecentlyUpdated
+                },
+              )
+            }),
+          },
+          [
+            h("option", { "value": @core.any("recent") }, ["一覧の更新順"]),
+            h("option", { "value": @core.any("name") }, ["名前順"]),
+          ],
+        ),
+      ]),
+      h(
+        "button",
+        {
+          "className": @core.any("subtle-button"),
+          "disabled": @core.any(disabled || view.list_loading),
+          "onClick": @core.any(fn() { controller.list() }),
+        },
+        [
+          icon("RefreshCw", 13),
+          if view.list_loading {
+            "更新中…"
+          } else {
+            "一覧を更新"
+          },
+        ],
+      ),
+    ]),
+  )
+  if !view.list_error.is_empty() {
+    content.push(
+      h(
+        "p",
+        { "className": @core.any("project-error"), "role": @core.any("alert") },
+        [view.list_error],
+      ),
+    )
+  }
   if !view.notice.is_empty() {
     content.push(
       h(
         "p",
         { "className": @core.any("account-hint"), "role": @core.any("status") },
         [view.notice],
+      ),
+    )
+  }
+  if view.removed is Some(removed) {
+    content.push(
+      h(
+        "button",
+        {
+          "className": @core.any("subtle-button saved-project-restore"),
+          "disabled": @core.any(disabled),
+          "aria-label": @core.any(removed.name + " を自分の一覧に戻す"),
+          "onClick": @core.any(fn() {
+            controller.mutate(
+              @editor.RememberProject(removed.room_id, removed.name),
+              room,
+            )
+          }),
+        },
+        [icon("Undo2", 13), "元に戻す"],
       ),
     )
   }
@@ -283,12 +394,28 @@ fn account_project_list(
       h("p", props, [
         if view.list_loading {
           "プロジェクト一覧を読み込んでいます…"
+        } else if !view.list_error.is_empty() {
+          "「一覧を更新」で、もう一度読み込めます。"
         } else {
           "一覧は空です。このプロジェクトを追加すると、別の端末からも開けます。"
         },
       ]),
     )
   } else {
+    content.push(
+      h(
+        "p",
+        { "className": @core.any("account-hint"), "role": @core.any("status") },
+        ["\{projects.length()} / \{view.projects.length()} 件"],
+      ),
+    )
+    if projects.is_empty() {
+      content.push(
+        h("p", { "className": @core.any("account-hint") }, [
+          "一致するプロジェクトがありません。検索する名前を変えてください。",
+        ]),
+      )
+    }
     let rows : Array[&@react.ReactNode] = []
     let date_format = @core.new(
       @core.global_this()._get("Intl")._get("DateTimeFormat"),
@@ -297,7 +424,7 @@ fn account_project_list(
         host_record({ "month": @core.any("short"), "day": @core.any("numeric") }),
       ],
     )
-    for item in view.projects {
+    for item in projects {
       let current = item.room_id == room
       let props = {
         "href": @core.any(

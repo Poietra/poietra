@@ -38,7 +38,8 @@ see [deployment status and operations](#deployment-and-limits).
 - Ask `@codex` in shared chat for structured edits or generated image assets.
   Apply a proposal manually, or send with Ctrl/⌘+Enter to apply after validation.
 - Optionally sign in with Google or GitHub to keep a private list of project
-  shortcuts. Shared-link editing remains available without login.
+  shortcuts. Search by name, sort the list and undo its most recent removal.
+  Shared-link editing remains available without login.
 
 The [studio guide](apps/studio/README.md) covers editing, accounts, media,
 shortcuts, AI configuration and export. Desktop Chromium is the primary tested
@@ -194,14 +195,14 @@ package versions are pinned in [package.json](apps/studio/package.json) and
 
 ### What the remaining TypeScript represents
 
-Source audit rerun **2026-09-21**, with application code unchanged from `0cda0c5`:
+Source audit rerun **2026-09-21**, including personal project search and recovery:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 282 | 57,080 |
+| MoonBit application | 282 | 57,272 |
 | Native JS runtime adapters | 112 | 783 |
 | Executable application TS/TSX (`src/shared/server/worker`) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 147 | 16,378 |
+| TypeScript tests, fixtures and test configurations | 147 | 16,505 |
 | Public/environment type declarations | 113 | 1,934 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 

@@ -10,10 +10,12 @@ fn use_account(
     projects: [],
     loading: true,
     list_loading: false,
+    list_error: "",
     pending: "",
     error: "",
     notice: "",
     excluded: None,
+    removed: None,
   })
   let owner = @react.use_ref((None : AccountController?))
   let controller = match owner.get_current() {
@@ -152,7 +154,13 @@ pub fn use_account_projects(
     "loading": @core.any(view.loading),
     "listLoading": @core.any(view.list_loading),
     "pending": @core.any(view.pending),
-    "error": @core.any(view.error),
+    "error": @core.any(
+      if view.error.is_empty() {
+        view.list_error
+      } else {
+        view.error
+      },
+    ),
     "refreshSession": @core.any(fn() {
       ui_native_errors(
         @core.from_async(async fn() { controller.refresh_session() }),

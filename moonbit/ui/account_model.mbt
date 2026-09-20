@@ -4,10 +4,12 @@ priv struct AccountView {
   projects : Array[@editor.AccountProject]
   loading : Bool
   list_loading : Bool
+  list_error : String
   pending : String
   error : String
   notice : String
   excluded : @editor.AccountRoom?
+  removed : @editor.AccountProject?
 }
 
 ///|
@@ -15,6 +17,7 @@ priv struct AccountWrite {
   controller : @core.Any
   identity : String
   operation : @editor.AccountOperation
+  removed : @editor.AccountProject?
 }
 
 ///|

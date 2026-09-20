@@ -229,3 +229,130 @@ for (const delayedMethod of ['GET', 'PUT']) test(`a delayed ${delayedMethod} res
   await expect(page.getByRole('link', { name: /Bob private work/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ログアウト', exact: true })).toBeEnabled();
 });
+
+test('private projects can be searched and sorted locally while refresh retains the chosen view', async ({ page }) => {
+  let projects: AccountProject[] = [
+    { roomId: 'zebra-room', name: 'Zebra', updatedAt: 1 },
+    { roomId: 'alpha-room', name: 'alpha', updatedAt: 2 },
+    { roomId: 'spring-room', name: '春の動画', updatedAt: 3 },
+  ];
+  let writes = 0;
+  await page.route('**/api/auth/session', route => route.fulfill({ json: {
+    user: { id: 'google:alice', name: 'Alice', provider: 'google' }, providers: { google: true, github: true },
+  } }));
+  await page.route('**/api/projects**', route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { projects } });
+    writes++;
+    expect(route.request().postDataJSON().intent).toBe('visit');
+    return route.fulfill({ json: { project: null } });
+  });
+  await page.goto(`/?room=${crypto.randomUUID()}&projects=1`);
+  const list = page.getByRole('region', { name: '自分のプロジェクト', exact: true });
+  const titles = list.locator('.saved-project-title strong');
+  await expect(titles).toHaveText(['春の動画', 'alpha', 'Zebra']);
+  await expect.poll(() => writes).toBe(1);
+  await list.getByRole('combobox', { name: 'プロジェクトの並び順' }).selectOption('name');
+  await expect(titles).toHaveText(['alpha', 'Zebra', '春の動画']);
+  const search = list.getByRole('searchbox', { name: 'プロジェクトを検索' });
+  await search.fill('  ALPHA  ');
+  await expect(titles).toHaveText(['alpha']);
+  await expect(list.getByRole('status').filter({ hasText: '1 / 3 件' })).toBeVisible();
+  await search.fill('動画');
+  await expect(titles).toHaveText(['春の動画']);
+  await search.fill('missing');
+  await expect(titles).toHaveCount(0);
+  await expect(list.getByText('一致するプロジェクトがありません。検索する名前を変えてください。')).toBeVisible();
+  await search.fill('alpha');
+  projects = [...projects, { roomId: 'another-alpha', name: 'alpha follow-up', updatedAt: 4 }];
+  await list.getByRole('button', { name: '一覧を更新', exact: true }).click();
+  await expect(titles).toHaveText(['alpha', 'alpha follow-up']);
+  await expect(search).toHaveValue('alpha');
+  await expect(list.getByRole('combobox')).toHaveValue('name');
+  expect(writes).toBe(1);
+});
+
+test('failed list reads remain errors and retry preserves already loaded shortcuts', async ({ page }) => {
+  let failed = true;
+  await page.route('**/api/auth/session', route => route.fulfill({ json: {
+    user: { id: 'google:alice', name: 'Alice', provider: 'google' }, providers: { google: true, github: true },
+  } }));
+  await page.route('**/api/projects**', route => {
+    if (route.request().method() !== 'GET') return route.fulfill({ json: { project: null } });
+    return failed
+      ? route.fulfill({ status: 503, json: { error: '一覧を読み込めませんでした。' } })
+      : route.fulfill({ json: { projects: [{ roomId: 'earlier-room', name: 'Earlier work', updatedAt: 1 }] } });
+  });
+  await page.goto(`/?room=${crypto.randomUUID()}&projects=1`);
+  const list = page.getByRole('region', { name: '自分のプロジェクト', exact: true });
+  await expect(list.getByRole('alert')).toContainText('一覧を読み込めませんでした');
+  await expect(list.getByText(/^一覧は空です/)).toHaveCount(0);
+  failed = false;
+  await list.getByRole('button', { name: '一覧を更新', exact: true }).click();
+  const shortcut = list.getByRole('link', { name: /Earlier work/ });
+  await expect(shortcut).toBeVisible();
+  await expect(list.getByRole('alert')).toHaveCount(0);
+  failed = true;
+  await list.getByRole('button', { name: '一覧を更新', exact: true }).click();
+  await expect(list.getByRole('alert')).toBeVisible();
+  await expect(shortcut).toBeVisible();
+  failed = false;
+  await list.getByRole('button', { name: '一覧を更新', exact: true }).click();
+  await expect(list.getByRole('alert')).toHaveCount(0);
+  await expect(shortcut).toBeVisible();
+});
+
+test('removing a shortcut offers a retryable restore scoped to the current account', async ({ page }) => {
+  const room = crypto.randomUUID();
+  let account = 'google:alice', listed = true, rejectRestore = true, remembered = 0;
+  await page.route('**/api/auth/session', route => route.fulfill({ json: {
+    user: { id: account, name: account === 'google:alice' ? 'Alice' : 'Bob', provider: 'google' }, providers: { google: true, github: true },
+  } }));
+  await page.route('**/api/projects**', route => {
+    const request = route.request();
+    const project = { roomId: 'earlier-room', name: 'Earlier work', updatedAt: 1 };
+    if (request.method() === 'GET') return route.fulfill({ json: { projects: account === 'google:alice' && listed ? [project] : [] } });
+    if (request.method() === 'DELETE') {
+      expect(request.headers()['x-poietra-account']).toBe('google:alice');
+      listed = false;
+      return route.fulfill({ status: 204 });
+    }
+    if (request.postDataJSON().intent === 'visit') return route.fulfill({ json: { project: null } });
+    expect(request.headers()['x-poietra-account']).toBe('google:alice');
+    expect(request.postDataJSON()).toEqual({ intent: 'remember', name: 'Earlier work' });
+    expect(new URL(request.url()).pathname).toBe('/api/projects/earlier-room');
+    remembered++;
+    if (rejectRestore) return route.fulfill({ status: 503, json: { error: '一覧への追加を再試行してください。' } });
+    listed = true;
+    return route.fulfill({ json: { project } });
+  });
+  await page.goto(`/?room=${room}&projects=1`);
+  const list = page.getByRole('region', { name: '自分のプロジェクト', exact: true });
+  const remove = list.getByRole('button', { name: 'Earlier work を自分の一覧から外す', exact: true });
+  const restore = list.getByRole('button', { name: 'Earlier work を自分の一覧に戻す', exact: true });
+  await remove.click();
+  await expect(list.getByRole('link', { name: /Earlier work/ })).toHaveCount(0);
+  await restore.click();
+  await expect(page.getByRole('alert')).toContainText('一覧への追加を再試行');
+  await expect(restore).toBeEnabled();
+  rejectRestore = false;
+  await restore.click();
+  await expect(list.getByRole('link', { name: /Earlier work/ })).toBeVisible();
+  await expect(restore).toHaveCount(0);
+  expect(remembered).toBe(2);
+  await expect(page).toHaveURL(new RegExp(room));
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Project name', exact: true })).toHaveValue('A little motion');
+  await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
+  await remove.click();
+  await expect(restore).toBeEnabled();
+  await list.getByRole('searchbox').fill('private query');
+  await list.getByRole('combobox').selectOption('name');
+  account = 'google:bob';
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.getByText('Bob', { exact: true })).toBeVisible();
+  await expect(restore).toHaveCount(0);
+  await expect(list.getByRole('searchbox')).toHaveValue('');
+  await expect(list.getByRole('combobox')).toHaveValue('recent');
+  await expect(list.getByRole('link', { name: /Earlier work/ })).toHaveCount(0);
+  expect(remembered).toBe(2);
+});
