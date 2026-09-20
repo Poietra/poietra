@@ -265,7 +265,7 @@ informed the separation between the pure Glow program and its browser driver.
 
 ### What the remaining TypeScript represents
 
-Audited 2026-09-20 at application revision `99a349d`, after removing the historical implementations.
+Audited 2026-09-20 at application revision `0cda0c5`, after removing the historical implementations.
 GitHub's [language percentages count source bytes](https://github.com/github-linguist/linguist/blob/main/docs/how-linguist-works.md),
 including test code; they do not measure how much application logic remains to
 port. The working-tree inventory separates the remaining TypeScript by purpose:
@@ -273,11 +273,11 @@ port. The working-tree inventory separates the remaining TypeScript by purpose:
 | TypeScript purpose | Files | Physical lines |
 | --- | ---: | ---: |
 | Executable application code (`src/shared/server/worker`) | 0 | 0 |
-| Regression/browser tests, fixtures and test configurations | 147 | 16,348 |
-| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 112 | 1,932 |
-| Benchmark scripts and root tool configurations | 5 | 139 |
+| Regression/browser tests, fixtures and test configurations | 147 | 16,378 |
+| API/environment declarations (`.d.ts` / `.d.mts`), erased at runtime | 113 | 1,934 |
+| Benchmark scripts and root tool configurations | 5 | 140 |
 
-The same inventory has **56,786 application MoonBit lines** and **783 native JS
+The same inventory has **57,080 application MoonBit lines** and **783 native JS
 adapter lines**. This includes generated adapters, comments and blanks; it is
 neither a runtime payload measurement nor a count of external library code.
 React/Base UI, Yjs, MathJax, Mediabunny and the OpenAI SDK still provide JavaScript
@@ -323,7 +323,7 @@ and image assets visible in any Composition. Queued Canvas work still publishes
 only the current frame, and failed preparation can be retried without editing.
 
 Remaining work includes narrowing the document Context adapters and other panel
-subscriptions, initial editor delivery and remaining `Any` orchestration. The
+subscriptions, reducing the still-large editor entry and remaining `Any` orchestration. The
 root still observes document edits; these changes remove unnecessary content and
 resource work, rather than all UI work or startup costs.
 
@@ -355,6 +355,8 @@ with Node 24's built-in type stripping; `tsx` is no longer in the dependency tre
    adjacent `.d.ts` contract and, for direct forwarding, a `scripts/bindings.json`
    entry. Native JS should only register platform objects, import assets or wire
    dependencies. Editor components and orchestration belong in `moonbit/ui`.
+   The shared browser export tables regenerate from those same `moon.pkg` entries;
+   the extension test checks both standalone and shared-runtime calls.
 4. Run `pnpm test`, `pnpm typecheck` and the relevant browser/runtime checks.
    `pnpm test:extensions` actually adds a nested optional record and callable API
    in an isolated copy, builds it, round-trips values through generated JS and
@@ -366,6 +368,58 @@ Performance runs require a completed build and frozen sources. For a new externa
 API, check existing mizchi bindings before adding a narrow native boundary.
 
 ## Performance
+
+### Shared browser linking — 2026-09-20
+
+[`0cda0c5`](https://github.com/Poietra/poietra/commit/0cda0c5382fb33e7468aa81a06bffc10607e10d2)
+links the six editor packages once instead of shipping their separately linked
+copies. The baseline is `2c00643` (application `99a349d`). Existing standalone
+boundary/editor and WASM artifact hashes are unchanged. Final measurements match
+source hash `2ebb992a…4f3d3`, runtime hash `7ddd3279…fa78e` and the same Vite manifest.
+The source fingerprint now also includes the shared-entry generator and Vite configuration/plugin.
+
+| Production JS graph | Before | After |
+| --- | ---: | ---: |
+| Editor, raw | 1,883,417 B | 1,610,705 B (−14.5%) |
+| Editor, gzip | 524,141 B | 457,443 B (−12.7%) |
+| Editor, Brotli | 401,036 B | 371,942 B (−7.3%) |
+| Home, gzip | 91,072 B | 91,134 B (+62 B) |
+
+These are static-import closures, excluding dynamic imports, CSS, fonts and
+media; gzip level 9 and Node's default Brotli are computed per file. Browser
+tests confirm the home page does not load the editor, the editor loads one shared
+runtime per document, and export/codecs remain deferred until requested.
+
+Three cold navigations per build used a 412 × 823 mobile viewport, 4× CPU slowdown,
+150 ms HTTP latency, 200,000 B/s download, disabled cache and no warmup. Both builds
+ran on the same Core Ultra 7 255H / 32 GiB WSL2 machine, CPUs 0–15, Node 24.13.0,
+MoonBit 0.10.13+cbb11c36f and Chromium 153.0.8010.12. Runs were sequential with
+frozen artifacts and no concurrent local builds, tests or encoders.
+
+| Cold editor timing, median [min–max] | Before | After |
+| --- | ---: | ---: |
+| FCP | 1,680 [1,668–1,684] ms | 1,676 [1,668–1,676] ms |
+| LCP | 11,340 [11,288–11,376] ms | 10,152 [10,148–10,172] ms |
+| Circle in stage DOM + 2 rAF | 11,903.9 [11,811.2–11,963.9] ms | 10,651.2 [10,648.7–10,651.7] ms |
+| Observed long-task blocking sum | 354 [304–476] ms | 347 [338–354] ms |
+
+Stage readiness improved **10.5%** in this fixture. The local Node host serves
+uncompressed assets; these times do not predict production CDN/mobile speed.
+Each room contains one circle, seeded before timing, with no equations or media.
+HTTP throttling excludes WAN WebSocket latency. Stage readiness is a presentation
+opportunity, not physical display or a Web Vital; the blocking sum is not Lighthouse TBT.
+
+A separate final warm interaction run used 100/500 circles, a 1440 × 900 viewport,
+one drag warmup and three measured sets of 60 pointer moves, with a 1 ms CPU sampler.
+For 500 circles, pointer delivery → DOM was **14.4 ms**, and DOM + two rAF was
+**33.4 ms** (medians). Actual pointer spacing was **50.0 ms**. The three-second
+playback had median **16.7 ms**, p95 **49.9 ms** and maximum **83.4 ms** rAF spacing.
+Long frames remain; this single final run does not establish a general drag or
+playback speedup. It excludes media, hardware GPU and pre-delivery input waiting.
+
+[All measurements, source inventory and compressed CPU profiles](benchmarks/2026-09-20-client-linking/)
+retain conditions and artifact hashes. Reproduce with `measure-bundle.mjs`,
+`measure-startup.mjs` and `measure-interaction.mjs` after a production build.
 
 ### Document edits and resource preparation — 2026-09-20
 
@@ -1067,15 +1121,23 @@ POIETRA_BENCH_URL=http://127.0.0.1:5189 node scripts/benchmark-export.mjs
 
 The [CI workflow](https://github.com/Poietra/poietra/actions/workflows/check.yml)
 runs 700 Vitest behavioral/backend checks, 48 MoonBit JS tests, 41 MoonBit
-WASM tests, 170 main browser checks, eight MP4/WebM rendering checks, six media checks and 25 production-page
-checks. It also checks a newly generated feature/API, 108 captured public API
-contracts, and actual Node/workerd persistence, hibernation, restart, R2
-migration/fault/quota and account/TTL integrations. The production configuration
+WASM tests, 170 main browser checks, eight MP4/WebM rendering checks, six media checks and 26 production-page
+checks. Five build/API tests check a newly generated feature, shared exports and
+browser/SSR isolation. It also checks 108 captured public API contracts and actual
+Node/workerd persistence, hibernation, restart, R2 migration/fault/quota and
+account/TTL integrations. The production configuration
 explicitly enables the prerender checks, including when CI starts its own server.
 The default development run excludes those three production-only suites; the
 production configuration selects them explicitly.
 The [workflow definition](.github/workflows/check.yml) is the authoritative command
 selection.
+
+For `0cda0c5`, [all CI checks passed](https://github.com/Poietra/poietra/actions/runs/35499218054).
+The frozen local build passed all 180 development-browser checks,
+eight export checks, six media checks and 26 production-page checks. An earlier
+run passed 178/180: two feedback cases overlapped a Vite restart caused by editing
+the build plugin during the run. The entire suite was rerun after freezing the
+configuration.
 
 For `99a349d`, all CI checks passed. The broader local 180-test development run
 initially passed 178; two account-dialog startup cases failed to display the
@@ -1125,12 +1187,12 @@ and the existing workers.dev links. It retains the three SQLite Durable Object
 namespaces, migration tag `v2-accounts`, private bucket `poietra-assets-prod`,
 OAuth/API secrets and `AUTH_ORIGIN=https://poietra.com`.
 
-The document-rendering release
-[`99a349d`](https://github.com/Poietra/poietra/commit/99a349d490a7ef895ce7494ea3e902c7ff9806de)
-was deployed at 100% as `83767c03-c8ae-49bb-8151-194d35af64a3` on
-**2026-09-20 16:22 JST**, after its
-[CI run](https://github.com/Poietra/poietra/actions/runs/35496062233) passed every
-check. All 16 bindings and runtime settings match the preceding layout release;
+The shared-browser-runtime release
+[`0cda0c5`](https://github.com/Poietra/poietra/commit/0cda0c5382fb33e7468aa81a06bffc10607e10d2)
+was deployed at 100% as `9d95a13c-c383-4c14-89f5-4af572ab85a4` on
+**2026-09-20 17:32 JST**, after its
+[CI run](https://github.com/Poietra/poietra/actions/runs/35499218054) passed every
+check. All 16 bindings and runtime settings match the preceding `99a349d` release;
 there is no document/storage migration. Production verification matched JS/WASM
 hashes, restored the existing verification room and R2 image, checked upload
 deduplication, two-browser edits and selective Undo, guest/account UI, GitHub
@@ -1138,10 +1200,10 @@ authorization start, display-name persistence, playback and seeking. A productio
 MP4 download decoded all 102 expected frames. The screenshot retains the corrected
 toolbar and transform-label spacing. Only the dedicated verification room was
 used; full provider login and paid AI calls were not exercised. The recorded
-rollback version is `56c37647-0bc4-4a51-9089-7238ad8b6425`.
+rollback version is `83767c03-c8ae-49bb-8151-194d35af64a3`.
 
 The layout fix [`0981b5f`](https://github.com/Poietra/poietra/commit/0981b5f9e87faa01116d9354a17ac503802a8aae)
-is deployed at 100% as `56c37647-0bc4-4a51-9089-7238ad8b6425` since
+was deployed at 100% as `56c37647-0bc4-4a51-9089-7238ad8b6425` on
 **2026-09-20 15:34 JST**. Workspace actions now keep their spacing and wrap;
 Scale/Anchor labels have separate rows above their inputs. The production build,
 26 related browser checks, seven viewport widths (760–1920 px) and 125% layout

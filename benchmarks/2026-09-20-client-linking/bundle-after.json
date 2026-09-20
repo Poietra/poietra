@@ -1,0 +1,248 @@
+{
+  "measuredAt": "2026-09-20T08:25:55.334Z",
+  "environment": {
+    "applicationRevision": "0cda0c5382fb33e7468aa81a06bffc10607e10d2",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "2ebb992a3eb14555a7b7b8fa9e45f1315b81c3671c0f6c71462f0d266d44f3d3",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384751104,
+    "loadAverage": [
+      1.32,
+      3.48,
+      3.09
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "1524f120e9786d0f354501da7ed89249d0e5f5b1c0f90b283c39a1729b34f6b8",
+    "boundarySha256": "74844d9e809eab32430296541f0c32dca0d07bd10ccfd1101750907dcc6ce1d3",
+    "clientRuntimeSha256": "7ddd3279ff88a8c8026ab230f82ffefe74caa57eac520945e6cb7f75239fa78e",
+    "viteManifestSha256": "c6dff41cd5583048f4f7fbf63f5eed4f09697d143c62839b925654d3874e6020"
+  },
+  "method": "Vite production output. JS groups include static imports, exclude dynamic imports/CSS/fonts/media. Home includes its dynamically selected entry. Compression computed per file: gzip level 9, Brotli Node defaults; server may serve identity.",
+  "groups": {
+    "homeJavascript": {
+      "files": [
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-Dd0rWTai.js",
+        "assets/index-DHJNhHOk.js",
+        "assets/home-Qxf6aonx.js"
+      ],
+      "rawBytes": 290589,
+      "gzipBytes": 91134,
+      "brotliBytes": 78481
+    },
+    "editorStaticJavascript": {
+      "files": [
+        "assets/_poietra-client_boundary-R_sSGbzH.js",
+        "assets/_poietra-client_browser_media-CCNXgG0v.js",
+        "assets/client_runtime-D7UPpcb4.js",
+        "assets/rolldown-runtime-hePW80VL.js",
+        "assets/sliders-horizontal-Dd0rWTai.js",
+        "assets/index-DHJNhHOk.js",
+        "assets/bootstrap-BafTfm5G.js"
+      ],
+      "rawBytes": 1610705,
+      "gzipBytes": 457443,
+      "brotliBytes": 371942
+    }
+  },
+  "files": [
+    {
+      "file": "assets/client_runtime-D7UPpcb4.js",
+      "rawBytes": 1264671,
+      "gzipBytes": 351553,
+      "brotliBytes": 281208
+    },
+    {
+      "file": "assets/svg-CSxnQDNt.js",
+      "rawBytes": 1261698,
+      "gzipBytes": 481037,
+      "brotliBytes": 363209
+    },
+    {
+      "file": "assets/src-CNFfMlGs.js",
+      "rawBytes": 676937,
+      "gzipBytes": 168671,
+      "brotliBytes": 136247
+    },
+    {
+      "file": "assets/index-DHJNhHOk.js",
+      "rawBytes": 239457,
+      "gzipBytes": 74194,
+      "brotliBytes": 63803
+    },
+    {
+      "file": "assets/browser_export-CTP4bskU.js",
+      "rawBytes": 136929,
+      "gzipBytes": 31710,
+      "brotliBytes": 26663
+    },
+    {
+      "file": "assets/font-assets-Chz1nzWS.js",
+      "rawBytes": 127162,
+      "gzipBytes": 34136,
+      "brotliBytes": 20020
+    },
+    {
+      "file": "assets/ParseMethods-D9QpEsAn.js",
+      "rawBytes": 90736,
+      "gzipBytes": 21788,
+      "brotliBytes": 18990
+    },
+    {
+      "file": "assets/bootstrap-BafTfm5G.js",
+      "rawBytes": 90159,
+      "gzipBytes": 24791,
+      "brotliBytes": 20728
+    },
+    {
+      "file": "assets/mo-CL9jhJJP.js",
+      "rawBytes": 57859,
+      "gzipBytes": 13244,
+      "brotliBytes": 9924
+    },
+    {
+      "file": "assets/images-BJMHtm9P.js",
+      "rawBytes": 57023,
+      "gzipBytes": 15332,
+      "brotliBytes": 13315
+    },
+    {
+      "file": "assets/TeXAtom-ChjANZhH.js",
+      "rawBytes": 54382,
+      "gzipBytes": 6637,
+      "brotliBytes": 5719
+    },
+    {
+      "file": "assets/home-Qxf6aonx.js",
+      "rawBytes": 45733,
+      "gzipBytes": 14342,
+      "brotliBytes": 12334
+    },
+    {
+      "file": "assets/html-rxswSoWg.js",
+      "rawBytes": 44317,
+      "gzipBytes": 9451,
+      "brotliBytes": 8297
+    },
+    {
+      "file": "assets/tex-DM5UKA0F.js",
+      "rawBytes": 38086,
+      "gzipBytes": 11075,
+      "brotliBytes": 9592
+    },
+    {
+      "file": "assets/AmsConfiguration-B0_lW0fd.js",
+      "rawBytes": 23409,
+      "gzipBytes": 7692,
+      "brotliBytes": 6729
+    },
+    {
+      "file": "assets/liteAdaptor-Czvn_E1C.js",
+      "rawBytes": 22411,
+      "gzipBytes": 6052,
+      "brotliBytes": 5362
+    },
+    {
+      "file": "assets/_poietra-client_browser_media-CCNXgG0v.js",
+      "rawBytes": 9024,
+      "gzipBytes": 3428,
+      "brotliBytes": 3099
+    },
+    {
+      "file": "assets/Styles-PW13H2Ha.js",
+      "rawBytes": 8216,
+      "gzipBytes": 2853,
+      "brotliBytes": 2532
+    },
+    {
+      "file": "assets/Entities-MsPZmrvo.js",
+      "rawBytes": 7277,
+      "gzipBytes": 3406,
+      "brotliBytes": 2843
+    },
+    {
+      "file": "assets/kernel-DMkDpaWQ.js",
+      "rawBytes": 4867,
+      "gzipBytes": 1736,
+      "brotliBytes": 1537
+    },
+    {
+      "file": "assets/sliders-horizontal-Dd0rWTai.js",
+      "rawBytes": 4683,
+      "gzipBytes": 2170,
+      "brotliBytes": 1963
+    },
+    {
+      "file": "assets/Factory-BKN6GMEE.js",
+      "rawBytes": 4287,
+      "gzipBytes": 1641,
+      "brotliBytes": 1464
+    },
+    {
+      "file": "assets/Options-D0viYWpE.js",
+      "rawBytes": 4275,
+      "gzipBytes": 1758,
+      "brotliBytes": 1545
+    },
+    {
+      "file": "wasm/poietra_core.wasm",
+      "rawBytes": 3769,
+      "gzipBytes": 1967,
+      "brotliBytes": 1839
+    },
+    {
+      "file": "assets/mathjax-BLw5IVDd.js",
+      "rawBytes": 2506,
+      "gzipBytes": 1079,
+      "brotliBytes": 951
+    },
+    {
+      "file": "assets/_poietra-client_boundary-R_sSGbzH.js",
+      "rawBytes": 1995,
+      "gzipBytes": 879,
+      "brotliBytes": 760
+    },
+    {
+      "file": "assets/lengths-gKqLRlcS.js",
+      "rawBytes": 1716,
+      "gzipBytes": 825,
+      "brotliBytes": 727
+    },
+    {
+      "file": "assets/InputJax-Br4_JPsm.js",
+      "rawBytes": 1108,
+      "gzipBytes": 534,
+      "brotliBytes": 450
+    },
+    {
+      "file": "assets/rolldown-runtime-hePW80VL.js",
+      "rawBytes": 716,
+      "gzipBytes": 428,
+      "brotliBytes": 381
+    },
+    {
+      "file": "assets/PrioritizedList-CI0xZ2Me.js",
+      "rawBytes": 693,
+      "gzipBytes": 399,
+      "brotliBytes": 347
+    },
+    {
+      "file": "assets/projects-WNXmxI7o.js",
+      "rawBytes": 382,
+      "gzipBytes": 257,
+      "brotliBytes": 213
+    },
+    {
+      "file": "assets/demo-CCSkPXgx.js",
+      "rawBytes": 115,
+      "gzipBytes": 121,
+      "brotliBytes": 109
+    }
+  ]
+}

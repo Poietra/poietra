@@ -1,0 +1,54 @@
+{
+  "basis": "Tracked and unignored working-tree source; raw bytes include declarations and tests. This is not GitHub Linguist classification.",
+  "totals": [
+    {
+      "category": "MoonBit application",
+      "files": 282,
+      "lines": 57080,
+      "bytes": 1557814
+    },
+    {
+      "category": "MoonBit tests",
+      "files": 17,
+      "lines": 1392,
+      "bytes": 41577
+    },
+    {
+      "category": "JavaScript runtime adapters",
+      "files": 112,
+      "lines": 783,
+      "bytes": 53204
+    },
+    {
+      "category": "JavaScript tooling/tests",
+      "files": 36,
+      "lines": 2735,
+      "bytes": 180670
+    },
+    {
+      "category": "TypeScript runtime",
+      "files": 0,
+      "lines": 0,
+      "bytes": 0
+    },
+    {
+      "category": "TypeScript declarations",
+      "files": 113,
+      "lines": 1934,
+      "bytes": 79057
+    },
+    {
+      "category": "TypeScript tests",
+      "files": 147,
+      "lines": 16378,
+      "bytes": 1102935
+    },
+    {
+      "category": "TypeScript tooling",
+      "files": 5,
+      "lines": 140,
+      "bytes": 9002
+    }
+  ],
+  "runtimeTypeScript": []
+}
