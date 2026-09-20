@@ -106,6 +106,13 @@ and measurements belong in [README.md](README.md).
   rendering and worsened the measured 500-object playback interval.
 - Preserve cancellation, late-completion suppression, backpressure and cleanup
   across async boundaries. Keep native error identity where host contracts need it.
+- 2026-09-20: Pose edits were rebuilding unchanged panels and preparing the same
+  resources. Keep panel presentation inputs explicit, including every displayed
+  field and selection/structure dependency; command handlers read the latest
+  document. Resource preparation depends on text across Compositions and visible
+  image assets, not poses or timing. Preserve asset/visibility invalidation,
+  cancellation and late-frame suppression, with a document-independent retry
+  after preparation failure. Context wrappers still observe document changes.
 - Inspect upstream source, license, compatibility and tests before adopting a
   dependency. Keep concise adoption decisions in README.
 

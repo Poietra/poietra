@@ -227,6 +227,7 @@ fn use_studio_effects(
       @core.any(state.panel),
     ],
   )
+  let preparation = use_render_preparation(doc.scene)
   @react.use_effect(
     fn() {
       let current = Ref(true)
@@ -259,7 +260,12 @@ fn use_studio_effects(
       }
       fn() { current.val = false }
     },
-    [doc.scene, input._get("renderer")],
+    [
+      @core.any(preparation),
+      @core.any(doc.scene_id),
+      input._get("renderer"),
+      @core.any(state.render_attempt),
+    ],
   )
   @react.use_effect(
     fn() {

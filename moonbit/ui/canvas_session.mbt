@@ -2,6 +2,7 @@
 priv struct PaintJob {
   frame : @core.Any
   scene : @core.Any
+  preparation : RenderPreparation
   key : String
   width : Double
   height : Double
@@ -30,7 +31,7 @@ priv struct CanvasSession {
   mut state : PaintLifecycle
   mut pending : PaintJob?
   mut busy : Bool
-  mut prepared_scene : @core.Any?
+  mut prepared_resources : RenderPreparation?
 }
 
 ///|
@@ -96,21 +97,21 @@ fn CanvasSession::drain(self : CanvasSession) -> Unit {
           continue
         }
         let signal = self.lifetime._get("signal")
-        if !self.prepared_scene
-          .map(fn(scene) { @core.equal(scene, next.scene) })
+        if !self.prepared_resources
+          .map(fn(prepared) { prepared.same(next.preparation) })
           .unwrap_or(false) {
           let prepared = @core.throwable(fn() {
             self.renderer._call("prepareScene", [next.scene])
           })
           wait_signal(prepared, signal) |> ignore
-          self.prepared_scene = Some(next.scene)
+          self.prepared_resources = Some(next.preparation)
         }
         if !self.active() {
           break
         }
         if self.pending is Some(queued) {
-          if !self.prepared_scene
-            .map(fn(scene) { @core.equal(scene, queued.scene) })
+          if !self.prepared_resources
+            .map(fn(prepared) { prepared.same(queued.preparation) })
             .unwrap_or(false) {
             continue
           }

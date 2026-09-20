@@ -2,6 +2,34 @@
 pub fn media_timeline(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
   let scene = editor._get("scene")
+  let dependencies = editor_presentation_inputs(editor)
+  dependencies.append([
+    scene._get("objects"),
+    scene._get("audioTracks"),
+    @core.any(@boundary.scene_duration(scene)),
+    input._get("disabled"),
+  ])
+  let add = use_latest_action(input._get("onAdd"))
+  let props = use_presentation_props(dependencies, fn() {
+    host_record({
+      "editor": editor,
+      "disabled": input._get("disabled"),
+      "onAdd": add,
+    })
+  })
+  keyed_element(cached_media_timeline_content, { "view": props }, [])
+}
+
+///|
+let cached_media_timeline_content : @core.Any = memo_component(
+  media_timeline_content,
+)
+
+///|
+fn media_timeline_content(input : @core.Any) -> @react.Element {
+  let input = input._get("view")
+  let editor = input._get("editor")
+  let scene = editor._get("scene")
   let scene_id : String = scene._get("id").cast()
   let store = editor._get("store")
   let playing = truthy(editor._get("playing"))

@@ -8,6 +8,85 @@ async function open(page: Page) {
 }
 const circle = (page: Page, stage = 'main') => page.locator(`[data-testid="stage-${stage}"] .scene-svg [data-object-id="circle"]`);
 
+test('pose edits reuse resources and panel content while names, visibility and timing still update', async ({ page }) => {
+  await countEditorRenders(page);
+  await open(page);
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const changes = await page.evaluate(async () => {
+    window.renderCounts = {};
+    const prepared = window.painterPreview.preparations;
+    await window.painterPreview.positions([310, 330, 350, 370]);
+    return { counts: window.renderCounts, prepared: window.painterPreview.preparations - prepared };
+  });
+  await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('370');
+  expect(changes.prepared).toBe(0);
+  for (const name of ['sidebar__content', 'scene__tabs__content', 'timeline__structure', 'media__timeline__content']) expect(changes.counts[name] ?? 0, name).toBe(0);
+  await page.evaluate(() => window.painterPreview.renameCircle('Moving dot'));
+  await expect(page.getByRole('button', { name: 'Moving dot', exact: true })).toBeVisible();
+  await page.evaluate(() => window.painterPreview.updateCircle({ visible: false }));
+  await expect(page.getByRole('button', { name: 'Moving dot を表示', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Moving dot を表示', exact: true }).click();
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(370 520) rotate(0)');
+  await page.evaluate(() => { window.painterPreview.renameComposition('Opening'); window.painterPreview.duration(1200); });
+  await expect(page.getByRole('button', { name: 'Opening', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Opening 1,200 ms', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
+  await expect(page.locator('.track-label').filter({ hasText: 'Moving dot' })).toBeVisible();
+});
+
+test('text preparation follows content in every Composition and ignores size, color and poses', async ({ page }) => {
+  await open(page);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const initial = await page.evaluate(() => window.painterPreview.preparations);
+  await page.evaluate(() => window.painterPreview.updateEquation('x^3 + 1', 'comp-2'));
+  await expect.poll(() => page.evaluate(() => window.painterPreview.preparations)).toBeGreaterThan(initial);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const prepared = await page.evaluate(() => window.painterPreview.preparations);
+  await page.evaluate(() => window.painterPreview.updateCircle({ x: 440, fill: '#123456', fontSize: 60 }));
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(440 520) rotate(0)');
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  expect(await page.evaluate(() => window.painterPreview.preparations)).toBe(prepared);
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+  await page.getByRole('button', { name: 'Equation', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'LaTeX expression', exact: true })).toHaveValue('x^3 + 1');
+});
+
+test('failed resource preparation can be retried without changing or losing the edited content', async ({ page }) => {
+  await open(page);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  await page.evaluate(() => { window.painterPreview.preparationError = true; window.painterPreview.updateEquation('x^4 + 2'); });
+  await expect(page.getByRole('alert').filter({ hasText: 'Simulated resource failure' })).toBeVisible();
+  await page.evaluate(() => { window.painterPreview.updateCircle({ x: 480 }); window.painterPreview.preparationError = false; });
+  await page.getByRole('button', { name: '描画の準備を再試行', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Simulated resource failure' })).toHaveCount(0);
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(480 520) rotate(0)');
+  await page.getByRole('button', { name: 'Equation', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'LaTeX expression', exact: true })).toHaveValue('x^4 + 2');
+});
+
+test('replacing a hidden image defers preparation until it becomes visible', async ({ page }) => {
+  await open(page);
+  const images = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 8;
+    const ctx = canvas.getContext('2d')!;
+    return ['#ff0000', '#00ff00'].map(color => { ctx.fillStyle = color; ctx.fillRect(0, 0, 8, 8); return canvas.toDataURL(); });
+  });
+  await page.getByLabel('画像ファイル', { exact: true }).setInputFiles({ name: 'Asset.png', mimeType: 'image/png', buffer: Buffer.from(images[0].split(',')[1], 'base64') });
+  await expect(page.getByRole('button', { name: 'Asset', exact: true })).toBeVisible();
+  await expect(page.locator('.scene-svg image')).toHaveAttribute('href', /^data:image/);
+  await page.getByRole('button', { name: 'Asset を非表示', exact: true }).click();
+  await expect(page.locator('.scene-svg image')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const prepared = await page.evaluate(() => window.painterPreview.preparations);
+  await page.evaluate(src => window.painterPreview.replaceImage(src), images[1]);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  expect(await page.evaluate(() => window.painterPreview.preparations)).toBe(prepared);
+  await page.getByRole('button', { name: 'Asset を表示', exact: true }).click();
+  await expect(page.locator('.scene-svg image')).toHaveAttribute('href', images[1]);
+  await expect.poll(() => page.evaluate(() => window.painterPreview.preparations)).toBeGreaterThan(prepared);
+});
+
 test('public useEditor accepts an external Context and keeps unchanged snapshots stable', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));

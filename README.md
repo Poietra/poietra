@@ -196,6 +196,12 @@ The rewrite changes the data flow as well as the language:
   A dedicated clock provider publishes one consistent React Context snapshot
   using ordinary state updates, allowing pending ticks to yield to input. Shared
   document subscriptions continue to use `useSyncExternalStore`.
+- **Reuse unchanged panel content and resources.** Scene tabs, layers, timeline
+  structure and media rows retain their view props while the fields they display
+  stay unchanged. Their Context adapters still observe document edits. Resource
+  preparation compares text across Compositions and visible image assets;
+  position/color/timing edits reuse prepared resources. Failed preparation has an
+  explicit retry action that does not modify the document.
 - **Own asynchronous work.** Renderers, decoders, imports and AI requests have
   explicit lifetimes. Stale completions cannot publish into a replacement view;
   cancellation releases resources. Uploads use bounded buffers and backpressure.
@@ -293,10 +299,18 @@ New UI features should select a document field, presence, chat or local time
 explicitly; ordinary property panels should not use the aggregate `useEditor`
 compatibility hook. No document schema or collaboration semantics changed.
 
-Remaining work includes resource preparation keyed to resource changes, finer
-subscriptions within document edits, initial editor delivery and remaining `Any`
-orchestration. This is a narrower update boundary, not a claim that all UI work
-or startup costs have been removed.
+Document edits now pass through presentation boundaries for scene tabs, layers,
+timeline structure and media rows. Names, visibility, selection, ordering and
+timing invalidate the views that display them; pose-only edits retain their
+content. Commands continue to read the current document. Root and Canvas resource
+preparation share the same input selection: text/equations in every Composition
+and image assets visible in any Composition. Queued Canvas work still publishes
+only the current frame, and failed preparation can be retried without editing.
+
+Remaining work includes narrowing the document Context adapters and other panel
+subscriptions, initial editor delivery and remaining `Any` orchestration. The
+root still observes document edits; these changes remove unnecessary content and
+resource work, rather than all UI work or startup costs.
 
 Run `pnpm audit:source` to reproduce the inventory, or
 `node scripts/source-inventory.mjs --json` for raw byte/line counts. The audit also

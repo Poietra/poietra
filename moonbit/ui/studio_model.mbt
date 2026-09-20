@@ -92,6 +92,7 @@ priv struct StudioState {
   audio_error : String
   render_error : String
   render_revision : Int
+  render_attempt : Int
 }
 
 ///|
@@ -135,6 +136,7 @@ fn studio_initial(store : @core.Any) -> StudioState {
     audio_error: "",
     render_error: "",
     render_revision: 0,
+    render_attempt: 0,
   }
 }
 

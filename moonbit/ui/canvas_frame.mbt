@@ -22,6 +22,7 @@ pub fn canvas_frame(input : @core.Any) -> @react.Element {
   let job : PaintJob = {
     frame: input._get("frame"),
     scene: input._get("scene"),
+    preparation: use_render_preparation(input._get("scene")),
     key: input._get("presentationKey").cast(),
     width,
     height,
@@ -107,7 +108,7 @@ pub fn canvas_frame(input : @core.Any) -> @react.Element {
         state: Opening,
         pending: latest.get_current(),
         busy: false,
-        prepared_scene: None,
+        prepared_resources: None,
       }
       session.set_current(Some(owner))
       owner.initialize(input._get("createFramePainter"))

@@ -15,11 +15,19 @@ import type { PainterContract } from '../../../src/engine/painter-contract';
 const heldRenders = new Set<() => void>();
 const probe = {
   delay: 35, failNext: false, creations: 0, disposals: 0, active: 0, maximumConcurrentPerInstance: 0,
-  svgCalls: 0,
+  svgCalls: 0, preparations: 0, preparationError: false,
   message(content: string) {
     store.chat.append({ id: crypto.randomUUID(), role: 'user', content, authorId: 'peer-probe', authorName: 'Peer', color: '#123456', createdAt: Date.now(), scope: { sceneId: 'scene-1', selection: { kind: 'composition', id: 'comp-1' }, selectedIds: [], label: 'Composition 1' } });
   },
   updateCircle(patch: Partial<ObjectState>) { store.updateState('scene-1', 'comp-1', 'circle', patch); },
+  renameCircle(name: string) { store.setObject('scene-1', 'circle', { name }); },
+  updateEquation(text: string, composition = 'comp-1') { store.updateState('scene-1', composition, 'equation', { text }); },
+  renameComposition(name: string) { store.setComposition('scene-1', 'comp-1', { name }); },
+  duration(duration: number) { store.setComposition('scene-1', 'comp-1', { duration }); },
+  replaceImage(src: string) {
+    const object = Object.values(store.scene('scene-1').objects).find(object => object.kind === 'image')!;
+    store.setObject('scene-1', object.id, { image: { ...object.image!, src } });
+  },
   referenceSvg() {
     const scene = store.scene('scene-1');
     return renderer.frameToSvg(compositionFrame(scene, scene.compositions['comp-1']), { idPrefix: 'reference', hitVideo: true });
@@ -42,6 +50,11 @@ const probe = {
 };
 const observedRenderer = {
   ...renderer,
+  prepareScene(...args: Parameters<typeof renderer.prepareScene>) {
+    probe.preparations++;
+    if (probe.preparationError) return Promise.reject(new Error('Simulated resource failure'));
+    return renderer.prepareScene(...args);
+  },
   frameToSvg(...args: Parameters<typeof renderer.frameToSvg>) {
     probe.svgCalls++;
     return renderer.frameToSvg(...args);

@@ -577,7 +577,23 @@ fn studio_main(
           "className": @core.any("render-error"),
           "role": @core.any("alert"),
         },
-        [state.render_error],
+        [
+          h("p", Map([]), [state.render_error]),
+          h(
+            "button",
+            {
+              "className": @core.any("subtle-button"),
+              "onClick": @core.any(fn() {
+                controller.update({
+                  ..controller.state,
+                  render_error: "",
+                  render_attempt: controller.state.render_attempt + 1,
+                })
+              }),
+            },
+            [icon("RotateCcw", 14), "描画の準備を再試行"],
+          ),
+        ],
       ),
     )
   } else if state.render_revision == 0 {

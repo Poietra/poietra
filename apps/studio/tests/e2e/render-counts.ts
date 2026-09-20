@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 
 // Test-only instrumentation of pinned MoonBit output. Count actual function
 // invocations, including StrictMode/retries, without shipping diagnostics.
-const components = ['studio', 'sidebar', 'inspector', 'timeline', 'stage', 'assistant__panel', 'studio__dialogs', 'studio__main', 'scene__tabs', 'media__timeline'];
+const components = ['studio', 'sidebar', 'inspector', 'timeline', 'stage', 'assistant__panel', 'studio__dialogs', 'studio__main', 'scene__tabs', 'media__timeline', 'sidebar__content', 'scene__tabs__content', 'timeline__structure', 'media__timeline__content'];
 declare global { interface Window { renderCounts: Record<string, number> } }
 
 export async function countEditorRenders(page: Page) {

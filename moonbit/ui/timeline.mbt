@@ -173,6 +173,67 @@ pub fn timeline(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
   let scene = editor._get("scene")
   let selection = editor._get("selection")
+  let expanded = selection._get("kind").cast() == "transition" &&
+    !truthy(editor._get("viewingPlayback"))
+  let total = @boundary.scene_duration(scene)
+  let dependencies = editor_presentation_inputs(editor)
+  dependencies.append(composition_presentation_inputs(scene, true))
+  dependencies.push(@core.any(total))
+  let transitions = scene._get("transitions")
+  let transition_ids = @core.object_keys(transitions)
+  dependencies.push(@core.any(transition_ids.length()))
+  for id in transition_ids {
+    let transition = transitions._get(id)
+    dependencies.append([
+      @core.any(id),
+      transition._get("fromId"),
+      transition._get("toId"),
+      transition._get("duration"),
+    ])
+  }
+  if expanded {
+    dependencies.push(scene._get("objects"))
+    let transition = scene._get("transitions")._get(selection._get("id").cast())
+    if truthy(transition) {
+      dependencies.push(transition._get("tracks"))
+      for key in ["fromId", "toId"] {
+        let cid : String = transition._get(key).cast()
+        for id in @core.object_keys(scene._get("objects")) {
+          let state = @boundary.state_for(scene, cid, id)
+          dependencies.push(
+            @core.any(truthy(state) && truthy(state._get("visible"))),
+          )
+        }
+      }
+    }
+  }
+  let props = use_presentation_props(dependencies, fn() {
+    host_record({ "editor": editor })
+  })
+  h(
+    "section",
+    {
+      "className": @core.any(
+        "timeline " + (if expanded { "expanded" } else { "" }),
+      ),
+      "aria-label": @core.any("タイムライン"),
+    },
+    [
+      keyed_element(cached_timeline_structure, { "view": props }, []),
+      children(input),
+      timeline_transport(input, editor, total),
+    ],
+  )
+}
+
+///|
+let cached_timeline_structure : @core.Any = memo_component(timeline_structure)
+
+///|
+fn timeline_structure(input : @core.Any) -> @react.Element {
+  let editor = input._get("view")._get("editor")
+  let scene = editor._get("scene")
+  let selection = editor._get("selection")
   let selected_id : String = selection._get("id").cast()
   let scene_id : String = scene._get("id").cast()
   // The playback clock does not rebuild structural timelines or target lists.
@@ -321,16 +382,5 @@ pub fn timeline(input : @core.Any) -> @react.Element {
       ),
     )
   }
-  content.push(children(input))
-  content.push(timeline_transport(input, editor, total))
-  h(
-    "section",
-    {
-      "className": @core.any(
-        "timeline " + (if truthy(transition) { "expanded" } else { "" }),
-      ),
-      "aria-label": @core.any("タイムライン"),
-    },
-    content,
-  )
+  @react.fragment(content)
 }

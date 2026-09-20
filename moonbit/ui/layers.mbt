@@ -150,6 +150,40 @@ pub fn object_icon(input : @core.Any) -> @react.Element {
 pub fn sidebar(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
   let scene = editor._get("scene")
+  let cid : String = editor._get("compositionId").cast()
+  let dependencies = editor_presentation_inputs(editor)
+  dependencies.push(scene._get("objects"))
+  dependencies.append(composition_presentation_inputs(scene, false))
+  for id in @core.object_keys(scene._get("objects")) {
+    let state = @boundary.state_for(scene, cid, id)
+    dependencies.push(@core.any(truthy(state) && truthy(state._get("visible"))))
+  }
+  let project = editor._get("store")._call("snapshot", [])._get("project")
+  let count = if truthy(project) {
+    project._get("sceneOrder")._get("length")
+  } else {
+    @core.any(0)
+  }
+  dependencies.push(count)
+  let new_scene = use_latest_action(input._get("onNewScene"))
+  let props = use_presentation_props(dependencies, fn() {
+    host_record({
+      "editor": editor,
+      "sceneCount": count,
+      "onNewScene": new_scene,
+    })
+  })
+  keyed_element(cached_sidebar_content, { "view": props }, [])
+}
+
+///|
+let cached_sidebar_content : @core.Any = memo_component(sidebar_content)
+
+///|
+fn sidebar_content(input : @core.Any) -> @react.Element {
+  let input = input._get("view")
+  let editor = input._get("editor")
+  let scene = editor._get("scene")
   let scene_id : String = scene._get("id").cast()
   let composition_id : String = editor._get("compositionId").cast()
   let store = editor._get("store")
@@ -275,12 +309,7 @@ pub fn sidebar(input : @core.Any) -> @react.Element {
       [],
     )
   }
-  let project = store._call("snapshot", [])._get("project")
-  let scene_count = if truthy(project) {
-    project._get("sceneOrder")._get("length").cast()
-  } else {
-    0
-  }
+  let scene_count : Int = input._get("sceneCount").cast()
   let content : Array[&@react.ReactNode] = [
     h("div", { "className": @core.any("new-scene-row") }, [
       h(

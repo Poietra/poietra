@@ -41,6 +41,42 @@ fn scene_menu_item(
 ///|
 pub fn scene_tabs(input : @core.Any) -> @react.Element {
   let project = input._get("project")
+  let order : FixedArray[String] = project._get("sceneOrder").cast()
+  let dependencies = [input._get("sceneId"), input._get("store")]
+  for id in order {
+    let scene = project._get("scenes")._get(id)
+    dependencies.append([
+      @core.any(id),
+      if truthy(scene) {
+        scene._get("name")
+      } else {
+        @core.undefined()
+      },
+    ])
+  }
+  let change = use_latest_action(input._get("onChange"))
+  let notify = use_latest_action(input._get("notify"))
+  let create = use_latest_action(input._get("onNew"))
+  let props = use_presentation_props(dependencies, fn() {
+    host_record({
+      "project": project,
+      "sceneId": input._get("sceneId"),
+      "store": input._get("store"),
+      "onChange": change,
+      "notify": notify,
+      "onNew": create,
+    })
+  })
+  keyed_element(cached_scene_tabs_content, { "view": props }, [])
+}
+
+///|
+let cached_scene_tabs_content : @core.Any = memo_component(scene_tabs_content)
+
+///|
+fn scene_tabs_content(input : @core.Any) -> @react.Element {
+  let input = input._get("view")
+  let project = input._get("project")
   let selected : String = input._get("sceneId").cast()
   let store = input._get("store")
   let on_change : (String) -> Unit = input._get("onChange").cast()
