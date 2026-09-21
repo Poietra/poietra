@@ -1,0 +1,46 @@
+{
+  "measuredAt": "2026-09-21T17:27:32.371Z",
+  "sourceRevision": "115ed1eb526d140ec77be4861caf8c2f63630f00",
+  "bundleSha256": "9772224a6d2d9e9ff54686c795504093d00968066460b85d9ce23ae93f31add3",
+  "machine": {
+    "platform": "linux",
+    "node": "v24.13.0",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "workload": {
+    "ownedPresence": true,
+    "clients": 32,
+    "objects": 32,
+    "seconds": 10,
+    "editHz": 2,
+    "presenceHz": 10,
+    "warmup": "all peers synchronized, then 1s idle",
+    "host": "local workerd, one room; one Node process runs protocol clients; no browser or WAN"
+  },
+  "joinMs": 196.2464980000001,
+  "publishMs": 10001.732916,
+  "convergenceMs": 10022.447489,
+  "measuredUpdates": 640,
+  "received": 14656,
+  "receivedBytes": 17490592,
+  "disconnects": 0,
+  "peerEditLatencyMs": {
+    "samples": 19840,
+    "p50": 19.519924999999603,
+    "p95": 24.722114000000147,
+    "p99": 32.4558320000001,
+    "max": 34.94955300000038
+  },
+  "generator": {
+    "schedulerMaxDelayMs": 6.619356000001062,
+    "eventLoopP99Ms": 11.034623,
+    "rssBytes": 181641216
+  },
+  "checks": {
+    "allFinalPoses": true,
+    "hibernationEditAndPresence": true
+  }
+}

@@ -164,6 +164,15 @@ fn Room::update_presence(
       return
     }
     self.remember(other, absent(previous))
+    // Release the admission slot immediately; a half-open predecessor must not
+    // consume reconnect headroom or publish a later queued presence frame.
+    self.connections.delete(other) |> ignore
+    (@core.throwable(fn() {
+      other._call("close", [@core.any(1000), @core.any("Connection replaced")])
+    })
+    |> ignore) catch {
+      _ => ()
+    }
   }
   self.remember(socket, next)
   self.owners.set(id, socket) |> ignore

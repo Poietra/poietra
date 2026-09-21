@@ -79,11 +79,13 @@ test('coalesces cursor clocks, indexes owners and keeps the replacement through 
   message(f.room, old, present(77, 1, 'Old'));
   for (let clock = 2; clock <= 100; clock++) message(f.room, old, present(77, clock, 'Moved'));
   message(f.room, replacement, present(77, 101, 'New'));
+  expect(old.close).toHaveBeenCalledWith(1000, 'Connection replaced');
+  message(f.room, old, present(77, 999, 'Late retired frame'));
   f.room.webSocketClose(old);
   vi.advanceTimersByTime(100);
   expect(receivedPresence(observer)).toEqual([{ id: 77, clock: 101, state: { user: { name: 'New', color: '#abcdef' }, editor: { selectedIds: [], cursor: null } } }]);
   expect(f.ctx.getWebSockets).toHaveBeenCalledTimes(1);
-  expect(old.deserializeAttachment).toHaveBeenCalledTimes(1);
+  expect(old.deserializeAttachment).toHaveBeenCalledTimes(2);
   observer.send.mockClear(); old.readyState = 3;
   const restored = f.create(); restored.webSocketClose(old); vi.advanceTimersByTime(100);
   expect(receivedPresence(observer)).toEqual([]);

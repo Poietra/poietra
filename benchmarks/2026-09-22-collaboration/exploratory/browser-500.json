@@ -1,0 +1,84 @@
+{
+  "browser": {
+    "editAndPeerConvergenceMs": 152,
+    "frameIntervalMs": {
+      "samples": 621,
+      "p50": 16.699999999999818,
+      "p95": 16.799999999999272,
+      "p99": 16.80000000000109,
+      "max": 33.40000000000009
+    },
+    "longTasksMs": {
+      "samples": 0,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "pageErrors": [],
+    "browser": "153.0.8010.12",
+    "renderer": "headless Chromium on local machine, not real-device FPS"
+  },
+  "measuredAt": "2026-09-21T17:45:19.412Z",
+  "sourceRevision": "65255a8da9f6486c1bf8864fca2cfe7ba9ba986f",
+  "harnessRevision": "65255a8da9f6486c1bf8864fca2cfe7ba9ba986f",
+  "versions": {
+    "moon": "0.10.13+cbb11c36f",
+    "wrangler": "4.131.2",
+    "miniflare": "5.20260911.1-alpha",
+    "workerd": "1.20260911.1",
+    "yjs": "13.6.32",
+    "yWebsocket": "3.1.0"
+  },
+  "browserManifestSha256": "5d7d74f5fb7e3af2fe56965f2aafef437ed90e151434115b9dbbc7d7367f69a4",
+  "bundleSha256": "fca45468d3559fa915ae02effaf979d44873841ff34ab4f06de299d85cba4ddc",
+  "harnessSha256": "728a91109af3bdc53085a810b3438136a7590845fb43bc916d56da274bb7d973",
+  "actorSha256": "30dbe4e4571b8fbc435d026aac2e162fea3614d8cc2101899cea663b349c27a9",
+  "clientPresenceSha256": "3879ca98862b33b127d3db37b921747e4fc936ad3131d0dd0e40d41c40966740",
+  "machine": {
+    "platform": "linux",
+    "node": "v24.13.0",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "workload": {
+    "clients": 500,
+    "objects": 500,
+    "seconds": 10,
+    "editHz": 1,
+    "presenceHz": 1,
+    "ownedPresence": true,
+    "legacyClient": false,
+    "browserClient": true,
+    "generators": 8,
+    "warmup": "all peers synchronized, then 1s idle",
+    "host": "local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN"
+  },
+  "joinMs": 5817,
+  "convergenceMs": 10268,
+  "measuredUpdates": 4989,
+  "received": 92814,
+  "receivedBytes": 471268574,
+  "transmitted": 9978,
+  "transmittedBytes": 991376,
+  "disconnects": 0,
+  "peerEditLatencyMs": {
+    "samples": 2484522,
+    "p50": 203,
+    "p95": 497,
+    "p99": 680,
+    "max": 956
+  },
+  "generator": {
+    "schedulerMaxDelayMs": 98,
+    "eventLoopP99Ms": 35.946495,
+    "heapsBytes": 8293663864,
+    "rssBytes": 9875374080
+  },
+  "checks": {
+    "allFinalPoses": true,
+    "hibernationEditAndPresence": true
+  }
+}

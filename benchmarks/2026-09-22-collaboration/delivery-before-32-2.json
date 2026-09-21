@@ -1,0 +1,64 @@
+{
+  "measuredAt": "2026-09-21T17:58:16.761Z",
+  "sourceRevision": "115ed1eb526d140ec77be4861caf8c2f63630f00",
+  "harnessRevision": "3a04bf8557bfea45579d165b0f3d6d6346bacbd8",
+  "versions": {
+    "moon": "0.10.13+cbb11c36f",
+    "wrangler": "4.131.2",
+    "miniflare": "5.20260911.1-alpha",
+    "workerd": "1.20260911.1",
+    "yjs": "13.6.32",
+    "yWebsocket": "3.1.0"
+  },
+  "browserManifestSha256": null,
+  "bundleSha256": "9cf5171ed7e78eecd01e328b9b26657073951cb33aa539b0211e9f3a8ea5a327",
+  "harnessSha256": "728a91109af3bdc53085a810b3438136a7590845fb43bc916d56da274bb7d973",
+  "actorSha256": "70002a44b9b3793947f31c08cf774d0b78a890eb80f84c0a26bd83a13c241bc4",
+  "clientPresenceSha256": null,
+  "machine": {
+    "platform": "linux",
+    "node": "v24.13.0",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "workload": {
+    "clients": 32,
+    "objects": 32,
+    "seconds": 10,
+    "editHz": 2,
+    "presenceHz": 10,
+    "ownedPresence": false,
+    "legacyClient": false,
+    "browserClient": false,
+    "generators": 8,
+    "warmup": "all peers synchronized, then 1s idle",
+    "host": "local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN"
+  },
+  "joinMs": 369,
+  "convergenceMs": 10047,
+  "measuredUpdates": 640,
+  "received": 122848,
+  "receivedBytes": 17435520,
+  "transmitted": 103008,
+  "transmittedBytes": 16816512,
+  "disconnects": 0,
+  "peerEditLatencyMs": {
+    "samples": 19840,
+    "p50": 376,
+    "p95": 1129,
+    "p99": 1309,
+    "max": 1394
+  },
+  "generator": {
+    "schedulerMaxDelayMs": 13.875,
+    "eventLoopP99Ms": 14.917631,
+    "heapsBytes": 189493608,
+    "rssBytes": 479920128
+  },
+  "checks": {
+    "allFinalPoses": true,
+    "hibernationEditAndPresence": true
+  }
+}

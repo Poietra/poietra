@@ -171,6 +171,16 @@ fn Room::update_presence(
       owned.delete(client_id) |> ignore
     }
   }
+  if self.owners.get(client_id) is Some(other) && !@core.equal(other, socket) {
+    self.connections.delete(other) |> ignore
+    self.presence.delete(other) |> ignore
+    (@core.throwable(fn() {
+      other._call("close", [@core.any(1000), @core.any("Connection replaced")])
+    })
+    |> ignore) catch {
+      _ => ()
+    }
+  }
   self.owners.set(client_id, socket) |> ignore
   self.presence.set(socket, next) |> ignore
   let clean = @wire.decoder(@presence.presence_message([next]))
@@ -187,7 +197,7 @@ fn Room::update_presence(
 
 ///|
 fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
-  if self.disposed {
+  if self.disposed || !self.connections.has(socket) {
     return
   }
   @core.throwable(fn() {

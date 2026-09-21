@@ -58,10 +58,12 @@ test('the local server preserves socket ownership through reconnect and remote t
   await expect.poll(() => room.awareness.meta.get(100)?.clock).toBe(4);
   expect(room.awareness.getStates().get(99)?.user.name).toBe('Alice');
 
+  const oldClosed = once(original, 'close');
   const replacement = await connect();
   presence(replacement, 99, 4, 'Alice reconnected');
   await expect.poll(() => room.awareness.getStates().get(99)?.user.name).toBe('Alice reconnected');
-  original.close(); await once(original, 'close');
+  await oldClosed;
+  expect(room.connections.size).toBe(2);
   expect(room.awareness.getStates().get(99)?.user.name).toBe('Alice reconnected');
   replacement.close(); await once(replacement, 'close');
   await expect.poll(() => room.awareness.getStates().has(99)).toBe(false);

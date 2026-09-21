@@ -244,10 +244,12 @@ if (args.child) {
     const presenceObserver = await connect(presenceRoom);
     const oldSocket = await rawPresence(presenceRoom, 717171, 3, 'Old connection');
     await eventually(() => presenceObserver.provider.awareness.getStates().get(717171)?.user.name === 'Old connection', 'Old presence did not arrive');
+    const oldClosed = once(oldSocket, 'close');
+    oldSocket._socket.pause(); // Delay the predecessor's close handshake until after hibernation.
     const newSocket = await rawPresence(presenceRoom, 717171, 4, 'Reconnected');
     await eventually(() => presenceObserver.provider.awareness.getStates().get(717171)?.user.name === 'Reconnected', 'New presence did not arrive');
     await control('hibernate', presenceRoom);
-    oldSocket.close(); await once(oldSocket, 'close');
+    oldSocket._socket.resume(); await oldClosed;
     const lateJoiner = await connect(presenceRoom);
     await eventually(() => lateJoiner.provider.awareness.getStates().get(717171)?.user.name === 'Reconnected', 'Replacement disappeared after old socket closed');
     newSocket.close(); await once(newSocket, 'close');

@@ -71,6 +71,9 @@ fn Room::receive_update(self : Room, update : @core.Any) -> Unit {
 ///|
 fn Room::message(self : Room, socket : @core.Any, message : @core.Any) -> Unit {
   self.restore_connections()
+  if !self.connections.has(socket) {
+    return
+  }
   if @core.typeof_(message) == "string" ||
     (message._get("byteLength").cast() : Double) > 2097152.0 {
     socket._call("close", [@core.any(1009), @core.any("Invalid update size")])

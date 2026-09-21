@@ -199,6 +199,31 @@ preserves received peer edits, including dependent parent/point changes, and may
 retain a shared creation with a notice. Unreceived offline work cannot be known.
 Pending Yjs dependencies are persisted even before they affect the visible view.
 
+Room transport now targets 500 participants, with a 512-socket admission cap to
+leave reconnect headroom. `client_presence` sends only the local awareness clock;
+remote changes still notify the UI. Browser cursor emission adapts from 50 ms to
+1 second as the room grows, and received presence packets publish one UI snapshot
+per 16 ms while reusing unchanged peers. Selection and local editing stay immediate.
+
+`server_sync` shares bounded output batching between Node and Workers. Worker
+input batches are losslessly merged with Yjs, journaled in one SQLite transaction,
+then applied and published. Ordered sync replies flush pending input first, so
+portable-file creation still waits for durable acknowledgment. Up to 32 sockets,
+document batching uses the next timer turn without an added delay; larger rooms
+use nominal 10 ms input / 50 ms output windows. Both queues retain at most 128
+small updates or 256 KiB before flushing; a larger individually valid update
+flushes immediately. The journal compacts at 256 batches or 4 MiB. Unresolved Yjs
+dependencies remain in both merged journal entries and snapshots.
+
+Presence coalesces over 100 ms and keeps the latest clock per client. Socket and
+owner indexes rebuild from attachments after hibernation; stale closes cannot
+remove a replacement. A replacement retires the old socket and releases its
+admission slot immediately. Full rosters are split into packets accepted by older
+clients. Node disconnects clients with more than 1 MiB of queued output; the
+Workers WebSocket API does not expose Node's `bufferedAmount`, so that guard is
+Node-specific. This transport keeps the existing room authority and storage
+schema; it does not introduce a new namespace or document format.
+
 [Product rules](apps/studio/AGENTS.md) define these contracts, and
 [root implementation rules](AGENTS.md) describe the editing boundaries to preserve.
 
@@ -310,10 +335,10 @@ Source audit rerun **2026-09-22**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 300 | 59,941 |
-| Native JS runtime adapters | 119 | 1,325 |
+| MoonBit application | 302 | 60,423 |
+| Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 148 | 16,583 |
+| TypeScript tests, fixtures and test configurations | 150 | 16,816 |
 | Public/environment type declarations | 114 | 1,978 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -368,7 +393,19 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-The API/MCP documentation addition was verified locally on **2026-09-22**:
+The room scalability changes were verified locally on **2026-09-22** with
+713 Vitest checks, five build/API checks, 51 MoonBit JS checks, a warning-free
+MoonBit type check, public TypeScript contracts and a production web build.
+Actual workerd verified offline edits, selective Undo, ordered durable replies,
+compaction, hibernation, late closes, process restart and pending dependencies.
+The load-test results and generator limitations are recorded below.
+Revision `72f05a2` passed the complete
+[CI run 35634455268](https://github.com/Poietra/poietra/actions/runs/35634455268),
+including browser/export/media, persistence, R2 and account integrations. The
+subsequent socket-retirement fix also passed all 713 local Vitest checks and the
+real-workerd hibernation/restart suite; it is outside that CI revision.
+
+The preceding API/MCP documentation addition was verified on **2026-09-22**:
 19 headless/contract tests, 701 Vitest checks, five build/API checks, 51 MoonBit
 JS tests, 48 WASM checks, public type contracts and a complete production build.
 All 28 production-page browser checks passed, including English/Japanese
@@ -410,7 +447,7 @@ exercise persistent account isolation, callback races and expiry.
 On 2026-09-22 the capacity test was synchronized with the initial automatic
 visit after CI recorded a click while that visit disabled the controls. All 15
 checks and ten consecutive capacity checks passed locally. The full run for
-this test-only change is [CI 35625067075](https://github.com/Poietra/poietra/actions/runs/35625067075).
+this test-only change passed [CI 35625067075](https://github.com/Poietra/poietra/actions/runs/35625067075).
 
 ```sh
 # Repository root
@@ -454,6 +491,69 @@ Measurements are stored in [benchmarks/](benchmarks/) with source/artifact hashe
 environment, workloads and raw samples. The following results describe specific
 local fixtures. Production CDN delivery, real mobile hardware, WAN collaboration
 and long source-media projects need separate measurement.
+
+### Same-room collaboration — 2026-09-22
+
+Real local workerd, one room and one object per participant, on the same Intel
+Core Ultra 7 255H / 32 GB WSL2 host as eight Node client-generator threads; CPU
+affinity 0–15. Node 24.13.0, MoonBit 0.10.13+cbb11c36f, Wrangler 4.131.2,
+workerd 1.20260911.1, Yjs 13.6.32 and y-websocket 3.1.0. Every run synchronized
+all clients, waited one second, then staggered periodic property/presence edits.
+Builds, tests and encoders did not run concurrently. These are local end-to-end
+delivery measurements, including client scheduling and Yjs application.
+
+The 32-client comparison used two edits and ten presence updates per second per
+client for ten seconds, with three samples at each revision. Incoming room
+messages fell from **103,008–103,040 to 3,839–3,840: about 96.3% fewer**, principally
+by stopping remote-awareness echoes. Peer-edit p95 was **9–14 ms** afterward;
+the preceding implementation varied from **43–1,129 ms**, so a fixed latency
+speedup is not claimed. All final states converged, with no disconnected clients.
+The [raw results](benchmarks/2026-09-22-collaboration/) named
+`delivery-before-32-*` and `delivery-after-32-*` use the same harness `3a04bf8`,
+comparing application `115ed1e` with `72f05a2`.
+
+Longer runs used one edit and one presence update per second per protocol client:
+
+| One-room workload | Duration / edits | Peer delivery p50 / p95 | Final convergence / disconnects |
+| --- | --- | --- | --- |
+| [500 protocol clients](benchmarks/2026-09-22-collaboration/soak-500.json) | 60 s / 29,998 | 526 / 1,750 ms | 60.422 s / 0 |
+| [499 protocol clients + one browser](benchmarks/2026-09-22-collaboration/soak-browser-500.json) | 60 s / 29,940 | 318 / 539 ms | 60.259 s / 0 |
+
+Both runs checked every client's final poses and edits/presence after forced
+hibernation. The browser run used headless Chromium 153.0.8010.12: no page errors
+or long tasks were observed during the measured load; rAF intervals were
+16.7 ms at p95. Its own edit, made **after** the load, reached all protocol clients
+in 196 ms. This is one browser on a local machine, not 500 rendered browsers or
+real-device FPS. Protocol clients received about 439 MB on the wire during that
+run with `permessage-deflate`; logical decoded traffic was about 2.83 GB.
+
+Raw files record frozen artifact hashes and harness revisions (`3a04bf8` /
+`29a8366`). Both long runs measured application `72f05a2`, before the final
+socket-retirement fix. Generator process RSS reached 15–16 GB; those hundreds of
+client documents are not the Worker heap. Intermediate, high-rate, legacy-client
+and rejected generator experiments remain under
+[exploratory/](benchmarks/2026-09-22-collaboration/exploratory/).
+
+Latency still varies at 500 participants. This verifies the stated one-minute
+workloads and final convergence, not 500 people continuously dragging at high
+frequency, long-duration endurance or WAN performance. The room remains a single
+authoritative Durable Object; Cloudflare documents a workload-dependent
+[soft limit of 1,000 requests/s per object](https://developers.cloudflare.com/durable-objects/platform/limits/).
+Batching reduces persistence/fan-out overhead but does not remove that inbound
+event limit or the cost of delivering everyone's edits to everyone else.
+
+To repeat the current implementation, build once, freeze the bundle and run
+these commands sequentially from `apps/studio` (port 8796 must be unused):
+
+```sh
+pnpm build:web
+pnpm exec wrangler deploy --dry-run --outdir /tmp/poietra-collaboration-bundle
+node tests/collaboration-load.integration.mjs \
+  --bundle /tmp/poietra-collaboration-bundle/index.js --owned-presence \
+  --clients 500 --generators 8 --seconds 60 --edit-hz 1 --presence-hz 1 \
+  --output /tmp/poietra-collaboration-500.json
+# Repeat with --browser to include one real browser among the 500 participants.
+```
 
 ### Headless export — 2026-09-21
 
