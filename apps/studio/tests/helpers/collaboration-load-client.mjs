@@ -72,17 +72,16 @@ async function join() {
   }
   for (const client of clients) {
     client.states = states(client);
-    const owners = new WeakMap();
-    client.states.forEach((state, id) => owners.set(state, id));
-    client.states.observeDeep((events, transaction) => {
-      if (!active || transaction.local) return;
-      for (const event of events) {
-        // Y.Event.path walks sibling maps; doing that for 500 simulated clients
-        // benchmarks the observer instead of transport. Cache stable map identities.
-        if (!event.keysChanged?.has('x') || owners.get(event.target) === `load-${client.index}`) continue;
-        const value = event.target.get('x');
+    // Deep observers ask Yjs to sort by event.path, which walks sibling maps.
+    // Observe known pose maps directly so 500 simulated clients do not spend
+    // the benchmark resolving paths. The optional real browser keeps its UI.
+    client.states.forEach((pose, owner) => {
+      if (owner === `load-${client.index}`) return;
+      pose.observe((event, transaction) => {
+        if (!active || transaction.local || !event.keysChanged?.has('x')) return;
+        const value = pose.get('x');
         if (value >= 1000) latencies.push(Date.now() - (epoch + value - 1000));
-      }
+      });
     });
   }
 }
