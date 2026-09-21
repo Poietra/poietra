@@ -72,10 +72,14 @@ async function join() {
   }
   for (const client of clients) {
     client.states = states(client);
+    const owners = new WeakMap();
+    client.states.forEach((state, id) => owners.set(state, id));
     client.states.observeDeep((events, transaction) => {
       if (!active || transaction.local) return;
       for (const event of events) {
-        if (!event.keysChanged?.has('x') || event.path[0] === `load-${client.index}`) continue;
+        // Y.Event.path walks sibling maps; doing that for 500 simulated clients
+        // benchmarks the observer instead of transport. Cache stable map identities.
+        if (!event.keysChanged?.has('x') || owners.get(event.target) === `load-${client.index}`) continue;
         const value = event.target.get('x');
         if (value >= 1000) latencies.push(Date.now() - (epoch + value - 1000));
       }
