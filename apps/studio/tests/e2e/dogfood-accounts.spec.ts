@@ -102,10 +102,18 @@ test('reaching the private list limit keeps existing shortcuts and the signed-in
     if (request.postDataJSON().intent === 'visit') return route.fulfill({ json: { project: null } });
     return route.fulfill({ status: 409, json: { code: 'project_limit', error: '一覧は 500 件まで保存できます。' } });
   });
+  // The automatic visit briefly disables mutation controls. Finish it before
+  // clicking so the test exercises the explicit remember request's limit error.
+  const visit = page.waitForResponse(response => response.request().method() === 'PUT'
+    && response.url().endsWith('/api/projects/' + room) && response.request().postDataJSON().intent === 'visit');
   await page.goto(`/?room=${room}&projects=1`);
+  await visit;
   const add = page.getByRole('button', { name: 'このプロジェクトを一覧に追加', exact: true });
   await expect(add).toBeEnabled();
+  const rejected = page.waitForResponse(response => response.request().method() === 'PUT'
+    && response.url().endsWith('/api/projects/' + room) && response.request().postDataJSON().intent === 'remember');
   await add.click();
+  expect((await rejected).status()).toBe(409);
   await expect(page.getByRole('alert')).toContainText('500 件');
   await expect(page.getByRole('link', { name: /Earlier work/ })).toBeVisible();
   await expect(page.getByText('Alice', { exact: true })).toBeVisible();
