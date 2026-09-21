@@ -6,6 +6,18 @@
 
 - [Product introduction](https://poietra.com/index.md): Features, collaboration, AI assistance, media, and export.
 - [日本語の製品紹介](https://poietra.com/ja/index.md): Japanese product introduction.
-- [Source and setup](https://github.com/Poietra/poietra-hackathon): Repository and development instructions.
+- [API and MCP guide](https://poietra.com/developers/index.md): Setup, authentication, limits, errors and agent workflow.
+- [日本語の API・MCP ガイド](https://poietra.com/ja/developers/index.md): Japanese developer guide.
+- [OpenAPI 3.1.1](https://poietra.com/openapi.json): Machine-readable contract for the self-hosted Node render service.
+- [Project JSON Schema](https://poietra.com/schemas/project.json): Structural schema generated from the portable-file decoder.
+- [Starter project](https://poietra.com/examples/hello.poietra.json): A complete, editable project for inspect and render.
+- [Local MCP configuration](https://poietra.com/developers/mcp-config.json): Example configuration; replace the absolute checkout path.
+- [Source and setup](https://github.com/Poietra/poietra): Repository and development instructions.
+
+## Execution
+
+poietra.com hosts documentation and schemas, not a public render API. Start the Node 24 renderer in the agent's environment. OpenAPI defaults to http://127.0.0.1:8799. MCP uses local stdio; no remote /mcp endpoint is available.
+
+Discover capabilities, inspect a portable file, then render it to SVG, PNG or H.264 MP4. Embed PNG/JPEG and PCM WAV. Source video and compressed audio are not supported. MCP also exposes the specification, schema and sample through resources/list and resources/read.
 
 Shared project links and the studio are editing sessions, not public product documentation. Do not treat room contents as information about Poietra.

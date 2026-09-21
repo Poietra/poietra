@@ -38,7 +38,9 @@ fn scene_view(input : @core.Any, strip_deleted : Bool) -> @core.Any {
     if !@core.is_nullish(value) {
       retained[id] = {
         deleted: truthy(value._get("deleted")),
-        incoming: optional(value._get("incomingTransitionId"), fn(v) {
+        incoming: @project_codec.optional(value._get("incomingTransitionId"), fn(
+          v,
+        ) {
           v.cast()
         }),
       }
@@ -55,7 +57,9 @@ fn scene_view(input : @core.Any, strip_deleted : Bool) -> @core.Any {
     }
   }
   let view = @scene.structure_view(
-    decode_array(input._get("compositionOrder"), fn(v) { v.cast() }),
+    @project_codec.decode_array(input._get("compositionOrder"), fn(v) {
+      v.cast()
+    }),
     retained,
     links,
   )
@@ -101,7 +105,7 @@ fn project_view(
     }
   }
   let order = @scene.retained_order(
-    decode_array(input._get("sceneOrder"), fn(v) { v.cast() }),
+    @project_codec.decode_array(input._get("sceneOrder"), fn(v) { v.cast() }),
     deleted,
   )
   let projected = @core.new_object()

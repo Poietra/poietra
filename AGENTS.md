@@ -121,6 +121,27 @@ and measurements belong in [README.md](README.md).
   after preparation failure. Context wrappers still observe document changes.
 - Inspect upstream source, license, compatibility and tests before adopting a
   dependency. Keep concise adoption decisions in README.
+- 2026-09-21: The founder requested file-to-result API/MCP without Chromium or
+  FFmpeg. The Node headless host reuses MoonBit parsing, prepared evaluation,
+  SVG/equations and audio mixing; native adapters own standalone WASM codecs and
+  I/O. Preserve bounded inputs, cancellation and independent decoder checks.
+  Unsupported source codecs must fail explicitly. Keep this host out of browser
+  bundles; it does not imply a hosted Cloudflare endpoint or Worker compatibility.
+  The source audit now includes `apps/render` alongside studio application code.
+- 2026-09-21: The founder requested typed render boundaries and reusable library
+  extraction. Keep render orchestration in host-independent `render_job`, native
+  conversion in `headless_render` and HTTP routing in `render_http`. Shared
+  portable-file parsing/generated adapters live in `project_codec`, independent
+  of the editing boundary. `media_pipeline` contains media values, typed ports
+  and encoder ownership with no project/host dependencies; preserve its isolated
+  JS/WASM consumer checks. It is reusable internally, not yet registry-published.
+- 2026-09-22: The founder requested a public API/MCP page that agents can use.
+  Generate bilingual developer HTML and Markdown from the same MoonBit content,
+  OpenAPI/capabilities from `render_api`, and the project schema from the shared
+  file validation definition. Cloudflare negotiates public pages only; schemas
+  and examples are static assets. Publish accurate self-hosted HTTP/local stdio
+  MCP instructions; this does not deploy a hosted render API or remote MCP.
+  Keep editor, account and room routes outside public document negotiation.
 
 ## Evidence and documentation
 

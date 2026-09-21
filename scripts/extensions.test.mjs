@@ -32,7 +32,7 @@ pub(all) struct ExtensionRecord { id : String; metadata : ExtensionMetadata? }
     writeFileSync(join(directory, 'moonbit/boundary/extension_probe.mbt'), `
 ///|
 pub fn extension_roundtrip(value : @core.Any) -> @core.Any {
-  encode_ExtensionRecord(decode_ExtensionRecord(value))
+  @project_codec.encode_ExtensionRecord(@project_codec.decode_ExtensionRecord(value))
 }
 `);
     generateClientRuntime(directory);

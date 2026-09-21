@@ -5,9 +5,9 @@ pub fn reparent_changes(
   parent : @core.Any,
 ) -> Array[@core.Any] {
   let plan = @editor.plan_reparent(
-    decode_Scene(scene),
+    @project_codec.decode_Scene(scene),
     id,
-    optional(parent, fn(v) { v.cast() }),
+    @project_codec.optional(parent, fn(v) { v.cast() }),
   )
   match plan {
     Err(error) => {
@@ -15,9 +15,10 @@ pub fn reparent_changes(
       []
     }
     Ok(plan) => {
-      if optional(scene._get("objects")._get(id)._get("parentId"), fn(v) {
-          v.cast()
-        }) ==
+      if @project_codec.optional(
+          scene._get("objects")._get(id)._get("parentId"),
+          fn(v) { v.cast() },
+        ) ==
         plan.parent {
         return []
       }
@@ -34,7 +35,7 @@ pub fn reparent_changes(
           ._get(cid)
           ._get("states")
           ._get(id)
-        let after = encode_ObjectState(next)
+        let after = @project_codec.encode_ObjectState(next)
         for field in ["x", "y", "rotation", "scaleX", "scaleY", "shear"] {
           if !same_value(before._get(field), after._get(field)) {
             changes.push(
@@ -54,7 +55,7 @@ pub fn reparent_changes(
 
 ///|
 pub fn read_affine(value : @core.Any) -> @scene.Affine {
-  decode_Affine(value)
+  @project_codec.decode_Affine(value)
 }
 
 ///|
@@ -81,13 +82,18 @@ fn composition_matrices(
     }
   }
   let hierarchy = @scene.prepare_hierarchy(
-    decode_map(objects, decode_SceneObject).values().collect(),
+    @project_codec.decode_map(objects, @project_codec.decode_SceneObject)
+    .values()
+    .collect(),
   )
   let result = {
     objects,
     hierarchy,
     world: hierarchy.matrices(
-      decode_map(composition._get("states"), decode_ObjectState),
+      @project_codec.decode_map(
+        composition._get("states"),
+        @project_codec.decode_ObjectState,
+      ),
     ),
   }
   composition_transforms.set(composition, result)
@@ -143,10 +149,25 @@ pub fn keyframe_curve(
   if @core.is_nullish(a) && @core.is_nullish(b) {
     return None
   }
-  let from = decode_ObjectState(if @core.is_nullish(a) { b } else { a })
-  let to = decode_ObjectState(if @core.is_nullish(b) { a } else { b })
+  let from = @project_codec.decode_ObjectState(
+    if @core.is_nullish(a) {
+      b
+    } else {
+      a
+    },
+  )
+  let to = @project_codec.decode_ObjectState(
+    if @core.is_nullish(b) {
+      a
+    } else {
+      b
+    },
+  )
   let track = @scene.resolve_track(
-    optional(transition._get("tracks")._get(id), decode_Track),
+    @project_codec.optional(
+      transition._get("tracks")._get(id),
+      @project_codec.decode_Track,
+    ),
     id,
     transition._get("duration").cast(),
   )

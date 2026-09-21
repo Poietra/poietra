@@ -1,16 +1,31 @@
 ///|
 fn read_clipboard(value : @core.Any) -> @editor.ObjectClipboard {
   {
-    objects: decode_array(value._get("objects"), decode_SceneObject),
-    states: decode_map(value._get("states"), decode_ObjectState),
+    objects: @project_codec.decode_array(
+      value._get("objects"),
+      @project_codec.decode_SceneObject,
+    ),
+    states: @project_codec.decode_map(
+      value._get("states"),
+      @project_codec.decode_ObjectState,
+    ),
   }
 }
 
 ///|
 fn write_clipboard(value : @editor.ObjectClipboard) -> @core.Any {
   @core.from_entries([
-    ("objects", encode_array(value.objects, encode_SceneObject)),
-    ("states", encode_map(value.states, encode_ObjectState)),
+    (
+      "objects",
+      @project_codec.encode_array(
+        value.objects,
+        @project_codec.encode_SceneObject,
+      ),
+    ),
+    (
+      "states",
+      @project_codec.encode_map(value.states, @project_codec.encode_ObjectState),
+    ),
   ])
 }
 
@@ -36,8 +51,8 @@ pub fn copy_objects(
   let copied = Map([])
   let metadata = []
   for id in chosen {
-    let state = decode_ObjectState(states._get(id))
-    let object = decode_SceneObject(objects._get(id))
+    let state = @project_codec.decode_ObjectState(states._get(id))
+    let object = @project_codec.decode_SceneObject(objects._get(id))
     let retained = object.parentId
       .map(fn(parent) { chosen.contains(parent) })
       .unwrap_or(true)
@@ -204,14 +219,14 @@ pub fn paste_object_changes(
     changes.push(
       make_change(
         ["scenes", scene_id, "objects", id],
-        encode_SceneObject(addition.object),
+        @project_codec.encode_SceneObject(addition.object),
       ),
     )
     for (tid, track) in addition.tracks {
       changes.push(
         make_change(
           ["scenes", scene_id, "transitions", tid, "tracks", id],
-          encode_Track(track),
+          @project_codec.encode_Track(track),
         ),
       )
     }
@@ -219,7 +234,7 @@ pub fn paste_object_changes(
       changes.push(
         make_change(
           ["scenes", scene_id, "compositions", cid, "states", id],
-          encode_ObjectState(state),
+          @project_codec.encode_ObjectState(state),
         ),
       )
     }

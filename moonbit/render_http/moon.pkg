@@ -1,0 +1,17 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/headless_render" @headless,
+  "poietra/poietra/render_api" @api,
+}
+
+supported_targets = "js"
+
+options(
+  targets: { "http.mbt": [ "js" ] },
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [ "create_http_handler:createHttpHandler" ],
+    },
+  },
+)

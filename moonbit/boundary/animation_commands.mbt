@@ -20,7 +20,7 @@ fn append_timing_fields(
     let (key, value) = match field {
       StartTime(value) => ("start", @core.any(value))
       DurationTime(value) => ("duration", @core.any(value))
-      EasingCurve(value) => ("easing", encode_Easing(value))
+      EasingCurve(value) => ("easing", @project_codec.encode_Easing(value))
     }
     let path = path + [key]
     changes.push(make_change(FixedArray::from_array(path[:]), value))
@@ -60,7 +60,12 @@ pub fn property_timing_changes(
     KeepTiming => []
     ClearTiming => [make_change(FixedArray::from_array(path[:]), cleared)]
     NewTiming(timing) =>
-      [make_change(FixedArray::from_array(path[:]), encode_Timing(timing))]
+      [
+        make_change(
+          FixedArray::from_array(path[:]),
+          @project_codec.encode_Timing(timing),
+        ),
+      ]
     TimingFields(fields) => {
       let changes = []
       append_timing_fields(changes, path, fields)

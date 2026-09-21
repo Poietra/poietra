@@ -10,16 +10,23 @@ fn write_order(value : @core.Any) -> @render.WriteOrder {
 ///|
 pub fn decode_drawable(value : @core.Any) -> @render.Drawable {
   let object = value._get("object")
-  let image = optional(object._get("image"), fn(v) { v._get("src").cast() })
+  let image = @project_codec.optional(object._get("image"), fn(v) {
+    v._get("src").cast()
+  })
   {
     id: object._get("id").cast(),
-    world: optional(value._get("world"), decode_Affine),
-    kind: decode_ObjectKind(object._get("kind")),
-    state: decode_ObjectState(value._get("state")),
+    world: @project_codec.optional(
+      value._get("world"),
+      @project_codec.decode_Affine,
+    ),
+    kind: @project_codec.decode_ObjectKind(object._get("kind")),
+    state: @project_codec.decode_ObjectState(value._get("state")),
     progress: value._get("writeProgress").cast(),
     order: write_order(value._get("order")),
     image,
-    video_frame: optional(value._get("videoFrame"), fn(v) { v.cast() }),
+    video_frame: @project_codec.optional(value._get("videoFrame"), fn(v) {
+      v.cast()
+    }),
   }
 }
 
@@ -31,7 +38,10 @@ fn decode_math_node(value : @core.Any) -> @render.MathNode {
     attributes: @core.object_keys(attributes).map(fn(key) {
       (key, attributes._get(key).cast())
     }),
-    children: decode_array(value._get("children"), decode_math_node),
+    children: @project_codec.decode_array(
+      value._get("children"),
+      decode_math_node,
+    ),
   }
 }
 
@@ -70,7 +80,10 @@ fn decode_text_metrics(value : @core.Any) -> @render.TextMetrics {
 pub fn render_resources(host : @core.Any) -> @render.Resources {
   {
     equation: fn(text) {
-      optional(host._call("getEquation", [@core.any(text)]), decode_equation)
+      @project_codec.optional(
+        host._call("getEquation", [@core.any(text)]),
+        decode_equation,
+      )
     },
     measure_text: fn(text, size) {
       decode_text_metrics(
@@ -78,9 +91,10 @@ pub fn render_resources(host : @core.Any) -> @render.Resources {
       )
     },
     image: fn(source) {
-      optional(host._call("preparedImage", [@core.from_option(source)]), fn(v) {
-        v.cast()
-      })
+      @project_codec.optional(
+        host._call("preparedImage", [@core.from_option(source)]),
+        fn(v) { v.cast() },
+      )
     },
     font_styles: fn(sources) {
       host
@@ -171,7 +185,10 @@ fn svg_view(
       width: frame._get("width").cast(),
       height: frame._get("height").cast(),
       background: frame._get("background").cast(),
-      objects: decode_array(frame._get("objects"), decode_drawable),
+      objects: @project_codec.decode_array(
+        frame._get("objects"),
+        decode_drawable,
+      ),
     },
     prefix,
     !strict_equal(options._get("background"), @core.any(false)),
@@ -247,7 +264,7 @@ pub fn text_markup(
     decode_drawable(item),
     prefix,
     fn(text, size) { decode_text_metrics(measure(text, size)) },
-    glyph_opacity?=optional(opacity, fn(v) { v.cast() }),
+    glyph_opacity?=@project_codec.optional(opacity, fn(v) { v.cast() }),
   )
 }
 
@@ -281,7 +298,10 @@ pub fn equation_fill_progress(progress : Double) -> Double {
 
 ///|
 pub fn svg_color(value : String, fallback : @core.Any) -> String {
-  @render.color(value, fallback?=optional(fallback, fn(v) { v.cast() }))
+  @render.color(
+    value,
+    fallback?=@project_codec.optional(fallback, fn(v) { v.cast() }),
+  )
 }
 
 ///|
@@ -291,7 +311,10 @@ pub fn svg_escape(value : String) -> String {
 
 ///|
 pub fn svg_finite(value : Double, fallback : @core.Any) -> Double {
-  @render.finite(value, fallback?=optional(fallback, fn(v) { v.cast() }))
+  @render.finite(
+    value,
+    fallback?=@project_codec.optional(fallback, fn(v) { v.cast() }),
+  )
 }
 
 ///|
@@ -337,8 +360,12 @@ extern "js" fn arrow_value(
 
 ///|
 pub fn shape_geometry(item : @core.Any) -> @core.Any {
-  let kind = decode_ObjectKind(item._get("object")._get("kind"))
-  match @render.shape_geometry(kind, decode_ObjectState(item._get("state"))) {
+  let kind = @project_codec.decode_ObjectKind(item._get("object")._get("kind"))
+  match
+    @render.shape_geometry(
+      kind,
+      @project_codec.decode_ObjectState(item._get("state")),
+    ) {
     None => @core.null()
     Some(Ellipse(x, y)) => ellipse_value(x, y)
     Some(Rectangle(width, height, radius)) =>

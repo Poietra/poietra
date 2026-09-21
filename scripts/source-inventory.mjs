@@ -20,7 +20,7 @@ const files = new Set(execFileSync('git', ['ls-files', '--cached', '--others', '
 for (const name of [...files].sort()) {
   const path = join(root, name);
   if (!existsSync(path)) continue;
-  const runtime = /^apps\/studio\/(src|shared|server|worker)\//.test(name);
+  const runtime = /^(?:apps\/studio\/(src|shared|server|worker)\/|apps\/render\/(?!tests\/))/.test(name);
   let category;
   if (name.endsWith('.mbt')) category = /_(wb)?test\.mbt$/.test(name) ? 'MoonBit tests' : 'MoonBit application';
   else if (/\.d\.[cm]?ts$/.test(name)) category = 'TypeScript declarations';
@@ -44,6 +44,6 @@ const report = {
 if (values.json) console.log(JSON.stringify(report, null, 2));
 else { console.log(report.basis); console.table(report.totals); }
 if (values.check && runtimeTypeScript.length) {
-  console.error(`Executable TypeScript belongs outside src/shared/server/worker:\n${runtimeTypeScript.join('\n')}`);
+  console.error(`Executable TypeScript belongs outside studio and render runtime directories:\n${runtimeTypeScript.join('\n')}`);
   process.exitCode = 1;
 }

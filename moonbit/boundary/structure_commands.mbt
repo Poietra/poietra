@@ -71,7 +71,7 @@ pub fn prepare_scene_append(
     None => @core.undefined()
     Some(id) => map_get(scenes, id)
   }
-  let value = to_shared(encode_Scene(plan.value), host)
+  let value = to_shared(@project_codec.encode_Scene(plan.value), host)
   prepared_append(
     plan.value.id,
     order,
@@ -133,11 +133,15 @@ pub fn prepare_composition_append(
         host,
       )
       Some(
-        (parent, transition.id, to_shared(encode_Transition(transition), host)),
+        (
+          parent,
+          transition.id,
+          to_shared(@project_codec.encode_Transition(transition), host),
+        ),
       )
     }
   }
-  let value = encode_Composition(plan.value)
+  let value = @project_codec.encode_Composition(plan.value)
   let retained = match plan.source_id {
     None => @core.undefined()
     Some(id) => {

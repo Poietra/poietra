@@ -15,6 +15,10 @@
     "typecheck": "pnpm --dir apps/studio typecheck",
     "bench": "node scripts/benchmark.mjs",
     "test:extensions": "node --test scripts/extensions.test.mjs scripts/client-runtime.test.mjs",
+    "test:render": "pnpm --dir apps/render test",
+    "render": "node apps/render/cli.mjs",
+    "render:api": "node apps/render/server.mjs",
+    "render:mcp": "node apps/render/mcp.mjs",
     "audit:source": "node scripts/source-inventory.mjs --check"
   },
   "dependencies": {

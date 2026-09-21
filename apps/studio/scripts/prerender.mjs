@@ -14,5 +14,5 @@ try {
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, file.content);
   }
-  console.log('Prerendered English/Japanese homepages, Markdown, and editor shell.');
+  console.log('Prerendered English/Japanese home and developer pages, Markdown, OpenAPI, project schema, example, and editor shell.');
 } finally { await vite.close(); }

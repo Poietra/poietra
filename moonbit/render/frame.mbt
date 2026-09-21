@@ -136,10 +136,25 @@ pub fn svg_frame(
 }
 
 ///|
-pub fn SvgFrame::to_svg(self : SvgFrame) -> String {
+pub fn SvgFrame::to_svg(
+  self : SvgFrame,
+  output_width? : Int,
+  output_height? : Int,
+) -> String {
   let output = StringBuilder()
+  let width = output_width
+    .map(fn(value) { value.to_string() })
+    .unwrap_or(self.width)
+  let height = output_height
+    .map(fn(value) { value.to_string() })
+    .unwrap_or(self.height)
+  let aspect = if output_width is Some(_) || output_height is Some(_) {
+    " preserveAspectRatio=\"none\""
+  } else {
+    ""
+  }
   output.write_string(
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\{self.width}\" height=\"\{self.height}\" viewBox=\"0 0 \{self.width} \{self.height}\">",
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\{width}\" height=\"\{height}\" viewBox=\"0 0 \{self.width} \{self.height}\"\{aspect}>",
   )
   output.write_string(self.fonts)
   if self.background is Some(background) {

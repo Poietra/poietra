@@ -1,0 +1,26 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/project_codec",
+  "poietra/poietra/render",
+  "poietra/poietra/math_render",
+  "poietra/poietra/render_job" @job,
+  "poietra/poietra/media_pipeline" @media,
+  "poietra/poietra/render_api" @api,
+}
+
+supported_targets = "js"
+
+options(
+  targets: { "host.mbt": [ "js" ], "entry.mbt": [ "js" ], "ffi.mbt": [ "js" ] },
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "render_project_file:renderProjectFile",
+        "inspect_project_file:inspectProjectFile",
+        "required_font_faces:requiredFontFaces",
+        "capabilities:capabilities",
+      ],
+    },
+  },
+)

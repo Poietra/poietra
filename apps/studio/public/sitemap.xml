@@ -12,4 +12,16 @@
     <xhtml:link rel="alternate" hreflang="ja" href="https://poietra.com/ja/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://poietra.com/" />
   </url>
+  <url>
+    <loc>https://poietra.com/developers/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://poietra.com/developers/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://poietra.com/ja/developers/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://poietra.com/developers/" />
+  </url>
+  <url>
+    <loc>https://poietra.com/ja/developers/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://poietra.com/developers/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://poietra.com/ja/developers/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://poietra.com/developers/" />
+  </url>
 </urlset>

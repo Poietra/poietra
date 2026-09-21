@@ -196,5 +196,8 @@ pub fn render_files(
   add(
     "404.html", "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><title>Page not found — Poietra</title><h1>Page not found</h1><a href=\"/\">Poietra home</a></html>",
   )
+  for file in (@developer_site.files(links).cast() : FixedArray[@core.Any]) {
+    result.push(file)
+  }
   @core.any(FixedArray::from_array(result[:]))
 }

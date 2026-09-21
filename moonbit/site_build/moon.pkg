@@ -1,6 +1,7 @@
 import {
   "mizchi/js_core" @core,
   "poietra/poietra/site",
+  "poietra/poietra/developer_site",
 }
 
 supported_targets = "js"

@@ -1,5 +1,6 @@
 import {
   "mizchi/js_core" @core,
+  "poietra/poietra/project_codec",
   "poietra/poietra/scene",
   "poietra/poietra/samples",
   "poietra/poietra/assets",
@@ -35,7 +36,6 @@ options(
     "groups.mbt": [ "js" ],
     "scene_commands.mbt": [ "js" ],
     "timeline.mbt": [ "js" ],
-    "adapters.mbt": [ "js" ],
     "geometry.mbt": [ "js" ],
   },
   link: {

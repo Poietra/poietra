@@ -8,7 +8,7 @@ MP4 or WebM. Friends and the AI assistant edit the same structured objects, so
 individual positions, colors and timings remain editable.
 
 [Open Poietra](https://poietra.com) · [日本語の使い方・設定](apps/studio/README.md) ·
-[Run locally](#run-locally) · [Architecture](#how-it-is-built) ·
+[Run locally](#run-locally) · [API / MCP](https://poietra.com/developers/) · [Architecture](#how-it-is-built) ·
 [Performance](#performance) · [Issues](https://github.com/Poietra/poietra/issues)
 
 ![Poietra's studio, with a canvas, timeline, properties and shared chat](apps/studio/docs/assets/studio.png)
@@ -19,8 +19,9 @@ runs as MoonBit-generated JavaScript, with a WebAssembly motion kernel and nativ
 adapters for browser APIs and JavaScript libraries. Executable application TS/TSX
 has been removed; internal refactoring and performance work continue.
 
-Documentation reviewed **2026-09-21**, against application revision
+Documentation reviewed **2026-09-22**. The browser release reference is
 [`8b3370a`](https://github.com/Poietra/poietra/commit/8b3370a0b4fc80cd85a22e3ce2368cfbb75b1914).
+The newer headless renderer is locally verified and has not been deployed to Cloudflare.
 The MoonBit service was last verified in production on **2026-09-21**;
 see [deployment status and operations](#deployment-and-limits).
 
@@ -79,6 +80,9 @@ Run these commands from the **repository root**:
 | `pnpm build` | Build MoonBit, check types, bundle the editor and prerender EN/JA HTML/Markdown |
 | `pnpm --dir apps/studio start` | Serve the completed production build with Node |
 | `pnpm test` | Audit sources, build, run extension/API build tests and Vitest |
+| `pnpm test:render` | Check headless rendering, independent decoding, HTTP and MCP after building |
+| `pnpm render INPUT --format mp4 -o OUTPUT` | Render a portable file without a browser or FFmpeg |
+| `pnpm render:api` / `pnpm render:mcp` | Start the local HTTP API / stdio MCP server |
 | `pnpm typecheck` | Check declarations and captured public API contracts |
 | `pnpm audit:source` | Report source inventory and reject executable application TS/TSX |
 
@@ -87,6 +91,66 @@ Restart the Node host after server-side changes. The wrapper
 `node scripts/moon.mjs` selects `POIETRA_MOON`, then `.tools/moon/bin/moon`, then
 `moon` on PATH. Use it for `update`, `check`, `test` and `version --all` so local
 commands use the same toolchain as the build.
+
+## Headless rendering, API and MCP
+
+[apps/render](apps/render/) accepts saved `.poietra.json` files and returns SVG,
+PNG or H.264 MP4. It runs in Node 24+ without Chromium, FFmpeg, WebCodecs, native
+codec executables or runtime network access. Install the workspace dependencies
+and build MoonBit first; fonts and codec WASM come from pinned local packages.
+
+```sh
+pnpm build:moonbit
+pnpm render project.poietra.json --inspect
+pnpm render project.poietra.json --format mp4 --width 1280 --fps 30 -o result.mp4
+pnpm render:api
+```
+
+HTTP accepts the portable JSON body at `POST /render` and returns the binary
+result. `POST /inspect` reports structural compatibility; `GET /capabilities`
+lists supported formats and limits. Stdio MCP exposes `poietra_capabilities`,
+`poietra_inspect` and `poietra_render`; the latter two use local file paths.
+The [Node API](apps/render/index.d.mts) also supports progress and AbortSignal.
+See the [Japanese setup and request examples](apps/studio/README.md#ファイルから描画する-api--mcp).
+
+The [developer page](https://poietra.com/developers/) and
+[Japanese page](https://poietra.com/ja/developers/) include a working quickstart,
+MCP configuration and an editable sample. Agents can discover the
+[OpenAPI 3.1.1 specification](https://poietra.com/openapi.json),
+[project JSON Schema](https://poietra.com/schemas/project.json) and
+[starter file](https://poietra.com/examples/hello.poietra.json) through
+[llms.txt](https://poietra.com/llms.txt). The public specification targets
+`http://127.0.0.1:8799`; the local service's `/openapi.json` uses its actual origin.
+MCP resources expose `poietra://docs/openapi`, `poietra://docs/project-schema`
+and `poietra://examples/hello`. Documentation endpoints are public even when
+render/inspect/capabilities require a configured bearer token.
+
+Cloudflare serves prerendered HTML or Markdown at `/developers/` and
+`/ja/developers/`, selected by `Accept` and `Accept-Language` with matching `Vary`
+headers. Explicit `index.md` paths also work. Pages need no application JavaScript;
+OpenAPI, schema and examples are Static Assets with cross-origin read headers.
+`developer_site` generates both page representations; `render_api` generates
+the contract and sample; `project_codec` derives structural JSON Schema from its
+file-validation definitions. Runtime validation additionally checks references,
+timing and renderer support. Preview these pages with `pnpm build` followed by
+`pnpm --dir apps/studio start`.
+
+| Area | Headless support |
+| --- | --- |
+| Drawing | Shared shapes, text, Japanese fonts, MathJax, Write and Glow |
+| Animation | Composition/Transition timing, parent transforms, intermediate values and multiple Scenes |
+| Images | Embedded PNG/JPEG; WebP and external URLs are rejected |
+| Audio | Embedded mono/stereo PCM WAV, trimming, resampling, gain and mute; MP4 contains MP3 audio |
+| Not yet supported | Imported video, compressed source audio, WebM output and AAC encoding |
+| Limits | 32 MiB input, 64 MiB output, 1920 px per side and 2,073,600 pixels; MP4 ≤60 seconds and ≤1800 frames |
+
+The HTTP server binds to loopback by default and requires a bearer token when
+binding elsewhere. HTTP/MCP each serialize renders; every render owns a worker
+thread, terminated on cancellation or timeout (120 seconds by default).
+CLI/MCP publish complete files without overwriting existing paths. Unsupported
+content fails explicitly. Inspection does not decode assets; malformed media can
+still fail during rendering. This is a Node service; compatibility with Cloudflare
+Workers and deployment of a hosted render endpoint remain unverified.
 
 ## How it is built
 
@@ -99,9 +163,11 @@ tests. The pure editing/evaluation core is independent of React and host APIs.
 | Model and engine | `scene`, `motion`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Typed documents, edit plans, prepared evaluation, geometry and audio mixing |
 | Collaboration | `collaboration`, `boundary`, `browser_editor`, `browser_undo`, `browser_chat` | Yjs leaf edits, immutable snapshots, selective Undo and shared chat |
 | Browser | `ui`, `browser_render`, `browser_media`, `browser_export`, `browser_projects`, `browser_kernel` | React UI, drawing, resource lifetimes, decoding, export and portable files |
+| Portable files | `project_codec` | Shared generated record adapters, bounded parsing and document validation |
+| Headless rendering | `render_job`, `media_pipeline`, `headless_render`, `render_http`, `render_api`, `math_render` and `apps/render` | Typed render orchestration, media contracts, JS/HTTP boundaries, OpenAPI, WASM codecs and MCP |
 | Services | `schemas`, `proposals`, `ai_service`, `auth_policy`, `auth_service` | Input validation, guarded AI proposals, OAuth and private project lists |
 | Hosts and storage | `node_*`, `worker_*`, `room_assets`, `r2_upload`, `http_policy`, `http_runtime` | HTTP/WebSockets, persistence, quotas and atomic media publication |
-| Public site | `site`, `site_shell`, `site_boundary`, `browser_site`, `site_build` | Localized content, lazy editor entry and prerendering |
+| Public site | `site`, `site_shell`, `site_boundary`, `browser_site`, `developer_site`, `site_build` | Localized content, lazy editor entry, developer documentation and prerendering |
 | Browser linking | `client_runtime` | Generated shared entry for six browser packages |
 
 ### Document and collaboration contracts
@@ -168,6 +234,50 @@ opacity and Glow retain isolated compositing. Sequential video decoding keeps
 owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
 
+The headless path reuses `scene.PreparedScene`, `motion`, `render`, `audio` and
+`exporting`; `math_render` shares equation preparation across browser and Node.
+Static holds reuse rasterized pixels while every output frame remains encoded.
+The document schema and public JS API remain unchanged.
+
+`render_job` accepts a typed `RenderRequest` and `Backend` and returns a
+`RenderResult`. It owns timeline evaluation, validation, audio mixing and the
+render loop, with no `Any`, JS FFI or HTTP dependency. The prepared timeline hides
+its mutable internals; callers must keep its source project stable until done.
+`headless_render` converts native host objects through opaque FFI handles and
+checks buffers before constructing typed values. `render_http` owns HTTP routing;
+CLI and MCP use the same Node facade. Node adapters own worker threads, I/O and
+npm codecs. `project_codec` supplies the shared portable-file parser and generated
+record marshalling, so headless rendering no longer imports the editing boundary.
+
+The reusable [media_pipeline package](moonbit/media_pipeline/model.mbt) has no
+Poietra model, host or external package dependencies. It defines checked
+`RgbaFrame` and stereo `StereoPcm` values, typed rasterizer/audio/encoder ports,
+and `with_encoder` for cleanup. Frame/sample buffers remain owned by the producer
+until each awaited consumer returns. Normal completion, failures and cancellation
+release the encoder once; cleanup failure preserves the original render error.
+Standalone consumer tests compile this package on JS and WASM and reject swapped
+audio/video inputs, unchecked frame construction and incompatible callbacks.
+It is an internal reusable package, not a published registry module. Separate
+publication can follow another consumer's requirements without extracting Scene
+semantics or the Node codecs into this interface.
+
+For this backend, SVG is rasterized by [resvg WASM](https://github.com/thx/resvg-js),
+H.264 is encoded by [minih264](https://github.com/TrevorSundberg/h264-mp4-encoder),
+and [Mediabunny](https://mediabunny.dev/) muxes packets without a second encode.
+Audio uses its [MP3 extension](https://mediabunny.dev/guide/extensions/mp3-encoder)
+and [LAME](https://lame.sourceforge.io/). Dependencies are pinned in
+[apps/render/package.json](apps/render/package.json). License notices include
+resvg/MPL-2.0, the H.264 wrapper/MIT, minih264/public domain, libmp4v2/MPL-1.1,
+the MP3 extension/MPL-2.0 and LAME/LGPL; retain their upstream notices when distributing.
+After inspecting [mizchi/canvas-mbt](https://github.com/mizchi/canvas-mbt), we
+kept the existing SVG representation because its current
+[missing filters and shadows](https://github.com/mizchi/canvas-mbt/blob/main/TODO.md)
+would leave Glow unsupported. Backend conformance tests cover SVG `pathLength`,
+actual H.264 keyframes and MP3 priming; browser-identical rasterization is not claimed.
+The resvg host still adapts SVG path lengths after serialization and buffers an
+intermediate H.264 MP4 before final muxing. Typed boundaries do not remove those
+remaining compatibility and long-video memory constraints.
+
 ### Build and host boundaries
 
 `pnpm build:moonbit` produces release modules under `_build/` and copies the motion
@@ -175,7 +285,7 @@ WASM into `apps/studio/public/wasm/`. Generated code has three sources of truth:
 
 | Source | Generated output |
 | --- | --- |
-| [scene model](moonbit/scene/model.mbt) via [generate-adapters.py](scripts/generate-adapters.py) | JS marshalling and public [scene types](apps/studio/shared/scene-types.d.ts) |
+| [scene model](moonbit/scene/model.mbt) via [generate-adapters.py](scripts/generate-adapters.py) | [Shared record marshalling](moonbit/project_codec/adapters.mbt) and public [scene types](apps/studio/shared/scene-types.d.ts) |
 | [bindings.json](scripts/bindings.json) | Simple native JS facades forwarding public calls |
 | Package `moon.pkg` exports via [client-runtime.mjs](scripts/client-runtime.mjs) | Shared browser entry/export tables |
 
@@ -195,22 +305,22 @@ package versions are pinned in [package.json](apps/studio/package.json) and
 
 ### What the remaining TypeScript represents
 
-Source audit rerun **2026-09-21**, including personal project search and recovery:
+Source audit rerun **2026-09-22**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 282 | 57,271 |
-| Native JS runtime adapters | 112 | 783 |
-| Executable application TS/TSX (`src/shared/server/worker`) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 147 | 16,505 |
-| Public/environment type declarations | 113 | 1,934 |
+| MoonBit application | 300 | 59,941 |
+| Native JS runtime adapters | 119 | 1,325 |
+| Executable application TS/TSX (studio and render hosts) | 0 | 0 |
+| TypeScript tests, fixtures and test configurations | 148 | 16,575 |
+| Public/environment type declarations | 114 | 1,978 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
 These counts include generated code, comments and blanks; they exclude external
 library implementations and do not measure delivered bytes. Use `pnpm audit:source`
 or `node scripts/source-inventory.mjs --json` for the full inventory, including
-MoonBit tests and JS tooling. CI rejects executable TS/TSX in the four application
-directories. Historical comparison implementations are available in Git and
+MoonBit tests and JS tooling. CI rejects executable TS/TSX in the four studio
+application directories and the render host. Historical comparison implementations are available in Git and
 [poietra-hackathon](https://github.com/Poietra/poietra-hackathon).
 
 Internal refactoring remains: [media editing commands](moonbit/browser_editor/media_commands.mbt)
@@ -250,7 +360,38 @@ calls and rejects incorrect TypeScript consumer fields. The contract gate checks
 108 captured public modules while allowing new exports; shared-runtime tests
 compare 219 function exports and their arity.
 
+For a headless backend, implement `render_job.Backend` using the contracts in
+`media_pipeline`; keep native conversions in its adapter. New formats belong in
+`render_job.Format` and its exhaustive matches. Add media contracts only when a
+consumer needs them, and preserve the standalone JS/WASM compilation test.
+
 ## Checks
+
+The API/MCP documentation addition was verified locally on **2026-09-22**:
+19 headless/contract tests, 701 Vitest checks, five build/API checks, 51 MoonBit
+JS tests, 48 WASM checks, public type contracts and a complete production build.
+All 28 production-page browser checks passed, including English/Japanese
+developer pages at 1440/390 px with JavaScript disabled. The final typography
+adjustment passed the two developer-page checks again. Raw HTTP checks passed
+against both Node and real local workerd for HTML/Markdown negotiation, locale,
+HEAD, cache validators, real 404s, OpenAPI/schema/example/configuration files;
+workerd also verified Static Assets CORS headers. OpenAPI metadata was checked
+against the official 3.1 schema; request and response schemas are tested against
+actual API responses, including an authenticated MP4 render of the public sample.
+
+The headless addition and typed refactor were verified locally on **2026-09-21**:
+17 headless tests, 700 Vitest checks, five build/API checks, 51 MoonBit JS tests,
+48 WASM checks, public type contracts, warning-free MoonBit checking and the
+complete production build. Nine targeted browser regressions passed for portable
+files/images, parenting/keyframe round trips, equation geometry, resource
+invalidation/recovery and shared SVG rendering.
+The new tests decode all H.264 frames and MP3 samples with independent WASM
+decoders, verify timing/trim/gain/mute, exercise HTTP/MCP, oversized requests and
+cancellation, and render with subprocess launches and network fetch disabled.
+They also verify typed-package isolation, invalid consumer rejection, native
+buffer validation, encoder backpressure, single cleanup and error preservation.
+CI runs them before installing Chromium or FFmpeg. These are local results,
+separate from the previously published browser release below.
 
 Application revision `8b3370a` passed
 [CI run 35527411897](https://github.com/Poietra/poietra/actions/runs/35527411897):
@@ -269,10 +410,12 @@ exercise persistent account isolation, callback races and expiry.
 ```sh
 # Repository root
 pnpm test
+pnpm test:render
 pnpm typecheck
 node scripts/moon.mjs check --target js --deny-warn
 node scripts/moon.mjs test --target js
 node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene
+node scripts/moon.mjs test --target wasm moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
 pnpm build
 
 # apps/studio
@@ -288,7 +431,8 @@ node tests/r2-assets-worker.integration.mjs
 node tests/accounts-worker.integration.mjs
 ```
 
-Video checks require FFmpeg/ffprobe. On Linux, Playwright may also need browser
+Browser video checks require FFmpeg/ffprobe; `pnpm test:render` does not.
+On Linux, Playwright may also need browser
 system dependencies (`pnpm exec playwright install --with-deps chromium`).
 Use an isolated local test host: browser tests create and edit rooms. The default
 E2E configuration uses port 5173 and may reuse an existing server; set
@@ -305,6 +449,37 @@ Measurements are stored in [benchmarks/](benchmarks/) with source/artifact hashe
 environment, workloads and raw samples. The following results describe specific
 local fixtures. Production CDN delivery, real mobile hardware, WAN collaboration
 and long source-media projects need separate measurement.
+
+### Headless export — 2026-09-21
+
+Local Node 24.13.0 on an Intel Core Ultra 7 255H, WSL2 Linux, CPU affinity 0–15.
+Each workload received one warmup and three sequential samples in fresh processes
+and worker threads, with frozen sources and no concurrent builds/tests/encoders.
+The fixture is **1280×720, 30 fps, 3.4 seconds / 102 frames**, with Japanese/Latin
+text, MathJax, Glow and an embedded PNG. Audio adds trimmed stereo WAV at half gain
+and a muted track. [Before typed boundaries](benchmarks/2026-09-21-headless/render.json)
+and [after the refactor](benchmarks/2026-09-21-headless/typed-render.json) record raw
+samples, source/artifact hashes and dependency versions for the working trees on
+top of `4a68767`. Both use the same harness and input hashes.
+
+| Workload | Before, median | Typed, median [min–max] | Rasterized / encoded frames | MP4 bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Static hold | 1,125 ms | 1,117 [1,112–1,135] ms | 1 / 102 | 26,232 |
+| Animated intermediate value | 1,461 ms | 1,421 [1,410–1,423] ms | 26 / 102 | 31,798 |
+| Animation with audio | 1,507 ms | 1,506 [1,505–1,526] ms | 26 / 102 | 115,260 |
+
+Wall time includes worker startup, module/WASM/font loading, MathJax, rendering,
+encoding, muxing and thread teardown; it excludes parent-process startup,
+file/network transfer and independent decoding. Whole-process peak RSS ranged
+from **229–269 MiB** after the refactor; this is not a Cloudflare Worker heap
+measurement. The short, unpaired samples show no material slowdown in this fixture;
+they do not establish a general speedup, a browser comparison or a long-video SLA.
+
+```sh
+pnpm build:moonbit
+# Freeze sources/artifacts; run with no other build, test or encoder in progress.
+node scripts/benchmark-headless.mjs test-results/headless-benchmark.json
+```
 
 ### Shared browser linking — 2026-09-20
 

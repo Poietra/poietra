@@ -9,14 +9,14 @@ pub fn object_insertion_changes(
     changes.push(
       make_change(
         ["scenes", scene_id, "objects", id],
-        encode_SceneObject(addition.object),
+        @project_codec.encode_SceneObject(addition.object),
       ),
     )
     for (cid, state) in addition.states {
       changes.push(
         make_change(
           ["scenes", scene_id, "compositions", cid, "states", id],
-          encode_ObjectState(state),
+          @project_codec.encode_ObjectState(state),
         ),
       )
     }
@@ -24,7 +24,7 @@ pub fn object_insertion_changes(
       changes.push(
         make_change(
           ["scenes", scene_id, "transitions", tid, "tracks", id],
-          encode_Track(track),
+          @project_codec.encode_Track(track),
         ),
       )
     }

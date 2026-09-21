@@ -1,0 +1,15 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/scene",
+  "poietra/poietra/assets",
+}
+
+options(
+  targets: {
+    "adapters.mbt": [ "js" ],
+    "file_codec.mbt": [ "js" ],
+    "project_file.mbt": [ "js" ],
+    "host.mbt": [ "js" ],
+    "schema.mbt": [ "js" ],
+  },
+)

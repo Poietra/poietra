@@ -21,6 +21,14 @@
       "/ja",
       "/ja/",
       "/ja/index.html",
+      "/developers",
+      "/developers/",
+      "/developers/index.html",
+      "/developers/index.md",
+      "/ja/developers",
+      "/ja/developers/",
+      "/ja/developers/index.html",
+      "/ja/developers/index.md",
       "/api/*",
       "/sync/*"
     ]

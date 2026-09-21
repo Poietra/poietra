@@ -145,7 +145,9 @@ pub fn apply_changes(
   let mut upgrade = false
   for change in input {
     let value = change._get("value")
-    let path = decode_array(change._get("path"), fn(v) { v.cast() })
+    let path = @project_codec.decode_array(change._get("path"), fn(v) {
+      v.cast()
+    })
     if path == ["version"] && @core.equal(value, @core.any(2)) {
       upgrade = true
       continue
@@ -308,7 +310,7 @@ fn animation_migration(doc : @core.Any, host : @core.Any) -> AnimationMigration 
       }
       let keys = event_keys(event)
       if @collaboration.invalidates_automatic_tracks(
-          decode_array(event._get("path"), string_value),
+          @project_codec.decode_array(event._get("path"), string_value),
           Array::makei(keys.length(), fn(i) { keys[i] }),
         ) {
         state.dirty = true
@@ -362,7 +364,10 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
           for id in map_keys(objects) {
             if !map_has(tracks, id) {
               let track = @scene.default_track(id, duration.cast())
-              let value = encode_Track({ ..track, implicit: Some(true), })
+              let value = @project_codec.encode_Track({
+                ..track,
+                implicit: Some(true),
+              })
               map_set(tracks, id, to_shared(value, host))
               changed = true
             }

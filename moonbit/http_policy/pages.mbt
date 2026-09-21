@@ -82,6 +82,7 @@ pub fn prefers_markdown(header : String?) -> Bool {
 pub(all) enum PageKind {
   Home
   Editor
+  Developers
 } derive(Eq)
 
 ///|
@@ -102,13 +103,18 @@ pub fn page_plan(
   accept_language : String?,
   normalize_language : (String) -> String?,
 ) -> PagePlan? {
+  let developers = [
+    "/developers", "/developers/", "/developers/index.html", "/developers/index.md",
+    "/ja/developers", "/ja/developers/", "/ja/developers/index.html", "/ja/developers/index.md",
+  ].contains(path)
   if ![
       "/", "/index.html", "/ja", "/ja/", "/ja/index.html", "/studio", "/studio/",
       "/studio/index.html",
-    ].contains(path) {
+    ].contains(path) &&
+    !developers {
     return None
   }
-  if editor {
+  if editor && !developers {
     return Some({
       kind: Editor,
       locale: @site.Japanese,
@@ -136,23 +142,43 @@ pub fn page_plan(
   })
   let query = match query {
     Some("en") | Some("ja") => query
-    _ => if @site.japanese_path(path) { Some("ja") } else { None }
+    _ =>
+      if @site.japanese_path(path) || path.has_prefix("/ja/developers") {
+        Some("ja")
+      } else {
+        None
+      }
   }
   let locale = @site.resolve_locale(query, None, languages)
-  let markdown = prefers_markdown(accept)
+  let markdown = path.has_suffix(".md") || prefers_markdown(accept)
+  let prefix = (if locale == @site.Japanese { "/ja" } else { "" }) +
+    (if developers { "/developers" } else { "" })
+  let headers = [
+    ("Content-Language", @site.locale_name(locale)),
+    ("Vary", "Accept, Accept-Language"),
+    ("Cache-Control", "public, max-age=0, must-revalidate"),
+  ]
+  if developers {
+    headers.push(
+      (
+        "Link",
+        "</openapi.json>; rel=\"service-desc\"; type=\"application/json\", <" +
+        prefix +
+        "/index.md>; rel=\"alternate\"; type=\"text/markdown\"",
+      ),
+    )
+  }
   Some({
-    kind: Home,
+    kind: if developers {
+      Developers
+    } else {
+      Home
+    },
     locale,
-    asset_path: (if locale == @site.Japanese { "/ja" } else { "" }) +
-    "/index." +
-    (if markdown { "md" } else { "html" }),
+    asset_path: prefix + "/index." + (if markdown { "md" } else { "html" }),
     content_type: (if markdown { "text/markdown" } else { "text/html" }) +
     "; charset=utf-8",
-    headers: [
-      ("Content-Language", @site.locale_name(locale)),
-      ("Vary", "Accept, Accept-Language"),
-      ("Cache-Control", "public, max-age=0, must-revalidate"),
-    ],
+    headers,
   })
 }
 

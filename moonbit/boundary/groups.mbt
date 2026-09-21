@@ -5,7 +5,9 @@ fn group_objects(scene : @core.Any) -> Array[@editor.GroupObject] {
     let object = objects._get(id)
     {
       id: object._get("id").cast(),
-      group_id: optional(object._get("groupId"), fn(v) { v.cast() }),
+      group_id: @project_codec.optional(object._get("groupId"), fn(v) {
+        v.cast()
+      }),
       locked: truthy(object._get("locked")),
       order: object._get("order").cast(),
     }
@@ -220,10 +222,11 @@ fn decode_track_patch(value : @core.Any) -> Array[@editor.TrackField] {
       continue
     }
     match key {
-      "type" => result.push(@editor.Kind(decode_AnimationKind(item)))
+      "type" =>
+        result.push(@editor.Kind(@project_codec.decode_AnimationKind(item)))
       "start" => result.push(@editor.Start(patch_number(item)))
       "duration" => result.push(@editor.Duration(patch_number(item)))
-      "easing" => result.push(@editor.Curve(decode_Easing(item)))
+      "easing" => result.push(@editor.Curve(@project_codec.decode_Easing(item)))
       "order" =>
         result.push(
           @editor.Order(
@@ -252,7 +255,7 @@ fn encode_track_value(value : @editor.TrackValue) -> @core.Any {
       match field {
         Kind(kind) => @core.any(@scene.animation_name(kind))
         Start(value) | Duration(value) => @core.any(value)
-        Curve(value) => encode_Easing(value)
+        Curve(value) => @project_codec.encode_Easing(value)
         Order(value) => @core.any(@editor.write_order_name(value))
       }
   }
@@ -276,7 +279,10 @@ pub fn group_animation_changes(
     let (object_id, _) = entry
     @editor.EditableTrack::{
       object_id,
-      stored: optional(tracks._get(object_id), decode_Track),
+      stored: @project_codec.optional(
+        tracks._get(object_id),
+        @project_codec.decode_Track,
+      ),
     }
   })
   match

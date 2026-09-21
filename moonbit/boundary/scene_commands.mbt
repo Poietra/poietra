@@ -27,7 +27,7 @@ extern "js" fn array_delete(
 
 ///|
 fn string_array(value : @core.Any) -> Array[String] {
-  decode_array(value, fn(v) { v.cast() })
+  @project_codec.decode_array(value, fn(v) { v.cast() })
 }
 
 ///|
@@ -105,8 +105,11 @@ pub fn duplicate_scene(
         is Err(error) {
         fail(creation_error(error))
       }
-      let copy = @editor.copy_scene(decode_Scene(current.scene), new_id)
-      let value = to_shared(encode_Scene(copy), host)
+      let copy = @editor.copy_scene(
+        @project_codec.decode_Scene(current.scene),
+        new_id,
+      )
+      let value = to_shared(@project_codec.encode_Scene(copy), host)
       if strict_equal(map_get(current.shared, "deleted"), @core.any(true)) {
         map_set(current.shared, "deleted", @core.any(false))
       }
@@ -267,7 +270,7 @@ pub fn duplicate_composition(
         fail(creation_error(error))
       }
       let plan = @editor.copy_composition(
-        decode_Composition(shared_json(current.composition)),
+        @project_codec.decode_Composition(shared_json(current.composition)),
         current.ids.get(current.index + 1),
         transition_links(current.view),
         @core.object_keys(current.view._get("objects")),
@@ -278,8 +281,11 @@ pub fn duplicate_composition(
         None => @core.undefined()
       }
       // Complete both encodings before a write: the underlying transaction cannot roll back.
-      let copy = to_shared(encode_Composition(plan.copy), host)
-      let incoming = to_shared(encode_Transition(plan.incoming), host)
+      let copy = to_shared(@project_codec.encode_Composition(plan.copy), host)
+      let incoming = to_shared(
+        @project_codec.encode_Transition(plan.incoming),
+        host,
+      )
       if strict_equal(map_get(current.composition, "deleted"), @core.any(true)) {
         map_set(current.composition, "deleted", @core.any(false))
       }
@@ -333,7 +339,13 @@ pub fn delete_composition(
           if !is_instance(next, host._get("Map")) {
             fail("この Composition はもう存在しません。")
           }
-          Some((bridge, to_shared(encode_Transition(bridge), host), next))
+          Some(
+            (
+              bridge,
+              to_shared(@project_codec.encode_Transition(bridge), host),
+              next,
+            ),
+          )
         }
       }
       map_set(current.composition, "deleted", @core.any(true))

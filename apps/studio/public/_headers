@@ -9,3 +9,32 @@
 
 /studio/*
   X-Robots-Tag: noindex, nofollow
+
+/openapi.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300, must-revalidate
+  X-Content-Type-Options: nosniff
+  Link: </developers/>; rel="service-doc"; type="text/html"
+
+/schemas/project.json
+  Content-Type: application/schema+json; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300, must-revalidate
+  X-Content-Type-Options: nosniff
+
+/examples/hello.poietra.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+/developers/mcp-config.json
+  Content-Type: application/json; charset=utf-8
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+/developers/index.md
+  Content-Type: text/markdown; charset=utf-8
+
+/ja/developers/index.md
+  Content-Type: text/markdown; charset=utf-8

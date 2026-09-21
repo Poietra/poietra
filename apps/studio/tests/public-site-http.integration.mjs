@@ -43,6 +43,53 @@ for (const Accept of ['text/markdown;q=0, text/html', 'text/markdown;q=0.2,text/
 }
 console.log('PASS: explicit Markdown negotiation and HTML quality/exclusions');
 
+for (const [path, language] of [['/developers', 'en'], ['/developers/', 'en'], ['/developers/index.html?lang=ja', 'ja'], ['/ja/developers/', 'ja']]) {
+  const response = await request(path);
+  assert.equal(response.status, 200, path);
+  assert.equal(response.headers.get('Content-Language'), language);
+  assert.match(response.headers.get('Content-Type') ?? '', /^text\/html/);
+  assert.match(response.headers.get('Link') ?? '', /\/openapi\.json.*service-desc/);
+  const html = await response.text();
+  assert.match(html, /<h1\b/);
+  assert.match(html, /hello\.poietra\.json/);
+  assert.doesNotMatch(html, /<script[^>]*\bsrc=/);
+  const head = await request(path, {}, 'HEAD');
+  assert.equal(head.status, 200); assert.equal(await head.text(), '');
+}
+for (const [path, language, headers] of [
+  ['/developers/', 'ja', { Accept: 'text/markdown', 'Accept-Language': 'ja' }],
+  ['/developers/index.md', 'en', { Accept: 'text/html' }],
+  ['/ja/developers/index.md', 'ja', { Accept: 'text/html' }],
+]) {
+  const response = await request(path, headers);
+  assert.equal(response.status, 200, path);
+  assert.equal(response.headers.get('Content-Language'), language);
+  assert.match(response.headers.get('Content-Type') ?? '', /^text\/markdown/);
+  assert.match(response.headers.get('Vary') ?? '', /Accept/);
+  const markdown = await response.text();
+  assert.match(markdown, /poietra:\/\/docs\/project-schema/);
+  assert.doesNotMatch(markdown, /<html/);
+  const etag = response.headers.get('ETag');
+  if (etag) {
+    const cached = await request(path, { ...headers, 'If-None-Match': etag });
+    assert.equal(cached.status, 304); assert.equal(await cached.text(), '');
+    assert.equal(cached.headers.get('Content-Language'), language);
+  }
+}
+for (const path of ['/openapi.json', '/schemas/project.json', '/examples/hello.poietra.json', '/developers/mcp-config.json']) {
+  const response = await request(path);
+  assert.equal(response.status, 200, path);
+  assert.match(response.headers.get('Content-Type') ?? '', /application\/(?:schema\+)?json/);
+  assert.ok(await response.json());
+  // Static Assets applies _headers; the local Node host has no cross-origin deployment.
+  if (process.env.POIETRA_TEST_STATIC_HEADERS === '1') {
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+  }
+}
+assert.equal((await request('/developers/not-a-page')).status, 404);
+console.log('PASS: developer HTML/Markdown, HEAD/cache validators and machine-readable contracts');
+
 for (const path of ['/?room=seo-untouched-room-123456', '/?projects=1', '/?auth_error=denied', '/studio', '/studio/', '/studio/index.html', '/index.html?room=seo-untouched-room-123456', '/ja/?room=seo-untouched-room-123456']) {
   const response = await request(path, { Accept: 'text/markdown' });
   assert.equal(response.status, 200, path);

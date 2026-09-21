@@ -14,19 +14,19 @@ fn kernel(value : @core.Any) -> @scene.Kernel {
 }
 
 ///|
-/// Preserve the public object reference, including optional metadata and nulls.
+/// Preserve the public object reference, including @project_codec.optional metadata and nulls.
 fn frame_value(frame : @scene.Frame, input : @core.Any) -> @core.Any {
   let objects = FixedArray::makei(frame.objects.length(), fn(i) {
     let item = frame.objects[i]
     let result = make_render_object(
       input._get("objects")._get(item.object.id),
-      encode_ObjectState(item.state),
+      @project_codec.encode_ObjectState(item.state),
       item.writeProgress,
       item.order,
       @core.from_option(item.videoTimeMs),
     )
     if item.world is Some(world) {
-      put_own(result, "world", encode_Affine(world))
+      put_own(result, "world", @project_codec.encode_Affine(world))
     }
     result
   })
@@ -59,7 +59,11 @@ pub fn evaluate_scene(
   host : @core.Any,
 ) -> @core.Any {
   frame_value(
-    @scene.evaluate_scene(decode_Scene(input), time, kernel(host)),
+    @scene.evaluate_scene(
+      @project_codec.decode_Scene(input),
+      time,
+      kernel(host),
+    ),
     input,
   )
 }
@@ -70,7 +74,7 @@ pub fn composition_frame(
   value : @core.Any,
   time : @core.Any,
 ) -> @core.Any {
-  let composition = decode_Composition(value)
+  let composition = @project_codec.decode_Composition(value)
   let time : Double = if @core.is_undefined(time) {
     @scene.timeline_segments(decode_timeline(input))
     .iter()
@@ -85,7 +89,10 @@ pub fn composition_frame(
   frame_value(
     {
       objects: @scene.composition_objects(
-        ordered_objects(input).iter().map(decode_SceneObject).to_array(),
+        ordered_objects(input)
+        .iter()
+        .map(@project_codec.decode_SceneObject)
+        .to_array(),
         composition,
         time,
       ),
@@ -105,8 +112,8 @@ pub fn transition_frame(
   host : @core.Any,
   scene_time : @core.Any,
 ) -> @core.Any {
-  let scene = decode_Scene(input)
-  let transition = decode_Transition(value)
+  let scene = @project_codec.decode_Scene(input)
+  let transition = @project_codec.decode_Transition(value)
   let scene_time : Double = if @core.is_undefined(scene_time) {
     @scene.segment_start(scene, "transition", transition.id) + time
   } else {
@@ -152,7 +159,7 @@ pub fn track_progress(
   easing : @core.Any,
 ) -> Double {
   @scene.timing_progress(
-    { start, duration, easing: decode_Easing(easing), },
+    { start, duration, easing: @project_codec.decode_Easing(easing), },
     time,
     kernel(host),
   )
@@ -161,4 +168,10 @@ pub fn track_progress(
 ///|
 pub fn read_kernel(value : @core.Any) -> @scene.Kernel {
   kernel(value)
+}
+
+///|
+/// Internal typed boundary for hosts after portable-file validation.
+pub fn read_scene(value : @core.Any) -> @scene.Scene {
+  @project_codec.decode_Scene(value)
 }

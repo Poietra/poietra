@@ -50,7 +50,7 @@ pub fn asset_import_changes(
     changes.push(
       make_change(
         ["scenes", scene_id, "audioTracks", track.id],
-        encode_AudioTrack(track),
+        @project_codec.encode_AudioTrack(track),
       ),
     )
   }

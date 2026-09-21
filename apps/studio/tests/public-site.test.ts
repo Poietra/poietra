@@ -4,6 +4,19 @@ import { fetchPublicPage, prefersMarkdown, publicPagePlan } from '../shared/publ
 const plan = (path = '/', headers: Record<string, string> = {}) => publicPagePlan(new URL(path, 'https://poietra.com'), new Headers(headers));
 
 describe('public homepage routing', () => {
+  it('serves localized developer HTML and explicit Markdown with discoverable schema links', () => {
+    expect(plan('/developers')).toMatchObject({ kind: 'developers', assetPath: '/developers/index.html' });
+    expect(plan('/developers/', { 'Accept-Language': 'ja', Accept: 'text/markdown' })).toMatchObject({
+      kind: 'developers', locale: 'ja', assetPath: '/ja/developers/index.md', contentType: 'text/markdown; charset=utf-8',
+    });
+    expect(plan('/ja/developers/?lang=en')?.assetPath).toBe('/developers/index.html');
+    expect(plan('/ja/developers/index.md', { Accept: 'text/html' })?.assetPath).toBe('/ja/developers/index.md');
+    expect(plan('/developers/?room=unrelated')?.kind).toBe('developers');
+    expect(plan('/developers/')?.headers.Link).toContain('rel="service-desc"');
+    expect(plan('/developers/')?.headers.Vary).toBe('Accept, Accept-Language');
+    for (const path of ['/developers/unknown', '/ja/developers/unknown']) expect(plan(path)).toBeNull();
+  });
+
   it('chooses generated locale pages using explicit URL then weighted language preferences', () => {
     expect(plan()?.assetPath).toBe('/index.html');
     expect(plan('/', { 'Accept-Language': 'fr-FR,ja-JP;q=0.8,en-US;q=0.5' })?.assetPath).toBe('/ja/index.html');

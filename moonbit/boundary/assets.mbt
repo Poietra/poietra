@@ -35,35 +35,35 @@ pub fn image_mime(bytes : @core.Any) -> @core.Any {
 
 ///|
 pub fn read_image_asset(value : @core.Any) -> @scene.ImageAsset raise {
-  decode_ImageAsset(parse_file_field(value, Image))
+  @project_codec.read_image_asset(value)
 }
 
 ///|
 pub fn read_media_asset(value : @core.Any) -> @scene.MediaAsset raise {
-  decode_MediaAsset(parse_file_field(value, Media))
+  @project_codec.read_media_asset(value)
 }
 
 ///|
 pub fn write_image_asset(value : @scene.ImageAsset) -> @core.Any {
-  encode_ImageAsset(value)
+  @project_codec.encode_ImageAsset(value)
 }
 
 ///|
 pub fn write_media_asset(value : @scene.MediaAsset) -> @core.Any {
-  encode_MediaAsset(value)
+  @project_codec.encode_MediaAsset(value)
 }
 
 ///|
 pub fn read_media_playback(value : @core.Any) -> @scene.MediaPlayback raise {
-  decode_MediaPlayback(parse_file_field(value, Playback))
+  @project_codec.read_media_playback(value)
 }
 
 ///|
 pub fn read_audio_track(value : @core.Any) -> @scene.AudioTrack raise {
-  decode_AudioTrack(parse_file_field(value, Audio))
+  @project_codec.read_audio_track(value)
 }
 
 ///|
 pub fn write_media_playback(value : @scene.MediaPlayback) -> @core.Any {
-  encode_MediaPlayback(value)
+  @project_codec.encode_MediaPlayback(value)
 }

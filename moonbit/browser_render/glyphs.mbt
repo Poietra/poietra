@@ -231,7 +231,7 @@ pub fn prepare_equation_drawing(equation : @core.Any) -> @core.Any {
     if source_bytes > 1024 * 1024 {
       return @core.null()
     }
-    let cached = equation_models._call("get", [equation])
+    let cached = @math_render.cached_equation(equation)
     let tree = if @core.is_undefined(cached) {
       parse_math_node(equation._get("tree"))
     } else {

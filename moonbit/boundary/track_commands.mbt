@@ -9,7 +9,7 @@ let track_timing_channels : Array[(@scene.PropertyChannel, String)] = @scene.pro
 ///|
 fn timing_curve(value : @core.Any) -> @scene.Easing? {
   if is_valid_easing(value) {
-    Some(decode_Easing(value))
+    Some(@project_codec.decode_Easing(value))
   } else {
     None
   }
@@ -103,7 +103,7 @@ pub fn single_track_changes(
   ]
   if plan.create {
     let value = merge_values(
-      encode_Track({
+      @project_codec.encode_Track({
         ..@scene.default_track(object_id, plan.base.duration),
         start: plan.base.start,
         easing: plan.base.easing,

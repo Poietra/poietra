@@ -187,7 +187,7 @@ fn[T] encode_map(value : Map[String, T], convert : (T) -> @core.Any) -> @core.An
 }
 """
 for name in structs:
-    if name in ['Point', 'Bezier', 'ObjectState', 'Timing', 'Track', 'Project', 'RenderObject', 'Frame', 'Segment']:
+    if name in ['Point', 'Bezier', 'ObjectState', 'Timing', 'Track', 'RenderObject', 'Frame', 'Segment']:
         continue
     source += f'///|\nfn encode_{name}(value : @scene.{name}) -> @core.Any {{\n  let result = @core.new_object()\n'
     for field, kind in structs[name]:
@@ -199,6 +199,9 @@ for name in structs:
         else:
             source += f'  put_own(result, "{field}", {encode_value(kind, f"value.{field}")})\n'
     source += '  result\n}\n'
+
+# Generated marshalling is shared by all document boundaries.
+source = re.sub(r'^fn(?=\[| )', 'pub fn', source, flags=re.M)
 
 # Generate the public document representation from the same fields as the codec.
 # Overrides describe existing JS wire contracts, not a second domain model.
@@ -245,7 +248,7 @@ for name, fields in structs.items():
     if name == 'RenderObject': types += '  videoFrame?: string; // Portable SVG preparation only; not stored in a project.\n'
     types += '}\n'
 for path, content in [
-    (root / 'moonbit/boundary/adapters.mbt', source),
+    (root / 'moonbit/project_codec/adapters.mbt', source),
     (root / 'apps/studio/shared/scene-types.d.ts', types),
 ]:
     if not path.exists() or path.read_text() != content:

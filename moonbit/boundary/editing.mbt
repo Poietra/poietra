@@ -8,111 +8,82 @@ extern "js" fn strict_equal(a : @core.Any, b : @core.Any) -> Bool =
 
 ///|
 pub fn read_easing(value : @core.Any) -> @scene.Easing {
-  decode_Easing(value)
+  @project_codec.decode_Easing(value)
 }
 
 ///|
 pub fn write_easing(value : @scene.Easing) -> @core.Any {
-  encode_Easing(value)
+  @project_codec.encode_Easing(value)
 }
 
 ///|
 pub fn read_track(value : @core.Any) -> @scene.Track {
-  decode_Track(value)
+  @project_codec.decode_Track(value)
 }
 
 ///|
 pub fn write_track(value : @scene.Track) -> @core.Any {
-  encode_Track(value)
+  @project_codec.encode_Track(value)
 }
 
 ///|
 pub fn read_scene_object(value : @core.Any) -> @scene.SceneObject {
-  decode_SceneObject(value)
+  @project_codec.decode_SceneObject(value)
 }
 
 ///|
 pub fn write_scene_object(value : @scene.SceneObject) -> @core.Any {
-  encode_SceneObject(value)
+  @project_codec.encode_SceneObject(value)
 }
 
 ///|
 pub fn read_bezier(value : @core.Any) -> @scene.Bezier {
-  decode_Bezier(value)
+  @project_codec.decode_Bezier(value)
 }
 
 ///|
 pub fn write_bezier(value : @scene.Bezier) -> @core.Any {
-  encode_Bezier(value)
+  @project_codec.encode_Bezier(value)
 }
 
 ///|
 pub fn write_composition(value : @scene.Composition) -> @core.Any {
-  encode_Composition(value)
+  @project_codec.encode_Composition(value)
 }
 
 ///|
 pub fn write_transition(value : @scene.Transition) -> @core.Any {
-  encode_Transition(value)
+  @project_codec.encode_Transition(value)
 }
 
 ///|
 pub fn read_object_state(value : @core.Any) -> @scene.ObjectState {
-  decode_ObjectState(value)
+  @project_codec.decode_ObjectState(value)
 }
 
 ///|
 pub fn write_object_state(value : @scene.ObjectState) -> @core.Any {
-  encode_ObjectState(value)
+  @project_codec.encode_ObjectState(value)
 }
 
 ///|
 pub fn read_timing(value : @core.Any) -> @scene.Timing {
-  decode_Timing(value)
+  @project_codec.decode_Timing(value)
 }
 
 ///|
 pub fn write_timing(value : @scene.Timing) -> @core.Any {
-  encode_Timing(value)
+  @project_codec.encode_Timing(value)
 }
 
 ///|
 pub fn read_object_kind(value : @core.Any) -> @scene.ObjectKind {
-  decode_ObjectKind(value)
+  @project_codec.decode_ObjectKind(value)
 }
 
 ///|
 pub fn is_valid_easing(value : @core.Any) -> Bool {
-  if @core.typeof_(value) == "string" {
-    let name : String = value.cast()
-    return name == "linear" ||
-      name == "easeInOut" ||
-      name == "easeIn" ||
-      name == "easeOut"
-  }
-  if @core.is_nullish(value) ||
-    @core.typeof_(value) != "object" ||
-    is_array(value) {
-    return false
-  }
-  let keys = @core.object_keys(value)
-  if keys.length() != 5 {
-    return false
-  }
-  for key in keys {
-    if key != "type" && key != "x1" && key != "y1" && key != "x2" && key != "y2" {
-      return false
-    }
-  }
-  if !strict_equal(value._get("type"), @core.any("cubicBezier")) {
-    return false
-  }
-  for key in ["x1", "y1", "x2", "y2"] {
-    if @core.typeof_(value._get(key)) != "number" {
-      return false
-    }
-  }
-  @scene.valid_easing(decode_Easing(value))
+  @project_codec.is_valid_easing(value)
 }
 
 ///|
@@ -137,14 +108,16 @@ pub fn easings_equal(a : @core.Any, b : @core.Any) -> Bool {
 ///|
 pub fn default_state(kind : @core.Any, overrides : @core.Any) -> @core.Any {
   merge_values(
-    encode_ObjectState(@scene.default_state(decode_ObjectKind(kind))),
+    @project_codec.encode_ObjectState(
+      @scene.default_state(@project_codec.decode_ObjectKind(kind)),
+    ),
     overrides,
   )
 }
 
 ///|
 fn track_value(track : @scene.Track) -> @core.Any {
-  encode_Track(track)
+  @project_codec.encode_Track(track)
 }
 
 ///|
@@ -165,7 +138,7 @@ pub fn resolve_track(
     return input
   }
   let resolved = @scene.resolve_track(
-    Some(decode_Track(input)),
+    Some(@project_codec.decode_Track(input)),
     object_id,
     duration,
   )
@@ -218,7 +191,7 @@ pub fn has_property_timing(track : @core.Any, channel : String) -> Bool {
 
 ///|
 pub fn track_timing_end(track : @core.Any, include_base : Bool) -> Double {
-  @scene.track_timing_end(decode_Track(track), include_base)
+  @scene.track_timing_end(@project_codec.decode_Track(track), include_base)
 }
 
 ///|

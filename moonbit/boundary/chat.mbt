@@ -60,9 +60,13 @@ pub fn read_chat_message(value : @core.Any) -> @editor.ChatMessage[@core.Any] {
     author_name: value._get("authorName").cast(),
     color: value._get("color").cast(),
     created_at: value._get("createdAt").cast(),
-    mentions_codex: optional(value._get("mentionsCodex"), fn(v) { v.cast() }),
-    reply_to: optional(value._get("replyTo"), fn(v) { v.cast() }),
-    request_client_id: optional(value._get("requestClientId"), fn(v) {
+    mentions_codex: @project_codec.optional(value._get("mentionsCodex"), fn(v) {
+      v.cast()
+    }),
+    reply_to: @project_codec.optional(value._get("replyTo"), fn(v) { v.cast() }),
+    request_client_id: @project_codec.optional(value._get("requestClientId"), fn(
+      v,
+    ) {
       v.cast()
     }),
     status: if @core.is_undefined(value._get("status")) {
@@ -70,9 +74,11 @@ pub fn read_chat_message(value : @core.Any) -> @editor.ChatMessage[@core.Any] {
     } else {
       @editor.chat_status(value._get("status").cast())
     },
-    proposal: optional(value._get("proposal"), fn(v) { v }),
-    applied: optional(value._get("applied"), fn(v) { v.cast() }),
-    dismissed: optional(value._get("dismissed"), fn(v) { v.cast() }),
+    proposal: @project_codec.optional(value._get("proposal"), fn(v) { v }),
+    applied: @project_codec.optional(value._get("applied"), fn(v) { v.cast() }),
+    dismissed: @project_codec.optional(value._get("dismissed"), fn(v) {
+      v.cast()
+    }),
   }
 }
 

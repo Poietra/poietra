@@ -1,6 +1,6 @@
 import type { Locale } from './locale';
 export interface PublicPagePlan {
-    kind: 'home' | 'editor';
+    kind: 'home' | 'editor' | 'developers';
     locale: Locale;
     assetPath: string;
     contentType: string;

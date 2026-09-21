@@ -32,6 +32,7 @@ pub fn public_page_plan(url : @core.Any, headers : @core.Any) -> @core.Any {
             match plan.kind {
               @policy.Home => "home"
               @policy.Editor => "editor"
+              @policy.Developers => "developers"
             },
           ),
         ),

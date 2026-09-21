@@ -61,7 +61,9 @@ pub fn model_catalog() -> @core.Any {
 pub fn default_custom_easing() -> @core.Any {
   @core.global_this()
   ._get("Object")
-  ._call("freeze", [encode_Easing(@scene.CubicBezier(0.25, 0.1, 0.25, 1.0))])
+  ._call("freeze", [
+    @project_codec.encode_Easing(@scene.CubicBezier(0.25, 0.1, 0.25, 1.0)),
+  ])
 }
 
 ///|

@@ -12,7 +12,13 @@ extern "js" fn snapshot(value : @core.Any) -> @core.Any =
 ///|
 pub fn prepare_playback(input : @core.Any, host : @core.Any) -> Playback {
   let source = snapshot(input)
-  { program: @scene.prepare_scene(decode_Scene(source), kernel(host)), source, }
+  {
+    program: @scene.prepare_scene(
+      @project_codec.decode_Scene(source),
+      kernel(host),
+    ),
+    source,
+  }
 }
 
 ///|
@@ -55,7 +61,10 @@ pub fn playback_composition(
   time : @core.Any,
 ) -> @core.Any {
   frame_value(
-    playback.program.composition(id, optional(time, fn(value) { value.cast() })),
+    playback.program.composition(
+      id,
+      @project_codec.optional(time, fn(value) { value.cast() }),
+    ),
     playback.source,
   )
 }
@@ -71,7 +80,7 @@ pub fn playback_transition(
     playback.program.transition(
       id,
       time,
-      optional(scene_time, fn(value) { value.cast() }),
+      @project_codec.optional(scene_time, fn(value) { value.cast() }),
     ),
     playback.source,
   )

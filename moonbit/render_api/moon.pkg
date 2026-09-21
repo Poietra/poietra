@@ -1,0 +1,21 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/project_codec" @codec,
+  "poietra/poietra/scene",
+  "poietra/poietra/render_job" @job,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "openapi_json:openapiJson",
+        "project_schema_json:projectSchemaJson",
+        "example_json:exampleJson",
+      ],
+    },
+  },
+)

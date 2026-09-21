@@ -53,7 +53,9 @@ fn decode_timeline(value : @core.Any) -> @scene.TimelineData {
     }
   }
   {
-    order: decode_array(value._get("compositionOrder"), fn(v) { v.cast() }),
+    order: @project_codec.decode_array(value._get("compositionOrder"), fn(v) {
+      v.cast()
+    }),
     holds,
     links,
     media_ends,

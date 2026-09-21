@@ -147,6 +147,123 @@ version 2 対応前から開いている編集画面は再読み込みが必要�
 音声付き MP4 には端末の AAC エンコード対応が必要です。利用できない場合は WebM（Opus 音声）を選んでください。
 **Cancel** で中断、完了後は **Download again** で再ダウンロードできます。
 
+## ファイルから描画する API / MCP
+
+保存した `.poietra.json` を、画面を開かずに SVG・PNG・MP4 へ変換できます。
+この経路は Node 24 以降で動き、Chromium・FFmpeg・WebCodecs は不要です。
+MoonBit の評価器・SVG 描画・音声ミキサーを共有し、描画とエンコードには独立した WASM を使います。
+依存パッケージとフォントはインストール時に取得し、実行中に外部の素材やサービスへ接続しません。
+描画はセルフホストの CLI・HTTP API・ローカル stdio MCP です。Workers 上での描画実行は未対応です。
+[API / MCP ページ](https://poietra.com/ja/developers/)に、起動手順・設定例・動かせるサンプルをまとめています。
+Cloudflare はこの案内と仕様を配信し、ホストされた描画 API やリモート `/mcp` は提供していません。
+描画要求・結果・バックエンドは MoonBit の型で接続し、HTTP 処理から分離しています。
+RGBA・PCM・エンコーダーの共通契約は、Poietra のデータモデルに依存しない内部パッケージ
+[`media_pipeline`](../../moonbit/media_pipeline/model.mbt) に切り出しています。
+
+以下のコマンドは **リポジトリルート**で実行します。初回は[環境構築](../../README.md#run-locally)を済ませます。
+`project.poietra.json` は **Save project** で保存したファイルに置き換えてください。
+
+```sh
+pnpm build:moonbit
+pnpm render project.poietra.json --inspect
+pnpm render project.poietra.json --format png --time-ms 1200 -o frame.png
+pnpm render project.poietra.json --format mp4 --width 1280 --fps 30 -o result.mp4
+```
+
+既定は時刻 0 の PNG です。`--time-ms` はプロジェクト全体の時刻で、SVG/PNG に指定できます。
+MP4 は全 Scene を順に出力します。`--width` / `--height` は片方だけなら縦横比を保ち、
+両方を指定するとその寸法に合わせます。fps は 24 / 30 / 60 です。
+出力先の親ディレクトリは事前に用意してください。CLI/MCP は既存ファイルを上書きせず、
+完成した結果だけを保存します。CLI は Ctrl+C で中断できます。
+
+### HTTP API
+
+```sh
+pnpm render:api
+```
+
+別のターミナルから JSON ファイル本体を送ります。multipart やルームの URL ではありません。
+
+```sh
+curl --fail-with-body http://127.0.0.1:8799/capabilities
+curl --fail-with-body -H 'Content-Type: application/json' \
+  --data-binary @project.poietra.json http://127.0.0.1:8799/inspect
+curl --fail-with-body -H 'Content-Type: application/json' \
+  --data-binary @project.poietra.json \
+  'http://127.0.0.1:8799/render?format=mp4&width=1280&fps=30' --output api-result.mp4
+```
+
+`POST /render` は画像・動画本体、`POST /inspect` は名前・Scene 数・長さ・対応上の問題を JSON で返します。
+描画のクエリは `format`、`width`、`height`、`fps`、`timeMs` です。
+`GET /capabilities` で対応形式と上限を取得できます。検査は構造と参照の確認なので、
+素材の破損や実際のコーデックは描画時に判明する場合があります。
+
+既定は `127.0.0.1:8799`、`POIETRA_RENDER_HOST` / `POIETRA_RENDER_PORT` で変更できます。
+`POIETRA_RENDER_TOKEN` を設定すると描画・検査・対応一覧に `Authorization: Bearer ...` が必要になり、
+ループバック以外への bind にはトークン設定が必須です。ブラウザからの別 origin の要求は受け付けません。
+同時に処理できる要求は 1 件です。処理中は 429、不正・未対応の入力は 422、
+入力の容量超過は 413、処理時間の超過は 504 を返します。切断すると進行中の描画を中断します。
+
+仕様・スキーマ・サンプルは認証なしで取得できます。
+[OpenAPI](https://poietra.com/openapi.json) の既定接続先は `http://127.0.0.1:8799` です。
+実際のサーバーの `GET /openapi.json` はそのサーバーの接続先を含み、
+`GET /schemas/project.json` と `GET /examples/hello.poietra.json` も使えます。
+Cloudflare の `/developers/`・`/ja/developers/` は `Accept: text/markdown` で
+同じ内容の Markdown を返します。機械向けの入口は [llms.txt](https://poietra.com/llms.txt) です。
+
+### MCP
+
+stdio 対応クライアントには、次の設定で登録できます。パスをこのリポジトリの絶対パスへ置き換えます。
+JSON-RPC の標準出力に起動メッセージを混ぜないよう、クライアントからは `node` を直接起動します。
+
+```json
+{
+  "mcpServers": {
+    "poietra": {
+      "command": "node",
+      "args": ["/absolute/path/to/poietra/apps/render/mcp.mjs"]
+    }
+  }
+}
+```
+
+| ツール | 入力と結果 |
+| --- | --- |
+| `poietra_capabilities` | 対応形式・コーデック・上限を返す |
+| `poietra_inspect` | `inputPath` のファイルを検査する |
+| `poietra_render` | `inputPath` を読み、`outputPath` に保存し、パス・寸法・時間・サイズなどを返す |
+
+ファイルパスは **MCP サーバーを起動した端末上**の絶対パスを指定します。
+`poietra_render` は `format`、`width`、`height`、`fps`、`timeMs` も受け取ります。
+例えば `{"inputPath":"/work/project.poietra.json","outputPath":"/work/result.mp4","format":"mp4","width":1280}` です。
+処理時間の上限は 120 秒なので、長い作品ではクライアント側のツール待機時間も合わせて設定します。
+Node から直接使う場合の進捗通知・中断・期限指定は [API 宣言](../render/index.d.mts)を参照してください。
+
+MCP の `resources/list`・`resources/read` から、`poietra://docs/openapi`、
+`poietra://docs/project-schema`、`poietra://examples/hello` を取得できます。
+構造の検証定義は保存ファイルのデコーダーと共用し、参照関係・時間・素材対応は実行時にも確認します。
+
+### ヘッドレス描画の対応範囲
+
+図形・文字・日本語・数式・Write・Glow、親子関係・中間点・Scene 間の時間評価を扱います。
+静止区間は描画結果を再利用し、動画の全フレームは保持します。
+現段階ではブラウザの Export より素材の対応範囲が狭く、次の制限があります。
+
+| 対象 | 対応・上限 |
+| --- | --- |
+| 入力 | 素材を埋め込んだ version 1 / 2 の保存ファイル、32 MiB 以下 |
+| 画像 | PNG / JPEG。各辺 8192 px 以下、全画像の復号後の画素数は合計 16,777,216 以下 |
+| 音声入力 | PCM WAV、モノラル / ステレオ、192 kHz 以下。発音するトラックは最大 32 本 |
+| 音声出力 | 48 kHz ステレオへミックスし、MP3 を MP4 に格納。AAC ではないため再生先の対応確認が必要 |
+| 出力 | SVG / PNG / H.264 MP4、64 MiB 以下。各辺 1920 px・全体 2,073,600 画素以下 |
+| MP4 の長さ | 60 秒かつ 1800 フレーム以下（60 fps なら最大 30 秒） |
+| 未対応 | 動画素材、WebP、外部素材 URL、圧縮音声の復号、WebM 出力、AAC エンコード |
+
+描画器が異なるため、ブラウザとの画素単位の一致は保証していません。
+音量・ミュート・トリミングと音ずれは独立した WASM デコーダーでも検証しています。
+実行手順・検証範囲・計測条件は [Checks](../../README.md#checks) と
+[ヘッドレス出力の計測](../../README.md#headless-export--2026-09-21)に記録しています。
+
 ## アカウントと共有
 
 ログインは自分の一覧を端末間で使うための機能です。共有リンクでの参加・編集には必要ありません。

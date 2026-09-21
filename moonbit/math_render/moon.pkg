@@ -1,0 +1,10 @@
+import {
+  "mizchi/js_core" @core,
+  "moonbitlang/core/string",
+  "poietra/poietra/render",
+  "poietra/poietra/editor",
+}
+
+options(
+  targets: { "equations.mbt": [ "js" ] },
+)

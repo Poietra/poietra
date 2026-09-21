@@ -1,6 +1,6 @@
 ///|
 pub fn make_blank_scene(id : String, name : String) -> @core.Any {
-  encode_Scene(@scene.blank_scene(id, name))
+  @project_codec.encode_Scene(@scene.blank_scene(id, name))
 }
 
 ///|
@@ -8,8 +8,11 @@ fn encode_project(value : @scene.Project) -> @core.Any {
   @core.from_entries([
     ("version", @core.any(value.version)),
     ("name", @core.any(value.name)),
-    ("sceneOrder", encode_array(value.sceneOrder, @core.any)),
-    ("scenes", encode_map(value.scenes, encode_Scene)),
+    ("sceneOrder", @project_codec.encode_array(value.sceneOrder, @core.any)),
+    (
+      "scenes",
+      @project_codec.encode_map(value.scenes, @project_codec.encode_Scene),
+    ),
   ])
 }
 

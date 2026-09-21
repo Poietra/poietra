@@ -357,6 +357,15 @@ fn landing(view : LandingView) -> @react.Element {
       cls("footer", "landing-footer landing-container", [
         brand(c, true),
         tag("p", [c.footerNote]),
+        anchor(
+          "landing-developer-link",
+          if view.locale == @site.Japanese {
+            "/ja/developers/"
+          } else {
+            "/developers/"
+          },
+          ["API / MCP"],
+        ),
         h(
           "a",
           {

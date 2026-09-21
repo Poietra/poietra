@@ -29,17 +29,29 @@ fn rectangle_value(value : @geometry.Rectangle) -> @core.Any {
 
 ///|
 pub fn rotate_vector(point : @core.Any, degrees : Double) -> @core.Any {
-  encode_Point(@geometry.rotate(decode_Point(point), degrees))
+  @project_codec.encode_Point(
+    @geometry.rotate(@project_codec.decode_Point(point), degrees),
+  )
 }
 
 ///|
 pub fn world_to_local(point : @core.Any, state : @core.Any) -> @core.Any {
-  encode_Point(@geometry.world_to_local(decode_Point(point), placement(state)))
+  @project_codec.encode_Point(
+    @geometry.world_to_local(
+      @project_codec.decode_Point(point),
+      placement(state),
+    ),
+  )
 }
 
 ///|
 pub fn local_to_world(point : @core.Any, state : @core.Any) -> @core.Any {
-  encode_Point(@geometry.local_to_world(decode_Point(point), placement(state)))
+  @project_codec.encode_Point(
+    @geometry.local_to_world(
+      @project_codec.decode_Point(point),
+      placement(state),
+    ),
+  )
 }
 
 ///|
@@ -49,7 +61,7 @@ pub fn point_in_rotated_bounds(
   state : @core.Any,
 ) -> Bool {
   @geometry.point_in_bounds(
-    decode_Point(point),
+    @project_codec.decode_Point(point),
     rectangle(bounds),
     placement(state),
   )
@@ -58,7 +70,10 @@ pub fn point_in_rotated_bounds(
 ///|
 pub fn rectangle_from_points(a : @core.Any, b : @core.Any) -> @core.Any {
   rectangle_value(
-    @geometry.rectangle_from_points(decode_Point(a), decode_Point(b)),
+    @geometry.rectangle_from_points(
+      @project_codec.decode_Point(a),
+      @project_codec.decode_Point(b),
+    ),
   )
 }
 
@@ -85,11 +100,11 @@ pub fn resize_from_corner(
   text : Bool,
 ) -> @core.Any {
   let result = @geometry.resize_from_corner(
-    decode_ObjectState(state),
+    @project_codec.decode_ObjectState(state),
     size._get("width").cast(),
     size._get("height").cast(),
     corner,
-    decode_Point(delta),
+    @project_codec.decode_Point(delta),
     preserve_aspect,
     text,
   )
@@ -114,8 +129,8 @@ pub fn rotation_from_pointer(
 ) -> Double {
   @geometry.rotation_from_pointer(
     placement(state),
-    decode_Point(start),
-    decode_Point(at),
+    @project_codec.decode_Point(start),
+    @project_codec.decode_Point(at),
     snap,
   )
 }
