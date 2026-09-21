@@ -10,14 +10,16 @@ fn Room::fetch(self : Room, request : @core.Any) -> @core.Any {
   if upgrade != "websocket" {
     return error_response("WebSocket required", 426)
   }
-  if self.sockets().length() >= 32 {
+  self.restore_connections()
+  self.flush_inbound()
+  if self.connections.size() >= 512 {
     return error_response("この部屋は満員です。", 429)
   }
   let pair = @core.new(@core.global_this()._get("WebSocketPair"), [])
   let client = pair._get("0")
   let server = pair._get("1")
   self.ctx._call("acceptWebSocket", [server]) |> ignore
-  attach(server, @core.null())
+  self.remember(server, @core.null())
   let message = @wire.encoder()
   @wire.write_uint(message, 0.0)
   self.runtime
@@ -25,7 +27,7 @@ fn Room::fetch(self : Room, request : @core.Any) -> @core.Any {
   ._call("writeSyncStep1", [@core.any(message), self.doc])
   |> ignore
   self.send(server, @wire.to_bytes(message))
-  self.send(server, @presence.presence_message(self.all_presence()))
+  self.send_presence(server)
   @core.new(@core.global_this()._get("Response"), [
     @core.null(),
     @core.from_entries([("status", @core.any(101)), ("webSocket", client)]),
@@ -63,12 +65,28 @@ fn create_room(
     sql,
     storage,
     updates: 0,
+    journal_bytes: 0,
+    connections: @collection.JsMap::new(),
+    owners: @collection.JsMap::new(),
+    restored_connections: false,
+    fanout: None,
+    inbound: [],
+    inbound_bytes: 0,
+    inbound_timer: None,
     promoting: Set([]),
     assets: @core.new(@storage.room_assets_class(), [
       ctx,
       env._get("MEDIA_BUCKET"),
     ]),
   }
+  room.fanout = Some(
+    @sync.fanout(
+      yjs,
+      runtime._get("sync"),
+      fn(bytes) { room.broadcast(bytes) },
+      fn() { room.connections.size() },
+    ),
+  )
   let snapshots = sql
     .exec_raw("SELECT data FROM snapshot WHERE id = 1")
     .to_array()
@@ -86,6 +104,7 @@ fn create_room(
     ])
     |> ignore
     room.updates += 1
+    room.journal_bytes += (row._get("data")._get("byteLength").cast() : Int)
   }
   if snapshots.is_empty() {
     @boundary.initialize_document(doc, @boundary.make_demo_project(), yjs)

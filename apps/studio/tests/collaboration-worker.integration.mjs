@@ -222,9 +222,8 @@ if (args.child) {
     const burstStarted = Date.now();
     for (let index = 0; index < 520; index++) circle(observer.doc).set('x', 400 + index);
     circle(observer.doc).set('y', 333);
-    // This burst deliberately exceeds two compactions; it tests durability,
-    // not interactive latency. Measured full UI catch-up is ~6.5s on local
-    // workerd even when a protocol peer receives all 520 updates in ~3.4s.
+    // Input bursts coalesce into lossless durable batches; real compaction is
+    // forced separately below with ordered sync barriers between journal entries.
     await expect(alice.page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('919', { timeout: 15000 });
     await expect(bob.page.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('333', { timeout: 15000 });
     console.log(`520-update burst reached both browser inspectors in ${Date.now() - burstStarted}ms`);
@@ -238,7 +237,7 @@ if (args.child) {
     await expect(bob.page.locator('.participant-stack .avatar')).toHaveCount(3);
     await alice.context.close();
     await expect(bob.page.locator('.participant-stack .avatar')).toHaveCount(2);
-    console.log('PASS SQLite compaction, forced hibernation with live sockets, wake, and peer removal');
+    console.log('PASS SQLite batching, forced hibernation with live sockets, wake, and peer removal');
 
     // Delayed closure of an old connection must not remove its replacement.
     const presenceRoom = crypto.randomUUID();
@@ -265,7 +264,10 @@ if (args.child) {
     source.getMap('pending-proof').set('third', 3);
     const pendingSocket = await rawConnection(pendingRoom);
     sendUpdate(pendingSocket, updates[1]);
-    for (let index = 0; index < 256; index++) sendUpdate(pendingSocket, new Uint8Array([0, 0]));
+    for (let index = 0; index < 256; index++) {
+      sendUpdate(pendingSocket, new Uint8Array([0, 0]));
+      await roundtrip(pendingSocket);
+    }
     sendUpdate(pendingSocket, updates[2]);
     await roundtrip(pendingSocket);
     const [pendingJournal] = await control('journal', pendingRoom);

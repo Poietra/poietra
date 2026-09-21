@@ -10,6 +10,7 @@ fn proposal_error(status : Int, message : String) -> @core.Any {
 
 ///|
 async fn Room::propose(self : Room, input : @core.Any) -> @core.Any {
+  self.flush_inbound()
   guard @http.optional_string(self.env._get("OPENAI_API_KEY")) is Some(api_key) &&
     !api_key.is_empty() else {
     return proposal_error(503, "AI はまだ接続されていません。")

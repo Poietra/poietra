@@ -1,12 +1,13 @@
 import * as commands from "../../../../_build/js/release/build/browser_editor/browser_editor.js";
 import * as Y from "yjs";
+import { Awareness } from "y-protocols/awareness";
 import { WebsocketProvider } from "y-websocket";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { COLORS } from "../../shared/model.js";
 import { applyProposal } from "../../shared/ai.js";
 import { RoomChat } from "../../shared/chat.js";
 import { EditorUndoManager } from "./undo.js";
-const runtime = { Y, colors: COLORS, applyProposal, RoomChat, EditorUndoManager, WebsocketProvider, IndexeddbPersistence };
+const runtime = { Y, Awareness, colors: COLORS, applyProposal, RoomChat, EditorUndoManager, WebsocketProvider, IndexeddbPersistence };
 const subscribe = commands.subscribe;
 export const currentRoom = commands.currentRoom;
 // Constructor/prototype signatures adapt existing consumers and tests to the

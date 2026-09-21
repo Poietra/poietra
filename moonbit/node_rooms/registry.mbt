@@ -19,10 +19,17 @@ fn create_room(
     connections: @collection.JsMap::new(),
     presence: @collection.JsMap::new(),
     timer: None,
+    owners: @collection.JsMap::new(),
+    fanout: None,
     disposed: false,
     ai_busy: false,
     ai_last_request: 0.0,
   }
+  room.fanout = Some(
+    @sync.fanout(yjs, host._get("sync"), fn(bytes) { room.broadcast(bytes) }, fn() {
+      room.connections.size()
+    }),
+  )
   awareness._call("setLocalState", [@core.null()]) |> ignore
   if @fs.exists_sync(room.filename) {
     let data = @fs.read_file_as_buffer(room.filename)
@@ -35,11 +42,7 @@ fn create_room(
   doc._call("on", [
     @core.any("update"),
     @core.any(fn(update : @core.Any) {
-      let encoder = @wire.encoder()
-      @wire.write_uint(encoder, 0.0)
-      host._get("sync")._call("writeUpdate", [@core.any(encoder), update])
-      |> ignore
-      room.broadcast(@wire.to_bytes(encoder))
+      room.fanout.unwrap().document(update)
       room.schedule_persist()
     }),
   ])
@@ -48,6 +51,7 @@ fn create_room(
     @core.any("destroy"),
     @core.any(fn() {
       room.disposed = true
+      room.fanout.unwrap().dispose()
       if room.timer is Some(timer) {
         @core.global_this()._call("clearTimeout", [timer]) |> ignore
       }
@@ -72,15 +76,28 @@ fn create_room(
           }
         }
       }
-      let encoder = @wire.encoder()
-      @wire.write_uint(encoder, 1.0)
-      @wire.write_bytes(
-        encoder,
-        host
-        ._get("awareness")
-        ._call("encodeAwarenessUpdate", [awareness, array(clients)]),
-      )
-      room.broadcast(@wire.to_bytes(encoder))
+      let states = awareness._call("getStates", [])
+      let meta = awareness._get("meta")
+      for client in clients {
+        let value = states._call("get", [client])
+        let clock = meta._call("get", [client])._get("clock")
+        room.fanout
+        .unwrap()
+        .presence(
+          @core.from_entries([
+            ("clientId", client),
+            ("clock", clock),
+            (
+              "state",
+              if @core.is_nullish(value) {
+                @core.null()
+              } else {
+                value
+              },
+            ),
+          ]),
+        )
+      }
     }),
   ])
   |> ignore

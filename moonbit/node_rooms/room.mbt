@@ -7,6 +7,8 @@ priv struct Room {
   awareness : @core.Any
   connections : @collection.JsMap[@core.Any, @collection.JsSet[Double]]
   presence : @collection.JsMap[@core.Any, @core.Any]
+  owners : @collection.JsMap[Double, @core.Any]
+  mut fanout : @sync.Fanout?
   mut timer : @core.Any?
   mut disposed : Bool
   mut ai_busy : Bool
@@ -85,6 +87,15 @@ fn Room::dispose(self : Room) -> Bool {
 ///|
 fn send(socket : @core.Any, message : @core.Any) -> Unit {
   if @core.equal(socket._get("readyState"), @core.any(1)) {
+    // ws exposes backpressure; disconnect slow consumers so Yjs can resync.
+    if (socket._get("bufferedAmount").cast() : Double) > 1048576.0 {
+      socket._call("close", [
+        @core.any(1013),
+        @core.any("Slow connection; resynchronize"),
+      ])
+      |> ignore
+      return
+    }
     // A failed peer must not interrupt delivery or persistence for other peers.
     try
       @core.throwable(fn() { socket._call("send", [message]) }) |> ignore
@@ -107,21 +118,29 @@ fn Room::migrate(self : Room) -> Unit {
 }
 
 ///|
-fn Room::awareness_message(self : Room) -> @core.Any {
+fn Room::send_awareness(self : Room, socket : @core.Any) -> Unit {
   let states : @collection.JsMap[Double, @core.Any] = self.awareness
     ._call("getStates", [])
     .cast()
-  let clients = []
-  states.forEach(fn(_, id) { clients.push(@core.any(id)) })
-  let message = @wire.encoder()
-  @wire.write_uint(message, 1.0)
-  @wire.write_bytes(
-    message,
-    self.host
-    ._get("awareness")
-    ._call("encodeAwarenessUpdate", [self.awareness, array(clients)]),
-  )
-  @wire.to_bytes(message)
+  let entries = []
+  states.forEach(fn(value, id) {
+    entries.push(
+      @core.from_entries([
+        ("clientId", @core.any(id)),
+        (
+          "clock",
+          self.awareness
+          ._get("meta")
+          ._call("get", [@core.any(id)])
+          ._get("clock"),
+        ),
+        ("state", value),
+      ]),
+    )
+  })
+  for packet in @presence.presence_messages(FixedArray::from_array(entries[:])) {
+    send(socket, packet)
+  }
 }
 
 ///|
@@ -130,25 +149,15 @@ fn Room::update_presence(
   socket : @core.Any,
   next : @core.Any,
 ) -> Unit {
-  let client : Double = next._get("clientId").cast()
+  let client_id : Double = next._get("clientId").cast()
   let clock : Double = next._get("clock").cast()
-  let owners = []
-  let stale = Ref(false)
-  self.presence.forEach(fn(previous, other) {
-    if !@core.equal(other, socket) &&
-      @core.equal(previous._get("clientId"), @core.any(client)) {
-      owners.push((other, previous))
-      let old_clock : Double = previous._get("clock").cast()
-      if old_clock > clock ||
-        (old_clock == clock && !@core.is_null(previous._get("state"))) {
-        stale.val = true
-      }
+  if self.owners.get(client_id) is Some(other) && !@core.equal(other, socket) {
+    let previous = self.presence.get(other).unwrap()
+    let old_clock : Double = previous._get("clock").cast()
+    if old_clock > clock ||
+      (old_clock == clock && !@core.is_nullish(previous._get("state"))) {
+      return
     }
-  })
-  if stale.val {
-    return
-  }
-  for (other, previous) in owners {
     self.presence.set(
       other,
       @core.from_entries([
@@ -159,9 +168,10 @@ fn Room::update_presence(
     )
     |> ignore
     if self.connections.get(other) is Some(owned) {
-      owned.delete(client) |> ignore
+      owned.delete(client_id) |> ignore
     }
   }
+  self.owners.set(client_id, socket) |> ignore
   self.presence.set(socket, next) |> ignore
   let clean = @wire.decoder(@presence.presence_message([next]))
   @wire.read_uint(clean) |> ignore
@@ -213,7 +223,7 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
         self.update_presence(socket, next)
       }
     } else if kind == 3.0 {
-      send(socket, self.awareness_message())
+      self.send_awareness(socket)
     }
   }) catch {
     _ =>
@@ -227,6 +237,11 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
 
 ///|
 fn Room::connect(self : Room, socket : @core.Any) -> Unit {
+  if self.connections.size() >= 512 {
+    socket._call("close", [@core.any(1013), @core.any("Room is full")])
+    |> ignore
+    return
+  }
   if self.disposed {
     socket._call("close", []) |> ignore
     return
@@ -241,7 +256,7 @@ fn Room::connect(self : Room, socket : @core.Any) -> Unit {
     ._call("getStates", [])
     .cast()
   if states.size() > 0 {
-    send(socket, self.awareness_message())
+    self.send_awareness(socket)
   }
   socket._call("on", [
     @core.any("message"),
@@ -260,6 +275,12 @@ fn Room::connect(self : Room, socket : @core.Any) -> Unit {
       ._call("removeAwarenessStates", [self.awareness, clients, @core.null()])
       |> ignore
       self.connections.delete(socket) |> ignore
+      if self.presence.get(socket) is Some(previous) {
+        let id : Double = previous._get("clientId").cast()
+        if self.owners.get(id) is Some(owner) && @core.equal(owner, socket) {
+          self.owners.delete(id) |> ignore
+        }
+      }
       self.presence.delete(socket) |> ignore
       self.persist() |> ignore
     }),

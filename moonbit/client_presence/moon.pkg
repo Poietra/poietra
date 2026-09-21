@@ -1,0 +1,14 @@
+import {
+  "mizchi/js_core" @core,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [ "owned_awareness_class:ownedAwarenessClass" ],
+    },
+  },
+)

@@ -13,6 +13,12 @@ priv struct StoreSession {
   mut local_failed : Bool
   mut transactions_running : Bool
   mut destroyed : Bool
+  mut pending_presence : @core.Any?
+  mut presence_timer : @core.Any?
+  mut peer_timer : @core.Any?
+  mut peer_sources : @collection.JsMap[Double, @core.Any]
+  mut peer_views : @collection.JsMap[Double, @core.Any]
+  mut last_presence : Double
 }
 
 ///|
@@ -130,16 +136,26 @@ fn StoreSession::read_peers(self : StoreSession) -> Unit {
     ._call("getStates", [])
     .cast()
   let peers = []
+  let sources : @collection.JsMap[Double, @core.Any] = @collection.JsMap::new()
+  let views : @collection.JsMap[Double, @core.Any] = @collection.JsMap::new()
   states.forEach(fn(data, client) {
     if truthy(data._get("user")) {
-      peers.push(
+      let peer = if self.peer_sources.get(client) is Some(previous) &&
+        @core.equal(previous, data) {
+        self.peer_views.get(client).unwrap()
+      } else {
         merge(
           merge(record([("clientId", @core.any(client))]), data._get("user")),
           data._get("editor"),
-        ),
-      )
+        )
+      }
+      sources.set(client, data) |> ignore
+      views.set(client, peer) |> ignore
+      peers.push(peer)
     }
   })
+  self.peer_sources = sources
+  self.peer_views = views
   self.peers = FixedArray::from_array(peers[:])
   self.publish()
 }
@@ -200,6 +216,13 @@ fn StoreSession::dispose(self : StoreSession) -> Unit {
     return
   }
   self.destroyed = true
+  cancel_timer(self.peer_timer)
+  self.peer_timer = None
+  self.peer_sources.clear()
+  self.peer_views.clear()
+  cancel_timer(self.presence_timer)
+  self.presence_timer = None
+  self.pending_presence = None
   cancel_timer(self.connection_wait)
   cancel_timer(self.local_wait)
   self.connection_wait = None
@@ -315,5 +338,21 @@ fn StoreSession::watch_persistence(self : StoreSession) -> Unit {
         _ => self.local_failure()
       }
     }),
+  )
+}
+
+///|
+fn StoreSession::schedule_peers(self : StoreSession) -> Unit {
+  if self.destroyed || self.peer_timer is Some(_) {
+    return
+  }
+  self.peer_timer = Some(
+    @core.global_this()._call("setTimeout", [
+      @core.any(fn() {
+        self.peer_timer = None
+        self.read_peers()
+      }),
+      @core.any(16),
+    ]),
   )
 }

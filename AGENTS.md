@@ -143,6 +143,15 @@ and measurements belong in [README.md](README.md).
   MCP instructions; this does not deploy a hosted render API or remote MCP.
   Keep editor, account and room routes outside public document negotiation.
 
+- 2026-09-22: The founder specified 500 participants editing the same room.
+  Keep one authoritative Yjs document per room. Bound and losslessly merge input
+  and output batches; persist before broadcasting or answering an ordered sync
+  acknowledgment. Coalesce ephemeral presence, publish only each client's own
+  clocks, and reconstruct socket ownership from hibernation attachments. The
+  512-socket cap reserves reconnect headroom for the 500-participant target.
+  Keep real process-restart and unresolved-dependency tests. Local load tests
+  must distinguish generator saturation, browser work and WAN/production limits.
+
 ## Evidence and documentation
 
 - 2026-09-19: The founder requested new measurements and a complete documentation

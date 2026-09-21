@@ -173,3 +173,26 @@ pub fn presence_message(entries : FixedArray[@core.Any]) -> @core.Any {
   @wire.write_bytes(message, @wire.to_bytes(update))
   @wire.to_bytes(message)
 }
+
+///|
+/// Bound each packet so older y-websocket clients can relay it without exceeding
+/// the per-message input limit. A full 500-person roster is several packets.
+pub fn presence_messages(entries : FixedArray[@core.Any]) -> Array[@core.Any] {
+  let packets = []
+  let chunk = []
+  let mut size = 0
+  for entry in entries {
+    let length : Int = presence_message([entry])._get("byteLength").cast()
+    if !chunk.is_empty() && (chunk.length() >= 50 || size + length > 16000) {
+      packets.push(presence_message(FixedArray::from_array(chunk[:])))
+      chunk.clear()
+      size = 0
+    }
+    chunk.push(entry)
+    size += length
+  }
+  if !chunk.is_empty() {
+    packets.push(presence_message(FixedArray::from_array(chunk[:])))
+  }
+  packets
+}

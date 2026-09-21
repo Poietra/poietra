@@ -24,6 +24,12 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     local_failed: false,
     transactions_running: false,
     destroyed: false,
+    pending_presence: None,
+    presence_timer: None,
+    last_presence: 0.0,
+    peer_timer: None,
+    peer_sources: @collection.JsMap::new(),
+    peer_views: @collection.JsMap::new(),
   }
   store._set("moon", @core.any(state))
   let random = fn() -> String {
@@ -77,7 +83,15 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     @core.any(url),
     @core.any(room),
     doc,
-    record([("disableBc", @core.any(true))]),
+    record([
+      ("disableBc", @core.any(true)),
+      (
+        "awareness",
+        @core.new(@presence.owned_awareness_class(runtime._get("Awareness")), [
+          doc,
+        ]),
+      ),
+    ]),
   ])
   store._set("provider", provider)
   let awareness = provider._get("awareness")
@@ -163,7 +177,19 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
   let observe = @core.any(fn() { state.read_project() })
   root._call("observeDeep", [observe]) |> ignore
   state.cleanup.push(fn() { root._call("unobserveDeep", [observe]) |> ignore })
-  state.on(awareness, "change", @core.any(fn() { state.read_peers() }))
+  state.on(
+    awareness,
+    "change",
+    @core.any(fn(_change : @core.Any, origin : @core.Any) {
+      if @core.equal(origin, provider) ||
+        @core.equal(origin, @core.any("timeout")) {
+        state.schedule_peers()
+      } else {
+        // Local selection feedback stays synchronous.
+        state.read_peers()
+      }
+    }),
+  )
   for
     event in [
       "stack-item-added", "stack-item-popped", "stack-cleared", "stack-item-updated",
@@ -280,18 +306,58 @@ pub fn set_name(store : @core.Any, name : String) -> Unit {
 
 ///|
 pub fn presence(store : @core.Any, patch : @core.Any) -> Unit {
+  let state = session(store)
+  if state.destroyed {
+    return
+  }
   let awareness = store._get("provider")._get("awareness")
   let current = awareness._call("getLocalState", [])
-  let previous = if @core.is_nullish(current) {
-    @core.undefined()
-  } else {
-    current._get("editor")
+  let previous = state.pending_presence.unwrap_or_else(fn() {
+    if @core.is_nullish(current) {
+      @core.undefined()
+    } else {
+      current._get("editor")
+    }
+  })
+  state.pending_presence = Some(merge(previous, patch))
+  let keys = @core.object_keys(patch)
+  let cursor_only = keys.length() == 1 && keys[0] == "cursor"
+  let now : Double = @core.global_this()._get("Date")._call("now", []).cast()
+  // Keep total ephemeral input near 500 messages/s at 500 peers. Local pointer
+  // feedback stays immediate; selections and scene changes bypass this delay.
+  let interval = (state.peers.length() * 2).max(50).min(1000).to_double()
+  let remaining = interval - (now - state.last_presence)
+  if !cursor_only || remaining <= 0.0 {
+    state.flush_presence()
+  } else if state.presence_timer is None {
+    state.presence_timer = Some(
+      @core.global_this()._call("setTimeout", [
+        @core.any(fn() { state.flush_presence() }),
+        @core.any(remaining),
+      ]),
+    )
   }
-  awareness._call("setLocalStateField", [
-    @core.any("editor"),
-    merge(previous, patch),
-  ])
-  |> ignore
+}
+
+///|
+fn StoreSession::flush_presence(self : StoreSession) -> Unit {
+  cancel_timer(self.presence_timer)
+  self.presence_timer = None
+  if self.destroyed {
+    return
+  }
+  if self.pending_presence is Some(patch) {
+    self.pending_presence = None
+    self.last_presence = @core.global_this()
+      ._get("Date")
+      ._call("now", [])
+      .cast()
+    self.store
+    ._get("provider")
+    ._get("awareness")
+    ._call("setLocalStateField", [@core.any("editor"), patch])
+    |> ignore
+  }
 }
 
 ///|

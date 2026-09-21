@@ -1,0 +1,8 @@
+import {
+  "mizchi/js_core" @core,
+  "mizchi/js_builtin/collection",
+  "poietra/poietra/y_protocol" @wire,
+  "poietra/poietra/server_presence" @presence,
+}
+
+supported_targets = "js"

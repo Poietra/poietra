@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
       getStates: vi.fn(() => new Map([[this.doc.clientID, this.local]])),
       getLocalState: () => this.local,
       setLocalState: (value: any) => { this.local = value; },
-      setLocalStateField: (key: string, value: any) => { this.local[key] = value; this.awareness.emit('change'); },
+      setLocalStateField: (key: string, value: any) => { this.local = { ...this.local, [key]: value }; this.awareness.emit('change'); },
     });
     destroy = vi.fn(); disconnect = vi.fn(); connect = vi.fn();
     constructor(_url: string, _room: string, readonly doc: Y.Doc) { super(); providers.push(this); }
@@ -110,4 +110,54 @@ test('destroy detaches an in-flight storage transaction and its late completion'
   expect(transaction.oncomplete).toBeNull(); expect(transaction.onerror).toBeNull(); expect(db.removeEventListener).toHaveBeenCalledTimes(3);
   complete(); expect(listener).not.toHaveBeenCalled();
   expect(store.snapshot().localPersistence).toBe('loading');
+});
+
+test('cursor bursts keep a trailing latest point and selection flushes the pending cursor', () => {
+  const store = create(), awareness = mocks.providers[0].awareness;
+  store.presence({ cursor: { x: 1, y: 1 } });
+  awareness.getStates.mockClear();
+  for (let x = 2; x <= 100; x++) store.presence({ cursor: { x, y: 10 } });
+  expect(awareness.getStates).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(50);
+  expect(awareness.getStates).toHaveBeenCalledTimes(1);
+  expect(store.snapshot().peers[0].cursor).toEqual({ x: 100, y: 10 });
+  store.presence({ cursor: { x: 200, y: 20 } });
+  store.presence({ selectedIds: ['circle'] });
+  expect(store.snapshot().peers[0]).toMatchObject({ selectedIds: ['circle'], cursor: { x: 200, y: 20 } });
+  store.presence({ cursor: { x: 300, y: 30 } });
+  store.doc.destroy(); awareness.getStates.mockClear(); vi.advanceTimersByTime(2000);
+  expect(awareness.getStates).not.toHaveBeenCalled();
+});
+
+test('a 500-person room bounds cursor publication to once a second while edits stay immediate', () => {
+  const store = create(), awareness = mocks.providers[0].awareness;
+  const peers = new Map(Array.from({ length: 500 }, (_, i) => [i, { user: { name: `Peer ${i}`, color: '#abcdef' } }]));
+  awareness.getStates.mockReturnValue(peers); awareness.emit('change');
+  store.presence({ cursor: { x: 1, y: 1 } }); awareness.getStates.mockClear();
+  store.presence({ cursor: { x: 2, y: 2 } }); store.setProjectName('Immediate');
+  vi.advanceTimersByTime(999);
+  expect(awareness.getStates).not.toHaveBeenCalled(); expect(store.project().name).toBe('Immediate');
+  vi.advanceTimersByTime(1); expect(awareness.getStates).toHaveBeenCalledTimes(1);
+});
+
+
+test('remote presence packets publish once per frame and preserve unchanged peer references', () => {
+  const store = create(), provider = mocks.providers[0], awareness = provider.awareness;
+  const peers = new Map([[1, { user: { name: 'A' }, editor: { cursor: { x: 0, y: 0 } } }], [2, { user: { name: 'B' }, editor: { cursor: { x: 0, y: 0 } } }]]);
+  awareness.getStates.mockReturnValue(peers); awareness.emit('change');
+  const before = store.snapshot().peers;
+  awareness.getStates.mockClear();
+  for (let x = 1; x <= 50; x++) {
+    peers.set(1, { user: { name: 'A' }, editor: { cursor: { x, y: 0 } } });
+    awareness.emit('change', {}, provider);
+  }
+  expect(awareness.getStates).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(16);
+  expect(awareness.getStates).toHaveBeenCalledOnce();
+  expect(store.snapshot().peers[0].cursor?.x).toBe(50);
+  expect(store.snapshot().peers[1]).toBe(before[1]);
+  peers.delete(1); awareness.emit('change', {}, provider); vi.advanceTimersByTime(16);
+  expect(store.snapshot().peers).toEqual([before[1]]);
+  awareness.emit('change', {}, provider); store.doc.destroy(); awareness.getStates.mockClear(); vi.advanceTimersByTime(16);
+  expect(awareness.getStates).not.toHaveBeenCalled();
 });

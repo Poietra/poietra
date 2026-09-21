@@ -500,5 +500,21 @@ fn studio_people(input : @core.Any) -> @react.Element {
       ),
     )
   }
+  if participants.length() > 4 {
+    avatars.push(
+      h(
+        "button",
+        {
+          "className": @core.any("participant-overflow"),
+          "aria-label": @core.any("参加者 \{participants.length()} 人"),
+          "title": @core.any("\{participants.length()} participants"),
+          "onClick": @core.any(fn() {
+            controller.update({ ..controller.state, share_open: true, })
+          }),
+        },
+        ["+\{participants.length() - 4}"],
+      ),
+    )
+  }
   studio_div("participant-stack", avatars)
 }
