@@ -88,7 +88,7 @@ pub fn Fanout::document(self : Fanout, update : @core.Any) -> Unit {
       later(
         fn() { self.flush_documents() },
         if (self.peers)() <= 32 {
-          16
+          0
         } else {
           50
         },

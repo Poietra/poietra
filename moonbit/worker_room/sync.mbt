@@ -143,7 +143,7 @@ fn Room::queue_update(self : Room, update : @core.Any) -> Unit {
     self.inbound_timer = Some(
       @core.global_this()._call("setTimeout", [
         @core.any(fn() { self.flush_inbound() }),
-        @core.any(10),
+        @core.any(if self.connections.size() <= 32 { 0 } else { 10 }),
       ]),
     )
   }
