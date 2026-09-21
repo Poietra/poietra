@@ -427,6 +427,19 @@ pnpm build:web
 この素材再生成には FontTools/Brotli の `pyftsubset` と libwebp 対応 FFmpeg が追加で必要です。
 通常のビルドでは、リポジトリにある生成済み素材を使います。
 
+API/MCP ページの文言は `moonbit/developer_site`、OpenAPI とサンプルは `moonbit/render_api`、
+プロジェクトの構造定義は `moonbit/project_codec` を更新します。ビルド時に英日 HTML／Markdown と
+JSON を生成するので、`dist` を直接編集しません。ページだけの変更では上記の画像再生成は不要です。
+配信の確認は、本番形式の Node またはローカル workerd を起動して次を実行します。
+
+```sh
+POIETRA_TEST_URL=http://127.0.0.1:8787 POIETRA_TEST_STATIC_HEADERS=1 \
+  node tests/public-site-http.integration.mjs
+```
+
+`POIETRA_TEST_STATIC_HEADERS=1` は Cloudflare Static Assets の CORS ヘッダーも検査します。
+Node で確認する場合はこの指定を外し、そのホストの URL を使います。
+
 ## 検証と性能
 
 [Checks](../../README.md#checks) に確認済みのリビジョン・範囲と実行コマンド、

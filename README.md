@@ -19,10 +19,11 @@ runs as MoonBit-generated JavaScript, with a WebAssembly motion kernel and nativ
 adapters for browser APIs and JavaScript libraries. Executable application TS/TSX
 has been removed; internal refactoring and performance work continue.
 
-Documentation reviewed **2026-09-22**. The browser release reference is
-[`8b3370a`](https://github.com/Poietra/poietra/commit/8b3370a0b4fc80cd85a22e3ce2368cfbb75b1914).
-The newer headless renderer is locally verified and has not been deployed to Cloudflare.
-The MoonBit service was last verified in production on **2026-09-21**;
+Documentation reviewed **2026-09-22**. The browser/developer-page release is
+[`396c26b`](https://github.com/Poietra/poietra/commit/396c26b879bc528ca2066ac2b68675216a9e4e4a).
+Cloudflare hosts the editor, documentation and schemas. The headless renderer
+runs as a self-hosted Node service or local MCP process, with no hosted render endpoint.
+The MoonBit service was last verified in production on **2026-09-22**;
 see [deployment status and operations](#deployment-and-limits).
 
 ## What you can make
@@ -312,7 +313,7 @@ Source audit rerun **2026-09-22**, including the standalone render host:
 | MoonBit application | 300 | 59,941 |
 | Native JS runtime adapters | 119 | 1,325 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 148 | 16,575 |
+| TypeScript tests, fixtures and test configurations | 148 | 16,583 |
 | Public/environment type declarations | 114 | 1,978 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -378,20 +379,20 @@ HEAD, cache validators, real 404s, OpenAPI/schema/example/configuration files;
 workerd also verified Static Assets CORS headers. OpenAPI metadata was checked
 against the official 3.1 schema; request and response schemas are tested against
 actual API responses, including an authenticated MP4 render of the public sample.
+The real-workerd collaboration suite also passed offline edits, selective Undo,
+hibernation, compaction, process restart and pending update recovery. Public HTTP
+and both developer-page browser checks passed again against `poietra.com` after
+deployment, and its downloaded sample rendered locally to a 30-frame MP4.
 
-The headless addition and typed refactor were verified locally on **2026-09-21**:
-17 headless tests, 700 Vitest checks, five build/API checks, 51 MoonBit JS tests,
-48 WASM checks, public type contracts, warning-free MoonBit checking and the
-complete production build. Nine targeted browser regressions passed for portable
+Nine targeted browser regressions also passed on **2026-09-21** for portable
 files/images, parenting/keyframe round trips, equation geometry, resource
-invalidation/recovery and shared SVG rendering.
-The new tests decode all H.264 frames and MP3 samples with independent WASM
+invalidation/recovery and shared SVG rendering. The headless checks decode all
+H.264 frames and MP3 samples with independent WASM
 decoders, verify timing/trim/gain/mute, exercise HTTP/MCP, oversized requests and
 cancellation, and render with subprocess launches and network fetch disabled.
 They also verify typed-package isolation, invalid consumer rejection, native
 buffer validation, encoder backpressure, single cleanup and error preservation.
-CI runs them before installing Chromium or FFmpeg. These are local results,
-separate from the previously published browser release below.
+CI runs them before installing Chromium or FFmpeg.
 
 Application revision `8b3370a` passed
 [CI run 35527411897](https://github.com/Poietra/poietra/actions/runs/35527411897):
@@ -406,6 +407,10 @@ frozen sources. It covers search/order, failed reads, restoration retries,
 identity changes, delayed replies and guest project operations. Authentication
 HTTP responses are mocked in those UI tests; separate Node/workerd integrations
 exercise persistent account isolation, callback races and expiry.
+On 2026-09-22 the capacity test was synchronized with the initial automatic
+visit after CI recorded a click while that visit disabled the controls. All 15
+checks and ten consecutive capacity checks passed locally. The full run for
+this test-only change is [CI 35625067075](https://github.com/Poietra/poietra/actions/runs/35625067075).
 
 ```sh
 # Repository root
@@ -625,21 +630,21 @@ configuration is for isolated `poietra-moonbit` validation. The explicit
 Yumaboda's account, preserving `poietra.com`, old workers.dev links, three Durable
 Object namespaces, migration tag `v2-accounts`, secrets and `poietra-assets-prod`.
 
-**Last recorded deployment: 2026-09-21 02:57 JST.** Application `8b3370a`
-served at 100% as Worker version `ae562112-171c-4e79-9c0c-2839be28b03b`.
-All 16 bindings, runtime settings and handlers matched the preceding release;
-there was no document/storage migration. The recorded predecessor is
-`9d95a13c-c383-4c14-89f5-4af572ab85a4` (application `0cda0c5`). Confirm the active
+**Last recorded deployment: 2026-09-22 01:08 JST.** Application `396c26b`
+served at 100% as Worker version `2145e24e-6fe8-487c-b2bf-f1b4c9e60d31`.
+Storage namespaces, secret bindings, variables, rate limits and runtime settings
+matched the preceding release. Static Assets routing and headers gained the
+public developer documents; there was no document/storage migration. The recorded
+predecessor is `ae562112-171c-4e79-9c0c-2839be28b03b` (application `8b3370a`). Confirm the active
 version before the next deployment instead of assuming this record is live state.
 
 Verification used a dedicated room: release JS/WASM hashes, existing room/R2
 restoration, upload deduplication, two-browser edits and selective Undo,
 guest/account UI, GitHub authorization start, playback and seeking. A downloaded
-720p MP4 decoded all 102 expected frames. Full provider login and paid AI calls
-were outside that smoke check. With account HTTP responses mocked in the browser,
-the deployed UI also passed search/order, failed-read recovery and retryable
-shortcut restoration checks, with non-overlapping controls at 1440/720/420 px.
-Those UI checks do not constitute live OAuth or private-account persistence tests.
+720p MP4 decoded all 102 expected frames. Developer HTML/Markdown, language
+negotiation, cache validators, CORS and all machine-readable files passed public
+HTTP checks; English/Japanese pages were also checked at 1440/390 px with JS
+disabled. Full provider login and paid AI calls were outside this smoke check.
 
 Use the [studio deployment procedure](apps/studio/README.md#実行と配置) for local
 workerd, version upload, activation and rollback. `pnpm --dir apps/studio run deploy`
