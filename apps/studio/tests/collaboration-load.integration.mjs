@@ -112,8 +112,9 @@ try {
     machine: { platform: process.platform, node: process.version, cpu: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem(), affinity: (await readFile('/proc/self/status', 'utf8')).match(/Cpus_allowed_list:\s*(.*)/)?.[1] },
     workload: { clients: count, objects: count, seconds, editHz, presenceHz, ownedPresence: !!args['owned-presence'], legacyClient: !!args['legacy-client'], browserClient: !!args.browser, generators, warmup: 'all peers synchronized, then 1s idle', host: 'local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN' },
     joinMs, convergenceMs: Math.max(...results.map(result => result.convergedAt)) - start, measuredUpdates: publishers.reduce((n, p) => n + p.edits, 0),
+    wire: { compression: [...new Set(results.flatMap(r => r.compression))], receivedBytes: sum('wireReceivedBytes'), transmittedBytes: sum('wireTransmittedBytes') },
     received: sum('received'), receivedBytes: sum('receivedBytes'), transmitted: sum('transmitted'), transmittedBytes: sum('transmittedBytes'), disconnects: sum('disconnects'),
-    peerEditLatencyMs: stats(latencies), generator: { schedulerMaxDelayMs: Math.max(...results.map(r => r.schedulerMaxDelayMs)), eventLoopP99Ms: Math.max(...results.map(r => r.eventLoopP99Ms)), heapsBytes: sum('heapBytes'), rssBytes: process.memoryUsage().rss },
+    peerEditLatencyMs: stats(latencies), generator: { uvThreadpoolSize: process.env.UV_THREADPOOL_SIZE ?? 'default', schedulerMaxDelayMs: Math.max(...results.map(r => r.schedulerMaxDelayMs)), eventLoopP99Ms: Math.max(...results.map(r => r.eventLoopP99Ms)), heapsBytes: sum('heapBytes'), rssBytes: process.memoryUsage().rss },
     checks: { allFinalPoses: true, hibernationEditAndPresence: true },
   };
   if (args.output) await writeFile(args.output, JSON.stringify(result, null, 2) + '\n');

@@ -13,6 +13,7 @@ import { makeDemoProject } from '../../shared/demo.js';
 import { initializeDocument } from '../../shared/document.js';
 
 process.setMaxListeners(config.length + 10);
+let wireStartRead = 0, wireStartWritten = 0;
 let active = false, received = 0, receivedBytes = 0, transmitted = 0, transmittedBytes = 0, disconnects = 0, epoch = 0, maxSchedulerDelay = 0;
 const clients = [], latencies = [], lag = monitorEventLoopDelay({ resolution: 10 });
 export async function until(check, reason, timeout = 60000) {
@@ -88,6 +89,8 @@ async function join() {
 async function publish({ start, seconds, editHz, presenceHz }) {
   epoch = start;
   await delay(Math.max(0, epoch - Date.now()));
+  wireStartRead = clients.reduce((n, c) => n + c.provider.ws._socket.bytesRead, 0);
+  wireStartWritten = clients.reduce((n, c) => n + c.provider.ws._socket.bytesWritten, 0);
   lag.enable(); lag.reset(); active = true;
   for (const client of clients) {
     client.nextEdit = start + client.index / config.total * 1000 / editHz;
@@ -115,7 +118,7 @@ async function verify(expected) {
   await until(() => clients.every(client => expected.every(({ index, latest }) => client.states.get(`load-${index}`).get('x') === latest)), 'Final poses did not converge');
   const convergedAt = Date.now(); active = false; lag.disable();
   assert.equal(disconnects, 0, 'Disconnected under load');
-  return { convergedAt, latencies, received, receivedBytes, transmitted, transmittedBytes, disconnects, schedulerMaxDelayMs: maxSchedulerDelay, eventLoopP99Ms: lag.percentile(99) / 1e6, heapBytes: process.memoryUsage().heapUsed };
+  return { compression: [...new Set(clients.map(c => c.provider.ws.extensions))], wireReceivedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesRead, 0) - wireStartRead, wireTransmittedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesWritten, 0) - wireStartWritten, convergedAt, latencies, received, receivedBytes, transmitted, transmittedBytes, disconnects, schedulerMaxDelayMs: maxSchedulerDelay, eventLoopP99Ms: lag.percentile(99) / 1e6, heapBytes: process.memoryUsage().heapUsed };
 }
 parentPort.on('message', async ({ id, command, value }) => {
   try {
