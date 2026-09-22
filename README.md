@@ -399,11 +399,10 @@ MoonBit type check, public TypeScript contracts and a production web build.
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
 The load-test results and generator limitations are recorded below.
-Revision `72f05a2` passed the complete
-[CI run 35634455268](https://github.com/Poietra/poietra/actions/runs/35634455268),
-including browser/export/media, persistence, R2 and account integrations. The
-subsequent socket-retirement fix also passed all 713 local Vitest checks and the
-real-workerd hibernation/restart suite; it is outside that CI revision.
+Deployed application revision `36c92bf`, including the socket-retirement fix,
+passed the complete
+[CI run 35637586561](https://github.com/Poietra/poietra/actions/runs/35637586561),
+including browser/export/media, persistence, R2 and account integrations.
 
 The preceding API/MCP documentation addition was verified on **2026-09-22**:
 19 headless/contract tests, 701 Vitest checks, five build/API checks, 51 MoonBit
@@ -730,21 +729,21 @@ configuration is for isolated `poietra-moonbit` validation. The explicit
 Yumaboda's account, preserving `poietra.com`, old workers.dev links, three Durable
 Object namespaces, migration tag `v2-accounts`, secrets and `poietra-assets-prod`.
 
-**Last recorded deployment: 2026-09-22 01:08 JST.** Application `396c26b`
-served at 100% as Worker version `2145e24e-6fe8-487c-b2bf-f1b4c9e60d31`.
+**Last recorded deployment: 2026-09-22 03:20 JST.** Application `36c92bf`
+served at 100% as Worker version `3c91eea7-bf51-4b75-b33d-0b65e4387c99`.
 Storage namespaces, secret bindings, variables, rate limits and runtime settings
-matched the preceding release. Static Assets routing and headers gained the
-public developer documents; there was no document/storage migration. The recorded
-predecessor is `ae562112-171c-4e79-9c0c-2839be28b03b` (application `8b3370a`). Confirm the active
+matched the preceding release, including Static Assets routing and headers.
+There was no document/storage migration. The recorded predecessor is
+`2145e24e-6fe8-487c-b2bf-f1b4c9e60d31` (application `396c26b`). Confirm the active
 version before the next deployment instead of assuming this record is live state.
 
 Verification used a dedicated room: release JS/WASM hashes, existing room/R2
 restoration, upload deduplication, two-browser edits and selective Undo,
 guest/account UI, GitHub authorization start, playback and seeking. A downloaded
-720p MP4 decoded all 102 expected frames. Developer HTML/Markdown, language
-negotiation, cache validators, CORS and all machine-readable files passed public
-HTTP checks; English/Japanese pages were also checked at 1440/390 px with JS
-disabled. Full provider login and paid AI calls were outside this smoke check.
+720p MP4 decoded all 102 expected frames. Full provider login and paid AI calls
+were outside this smoke check. The 500-client tests ran against isolated local
+workerd, not the production domain. Reload existing editor tabs to use local-only
+presence publication and the adaptive cursor interval.
 
 Use the [studio deployment procedure](apps/studio/README.md#実行と配置) for local
 workerd, version upload, activation and rollback. `pnpm --dir apps/studio run deploy`
