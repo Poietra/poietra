@@ -413,20 +413,31 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-The room scalability changes were verified on **2026-09-22** with
-715 Vitest checks, five build/API checks, 51 MoonBit JS checks, a warning-free
-MoonBit type check, public TypeScript contracts and a production web build.
+Application revision `2d76eed` passed the complete
+[CI run 35684134367](https://github.com/Poietra/poietra/actions/runs/35684134367)
+on **2026-09-22**: 727 Vitest checks, 51 MoonBit JS checks, 48 WASM checks,
+173 main browser checks, eight export checks, six media checks and 28 production
+page checks. Generated bindings, warning-free MoonBit types, public TypeScript
+contracts, headless API/MCP and the production build also passed.
+[.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
+selection; these counts describe that run.
+
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
+The 500-connection regression uses one real editing browser, a protocol observer
+and 498 idle sockets. With controlled browser time, 20 actual canvas cursor moves
+within one second publish once; 90 pointer moves before advancing the timer update
+the local view immediately and flush one document packet at pointer release.
+Separate deterministic checks verify timed continuous editing, queue bounds,
+page lifecycle writes and chat cancellation on reload. These are packet-count and
+correctness checks, not measurements of 500 active browsers or WAN latency.
 The load-test results and generator limitations are recorded below.
-The presence-encoding follow-up also passed actual workerd recovery and 500-client
-convergence checks, including an old awareness client and one real browser. Its
-tests decode bounded Unicode rosters and preserve safe-integer IDs/clocks and
-removals with the unchanged awareness protocol.
-Application revision `79531b9`, including the presence-encoding follow-up,
-passed the complete
-[CI run 35680387634](https://github.com/Poietra/poietra/actions/runs/35680387634),
-including browser/export/media, persistence, R2 and account integrations.
+
+Node/workerd integrations also passed media persistence, R2 migration and failure
+recovery, account isolation, callback races and expiry across Worker restarts.
+Account UI tests use mocked authentication responses; the Worker tests exercise
+persistent accounts with mocked provider HTTP. They do not verify live OAuth
+completion or paid AI calls.
 
 The preceding API/MCP documentation addition was verified on **2026-09-22**:
 19 headless/contract tests, 701 Vitest checks, five build/API checks, 51 MoonBit
@@ -454,23 +465,9 @@ They also verify typed-package isolation, invalid consumer rejection, native
 buffer validation, encoder backpressure, single cleanup and error preservation.
 CI runs them before installing Chromium or FFmpeg.
 
-Application revision `8b3370a` passed
-[CI run 35527411897](https://github.com/Poietra/poietra/actions/runs/35527411897):
-700 Vitest checks, five build/API checks, 49 MoonBit JS tests, 42 WASM tests,
-173 main browser checks, eight export checks, six media checks and 26 production
-page checks, plus actual Node/workerd persistence, hibernation, restart, R2 and
-account/TTL integrations. [.github/workflows/check.yml](.github/workflows/check.yml)
-is the authoritative selection; these counts describe that run.
-
-The targeted local account/project suite also passed all 15 browser checks on
-frozen sources. It covers search/order, failed reads, restoration retries,
-identity changes, delayed replies and guest project operations. Authentication
-HTTP responses are mocked in those UI tests; separate Node/workerd integrations
-exercise persistent account isolation, callback races and expiry.
-On 2026-09-22 the capacity test was synchronized with the initial automatic
-visit after CI recorded a click while that visit disabled the controls. All 15
-checks and ten consecutive capacity checks passed locally. The full run for
-this test-only change passed [CI 35625067075](https://github.com/Poietra/poietra/actions/runs/35625067075).
+The account/project browser checks cover search/order, failed reads, restoration
+retries, identity changes, delayed replies and guest project operations. Sources
+and generated output stay frozen during browser verification.
 
 ```sh
 # Repository root
@@ -803,21 +800,21 @@ configuration is for isolated `poietra-moonbit` validation. The explicit
 Yumaboda's account, preserving `poietra.com`, old workers.dev links, three Durable
 Object namespaces, migration tag `v2-accounts`, secrets and `poietra-assets-prod`.
 
-**Last recorded deployment: 2026-09-22 11:56 JST.** Application `79531b9`
-served at 100% as Worker version `ed47add7-6904-425e-8eb3-171315450e9e`.
+**Last recorded deployment: 2026-09-22 12:58 JST.** Application `2d76eed`
+served at 100% as Worker version `dcd24d3d-45b7-4abe-b4eb-3a274955c841`.
 Storage namespaces, secret bindings, variables, rate limits and runtime settings
 matched the preceding release, including Static Assets routing and headers.
 There was no document/storage migration. The recorded predecessor is
-`3c91eea7-bf51-4b75-b33d-0b65e4387c99` (application `36c92bf`). Confirm the active
+`ed47add7-6904-425e-8eb3-171315450e9e` (application `79531b9`). Confirm the active
 version before the next deployment instead of assuming this record is live state.
 
 Verification used a dedicated room: release JS/WASM hashes, existing room/R2
-restoration, upload deduplication, two-browser edits and selective Undo,
-guest/account UI, GitHub authorization start, playback and seeking. A downloaded
-720p MP4 decoded all 102 expected frames. Full provider login and paid AI calls
+restoration, upload deduplication, two-browser edits, selective Undo and reload
+recovery, guest/account UI, GitHub authorization start, playback and seeking.
+A downloaded 720p MP4 decoded all 102 expected frames. Full provider login and paid AI calls
 were outside this smoke check. The 500-client tests ran against isolated local
-workerd, not the production domain. Reload existing editor tabs to use local-only
-presence publication and the adaptive cursor interval.
+workerd, not the production domain. Reload existing editor tabs to use corrected
+canvas cursor throttling, bounded document batching and lifecycle/chat flushing.
 
 Use the [studio deployment procedure](apps/studio/README.md#実行と配置) for local
 workerd, version upload, activation and rollback. `pnpm --dir apps/studio run deploy`
