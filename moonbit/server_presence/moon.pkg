@@ -13,6 +13,7 @@ options(
       "exports": [
         "read_presence_update:readPresenceUpdate",
         "presence_message:presenceMessage",
+        "presence_messages:presenceMessages",
       ],
     },
   },

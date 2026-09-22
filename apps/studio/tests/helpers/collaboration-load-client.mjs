@@ -26,7 +26,7 @@ class Socket extends WebSocket {
   send(bytes, ...args) { if (active) { transmitted++; transmittedBytes += bytes.byteLength; } return super.send(bytes, ...args); }
   emit(event, ...args) {
     if (active && event === 'message') {
-      const bytes = args[0]; received++; receivedBytes += bytes.byteLength;
+      const bytes = args[0] instanceof ArrayBuffer ? new Uint8Array(args[0]) : args[0]; received++; receivedBytes += bytes.byteLength;
       const type = bytes[0] === 0 ? 'document' : bytes[0] === 1 ? 'presence' : 'other';
       traffic[type].messages++; traffic[type].bytes += bytes.byteLength;
     }
@@ -78,9 +78,9 @@ async function join() {
   }
   for (const client of clients) {
     client.states = states(client);
-    // Deep observers ask Yjs to sort by event.path, which walks sibling maps.
+    // Deep observers sort descendant events by path and allocate those paths.
     // Observe known pose maps directly so 500 simulated clients do not spend
-    // the benchmark resolving paths. The optional real browser keeps its UI.
+    // the benchmark doing that bookkeeping. The real browser keeps its UI.
     client.states.forEach((pose, owner) => {
       if (owner === `load-${client.index}`) return;
       pose.observe((event, transaction) => {
