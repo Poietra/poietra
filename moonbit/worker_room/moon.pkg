@@ -3,6 +3,7 @@ import {
   "mizchi/js_builtin/collection",
   "poietra/poietra/server_sync" @sync,
   "mizchi/js_builtin/arraybuffer" @buffer,
+  "mizchi/js_web/websocket",
   "mizchi/cloudflare" @cf,
   "poietra/poietra/http_runtime" @http,
   "poietra/poietra/assets",

@@ -86,9 +86,10 @@ fn Room::dispose(self : Room) -> Bool {
 
 ///|
 fn send(socket : @core.Any, message : @core.Any) -> Unit {
-  if @core.equal(socket._get("readyState"), @core.any(1)) {
+  let connection : @websocket.WebSocket = socket.cast()
+  if connection.readyState == 1 {
     // ws exposes backpressure; disconnect slow consumers so Yjs can resync.
-    if (socket._get("bufferedAmount").cast() : Double) > 1048576.0 {
+    if connection.bufferedAmount > 1048576 {
       socket._call("close", [
         @core.any(1013),
         @core.any("Slow connection; resynchronize"),
@@ -98,7 +99,8 @@ fn send(socket : @core.Any, message : @core.Any) -> Unit {
     }
     // A failed peer must not interrupt delivery or persistence for other peers.
     try
-      @core.throwable(fn() { socket._call("send", [message]) }) |> ignore
+      @core.throwable(fn() { connection.send_uint8array(message.cast()) })
+      |> ignore
     catch {
       _ => ()
     }

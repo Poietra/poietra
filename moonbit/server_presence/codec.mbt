@@ -65,41 +65,29 @@ fn optional_string(value : String?) -> @core.Any {
 
 ///|
 fn write_state(state : @presence.State) -> @core.Any {
-  @core.from_entries([
-    (
-      "user",
-      @core.from_entries([
-        ("name", @core.any(state.name)),
-        ("color", @core.any(state.color)),
-      ]),
-    ),
-    (
-      "editor",
-      @core.from_entries([
-        ("sceneId", optional_string(state.scene_id)),
-        ("compositionId", optional_string(state.composition_id)),
-        (
-          "selectedIds",
-          @core.any(
-            FixedArray::makei(state.selected_ids.length(), fn(index) {
-              state.selected_ids[index]
-            }),
-          ),
-        ),
-        (
-          "cursor",
-          match state.cursor {
-            None => @core.null()
-            Some(point) =>
-              @core.from_entries([
-                ("x", @core.any(point.x)),
-                ("y", @core.any(point.y)),
-              ])
-          },
-        ),
-      ]),
-    ),
-  ])
+  // This clean State and its selection array are freshly owned by the decoder.
+  // Construct native records directly; avoid entry tuples and a second array copy.
+  let user = @core.new_object()
+  user._set("name", @core.any(state.name))
+  user._set("color", @core.any(state.color))
+  let editor = @core.new_object()
+  editor._set("sceneId", optional_string(state.scene_id))
+  editor._set("compositionId", optional_string(state.composition_id))
+  editor._set("selectedIds", @core.any(state.selected_ids))
+  let cursor = match state.cursor {
+    None => @core.null()
+    Some(point) => {
+      let value = @core.new_object()
+      value._set("x", @core.any(point.x))
+      value._set("y", @core.any(point.y))
+      value
+    }
+  }
+  editor._set("cursor", cursor)
+  let value = @core.new_object()
+  value._set("user", user)
+  value._set("editor", editor)
+  value
 }
 
 ///|
@@ -137,20 +125,40 @@ pub fn read_presence_update(
       continue
     }
     old = Some({ client_id, clock, live, })
-    next = @core.from_entries([
-      ("clientId", @core.any(client_id)),
-      ("clock", @core.any(clock)),
-      (
-        "state",
-        if live {
-          write_state(read_state(value))
-        } else {
-          @core.null()
-        },
-      ),
-    ])
+    next = @core.new_object()
+    next._set("clientId", @core.any(client_id))
+    next._set("clock", @core.any(clock))
+    next._set(
+      "state",
+      if live {
+        write_state(read_state(value))
+      } else {
+        @core.null()
+      },
+    )
   }
   next
+}
+
+///|
+fn write_entry(output : @wire.Encoder, entry : @core.Any) -> Unit {
+  @wire.write_uint(output, entry._get("clientId").cast())
+  @wire.write_uint(output, entry._get("clock").cast())
+  @wire.write_string(
+    output,
+    @core.global_this()
+    ._get("JSON")
+    ._call("stringify", [entry._get("state")])
+    .cast(),
+  )
+}
+
+///|
+fn message(update : @wire.Encoder) -> @core.Any {
+  let message = @wire.encoder()
+  @wire.write_uint(message, 1.0)
+  @wire.write_bytes(message, @wire.to_bytes(update))
+  @wire.to_bytes(message)
 }
 
 ///|
@@ -158,20 +166,19 @@ pub fn presence_message(entries : FixedArray[@core.Any]) -> @core.Any {
   let update = @wire.encoder()
   @wire.write_uint(update, entries.length().to_double())
   for entry in entries {
-    @wire.write_uint(update, entry._get("clientId").cast())
-    @wire.write_uint(update, entry._get("clock").cast())
-    @wire.write_string(
-      update,
-      @core.global_this()
-      ._get("JSON")
-      ._call("stringify", [entry._get("state")])
-      .cast(),
-    )
+    write_entry(update, entry)
   }
-  let message = @wire.encoder()
-  @wire.write_uint(message, 1.0)
-  @wire.write_bytes(message, @wire.to_bytes(update))
-  @wire.to_bytes(message)
+  message(update)
+}
+
+///|
+fn encoded_message(entries : Array[@core.Any]) -> @core.Any {
+  let update = @wire.encoder()
+  @wire.write_uint(update, entries.length().to_double())
+  for entry in entries {
+    @wire.write_raw_bytes(update, entry)
+  }
+  message(update)
 }
 
 ///|
@@ -182,17 +189,24 @@ pub fn presence_messages(entries : FixedArray[@core.Any]) -> Array[@core.Any] {
   let chunk = []
   let mut size = 0
   for entry in entries {
-    let length : Int = presence_message([entry])._get("byteLength").cast()
-    if !chunk.is_empty() && (chunk.length() >= 50 || size + length > 16000) {
-      packets.push(presence_message(FixedArray::from_array(chunk[:])))
+    // Serialize each entry once. The same bytes determine the UTF-8 budget
+    // and enter the packet; names/selections can contain multibyte characters.
+    let encoded = @wire.encoder()
+    write_entry(encoded, entry)
+    let bytes = @wire.to_bytes(encoded)
+    let length = @wire.length(encoded)
+    // One-byte message kind/count and a two-byte payload length fit in four
+    // bytes. Stay below 16,000 bytes and the legacy 100-entry receive limit.
+    if !chunk.is_empty() && (chunk.length() >= 100 || size + length > 15996) {
+      packets.push(encoded_message(chunk))
       chunk.clear()
       size = 0
     }
-    chunk.push(entry)
+    chunk.push(bytes)
     size += length
   }
   if !chunk.is_empty() {
-    packets.push(presence_message(FixedArray::from_array(chunk[:])))
+    packets.push(encoded_message(chunk))
   }
   packets
 }

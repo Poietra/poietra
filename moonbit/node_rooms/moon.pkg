@@ -1,5 +1,6 @@
 import {
   "mizchi/js_core" @core,
+  "mizchi/js_web/websocket",
   "poietra/poietra/server_sync" @sync,
   "mizchi/js_builtin/collection",
   "mizchi/js_node/fs",

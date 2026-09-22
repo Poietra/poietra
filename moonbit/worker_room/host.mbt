@@ -92,10 +92,11 @@ fn Room::restore_connections(self : Room) -> Unit {
 
 ///|
 fn Room::send(_self : Room, socket : @core.Any, bytes : @core.Any) -> Unit {
-  if !@core.equal(socket._get("readyState"), @core.any(1)) {
+  let connection : @websocket.WebSocket = socket.cast()
+  if connection.readyState != 1 {
     return
   }
-  (@core.throwable(fn() { socket._call("send", [bytes]) }) |> ignore) catch {
+  (@core.throwable(fn() { connection.send_uint8array(bytes.cast()) }) |> ignore) catch {
     _ =>
       // A failed connection must resynchronize instead of silently missing edits.
       (@core.throwable(fn() {

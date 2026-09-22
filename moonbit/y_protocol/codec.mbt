@@ -24,6 +24,10 @@ pub extern "js" fn write_bytes(output : Encoder, value : @core.Any) -> Unit = "w
 
 ///|
 #module("lib0/encoding")
+pub extern "js" fn write_raw_bytes(output : Encoder, value : @core.Any) -> Unit = "writeUint8Array"
+
+///|
+#module("lib0/encoding")
 pub extern "js" fn to_bytes(output : Encoder) -> @core.Any = "toUint8Array"
 
 ///|
