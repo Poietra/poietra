@@ -180,9 +180,10 @@ test('gesture completion, undo and page suspension flush document transport and 
   store.presence({ cursor: { x: 1, y: 1 } }); store.presence({ cursor: { x: 2, y: 2 } });
   window.dispatchEvent(new Event('pagehide'));
   expect(provider.awareness.getLocalState().editor.cursor.x).toBe(2);
-  expect(flushDocuments).toHaveBeenCalledTimes(5);
+  window.dispatchEvent(new Event('pageshow'));
+  expect(flushDocuments).toHaveBeenCalledTimes(6);
   store.doc.destroy(); flushDocuments.mockClear();
-  document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('pagehide'));
+  document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('pagehide')); window.dispatchEvent(new Event('pageshow'));
   expect(flushDocuments).not.toHaveBeenCalled();
 });
 

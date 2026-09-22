@@ -14,7 +14,7 @@ type Socket = NativeSocket & { flushDocuments(): void };
 const sockets: Socket[] = [], docs: Y.Doc[] = [];
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => { for (const socket of sockets.splice(0)) socket.close(); for (const doc of docs.splice(0)) doc.destroy(); vi.clearAllTimers(); vi.useRealTimers(); });
-function socket(interval = 50): Socket { const Type = batchedWebsocketClass(NativeSocket, Y, () => interval); const value = new Type(); sockets.push(value); return value; }
+function socket(interval: number | (() => number) = 50): Socket { const Type = batchedWebsocketClass(NativeSocket, Y, typeof interval === 'number' ? () => interval : interval); const value = new Type(); sockets.push(value); return value; }
 function doc() { const value = new Y.Doc(); docs.push(value); return value; }
 function packet(update: Uint8Array, kind = 2) {
   const encoder = encoding.createEncoder(); encoding.writeVarUint(encoder, 0); encoding.writeVarUint(encoder, kind); encoding.writeVarUint8Array(encoder, update); return encoding.toUint8Array(encoder);
@@ -51,6 +51,20 @@ test('continuous 16ms edits drain every batch window instead of postponing deliv
   transport.flushDocuments();
   expect(transport.sent).toHaveLength(23);
   expect(apply(transport).getMap('poses').get('x')).toBe(89);
+});
+
+test('a suspended page drains earlier edits and sends later lifecycle writes without timers; resuming restores batching', () => {
+  let interval = 50;
+  const transport = socket(() => interval), source = doc();
+  source.on('update', update => transport.send(packet(update)));
+  source.getMap('chat').set('status', 'pending'); expect(transport.sent).toHaveLength(0);
+  interval = 0;
+  source.getMap('chat').set('status', 'stopped');
+  expect(transport.sent).toHaveLength(2); expect(vi.getTimerCount()).toBe(0);
+  expect(apply(transport).getMap('chat').get('status')).toBe('stopped');
+  interval = 50; source.getMap('chat').set('status', 'resumed');
+  expect(transport.sent).toHaveLength(2);
+  vi.advanceTimersByTime(50); expect(apply(transport).getMap('chat').get('status')).toBe('resumed');
 });
 
 test.each([0, 1])('queued edits precede sync step %i and control frames keep their bytes', kind => {

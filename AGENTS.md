@@ -155,7 +155,10 @@ and measurements belong in [README.md](README.md).
   changes by their values, not patch shape. Batch outgoing document frames through
   y-websocket's public socket adapter, retaining immediate local edits and Undo.
   Bound each socket's queue and flush at control/gesture/page lifecycle boundaries;
-  test actual pointer events alongside reconnect and dependency preservation.
+  chat status transactions send immediately. While a page is leaving, later
+  lifecycle writes must not wait for a timer; cancel active AI requests before
+  navigation aborts fetch. Test actual pointer events, interrupted chat requests,
+  reconnect and dependency preservation.
 
 ## Evidence and documentation
 

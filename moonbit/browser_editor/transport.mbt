@@ -14,13 +14,29 @@ fn flush_documents(store : @core.Any) -> Unit {
 fn StoreSession::watch_page(self : StoreSession) -> Unit {
   let global = @core.global_this()
   let document = global._get("document")
-  for (target, event) in [(global, "pagehide"), (document, "visibilitychange")] {
+  let hidden = fn() {
+    !@core.is_nullish(document) &&
+    @core.equal(document._get("visibilityState"), @core.any("hidden"))
+  }
+  self.page_suspended = hidden()
+  for
+    (target, event) in [
+      (global, "pagehide"),
+      (global, "pageshow"),
+      (document, "visibilitychange"),
+    ] {
     if @core.is_nullish(target) ||
       @core.typeof_(target._get("addEventListener")) != "function" {
       continue
     }
     let callback = @core.any(fn() {
       if !self.destroyed {
+        // Later pagehide handlers (for example chat cancellation) can still
+        // write to Yjs. Send those immediately: their timers may never run.
+        self.page_suspended = match event {
+          "pagehide" => true
+          _ => hidden()
+        }
         self.flush_presence()
         flush_documents(self.store)
       }

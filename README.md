@@ -211,9 +211,14 @@ pending presence immediately.
 `client_sync` uses y-websocket's public `WebSocketPolyfill` option to losslessly
 merge outgoing document updates. The local document, rendering, IndexedDB and Undo
 still update immediately. The first queued update starts a bounded timer: 16 ms
-up to 32 peers, 50 ms above that; further edits do not postpone it. Queues flush
-at 128 updates / 256 KiB, before sync/control frames and close, on gesture end or
-Undo/Redo, and when the page is hidden. A disconnected socket discards its queue;
+up to 32 peers, 50 ms above that; further edits do not postpone it. Queues hold at
+most 128 updates / 256 KiB and flush before sync/control frames and close, on
+gesture end or Undo/Redo, and when the page is hidden. While hidden or leaving,
+subsequent lifecycle writes also send immediately; this preserves chat cancellation
+performed by a later page-exit handler. Returning to the page restores batching.
+Chat transactions flush immediately; active AI requests cancel on navigation
+before the browser aborts their HTTP fetch, with that listener removed on settlement.
+A disconnected socket discards its queue;
 the existing document and IndexedDB participate in the normal reconnect handshake.
 Each socket owns its timer, so an old connection cannot publish on its replacement.
 

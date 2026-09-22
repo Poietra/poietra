@@ -151,6 +151,24 @@ async fn ChatController::send_async(
     self.request.set_current(None)
     (self.set_pending)(None)
   })
+  // Navigation may abort fetch before pagehide, making it look like a network
+  // failure. Cancel while this request is still owned. Attach only while an AI
+  // request is running and remove on every exit, including an explicit stop.
+  let window = @core.global_this()
+  let leave = @core.any(fn() {
+    if self.owns(request) && self.cancel() is Some(active) {
+      (self.set_pending)(None)
+      self.restore(active)
+    }
+  })
+  if mention is Some(_) {
+    window._call("addEventListener", [@core.any("beforeunload"), leave])
+    |> ignore
+  }
+  defer (if mention is Some(_) {
+    window._call("removeEventListener", [@core.any("beforeunload"), leave])
+    |> ignore
+  })
   try {
     @core.throwable(fn() {
       if previous is Some(_) {

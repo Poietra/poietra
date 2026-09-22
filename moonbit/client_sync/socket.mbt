@@ -148,6 +148,12 @@ fn Outbox::send(self : Outbox, data : @core.Any) -> Unit {
     (self.send)(data)
     return
   }
+  let interval = (self.interval)().max(0).min(50)
+  if interval == 0 {
+    self.flush()
+    (self.send)(data)
+    return
+  }
   let size : Int = update._get("byteLength").cast()
   if self.bytes + size > 262144 || self.updates.length() >= 128 {
     self.flush()
@@ -163,7 +169,7 @@ fn Outbox::send(self : Outbox, data : @core.Any) -> Unit {
     self.timer = Some(
       @core.global_this()._call("setTimeout", [
         @core.any(fn() { self.flush() }),
-        @core.any((self.interval)().max(0).min(50)),
+        @core.any(interval),
       ]),
     )
   }

@@ -13,6 +13,7 @@ priv struct StoreSession {
   mut local_failed : Bool
   mut transactions_running : Bool
   mut destroyed : Bool
+  mut page_suspended : Bool
   mut pending_presence : @core.Any?
   mut presence_timer : @core.Any?
   mut peer_timer : @core.Any?

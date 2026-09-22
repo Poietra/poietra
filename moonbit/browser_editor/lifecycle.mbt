@@ -24,6 +24,7 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     local_failed: false,
     transactions_running: false,
     destroyed: false,
+    page_suspended: false,
     pending_presence: None,
     presence_timer: None,
     last_presence: 0.0,
@@ -90,7 +91,15 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
         @client_sync.batched_websocket_class(
           global._get("WebSocket"),
           host(store),
-          fn() { if state.peers.length() <= 32 { 16 } else { 50 } },
+          fn() {
+            if state.page_suspended {
+              0
+            } else if state.peers.length() <= 32 {
+              16
+            } else {
+              50
+            }
+          },
         ),
       ),
       (
@@ -102,6 +111,18 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     ]),
   ])
   store._set("provider", provider)
+  // Chat shares the Y.Doc but is a control stream, outside project editing.
+  // Register after the provider so lifecycle status writes flush their frame
+  // synchronously even when the browser is about to discard its timers.
+  state.on(
+    doc,
+    "update",
+    @core.any(fn(_update : @core.Any, origin : @core.Any) {
+      if @core.equal(origin, @core.any("poietra-chat")) {
+        flush_documents(store)
+      }
+    }),
+  )
   let awareness = provider._get("awareness")
   awareness._call("setLocalStateField", [
     @core.any("user"),
