@@ -86,6 +86,14 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     record([
       ("disableBc", @core.any(true)),
       (
+        "WebSocketPolyfill",
+        @client_sync.batched_websocket_class(
+          global._get("WebSocket"),
+          host(store),
+          fn() { if state.peers.length() <= 32 { 16 } else { 50 } },
+        ),
+      ),
+      (
         "awareness",
         @core.new(@presence.owned_awareness_class(runtime._get("Awareness")), [
           doc,
@@ -197,6 +205,7 @@ fn initialize_store(store : @core.Any, room : String) -> Unit {
     state.on(undo, event, @core.any(fn() { state.publish() }))
   }
   state.watch_persistence()
+  state.watch_page()
   state.on(doc, "destroy", @core.any(fn() { state.dispose() }))
   state.read_peers()
   state.watch_connection()
@@ -321,7 +330,19 @@ pub fn presence(store : @core.Any, patch : @core.Any) -> Unit {
   })
   state.pending_presence = Some(merge(previous, patch))
   let keys = @core.object_keys(patch)
-  let cursor_only = keys.length() == 1 && keys[0] == "cursor"
+  // The canvas repeats scene/composition IDs on every pointer move. Compare
+  // their values, not the patch shape, so those moves still use the rate limit.
+  let cursor_only = keys.contains("cursor") &&
+    !@core.is_nullish(patch._get("cursor")) &&
+    keys
+    .iter()
+    .all(fn(key) {
+      key == "cursor" ||
+      (
+        !@core.is_nullish(previous) &&
+        @core.equal(previous._get(key), patch._get(key))
+      )
+    })
   let now : Double = @core.global_this()._get("Date")._call("now", []).cast()
   // Keep total ephemeral input near 500 messages/s at 500 peers. Local pointer
   // feedback stays immediate; selections and scene changes bypass this delay.

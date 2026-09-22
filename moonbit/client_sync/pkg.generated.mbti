@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "poietra/poietra/client_sync"
+
+import {
+  "mizchi/js_core",
+}
+
+// Values
+pub fn batched_websocket_class(@js_core.Any, @js_core.Any, () -> Int) -> @js_core.Any
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

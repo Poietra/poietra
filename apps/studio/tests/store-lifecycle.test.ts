@@ -133,13 +133,58 @@ test('a 500-person room bounds cursor publication to once a second while edits s
   const store = create(), awareness = mocks.providers[0].awareness;
   const peers = new Map(Array.from({ length: 500 }, (_, i) => [i, { user: { name: `Peer ${i}`, color: '#abcdef' } }]));
   awareness.getStates.mockReturnValue(peers); awareness.emit('change');
-  store.presence({ cursor: { x: 1, y: 1 } }); awareness.getStates.mockClear();
-  store.presence({ cursor: { x: 2, y: 2 } }); store.setProjectName('Immediate');
-  vi.advanceTimersByTime(999);
+  const context = { sceneId: 'scene-1', compositionId: 'comp-1' };
+  store.presence({ ...context, cursor: { x: 1, y: 1 } }); awareness.getStates.mockClear();
+  // Match StageController.pointer_move, including its repeated context fields.
+  for (let x = 2; x <= 25; x++) {
+    vi.advanceTimersByTime(40);
+    store.presence({ ...context, cursor: { x, y: 2 } });
+  }
+  store.setProjectName('Immediate');
+  vi.advanceTimersByTime(39);
   expect(awareness.getStates).not.toHaveBeenCalled(); expect(store.project().name).toBe('Immediate');
   vi.advanceTimersByTime(1); expect(awareness.getStates).toHaveBeenCalledTimes(1);
+  expect(awareness.getLocalState().editor).toEqual({ ...context, cursor: { x: 25, y: 2 } });
 });
 
+test('actual context changes, selection and pointer exit flush queued presence immediately', () => {
+  const store = create(), awareness = mocks.providers[0].awareness;
+  store.presence({ sceneId: 'scene-1', compositionId: 'comp-1', cursor: { x: 1, y: 1 } });
+  store.presence({ sceneId: 'scene-1', compositionId: 'comp-1', cursor: { x: 2, y: 2 } });
+  expect(awareness.getLocalState().editor.cursor.x).toBe(1);
+  store.presence({ sceneId: 'scene-1', compositionId: 'comp-2', cursor: { x: 3, y: 3 } });
+  expect(awareness.getLocalState().editor).toMatchObject({ compositionId: 'comp-2', cursor: { x: 3, y: 3 } });
+  store.presence({ sceneId: 'scene-2', compositionId: 'comp-2', cursor: { x: 4, y: 4 } });
+  expect(awareness.getLocalState().editor.sceneId).toBe('scene-2');
+  store.presence({ cursor: { x: 5, y: 5 } });
+  store.presence({ selectedIds: ['circle'] });
+  expect(awareness.getLocalState().editor).toMatchObject({ selectedIds: ['circle'], cursor: { x: 5, y: 5 } });
+  store.presence({ cursor: { x: 6, y: 6 } });
+  store.presence({ cursor: null });
+  expect(awareness.getLocalState().editor.cursor).toBeNull();
+  vi.advanceTimersByTime(1000);
+  expect(awareness.getLocalState().editor.cursor).toBeNull();
+});
+
+test('gesture completion, undo and page suspension flush document transport and clean up listeners', () => {
+  const window = new EventTarget(), document = new EventTarget();
+  vi.stubGlobal('addEventListener', window.addEventListener.bind(window));
+  vi.stubGlobal('removeEventListener', window.removeEventListener.bind(window));
+  vi.stubGlobal('document', document);
+  const store = create(), provider = mocks.providers[0];
+  const flushDocuments = vi.fn();
+  Object.assign(provider, { ws: { flushDocuments } });
+  store.beginGesture(); store.updateState('scene-1', 'comp-1', 'circle', { x: 300 }, false); store.endGesture();
+  store.undo(); store.redo();
+  document.dispatchEvent(new Event('visibilitychange'));
+  store.presence({ cursor: { x: 1, y: 1 } }); store.presence({ cursor: { x: 2, y: 2 } });
+  window.dispatchEvent(new Event('pagehide'));
+  expect(provider.awareness.getLocalState().editor.cursor.x).toBe(2);
+  expect(flushDocuments).toHaveBeenCalledTimes(5);
+  store.doc.destroy(); flushDocuments.mockClear();
+  document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('pagehide'));
+  expect(flushDocuments).not.toHaveBeenCalled();
+});
 
 test('remote presence packets publish once per frame and preserve unchanged peer references', () => {
   const store = create(), provider = mocks.providers[0], awareness = provider.awareness;

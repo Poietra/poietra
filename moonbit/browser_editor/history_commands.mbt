@@ -38,11 +38,13 @@ pub fn begin_gesture(store : @core.Any) -> Unit {
 pub fn end_gesture(store : @core.Any) -> Unit {
   store._get("undoManager")._set("captureTimeout", @core.any(400))
   stop_capture(store)
+  flush_documents(store)
 }
 
 ///|
 pub fn undo_edit(store : @core.Any) -> Int {
   let retained = @undo.undo(store._get("undoManager")._get("moon").cast())
+  flush_documents(store)
   if !@core.is_nullish(store._get("moon")) {
     session(store).publish()
   }
@@ -52,6 +54,7 @@ pub fn undo_edit(store : @core.Any) -> Int {
 ///|
 pub fn redo_edit(store : @core.Any) -> Int {
   let retained = @undo.redo(store._get("undoManager")._get("moon").cast())
+  flush_documents(store)
   if !@core.is_nullish(store._get("moon")) {
     session(store).publish()
   }

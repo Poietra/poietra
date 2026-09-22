@@ -204,6 +204,18 @@ leave reconnect headroom. `client_presence` sends only the local awareness clock
 remote changes still notify the UI. Browser cursor emission adapts from 50 ms to
 1 second as the room grows, and received presence packets publish one UI snapshot
 per 16 ms while reusing unchanged peers. Selection and local editing stay immediate.
+Cursor throttling compares context values: repeating the same Scene/Composition
+IDs does not bypass it. Actual context changes, selection and pointer exit flush
+pending presence immediately.
+
+`client_sync` uses y-websocket's public `WebSocketPolyfill` option to losslessly
+merge outgoing document updates. The local document, rendering, IndexedDB and Undo
+still update immediately. The first queued update starts a bounded timer: 16 ms
+up to 32 peers, 50 ms above that; further edits do not postpone it. Queues flush
+at 128 updates / 256 KiB, before sync/control frames and close, on gesture end or
+Undo/Redo, and when the page is hidden. A disconnected socket discards its queue;
+the existing document and IndexedDB participate in the normal reconnect handshake.
+Each socket owns its timer, so an old connection cannot publish on its replacement.
 
 `server_sync` shares bounded output batching between Node and Workers. Worker
 input batches are losslessly merged with Yjs, journaled in one SQLite transaction,
@@ -547,6 +559,22 @@ authoritative Durable Object; Cloudflare documents a workload-dependent
 [soft limit of 1,000 requests/s per object](https://developers.cloudflare.com/durable-objects/platform/limits/).
 Batching reduces persistence/fan-out overhead but does not remove that inbound
 event limit or the cost of delivering everyone's edits to everyone else.
+
+The client follow-up on 2026-09-22 fixes a gap in the earlier cursor tests: the
+canvas includes unchanged Scene/Composition IDs in every move, while the old
+throttle recognized only single-field cursor patches. The real workerd regression
+now opens 500 sockets (one browser, one document observer and 498 idle roster
+connections) and drives the actual canvas. With controlled browser time, 20 moves
+at 41 ms intervals plus a 180 ms trailing drain produce one presence publication.
+A burst of 90 drag moves without advancing the browser clock changes the local
+inspector immediately and flushes one document update on pointer release. The peer
+receives the final position, and Undo retains its independent color edit. A separate
+transport test advances time by 16 ms between 90 edits: it produces 23 packets
+with a 50 ms window and final flush, demonstrating delivery during continuous input.
+These are deterministic message-count and ordering checks, not latency or FPS
+measurements. They do not establish 500 continuously dragging browsers. See
+[the real-browser regression](apps/studio/tests/collaboration-worker.integration.mjs)
+and [transport checks](apps/studio/tests/client-sync.test.ts).
 
 To repeat the current implementation, build once, freeze the bundle and run
 these commands sequentially from `apps/studio` (port 8796 must be unused):

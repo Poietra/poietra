@@ -136,18 +136,29 @@ if (args.child) {
     return client;
   }
   function circle(doc) { return doc.getMap('project').get('scenes').get('scene-1').get('compositions').get('comp-1').get('states').get('circle'); }
-  async function openContext(name) {
+  async function openContext(name, targetRoom = room, clock = false) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const network = { offline: false, sockets: [] };
+    const network = { offline: false, sockets: [], updates: 0, presence: 0 };
     await context.routeWebSocket('**/sync/**', socket => {
       if (network.offline) socket.close();
-      else { network.sockets.push(socket); socket.connectToServer(); }
+      else {
+        network.sockets.push(socket);
+        const server = socket.connectToServer();
+        socket.onMessage(message => {
+          if (typeof message !== 'string') {
+            if (message[0] === 0 && message[1] === 2) network.updates++;
+            if (message[0] === 1) network.presence++;
+          }
+          server.send(message);
+        });
+      }
     });
     await context.addInitScript(name => {
       localStorage.setItem('poietra-user-name', name);
     }, name);
     const page = await context.newPage();
-    await page.goto(`${url}/?room=${room}`);
+    if (clock) await page.clock.install();
+    await page.goto(`${url}/?room=${targetRoom}`);
     await expect(page.getByText('Live', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Circle', exact: true }).click();
     return { context, page, network };
@@ -220,6 +231,60 @@ if (args.child) {
     await expect(bob.page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('245');
     await expect(bob.page.getByRole('textbox', { name: 'Fillのカラーコード' })).toHaveValue('F4CE55');
     console.log('PASS two real browser contexts converge after offline edits; local undo preserves the peer’s edit');
+
+    // Exercise the actual StageController -> EditorStore -> native WebSocket
+    // path. A controlled browser clock makes this a count/ordering regression,
+    // not a wall-time benchmark on the shared test host.
+    const pointerRoom = crypto.randomUUID();
+    const pointerEditor = await openContext('Pointer regression', pointerRoom, true);
+    const pointerObserver = await connect(pointerRoom);
+    const roster = [];
+    try {
+      for (let i = 0; i < 498; i += 20) {
+        roster.push(...await Promise.all(Array.from({ length: Math.min(20, 498 - i) }, (_, j) => rawPresence(pointerRoom, 800000 + i + j, 1, `Roster ${i + j}`))));
+      }
+      await eventually(() => pointerObserver.provider.awareness.getStates().size === 500, '500-person pointer roster did not arrive', 15000);
+      await expect(pointerEditor.page.locator('.participant-stack')).toContainText('+496');
+      const page = pointerEditor.page;
+      await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 1000));
+      const bounds = await page.getByTestId('stage-main').boundingBox(); assert(bounds);
+      // Establish a cursor, then drive 20 moves at 41ms intervals with the
+      // repeated scene/composition IDs sent by the actual canvas handler.
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await page.clock.runFor(1000);
+      const presenceBefore = pointerEditor.network.presence;
+      for (let i = 1; i <= 20; i++) {
+        await page.clock.runFor(41);
+        await page.mouse.move(bounds.x + bounds.width / 2 + i, bounds.y + bounds.height / 2);
+      }
+      await page.clock.runFor(180);
+      await eventually(() => pointerEditor.network.presence > presenceBefore, 'Trailing pointer presence did not send');
+      assert.equal(pointerEditor.network.presence - presenceBefore, 1, 'Repeated context IDs bypassed the cursor rate limit');
+
+      const shape = page.locator('[data-testid="stage-main"] .scene-svg [data-object-id="circle"]');
+      const box = await shape.boundingBox(); assert(box);
+      const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      await page.mouse.move(at.x, at.y); await page.mouse.down();
+      const beforeUpdates = pointerEditor.network.updates;
+      const initialX = circle(pointerObserver.doc).get('x');
+      await page.mouse.move(at.x + 60, at.y - 20, { steps: 90 });
+      const localX = Number(await page.getByRole('spinbutton', { name: 'Position X', exact: true }).inputValue());
+      assert(localX > initialX, 'Local drag must render before the transport timer');
+      assert.equal(pointerEditor.network.updates, beforeUpdates, 'Pointer edits sent before the batch timer');
+      await page.mouse.up();
+      await eventually(() => Math.abs(circle(pointerObserver.doc).get('x') - localX) < 0.1, 'Final drag did not flush to the peer');
+      assert.equal(pointerEditor.network.updates - beforeUpdates, 1, '90 pointer edits should flush as one update at gesture end');
+      await page.clock.resume();
+      circle(pointerObserver.doc).set('fill', '#abcdef');
+      await expect(page.getByRole('textbox', { name: 'Fillのカラーコード' })).toHaveValue('ABCDEF');
+      await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+      await eventually(() => circle(pointerObserver.doc).get('x') === initialX, 'Batched gesture undo did not reach the peer');
+      assert.equal(circle(pointerObserver.doc).get('fill'), '#abcdef');
+      console.log('PASS 500 real sockets with controlled browser time: 20 canvas cursor moves in 1s publish once; 90 pointer moves without advancing time flush once; local rendering and selective Undo');
+    } finally {
+      await pointerEditor.context.close(); pointerObserver.destroy();
+      for (const socket of roster) socket.close();
+    }
 
     const observer = await connect();
     const burstStarted = Date.now();

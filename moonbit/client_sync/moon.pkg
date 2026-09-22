@@ -1,0 +1,15 @@
+import {
+  "mizchi/js_core" @core,
+  "poietra/poietra/y_protocol" @wire,
+}
+
+supported_targets = "js"
+
+options(
+  link: {
+    "js": {
+      "format": "esm",
+      "exports": [ "batched_websocket_class:batchedWebsocketClass" ],
+    },
+  },
+)

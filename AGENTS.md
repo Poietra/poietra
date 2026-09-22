@@ -151,6 +151,11 @@ and measurements belong in [README.md](README.md).
   512-socket cap reserves reconnect headroom for the 500-participant target.
   Keep real process-restart and unresolved-dependency tests. Local load tests
   must distinguish generator saturation, browser work and WAN/production limits.
+- 2026-09-22: Real canvas moves repeat Scene/Composition IDs; decide cursor-only
+  changes by their values, not patch shape. Batch outgoing document frames through
+  y-websocket's public socket adapter, retaining immediate local edits and Undo.
+  Bound each socket's queue and flush at control/gesture/page lifecycle boundaries;
+  test actual pointer events alongside reconnect and dependency preservation.
 
 ## Evidence and documentation
 

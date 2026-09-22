@@ -1,6 +1,7 @@
 import {
   "mizchi/js_core" @core,
   "poietra/poietra/client_presence" @presence,
+  "poietra/poietra/client_sync",
   "mizchi/js_builtin/collection",
   "poietra/poietra/browser_undo" @undo,
   "poietra/poietra/boundary",
