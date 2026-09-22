@@ -1,0 +1,107 @@
+{
+  "browser": {
+    "editAndPeerConvergenceMs": 186,
+    "frameIntervalMs": {
+      "samples": 1205,
+      "p50": 16.699999999999818,
+      "p95": 16.80000000000109,
+      "p99": 33.400000000001455,
+      "max": 66.60000000000036
+    },
+    "longTasksMs": {
+      "samples": 12,
+      "p50": 58,
+      "p95": 70,
+      "p99": 70,
+      "max": 70
+    },
+    "pageErrors": [],
+    "browser": "153.0.8010.12",
+    "renderer": "headless Chromium on local machine, not real-device FPS"
+  },
+  "measuredAt": "2026-09-22T02:49:49.651Z",
+  "sourceRevision": "79531b9",
+  "harnessRevision": "79531b99aa49803bde14a1fe0839fb9ceaf5efc7",
+  "versions": {
+    "moon": "0.10.13+cbb11c36f",
+    "wrangler": "4.131.2",
+    "miniflare": "5.20260911.1-alpha",
+    "workerd": "1.20260911.1",
+    "yjs": "13.6.32",
+    "yWebsocket": "3.1.0"
+  },
+  "browserManifestSha256": "5d7d74f5fb7e3af2fe56965f2aafef437ed90e151434115b9dbbc7d7367f69a4",
+  "bundleSha256": "59cef36c649f617a6d69c356f110ca42a6f7127dd51e21e3d1981185eaa8bb1e",
+  "harnessSha256": "80e52db30f0a0a300756f48ddce0b6753ea8a0b845f26bb2862d37fbf1a01a13",
+  "actorSha256": "925257ea9fbfdebbd6c830825d7ea8c35be0a36274e859a02dd119472423c571",
+  "clientPresenceSha256": "3879ca98862b33b127d3db37b921747e4fc936ad3131d0dd0e40d41c40966740",
+  "machine": {
+    "platform": "linux",
+    "node": "v24.13.0",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "workload": {
+    "clients": 500,
+    "objects": 500,
+    "seconds": 15,
+    "editHz": 1,
+    "presenceHz": 1,
+    "ownedPresence": true,
+    "legacyClient": false,
+    "browserClient": true,
+    "profiled": false,
+    "generators": 8,
+    "warmup": "all peers synchronized, then 1s idle",
+    "host": "local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN"
+  },
+  "joinMs": 9483,
+  "convergenceMs": 21050,
+  "measuredUpdates": 7483,
+  "wire": {
+    "compression": [
+      "permessage-deflate"
+    ],
+    "receivedBytes": 99136612,
+    "transmittedBytes": 340109
+  },
+  "receivedByType": {
+    "document": {
+      "messages": 29940,
+      "bytes": 89084474
+    },
+    "presence": {
+      "messages": 48373,
+      "bytes": 558488595
+    },
+    "other": {
+      "messages": 0,
+      "bytes": 0
+    }
+  },
+  "received": 78313,
+  "receivedBytes": 647573069,
+  "transmitted": 14966,
+  "transmittedBytes": 1487385,
+  "disconnects": 0,
+  "peerEditLatencyMs": {
+    "samples": 3273354,
+    "p50": 5939,
+    "p95": 7011,
+    "p99": 7400,
+    "max": 8054
+  },
+  "generator": {
+    "uvThreadpoolSize": "default",
+    "schedulerMaxDelayMs": 112,
+    "eventLoopP99Ms": 63.537151,
+    "heapsBytes": 9348223040,
+    "rssBytes": 11148296192
+  },
+  "checks": {
+    "allFinalPoses": true,
+    "hibernationEditAndPresence": true
+  }
+}

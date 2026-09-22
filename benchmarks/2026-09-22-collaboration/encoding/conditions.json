@@ -1,0 +1,34 @@
+{
+  "observedAt": "2026-09-22T02:47:17.053910+00:00",
+  "timingsExcluded": true,
+  "reason": "Unrelated C++ compilation was observed on the shared host during the 500-client comparisons. The encoding microbenchmarks did not capture process contention, so their wall times are also treated as exploratory. No exclusive-host latency or encoding-time improvement is claimed. Packet counts, decode parity, convergence and disconnect checks remain applicable.",
+  "observedCompilerProcesses": [
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 99.6
+    },
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 99.6
+    },
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 99.6
+    },
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 99.6
+    },
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 99.1
+    },
+    {
+      "process": "cc1plus",
+      "reportedCpuPercent": 100.0
+    }
+  ],
+  "applicationBefore": "d2997bd",
+  "applicationAfter": "79531b9",
+  "encoderBefore": "c111237"
+}

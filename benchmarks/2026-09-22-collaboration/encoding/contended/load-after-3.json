@@ -1,0 +1,87 @@
+{
+  "measuredAt": "2026-09-22T02:45:39.751Z",
+  "sourceRevision": "79531b9",
+  "harnessRevision": "79531b99aa49803bde14a1fe0839fb9ceaf5efc7",
+  "versions": {
+    "moon": "0.10.13+cbb11c36f",
+    "wrangler": "4.131.2",
+    "miniflare": "5.20260911.1-alpha",
+    "workerd": "1.20260911.1",
+    "yjs": "13.6.32",
+    "yWebsocket": "3.1.0"
+  },
+  "browserManifestSha256": null,
+  "bundleSha256": "59cef36c649f617a6d69c356f110ca42a6f7127dd51e21e3d1981185eaa8bb1e",
+  "harnessSha256": "80e52db30f0a0a300756f48ddce0b6753ea8a0b845f26bb2862d37fbf1a01a13",
+  "actorSha256": "925257ea9fbfdebbd6c830825d7ea8c35be0a36274e859a02dd119472423c571",
+  "clientPresenceSha256": "3879ca98862b33b127d3db37b921747e4fc936ad3131d0dd0e40d41c40966740",
+  "machine": {
+    "platform": "linux",
+    "node": "v24.13.0",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "workload": {
+    "clients": 500,
+    "objects": 500,
+    "seconds": 15,
+    "editHz": 1,
+    "presenceHz": 1,
+    "ownedPresence": true,
+    "legacyClient": false,
+    "browserClient": false,
+    "profiled": false,
+    "generators": 8,
+    "warmup": "all peers synchronized, then 1s idle",
+    "host": "local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN"
+  },
+  "joinMs": 6673,
+  "convergenceMs": 17926,
+  "measuredUpdates": 7498,
+  "wire": {
+    "compression": [
+      "permessage-deflate"
+    ],
+    "receivedBytes": 108534560,
+    "transmittedBytes": 342713
+  },
+  "receivedByType": {
+    "document": {
+      "messages": 30500,
+      "bytes": 98087000
+    },
+    "presence": {
+      "messages": 52952,
+      "bytes": 612191824
+    },
+    "other": {
+      "messages": 0,
+      "bytes": 0
+    }
+  },
+  "received": 83452,
+  "receivedBytes": 710278824,
+  "transmitted": 14996,
+  "transmittedBytes": 1491336,
+  "disconnects": 0,
+  "peerEditLatencyMs": {
+    "samples": 3741502,
+    "p50": 2221,
+    "p95": 3302,
+    "p99": 3541,
+    "max": 3947
+  },
+  "generator": {
+    "uvThreadpoolSize": "default",
+    "schedulerMaxDelayMs": 62,
+    "eventLoopP99Ms": 50.561023,
+    "heapsBytes": 8678866176,
+    "rssBytes": 10373431296
+  },
+  "checks": {
+    "allFinalPoses": true,
+    "hibernationEditAndPresence": true
+  }
+}

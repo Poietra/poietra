@@ -219,7 +219,10 @@ Presence coalesces over 100 ms and keeps the latest clock per client. Socket and
 owner indexes rebuild from attachments after hibernation; stale closes cannot
 remove a replacement. A replacement retires the old socket and releases its
 admission slot immediately. Full rosters are split into packets accepted by older
-clients. Node disconnects clients with more than 1 MiB of queued output; the
+clients: at most 100 entries and 16,000 bytes. Each entry is encoded once, and its
+actual UTF-8 bytes determine the packet boundary. Native socket sends use the
+existing typed mizchi binding. Node disconnects clients with more than 1 MiB of
+queued output; the
 Workers WebSocket API does not expose Node's `bufferedAmount`, so that guard is
 Node-specific. This transport keeps the existing room authority and storage
 schema; it does not introduce a new namespace or document format.
@@ -335,10 +338,10 @@ Source audit rerun **2026-09-22**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 302 | 60,423 |
+| MoonBit application | 302 | 60,444 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 150 | 16,816 |
+| TypeScript tests, fixtures and test configurations | 150 | 16,849 |
 | Public/environment type declarations | 114 | 1,978 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -393,15 +396,19 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-The room scalability changes were verified locally on **2026-09-22** with
-713 Vitest checks, five build/API checks, 51 MoonBit JS checks, a warning-free
+The room scalability changes were verified on **2026-09-22** with
+715 Vitest checks, five build/API checks, 51 MoonBit JS checks, a warning-free
 MoonBit type check, public TypeScript contracts and a production web build.
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
 The load-test results and generator limitations are recorded below.
-Deployed application revision `36c92bf`, including the socket-retirement fix,
+The presence-encoding follow-up also passed actual workerd recovery and 500-client
+convergence checks, including an old awareness client and one real browser. Its
+tests decode bounded Unicode rosters and preserve safe-integer IDs/clocks and
+removals with the unchanged awareness protocol.
+Application revision `79531b9`, including the presence-encoding follow-up,
 passed the complete
-[CI run 35637586561](https://github.com/Poietra/poietra/actions/runs/35637586561),
+[CI run 35680387634](https://github.com/Poietra/poietra/actions/runs/35680387634),
 including browser/export/media, persistence, R2 and account integrations.
 
 The preceding API/MCP documentation addition was verified on **2026-09-22**:
@@ -552,6 +559,40 @@ node tests/collaboration-load.integration.mjs \
   --clients 500 --generators 8 --seconds 60 --edit-hz 1 --presence-hz 1 \
   --output /tmp/poietra-collaboration-500.json
 # Repeat with --browser to include one real browser among the 500 participants.
+```
+
+The `79531b9` follow-up removes duplicate presence serialization and intermediate
+host-record allocations. The decoder transfers its freshly owned selection array
+instead of copying it again. Existing mizchi WebSocket bindings avoid a dynamic
+method lookup and argument array on every send.
+
+| Independently decoded fixture | Packets before | Packets after |
+| --- | ---: | ---: |
+| 64 ordinary cursor updates | 2 | 1 |
+| 500-person ordinary roster | 10 | 6 |
+| 500-person roster with long Unicode selections | 100 | 100 |
+
+All entries, safe-integer clocks, null removals and UTF-8 data are preserved;
+packets stay within 100 entries and 16,000 bytes for older clients. The unchanged
+Unicode packet count reflects the byte limit. See the
+[raw follow-up results and conditions](benchmarks/2026-09-22-collaboration/encoding/).
+The three 15-second 500-client runs at each revision converged without disconnects
+and passed hibernation checks. Separate 500-client checks with an old client and
+a real browser passed too.
+
+Unrelated C++ compilation was observed on this shared host during these follow-up
+runs. **Their wall times are exploratory, not evidence of an end-to-end latency
+or encoding-time speedup.** The earlier `72f05a2` timing records above describe
+their own runs. A new isolated timing comparison is still required. The harness
+now separates document/presence traffic and supports local workerd CPU profiling
+with `--profile-worker /tmp/room.cpuprofile`; profiling results are separate from
+latency comparisons. Stop other builds before timing. To repeat the encoder check
+from the repository root after building:
+
+```sh
+node apps/studio/scripts/benchmark-presence.mjs \
+  --module _build/js/release/build/server_presence/server_presence.js \
+  --output /tmp/poietra-presence.json
 ```
 
 ### Headless export — 2026-09-21
@@ -729,12 +770,12 @@ configuration is for isolated `poietra-moonbit` validation. The explicit
 Yumaboda's account, preserving `poietra.com`, old workers.dev links, three Durable
 Object namespaces, migration tag `v2-accounts`, secrets and `poietra-assets-prod`.
 
-**Last recorded deployment: 2026-09-22 03:20 JST.** Application `36c92bf`
-served at 100% as Worker version `3c91eea7-bf51-4b75-b33d-0b65e4387c99`.
+**Last recorded deployment: 2026-09-22 11:56 JST.** Application `79531b9`
+served at 100% as Worker version `ed47add7-6904-425e-8eb3-171315450e9e`.
 Storage namespaces, secret bindings, variables, rate limits and runtime settings
 matched the preceding release, including Static Assets routing and headers.
 There was no document/storage migration. The recorded predecessor is
-`2145e24e-6fe8-487c-b2bf-f1b4c9e60d31` (application `396c26b`). Confirm the active
+`3c91eea7-bf51-4b75-b33d-0b65e4387c99` (application `36c92bf`). Confirm the active
 version before the next deployment instead of assuming this record is live state.
 
 Verification used a dedicated room: release JS/WASM hashes, existing room/R2

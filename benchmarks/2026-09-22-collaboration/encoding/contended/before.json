@@ -1,0 +1,63 @@
+{
+  "measuredAt": "2026-09-22T02:36:08.197Z",
+  "sourceRevision": "c1112370cb7613f28a7e759e2928cc6ebe679eaa",
+  "harnessRevision": "c1112370cb7613f28a7e759e2928cc6ebe679eaa",
+  "moduleSha256": "c6a9981cae7154e1b74d34f6c46d4c294f8d1b8dbd3dccd431d8dcbb06d7554e",
+  "harnessSha256": "da5d9a5242469f704663ca19341cf1ac097ad71dc63a0274675a0e7cc5d87947",
+  "node": "v24.13.0",
+  "compiler": "0.10.13+cbb11c36f",
+  "machine": {
+    "platform": "linux",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "method": {
+    "warmupBatches": 30,
+    "samples": 5,
+    "iterationsPerSample": 200,
+    "timing": "synchronous encoding only; excludes fixture creation and independent decode validation; no network"
+  },
+  "workloads": [
+    {
+      "name": "cursor-batch",
+      "entries": 64,
+      "packets": 2,
+      "bytes": 10755,
+      "millisecondsPerBatch": [
+        0.317643415,
+        0.3490760699999999,
+        0.34985542499999994,
+        0.3395381900000001,
+        0.33684609499999996
+      ]
+    },
+    {
+      "name": "full-roster",
+      "entries": 500,
+      "packets": 10,
+      "bytes": 85791,
+      "millisecondsPerBatch": [
+        2.7783754050000002,
+        2.7580409950000004,
+        2.655535219999999,
+        2.703625830000001,
+        2.649171554999998
+      ]
+    },
+    {
+      "name": "unicode-roster",
+      "entries": 500,
+      "packets": 100,
+      "bytes": 1565871,
+      "millisecondsPerBatch": [
+        13.253099345,
+        13.350116544999997,
+        13.432137114999996,
+        14.211419114999998,
+        14.307915365
+      ]
+    }
+  ]
+}

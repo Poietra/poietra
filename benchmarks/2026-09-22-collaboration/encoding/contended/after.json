@@ -1,0 +1,63 @@
+{
+  "measuredAt": "2026-09-22T02:41:54.730Z",
+  "sourceRevision": "79531b9",
+  "harnessRevision": "79531b99aa49803bde14a1fe0839fb9ceaf5efc7",
+  "moduleSha256": "5dadf6723e4420be100207ca696fa0f8306755ffe5f7613a48dcf54b8bfba315",
+  "harnessSha256": "da5d9a5242469f704663ca19341cf1ac097ad71dc63a0274675a0e7cc5d87947",
+  "node": "v24.13.0",
+  "compiler": "0.10.13+cbb11c36f",
+  "machine": {
+    "platform": "linux",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "memoryBytes": 33384751104,
+    "affinity": "0-15"
+  },
+  "method": {
+    "warmupBatches": 30,
+    "samples": 5,
+    "iterationsPerSample": 200,
+    "timing": "synchronous encoding only; excludes fixture creation and independent decode validation; no network"
+  },
+  "workloads": [
+    {
+      "name": "cursor-batch",
+      "entries": 64,
+      "packets": 1,
+      "bytes": 10751,
+      "millisecondsPerBatch": [
+        0.15521568000000002,
+        0.18722215499999997,
+        0.17587923999999994,
+        0.16221193999999997,
+        0.18077356000000008
+      ]
+    },
+    {
+      "name": "full-roster",
+      "entries": 500,
+      "packets": 6,
+      "bytes": 85775,
+      "millisecondsPerBatch": [
+        1.30880282,
+        1.3251575450000002,
+        1.3263500050000006,
+        1.3569373700000005,
+        1.34598207
+      ]
+    },
+    {
+      "name": "unicode-roster",
+      "entries": 500,
+      "packets": 100,
+      "bytes": 1565871,
+      "millisecondsPerBatch": [
+        8.712359104999999,
+        8.50221265,
+        8.878057829999998,
+        8.953254920000004,
+        9.496956899999995
+      ]
+    }
+  ]
+}
