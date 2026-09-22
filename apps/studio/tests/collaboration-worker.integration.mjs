@@ -30,6 +30,7 @@ const { values: args } = parseArgs({ options: {
   'persist-to': { type: 'string' },
   child: { type: 'boolean' },
   bundle: { type: 'string' },
+  inspect: { type: 'boolean' },
 } });
 const port = Number(args.port);
 assert(![5173, 8787].includes(port), 'Use an isolated port, not a normal development port');
@@ -55,13 +56,15 @@ if (args.child) {
       return new Response(body, { headers: { 'Content-Type': types[extname(path)] || 'application/octet-stream' } });
     } },
     log: new Log(LogLevel.ERROR),
-  }), unsafeInspectDurableObjects: true });
+  }), unsafeInspectDurableObjects: true, ...(args.inspect ? { inspectorPort: 0 } : {}) });
   await runtime.ready;
   process.send?.({ ready: true });
   process.on('message', async message => {
     try {
       let result;
-      if (message.command === 'hibernate') {
+      if (message.command === 'inspector') {
+        result = String(await runtime.getInspectorURL());
+      } else if (message.command === 'hibernate') {
         await runtime.unsafeEvictDurableObject(workerName, 'ProjectRoom', { name: message.room, webSockets: 'hibernate' });
       } else if (message.command === 'journal') {
         const storage = await runtime.unsafeGetDurableObjectStorage(workerName, 'ProjectRoom', { name: message.room });

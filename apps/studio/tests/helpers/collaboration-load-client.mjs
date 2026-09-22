@@ -16,6 +16,7 @@ process.setMaxListeners(config.length + 10);
 let wireStartRead = 0, wireStartWritten = 0;
 let active = false, received = 0, receivedBytes = 0, transmitted = 0, transmittedBytes = 0, disconnects = 0, epoch = 0, maxSchedulerDelay = 0;
 const clients = [], latencies = [], lag = monitorEventLoopDelay({ resolution: 10 });
+const traffic = { document: { messages: 0, bytes: 0 }, presence: { messages: 0, bytes: 0 }, other: { messages: 0, bytes: 0 } };
 export async function until(check, reason, timeout = 60000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) { if (check()) return; await delay(20); }
@@ -24,7 +25,11 @@ export async function until(check, reason, timeout = 60000) {
 class Socket extends WebSocket {
   send(bytes, ...args) { if (active) { transmitted++; transmittedBytes += bytes.byteLength; } return super.send(bytes, ...args); }
   emit(event, ...args) {
-    if (active && event === 'message') { received++; receivedBytes += args[0].byteLength; }
+    if (active && event === 'message') {
+      const bytes = args[0]; received++; receivedBytes += bytes.byteLength;
+      const type = bytes[0] === 0 ? 'document' : bytes[0] === 1 ? 'presence' : 'other';
+      traffic[type].messages++; traffic[type].bytes += bytes.byteLength;
+    }
     if (active && event === 'close') disconnects++;
     return super.emit(event, ...args);
   }
@@ -118,7 +123,7 @@ async function verify(expected) {
   await until(() => clients.every(client => expected.every(({ index, latest }) => client.states.get(`load-${index}`).get('x') === latest)), 'Final poses did not converge');
   const convergedAt = Date.now(); active = false; lag.disable();
   assert.equal(disconnects, 0, 'Disconnected under load');
-  return { compression: [...new Set(clients.map(c => c.provider.ws.extensions))], wireReceivedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesRead, 0) - wireStartRead, wireTransmittedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesWritten, 0) - wireStartWritten, convergedAt, latencies, received, receivedBytes, transmitted, transmittedBytes, disconnects, schedulerMaxDelayMs: maxSchedulerDelay, eventLoopP99Ms: lag.percentile(99) / 1e6, heapBytes: process.memoryUsage().heapUsed };
+  return { traffic, compression: [...new Set(clients.map(c => c.provider.ws.extensions))], wireReceivedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesRead, 0) - wireStartRead, wireTransmittedBytes: clients.reduce((n, c) => n + c.provider.ws._socket.bytesWritten, 0) - wireStartWritten, convergedAt, latencies, received, receivedBytes, transmitted, transmittedBytes, disconnects, schedulerMaxDelayMs: maxSchedulerDelay, eventLoopP99Ms: lag.percentile(99) / 1e6, heapBytes: process.memoryUsage().heapUsed };
 }
 parentPort.on('message', async ({ id, command, value }) => {
   try {

@@ -19,6 +19,7 @@ const { values: args } = parseArgs({ options: {
   seconds: { type: 'string', default: '10' }, 'edit-hz': { type: 'string', default: '1' },
   'presence-hz': { type: 'string', default: '1' }, port: { type: 'string', default: '8796' },
   browser: { type: 'boolean' },
+  'profile-worker': { type: 'string' },
   'owned-presence': { type: 'boolean' }, generators: { type: 'string', default: '8' }, 'legacy-client': { type: 'boolean' },
 } });
 assert(args.bundle, '--bundle <frozen wrangler dry-run index.js> required');
@@ -26,7 +27,7 @@ const count = Number(args.clients), seconds = Number(args.seconds), editHz = Num
 assert(count > 1 && count <= 500 && seconds >= 2 && editHz > 0 && presenceHz > 0 && generators > 0);
 const port = Number(args.port), origin = `http://127.0.0.1:${port}`, room = crypto.randomUUID(); assert(![5173, 8787].includes(port));
 const studio = fileURLToPath(new URL('..', import.meta.url)), temporary = await mkdtemp(resolve(tmpdir(), 'poietra-load-'));
-let child, browser, page, id = 0;
+let child, browser, page, stopProfile, id = 0;
 const browserErrors = [];
 const protocolCount = count - (args.browser ? 1 : 0);
 const actors = [];
@@ -48,7 +49,7 @@ function command(target, name, value, timeout = 90000) {
 try {
   assert.equal(await fetch(`${origin}/api/health`).catch(() => null), null, 'Port is in use');
   let logs = '';
-  child = spawn(process.execPath, [fileURLToPath(new URL('./collaboration-worker.integration.mjs', import.meta.url)), '--child', '--port', String(port), '--persist-to', resolve(temporary, 'state'), '--bundle', resolve(args.bundle)], { cwd: studio, detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+  child = spawn(process.execPath, [fileURLToPath(new URL('./collaboration-worker.integration.mjs', import.meta.url)), '--child', '--port', String(port), '--persist-to', resolve(temporary, 'state'), '--bundle', resolve(args.bundle), ...(args['profile-worker'] ? ['--inspect'] : [])], { cwd: studio, detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
   for (const stream of [child.stdout, child.stderr]) stream.on('data', data => { logs = (logs + data).slice(-10000); });
   await new Promise((done, reject) => {
     const timer = setTimeout(() => reject(new Error(`workerd startup timeout: ${logs}`)), 30000);
@@ -81,10 +82,17 @@ try {
     });
   }
   await Promise.all(actors.map(actor => command(actor, 'presence')));
+  if (args['profile-worker']) {
+    const { startWorkerProfile } = await import('./helpers/worker-profile.mjs');
+    stopProfile = await startWorkerProfile(await command(child, 'inspector'));
+  }
   const joinMs = Date.now() - joined, start = Date.now() + 1000;
   if (page) await page.evaluate(start => { window.loadStart = start; }, start);
   const publishers = (await Promise.all(actors.map(actor => command(actor, 'publish', { start, seconds, editHz, presenceHz })))).flat();
   const results = await Promise.all(actors.map(actor => command(actor, 'verify', publishers)));
+  if (stopProfile) {
+    await writeFile(args['profile-worker'], JSON.stringify(await stopProfile())); stopProfile = undefined;
+  }
   const latencies = results.flatMap(result => result.latencies), sum = key => results.reduce((total, result) => total + result[key], 0);
   let browserResult;
   if (page) {
@@ -110,9 +118,10 @@ try {
     actorSha256: digest(await readFile(new URL('./helpers/collaboration-load-client.mjs', import.meta.url))),
     clientPresenceSha256: args['owned-presence'] ? digest(await readFile(resolve(studio, '../../_build/js/release/build/client_presence/client_presence.js'))) : null,
     machine: { platform: process.platform, node: process.version, cpu: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem(), affinity: (await readFile('/proc/self/status', 'utf8')).match(/Cpus_allowed_list:\s*(.*)/)?.[1] },
-    workload: { clients: count, objects: count, seconds, editHz, presenceHz, ownedPresence: !!args['owned-presence'], legacyClient: !!args['legacy-client'], browserClient: !!args.browser, generators, warmup: 'all peers synchronized, then 1s idle', host: 'local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN' },
+    workload: { clients: count, objects: count, seconds, editHz, presenceHz, ownedPresence: !!args['owned-presence'], legacyClient: !!args['legacy-client'], browserClient: !!args.browser, profiled: !!args['profile-worker'], generators, warmup: 'all peers synchronized, then 1s idle', host: 'local workerd, one room; protocol clients across worker threads; optional browser reported separately; no WAN' },
     joinMs, convergenceMs: Math.max(...results.map(result => result.convergedAt)) - start, measuredUpdates: publishers.reduce((n, p) => n + p.edits, 0),
     wire: { compression: [...new Set(results.flatMap(r => r.compression))], receivedBytes: sum('wireReceivedBytes'), transmittedBytes: sum('wireTransmittedBytes') },
+    receivedByType: Object.fromEntries(['document', 'presence', 'other'].map(type => [type, { messages: results.reduce((n, r) => n + r.traffic[type].messages, 0), bytes: results.reduce((n, r) => n + r.traffic[type].bytes, 0) }])),
     received: sum('received'), receivedBytes: sum('receivedBytes'), transmitted: sum('transmitted'), transmittedBytes: sum('transmittedBytes'), disconnects: sum('disconnects'),
     peerEditLatencyMs: stats(latencies), generator: { uvThreadpoolSize: process.env.UV_THREADPOOL_SIZE ?? 'default', schedulerMaxDelayMs: Math.max(...results.map(r => r.schedulerMaxDelayMs)), eventLoopP99Ms: Math.max(...results.map(r => r.eventLoopP99Ms)), heapsBytes: sum('heapBytes'), rssBytes: process.memoryUsage().rss },
     checks: { allFinalPoses: true, hibernationEditAndPresence: true },
@@ -120,6 +129,7 @@ try {
   if (args.output) await writeFile(args.output, JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result, null, 2));
 } finally {
+  if (stopProfile) await stopProfile().catch(() => {});
   await browser?.close();
   await Promise.allSettled(actors.map(async actor => { try { await command(actor, 'close', undefined, 2000); } finally { await actor.terminate(); } }));
   if (child && child.exitCode === null && child.signalCode === null) { const exited = once(child, 'exit'); process.kill(-child.pid, 'SIGKILL'); await exited; }
