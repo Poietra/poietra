@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/math",
   "moonbitlang/core/encoding/base64",
   "poietra/poietra/render",
+  "poietra/poietra/assets",
   "poietra/poietra/math_render",
   "poietra/poietra/scene",
   "poietra/poietra/editor",

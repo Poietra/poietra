@@ -17,7 +17,7 @@ priv struct PreparedEquation {
 /// Cache entries and in-flight requests each hold one lease. Eviction cannot
 /// destroy a text atlas while an asynchronous replacement still uses it.
 priv struct TextMasks {
-  drawing : @core.Any
+  drawing : TextDrawing
   mut leases : Int
 }
 
@@ -34,7 +34,7 @@ priv struct CachedRaster {
   result : @core.Any
   bytes : Double
   equation : PreparedEquation?
-  shape : @core.Any
+  shape : ShapeDrawing?
   text : PreparedText?
 }
 
@@ -46,10 +46,6 @@ priv struct RasterCache {
   mut bytes : Double
   mut source : @core.Any?
 }
-
-///|
-extern "js" fn copy_record(value : @core.Any) -> @core.Any =
-  #|value => ({...value})
 
 ///|
 fn native_canvas() -> @core.Any {
@@ -69,7 +65,7 @@ fn release_masks(text : PreparedText?) -> Unit {
   if text is Some({ masks: Some(masks), .. }) {
     masks.leases -= 1
     if masks.leases == 0 {
-      masks.drawing._call("dispose", []) |> ignore
+      (masks.drawing.dispose)()
     }
   }
 }
@@ -146,24 +142,6 @@ fn raster_ticket(
 }
 
 ///|
-fn local_value(item : @core.Any) -> @core.Any {
-  let result = copy_record(item)
-  result._set("world", @core.undefined())
-  let state = copy_record(item._get("state"))
-  for field in ["anchorX", "anchorY", "scaleX", "scaleY", "shear"] {
-    state._set(field, @core.undefined())
-  }
-  for field in ["x", "y", "rotation"] {
-    state._set(field, @core.any(0.0))
-  }
-  state._set("opacity", @core.any(1.0))
-  state._set("visible", @core.any(true))
-  state._set("effect", @core.any("none"))
-  result._set("state", state)
-  result
-}
-
-///|
 fn optional_number(value : @core.Any) -> Double? {
   if @core.is_nullish(value) {
     None
@@ -210,14 +188,14 @@ fn equation_for(
 
 ///|
 fn layer_paint(
-  item : @core.Any,
+  item : @render.Drawable,
   equation : PreparedEquation?,
-  shape : @core.Any,
+  shape : ShapeDrawing?,
   text : PreparedText?,
   video : @browser_media.VideoSurface?,
 ) -> ((@canvas.CanvasRenderingContext2D) -> Unit)? {
   if video is Some(video) {
-    let drawable = @boundary.decode_drawable(item)
+    let drawable = item
     return Some(fn(context) {
       let state = drawable.state
       let width = @render.finite(state.width).abs()
@@ -258,9 +236,8 @@ fn layer_paint(
   }
   if equation is Some({ source, drawing, }) && !@core.is_nullish(drawing) {
     return Some(fn(context) {
-      let state = item._get("state")
-      let scale = @render.finite(state._get("fontSize").cast()).max(0.0) /
-        1000.0
+      let state = item.state
+      let scale = @render.finite(state.fontSize).max(0.0) / 1000.0
       context.scale(scale, scale)
       let x : Double = source._get("x").cast()
       let y : Double = source._get("y").cast()
@@ -269,22 +246,24 @@ fn layer_paint(
       context.translate(-x - width / 2.0, -y - height / 2.0)
       drawing._call("paint", [
         context.as_any(),
-        item._get("writeProgress"),
-        item._get("order"),
-        @core.any(@render.color(state._get("fill").cast(), fallback="#d7d8e4")),
+        @core.any(item.progress),
+        @core.any(
+          if item.order == @render.Sequential {
+            "sequential"
+          } else {
+            "together"
+          },
+        ),
+        @core.any(@render.color(state.fill, fallback="#d7d8e4")),
       ])
       |> ignore
     })
   }
-  if !@core.is_nullish(shape) {
-    return Some(fn(context) {
-      shape._call("paint", [context.as_any(), item]) |> ignore
-    })
+  if shape is Some(shape) {
+    return Some(fn(context) { shape.paint(context, item) })
   }
   if text is Some({ masks: Some(masks), .. }) {
-    return Some(fn(context) {
-      masks.drawing._call("paint", [context.as_any(), item]) |> ignore
-    })
+    return Some(fn(context) { (masks.drawing.paint)(context, text_paint(item)) })
   }
   None
 }
@@ -392,9 +371,9 @@ async fn rasterize_layer(
   cache : RasterCache,
   plan : @render.RasterPlan,
   identity : RasterIdentity,
-  item : @core.Any,
+  item : @render.Drawable,
   equation : PreparedEquation?,
-  shape : @core.Any,
+  shape : ShapeDrawing?,
   text : PreparedText?,
   video : @browser_media.VideoSurface?,
   glow : @core.Any,
@@ -452,14 +431,14 @@ async fn rasterize_layer(
 ///|
 async fn RasterCache::get(
   self : RasterCache,
-  input : @core.Any,
+  input : LayerInput,
   scale : Double,
   glow : @core.Any,
   signal : @core.Any,
   video? : @browser_media.VideoSurface? = None,
 ) -> @core.Any {
   image_check_abort(signal)
-  let drawable = @boundary.decode_drawable(input)
+  let drawable = input.drawable
   let enlargement = match drawable.world {
     Some(matrix) => matrix.max_scale()
     None =>
@@ -486,10 +465,10 @@ async fn RasterCache::get(
     item: @render.local_drawable(drawable),
     scale,
     glow: drawable.state.effect == @scene.Glow,
-    media: optional_source(input._get("object")._get("media")),
+    media: input.media,
     video_time: match video {
       Some(v) => Some(v.timestamp)
-      None => optional_number(input._get("videoTimeMs"))
+      None => input.video_time
     },
   }
   let previous = self.entries.get(id)
@@ -504,35 +483,33 @@ async fn RasterCache::get(
   guard @render.raster_plan(bounds, scale, identity.glow) is Some(plan) else {
     return @core.null()
   }
-  let item = local_value(input)
+  let item = identity.item
   let equation = equation_for(
     identity.item,
     previous.bind(fn(p) { p.equation }),
   )
-  let shape = prepare_shape_drawing(
-    @boundary.shape_geometry(item),
-    previous.map(fn(p) { p.shape }).unwrap_or(@core.undefined()),
+  let shape = prepare_shape(
+    @render.shape_geometry(item.kind, item.state),
+    previous.bind(fn(p) { p.shape }),
   )
   let geometry_bytes = equation
     .map(fn(e) { drawing_bytes(e.drawing, "sourceBytes") })
     .unwrap_or(0.0) +
-    drawing_bytes(shape, "sourceBytes")
+    shape.map(fn(s) { (s.key.length() * 2).to_double() }).unwrap_or(0.0)
   if plan.bytes + geometry_bytes > @render.raster_cache_bytes {
     return @core.null()
   }
   let mut text : PreparedText? = None
   let mut stored = false
   defer (if !stored { release_masks(text) })
-  let text_key = text_drawing_key(item, scale)
-  if !@core.is_nullish(text_key) {
-    let key : String = text_key.cast()
+  if text_key(item, scale) is Some(key) {
     if previous.bind(fn(p) { p.text }) is Some(prepared) && prepared.key == key {
       if prepared.masks is Some(masks) {
         masks.leases += 1
       }
       text = Some(prepared)
     } else {
-      let drawing = prepare_text_drawing(
+      let drawing = prepare_text(
         item,
         scale,
         @render.raster_cache_bytes - plan.bytes - geometry_bytes,
@@ -540,21 +517,14 @@ async fn RasterCache::get(
       ).wait()
       text = Some({
         key,
-        masks: if @core.is_nullish(drawing) {
-          None
-        } else {
-          Some({ drawing, leases: 1, })
-        },
+        masks: drawing.map(fn(drawing) { { drawing, leases: 1, } }),
       })
     }
   }
   raster_ticket(signal, ticket)
   let bytes = plan.bytes +
     geometry_bytes +
-    text
-    .bind(fn(t) { t.masks })
-    .map(fn(m) { drawing_bytes(m.drawing, "bytes") })
-    .unwrap_or(0.0)
+    text.bind(fn(t) { t.masks }).map(fn(m) { m.drawing.bytes }).unwrap_or(0.0)
   if bytes > @render.raster_cache_bytes {
     return @core.null()
   }
@@ -614,7 +584,10 @@ pub fn create_layer_cache(resources : @core.Any) -> @core.Any {
         glow : @core.Any,
         signal : @core.Any,
       ) {
-        @core.from_async(async fn() { cache.get(item, scale, glow, signal) })
+        @core.from_async(async fn() {
+          let captured = @core.throwable(fn() { capture_layer(item) })
+          cache.get(captured, scale, glow, signal)
+        })
         |> host_errors
       }),
     ),

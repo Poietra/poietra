@@ -13,6 +13,47 @@ function nativeDrawing() {
 }
 
 describe('MoonBit Canvas resource lifetime', () => {
+  it('captures only render values before awaiting and keeps the caller frame independent', async () => {
+    const draw = vi.fn();
+    const context = { save() {}, restore() {}, resetTransform() {}, fillRect() {}, drawImage: draw, globalAlpha: 1 };
+    const surface = () => ({ width: 640, height: 360, getContext: (kind: string) => kind === '2d' ? context : null });
+    vi.stubGlobal('document', { createElement: surface });
+    vi.stubGlobal('Image', class {
+      onload: (() => void) | null = null;
+      set src(value: string) { if (value) queueMicrotask(() => this.onload?.()); }
+    });
+    const blobs: Blob[] = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => { blobs.push(blob as Blob); return 'blob:captured-frame'; });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clone = vi.spyOn(globalThis, 'structuredClone');
+    const painter = await canvas.createFramePainter(surface(), {
+      getEquation: () => null, measureText: () => ({ width: 1, height: 1, lineHeight: 1, baseline: 1 }),
+      preparedImage: () => undefined, embeddedFontStyles: () => '',
+    });
+    const state = defaultState('circle', { x: 41, fill: '#123456' });
+    const frame = { width: 640, height: 360, background: '#08090b', objects: [
+      { object: { id: 'circle', kind: 'circle' }, state, writeProgress: 1, order: 'together' },
+    ] };
+    // Domain-unrelated metadata must not be traversed or copied by the painter.
+    Object.defineProperty(frame, 'extension', { enumerable: true, get() { throw new Error('unused extension'); } });
+    try {
+      const pending = painter.render(frame);
+      state.x = 900;
+      state.fill = '#abcdef';
+      frame.objects.length = 0;
+      frame.width = 900;
+      await pending;
+      const svg = await blobs[0].text();
+      expect(svg).toContain('translate(41 ');
+      expect(svg).toContain('#123456');
+      expect(svg).toContain('viewBox="0 0 640 360"');
+      expect(svg).not.toContain('#abcdef');
+      expect(frame.objects).toEqual([]);
+      expect(clone).not.toHaveBeenCalled();
+      expect(draw).toHaveBeenCalledTimes(2);
+    } finally { painter.dispose(); }
+  });
+
   it('reuses prepared paths across appearance changes and replaces changed geometry', () => {
     const allocated = nativeDrawing();
     const geometry = { kind: 'numberline', length: 200, angle: 0, head: 10, spread: 4.5 };

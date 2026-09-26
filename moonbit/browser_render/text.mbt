@@ -5,29 +5,54 @@ let color_glyphs : @regexp.RegExp = @regexp.RegExp::new(
 )
 
 ///|
-pub fn text_drawing_key(item : @core.Any, scale : Double) -> @core.Any {
-  let kind : String = item._get("object")._get("kind").cast()
-  let state = item._get("state")
-  let text : String = state._get("text").cast()
-  if !(kind == "text" ||
-    (kind == "equation" && @core.is_nullish(get_equation(text)))) ||
+fn text_key(item : @render.Drawable, scale : Double) -> String? {
+  let text = item.state.text
+  if !(item.kind == @scene.Text ||
+    (item.kind == @scene.Equation && @core.is_nullish(get_equation(text)))) ||
     color_glyphs.test_(text) {
-    return @core.null()
+    return None
   }
-  @core.any(
+  Some(
     @core.json_stringify(
       @core.any(
         (
           [
             @core.any(text),
-            @core.any(@render.finite(state._get("fontSize").cast()).max(0.0)),
-            @core.any(@render.finite(state._get("strokeWidth").cast()).max(0.0)),
-            item._get("order"),
+            @core.any(@render.finite(item.state.fontSize).max(0.0)),
+            @core.any(@render.finite(item.state.strokeWidth).max(0.0)),
+            @core.any(
+              if item.order == @render.Sequential {
+                "sequential"
+              } else {
+                "together"
+              },
+            ),
             @core.any(scale),
           ] : FixedArray[@core.Any]),
       ),
     ),
   )
+}
+
+///|
+pub fn text_drawing_key(item : @core.Any, scale : Double) -> @core.Any {
+  @core.from_option(text_key(@boundary.decode_drawable(item), scale))
+}
+
+///|
+priv struct TextPaint {
+  fill : String
+  stroke : String
+  progress : Double
+  order : @render.WriteOrder
+}
+
+///|
+priv struct TextDrawing {
+  key : String
+  bytes : Double
+  dispose : () -> Unit
+  paint : (@canvas.CanvasRenderingContext2D, TextPaint) -> Unit
 }
 
 ///|
@@ -71,19 +96,18 @@ fn atlas_metrics(value : @core.Any) -> @render.TextMetrics {
 }
 
 ///|
-pub fn prepare_text_drawing(
-  item : @core.Any,
+fn prepare_text(
+  drawable : @render.Drawable,
   scale : Double,
   max_bytes : Double,
   signal : @core.Any,
-) -> @core.Promise[@core.Any] {
+) -> @core.Promise[TextDrawing?] {
   @core.from_async(async fn() {
     @core.throwable(fn() { signal._call("throwIfAborted", []) }) |> ignore
-    let key = text_drawing_key(item, scale)
-    if @core.is_nullish(key) || scale.is_nan() || scale.is_inf() || scale <= 0.0 {
-      return @core.null()
+    guard text_key(drawable, scale) is Some(key) else { return None }
+    if scale.is_nan() || scale.is_inf() || scale <= 0.0 {
+      return None
     }
-    let drawable = @boundary.decode_drawable(item)
     let metrics = atlas_metrics(
       measure_text(
         drawable.state.text,
@@ -92,7 +116,7 @@ pub fn prepare_text_drawing(
     )
     guard @render.text_atlas_plan(drawable, metrics, scale, max_bytes)
       is Some(plan) else {
-      return @core.null()
+      return None
     }
     let svg = @render.text_atlas_svg(
       plan,
@@ -158,7 +182,7 @@ pub fn prepare_text_drawing(
     }
     fn paint_cell(
       context : @canvas.CanvasRenderingContext2D,
-      item : @core.Any,
+      item : TextPaint,
       index : Int,
       opacity : Double,
     ) -> Unit {
@@ -166,10 +190,9 @@ pub fn prepare_text_drawing(
         return
       }
       glyph.context.clearRect(0.0, 0.0, width, height)
-      let state = item._get("state")
-      paint_mask(index * 2, state._get("fill").cast(), "#000000")
+      paint_mask(index * 2, item.fill, "#000000")
       if plan.stroke_width > 0.0 {
-        paint_mask(index * 2 + 1, state._get("stroke").cast(), "transparent")
+        paint_mask(index * 2 + 1, item.stroke, "transparent")
       }
       let previous_alpha = context.globalAlpha
       context.globalAlpha *= opacity
@@ -182,45 +205,88 @@ pub fn prepare_text_drawing(
       )
       context.globalAlpha = previous_alpha
     }
+    Some(TextDrawing::{
+      key,
+      bytes: plan.bytes,
+      dispose,
+      paint: fn(context, current) {
+        let progress = @render.unit(current.progress)
+        if !alive.val || progress == 0.0 || plan.size == 0.0 {
+          return
+        }
+        let order = current.order
+        saved_canvas(context, fn() {
+          if order == @render.Together && progress < 1.0 {
+            let padding = plan.size * 0.2
+            context.beginPath()
+            context.rect(
+              -metrics.width / 2.0,
+              -metrics.height / 2.0 - padding,
+              metrics.width * progress,
+              metrics.height + padding * 2.0,
+            )
+            context.clip()
+          }
+          if order == @render.Sequential && progress < 1.0 {
+            for index = 0; index < plan.glyph_count; index = index + 1 {
+              paint_cell(
+                context,
+                current,
+                index + 1,
+                @render.unit(
+                  progress * plan.glyph_count.to_double() - index.to_double(),
+                ),
+              )
+            }
+          } else {
+            paint_cell(context, current, 0, 1.0)
+          }
+        })
+      },
+    })
+  })
+  |> host_errors
+}
+
+///|
+fn text_paint(item : @render.Drawable) -> TextPaint {
+  {
+    fill: item.state.fill,
+    stroke: item.state.stroke,
+    progress: item.progress,
+    order: item.order,
+  }
+}
+
+///|
+pub fn prepare_text_drawing(
+  item : @core.Any,
+  scale : Double,
+  max_bytes : Double,
+  signal : @core.Any,
+) -> @core.Promise[@core.Any] {
+  @core.from_async(async fn() {
+    let item = @core.throwable(fn() { @boundary.decode_drawable(item) })
+    guard prepare_text(item, scale, max_bytes, signal).wait() is Some(drawing) else {
+      return @core.null()
+    }
     @core.from_entries([
-      ("key", key),
-      ("bytes", @core.any(plan.bytes)),
-      ("dispose", @core.any(dispose)),
+      ("key", @core.any(drawing.key)),
+      ("bytes", @core.any(drawing.bytes)),
+      ("dispose", @core.any(drawing.dispose)),
       (
         "paint",
-        @core.any(fn(value : @core.Any, current : @core.Any) {
-          let progress = @render.unit(current._get("writeProgress").cast())
-          if !alive.val || progress == 0.0 || plan.size == 0.0 {
-            return
-          }
-          let order : String = current._get("order").cast()
-          let context : @canvas.CanvasRenderingContext2D = value.cast()
-          saved_canvas(context, fn() {
-            if order == "together" && progress < 1.0 {
-              let padding = plan.size * 0.2
-              context.beginPath()
-              context.rect(
-                -metrics.width / 2.0,
-                -metrics.height / 2.0 - padding,
-                metrics.width * progress,
-                metrics.height + padding * 2.0,
-              )
-              context.clip()
-            }
-            if order == "sequential" && progress < 1.0 {
-              for index = 0; index < plan.glyph_count; index = index + 1 {
-                paint_cell(
-                  context,
-                  current,
-                  index + 1,
-                  @render.unit(
-                    progress * plan.glyph_count.to_double() - index.to_double(),
-                  ),
-                )
-              }
+        @core.any(fn(context : @core.Any, input : @core.Any) {
+          let state = input._get("state")
+          (drawing.paint)(context.cast(), {
+            fill: state._get("fill").cast(),
+            stroke: state._get("stroke").cast(),
+            progress: input._get("writeProgress").cast(),
+            order: if @core.equal(input._get("order"), @core.any("sequential")) {
+              @render.Sequential
             } else {
-              paint_cell(context, current, 0, 1.0)
-            }
+              @render.Together
+            },
           })
         }),
       ),

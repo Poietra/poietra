@@ -130,11 +130,14 @@ pub fn VideoSurfaces::dispose(self : VideoSurfaces) -> Unit {
 }
 
 ///|
-priv struct VideoRequest {
-  target : @core.Any
+/// A captured request owns its metadata; publication is separate from the source
+/// frame so typed renderers never have to copy or mutate that frame.
+pub(all) struct VideoRequest {
+  id : String
   name : String
   source : String?
   time : Double
+  publish : (String) -> Unit
 }
 
 ///|
@@ -180,7 +183,8 @@ fn video_requests(frame : @core.Any) -> Array[VideoRequest] {
     let asset = object._get("media")
     let time = item._get("videoTimeMs")
     requests.push({
-      target: item,
+      id: object._get("id").cast(),
+      publish: fn(image) { item._set("videoFrame", @core.any(image)) },
       name: object._get("name").cast(),
       source: if @core.is_nullish(asset) {
         None
@@ -301,12 +305,11 @@ fn copy_frame(decoded : @core.Any) -> @core.Any raise {
 ///|
 async fn VideoFrames::prepare_frame(
   self : VideoFrames,
-  frame : @core.Any,
+  requests : Array[VideoRequest],
   signal : @core.Any,
   surfaces : VideoSurfaces?,
 ) -> Unit {
   check_abort(signal)
-  let requests = video_requests(frame)
   let sources : @collection.JsMap[String, Unit] = @collection.JsMap::new()
   for request in requests {
     if request.source is Some(source) {
@@ -378,13 +381,12 @@ async fn VideoFrames::prepare_frame(
           surface
         }
       }
-      let id : String = request.target._get("object")._get("id").cast()
-      surfaces.entries[id] = surface
+      surfaces.entries[request.id] = surface
     } else {
       if entry.image.is_empty() {
         entry.image = portable_frame(decoded)
       }
-      request.target._set("videoFrame", @core.any(entry.image))
+      (request.publish)(entry.image)
     }
     check_abort(signal)
   }
@@ -404,7 +406,7 @@ pub fn VideoFrames::prepare(
       previous.wait() catch {
         _ => ()
       }
-      self.prepare_frame(frame, signal, None)
+      self.prepare_frame(video_requests(frame), signal, None)
     })
     |> native_errors
   self.queue = task
@@ -425,12 +427,41 @@ pub fn VideoFrames::prepare_canvas(
       }
       let surfaces : VideoSurfaces = { entries: Map([]), sources: Map([]), }
       errdefer surfaces.dispose()
-      self.prepare_frame(frame, signal, Some(surfaces))
+      self.prepare_frame(video_requests(frame), signal, Some(surfaces))
       surfaces
     })
     |> native_errors
   self.queue = task.then(fn(_) { @core.Promise::resolve(()) })
   // Consumers observe task; the internal queue must not cause an unhandled rejection.
+  self.queue.catch_(fn(_) { @core.Promise::resolve(()) }) |> ignore
+  task
+}
+
+///|
+/// Typed renderers capture requests before their first asynchronous boundary.
+pub fn VideoFrames::prepare_requests(
+  self : VideoFrames,
+  requests : Array[VideoRequest],
+  signal : @core.Any,
+  canvas : Bool,
+) -> @core.Promise[VideoSurfaces?] {
+  let signal = join_signal(self.lifetime._get("signal"), signal)
+  let previous = self.queue
+  let task = @core.from_async(async fn() {
+      previous.wait() catch {
+        _ => ()
+      }
+      let surfaces = if canvas {
+        Some(VideoSurfaces::{ entries: Map([]), sources: Map([]), })
+      } else {
+        None
+      }
+      errdefer (if surfaces is Some(value) { value.dispose() })
+      self.prepare_frame(requests, signal, surfaces)
+      surfaces
+    })
+    |> native_errors
+  self.queue = task.then(fn(_) { @core.Promise::resolve(()) })
   self.queue.catch_(fn(_) { @core.Promise::resolve(()) }) |> ignore
   task
 }

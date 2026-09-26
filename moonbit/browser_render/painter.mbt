@@ -9,16 +9,10 @@ priv struct FramePainter {
   target : Surface
   staging : Surface
   layers : RasterCache
-  shapes : Map[String, DirectShape]
+  shapes : Map[String, ShapeDrawing]
   videos : @browser_media.VideoFrames
   lifetime : @core.Any
   mut backend : PainterBackend
-}
-
-///|
-priv struct DirectShape {
-  geometry : @render.Shape
-  drawing : @core.Any
 }
 
 ///|
@@ -123,8 +117,7 @@ fn draw_layer(
 fn draw_shape_directly(
   context : @canvas.CanvasRenderingContext2D,
   item : @render.Drawable,
-  input : @core.Any,
-  shapes : Map[String, DirectShape],
+  shapes : Map[String, ShapeDrawing],
 ) -> Bool {
   // Opacity applies to the composed object, not independently to overlapping
   // fill/stroke operations. Keep that isolation, and Glow, in the raster path.
@@ -137,33 +130,20 @@ fn draw_shape_directly(
     shapes.remove(item.id)
     return false
   }
-  let drawing = match shapes.get(item.id) {
-    Some(previous) if previous.geometry == geometry => previous.drawing
-    _ => {
-      let drawing = prepare_shape_drawing(
-        @boundary.shape_geometry(input),
-        @core.undefined(),
-      )
-      if @core.is_nullish(drawing) {
-        return false
-      }
-      shapes[item.id] = { geometry, drawing, }
-      drawing
-    }
+  guard prepare_shape(Some(geometry), shapes.get(item.id)) is Some(drawing) else {
+    return false
   }
-  transformed_object(context, item, fn() {
-    drawing._call("paint", [context.as_any(), input]) |> ignore
-  })
+  shapes[item.id] = drawing
+  transformed_object(context, item, fn() { drawing.paint(context, item) })
   true
 }
 
 ///|
 async fn paint_layers(
   surface : Surface,
-  frame : @render.RenderFrame,
-  items : FixedArray[@core.Any],
+  frame : PaintFrame,
   layers : RasterCache,
-  shapes : Map[String, DirectShape],
+  shapes : Map[String, ShapeDrawing],
   glow : @core.Any,
   signal : @core.Any,
   videos : @browser_media.VideoSurfaces?,
@@ -173,8 +153,8 @@ async fn paint_layers(
   let height : Double = surface.canvas._get("height").cast()
   let scale = (width / frame.width).min(height / frame.height)
   let ids : Map[String, Unit] = Map([])
-  for item in frame.objects {
-    ids[item.id] = ()
+  for item in frame.items {
+    ids[item.drawable.id] = ()
   }
   @core.throwable(fn() {
     context.fillStyle = "#000000"
@@ -200,21 +180,20 @@ async fn paint_layers(
     context.rect(0.0, 0.0, frame.width, frame.height)
     context.clip()
   })
-  for index, item in frame.objects {
+  for input in frame.items {
+    let item = input.drawable
     image_check_abort(signal)
     if !item.state.visible ||
       @render.unit(item.state.opacity) == 0.0 ||
       @render.unit(item.progress) == 0.0 {
       continue
     }
-    if @core.throwable(fn() {
-        draw_shape_directly(context, item, items[index], shapes)
-      }) {
+    if @core.throwable(fn() { draw_shape_directly(context, item, shapes) }) {
       layers.remove(item.id)
       continue
     }
     let layer = layers.get(
-      items[index],
+      input,
       scale,
       glow,
       signal,
@@ -268,15 +247,13 @@ async fn FramePainter::render(
     },
   )
   image_check_abort(signal)
-  let input = @core.throwable(fn() {
-    @core.global_this()._call("structuredClone", [input])
-  })
+  let input = @core.throwable(fn() { capture_frame(input) })
   for
     dimension in [
       self.target.canvas._get("width"),
       self.target.canvas._get("height"),
-      input._get("width"),
-      input._get("height"),
+      @core.any(input.width),
+      @core.any(input.height),
     ] {
     let value : Double = dimension.cast()
     if value.is_nan() || value.is_inf() || value <= 0.0 {
@@ -293,31 +270,22 @@ async fn FramePainter::render(
         self.target.canvas._get("height").cast(),
       )
     })
-    let videos = if self.backend is Gpu(glow) && !glow_lost(glow) {
-      Some(self.videos.prepare_canvas(input, signal).wait())
-    } else {
-      self.videos.prepare(input, signal).wait()
-      None
-    }
+    let videos = self.videos
+      .prepare_requests(
+        input.requests,
+        signal,
+        self.backend is Gpu(glow) && !glow_lost(glow),
+      )
+      .wait()
     defer (if videos is Some(videos) { videos.dispose() })
     image_check_abort(signal)
-    let items : FixedArray[@core.Any] = input._get("objects").cast()
-    let mut frame : @render.RenderFrame = {
-      width: input._get("width").cast(),
-      height: input._get("height").cast(),
-      background: input._get("background").cast(),
-      objects: Array::makei(items.length(), fn(i) {
-        @boundary.decode_drawable(items[i])
-      }),
-    }
     if self.backend is Gpu(glow) && glow_lost(glow) {
       @core.throwable(fn() { self.use_svg() })
     }
     if self.backend is Gpu(glow) {
       if !paint_layers(
           self.staging,
-          frame,
-          items,
+          input,
           self.layers,
           self.shapes,
           glow,
@@ -330,18 +298,13 @@ async fn FramePainter::render(
     if self.backend is Svg {
       if videos is Some(_) {
         // Context loss and raster budget fallback still produce the same portable SVG.
-        self.videos.prepare(input, signal).wait()
+        self.videos.prepare_requests(input.requests, signal, false).wait()
+        |> ignore
         image_check_abort(signal)
-        frame = {
-          ..frame,
-          objects: Array::makei(items.length(), fn(i) {
-            @boundary.decode_drawable(items[i])
-          }),
-        }
       }
       let svg = @core.throwable(fn() {
         @render.frame_to_svg(
-          frame,
+          input.svg_frame(),
           "painter-frame",
           true,
           self.layers.resources,
@@ -352,9 +315,9 @@ async fn FramePainter::render(
         self.staging.context.as_any(),
         self.staging.canvas._get("width").cast(),
         self.staging.canvas._get("height").cast(),
-        frame.width,
-        frame.height,
-        frame.background,
+        input.width,
+        input.height,
+        input.background,
         signal,
       ).wait()
     }

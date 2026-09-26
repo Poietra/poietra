@@ -46,20 +46,22 @@ let prepared_shapes : @core.Any = @core.new(
 ///|
 fn paint_shape(
   context : @canvas.CanvasRenderingContext2D,
-  item : @core.Any,
+  fill : String,
+  stroke : String,
+  stroke_width : Double,
+  progress : Double,
   shape : @render.Shape,
   drawing : Outline,
   head : CanvasPath?,
   ticks : Array[CanvasPath],
 ) -> Unit {
-  let progress = @render.unit(item._get("writeProgress").cast())
+  let progress = @render.unit(progress)
   if progress == 0.0 {
     return
   }
-  let state = item._get("state")
-  let fill = @render.color(state._get("fill").cast())
-  let stroke = @render.color(state._get("stroke").cast())
-  let stroke_width = @render.finite(state._get("strokeWidth").cast()).max(0.0)
+  let fill = @render.color(fill)
+  let stroke = @render.color(stroke)
+  let stroke_width = @render.finite(stroke_width).max(0.0)
   saved_canvas(context, fn() {
     let opacity = context.globalAlpha
     context.fillStyle = "#000000"
@@ -113,26 +115,44 @@ fn paint_shape(
 }
 
 ///|
-pub fn prepare_shape_drawing(
-  value : @core.Any,
-  previous : @core.Any,
-) -> @core.Any {
+priv struct ShapeDrawing {
+  shape : @render.Shape
+  drawing : Outline
+  head : CanvasPath?
+  ticks : Array[CanvasPath]
+  key : String
+}
+
+///|
+fn ShapeDrawing::paint(
+  self : ShapeDrawing,
+  context : @canvas.CanvasRenderingContext2D,
+  item : @render.Drawable,
+) -> Unit {
+  paint_shape(
+    context,
+    item.state.fill,
+    item.state.stroke,
+    item.state.strokeWidth,
+    item.progress,
+    self.shape,
+    self.drawing,
+    self.head,
+    self.ticks,
+  )
+}
+
+///|
+fn prepare_shape(
+  shape : @render.Shape?,
+  previous : ShapeDrawing?,
+) -> ShapeDrawing? {
   if !canvas_available() {
-    return @core.null()
+    return None
   }
-  guard decode_shape(value) is Some(shape) else { return @core.null() }
-  // Compare typed geometry before allocating a serialized cache key on every frame.
-  let cached = prepared_shapes._call("get", [previous])
-  if !@core.is_undefined(cached) {
-    let cached : @render.Shape = cached.cast()
-    if cached == shape {
-      return previous
-    }
-  }
-  let key = @core.json_stringify(value)
-  if !@core.is_nullish(previous) &&
-    @core.equal(previous._get("key"), @core.any(key)) {
-    return previous
+  guard shape is Some(shape) else { return None }
+  if previous is Some(previous) && previous.shape == shape {
+    return Some(previous)
   }
   @core.throwable(fn() {
     let drawing = outline(shape)
@@ -148,19 +168,66 @@ pub fn prepare_shape_drawing(
         })
       _ => []
     }
-    let result = @core.from_entries([
-      ("key", @core.any(key)),
-      ("sourceBytes", @core.any(key.length() * 2)),
-      (
-        "paint",
-        @core.any(fn(context : @core.Any, item : @core.Any) {
-          paint_shape(context.cast(), item, shape, drawing, head, ticks)
-        }),
-      ),
-    ])
-    prepared_shapes._call("set", [result, @core.any(shape)]) |> ignore
-    result
+    Some(ShapeDrawing::{
+      shape,
+      drawing,
+      head,
+      ticks,
+      key: @core.json_stringify(@boundary.encode_shape(Some(shape))),
+    })
   }) catch {
-    _ => @core.null()
+    _ => None
   }
+}
+
+///|
+pub fn prepare_shape_drawing(
+  value : @core.Any,
+  previous : @core.Any,
+) -> @core.Any {
+  let cached = if @core.is_nullish(previous) {
+    @core.undefined()
+  } else {
+    prepared_shapes._call("get", [previous])
+  }
+  let before : ShapeDrawing? = if @core.is_undefined(cached) {
+    None
+  } else {
+    Some(cached.cast())
+  }
+  guard prepare_shape(decode_shape(value), before) is Some(prepared) else {
+    return @core.null()
+  }
+  if before
+    .map(fn(before) { physical_equal(before, prepared) })
+    .unwrap_or(false) ||
+    (
+      !@core.is_nullish(previous) &&
+      @core.equal(previous._get("key"), @core.any(prepared.key))
+    ) {
+    return previous
+  }
+  let result = @core.from_entries([
+    ("key", @core.any(prepared.key)),
+    ("sourceBytes", @core.any(prepared.key.length() * 2)),
+    (
+      "paint",
+      @core.any(fn(context : @core.Any, item : @core.Any) {
+        let state = item._get("state")
+        paint_shape(
+          context.cast(),
+          state._get("fill").cast(),
+          state._get("stroke").cast(),
+          state._get("strokeWidth").cast(),
+          item._get("writeProgress").cast(),
+          prepared.shape,
+          prepared.drawing,
+          prepared.head,
+          prepared.ticks,
+        )
+      }),
+    ),
+  ])
+  prepared_shapes._call("set", [result, @core.any(prepared)]) |> ignore
+  result
 }

@@ -361,19 +361,33 @@ extern "js" fn arrow_value(
 ///|
 pub fn shape_geometry(item : @core.Any) -> @core.Any {
   let kind = @project_codec.decode_ObjectKind(item._get("object")._get("kind"))
-  match
+  encode_shape(
     @render.shape_geometry(
       kind,
       @project_codec.decode_ObjectState(item._get("state")),
-    ) {
+    ),
+  )
+}
+
+///|
+pub fn encode_shape(shape : @render.Shape?) -> @core.Any {
+  match shape {
     None => @core.null()
     Some(Ellipse(x, y)) => ellipse_value(x, y)
     Some(Rectangle(width, height, radius)) =>
       shape_rectangle_value(width, height, radius)
     Some(Path(path)) => path_value(path)
-    Some(Arrow(geometry) | NumberLine(geometry)) =>
+    Some(Arrow(geometry)) =>
       arrow_value(
-        @scene.object_kind_name(kind),
+        "arrow",
+        geometry.length,
+        geometry.angle,
+        geometry.head,
+        geometry.spread,
+      )
+    Some(NumberLine(geometry)) =>
+      arrow_value(
+        "numberline",
         geometry.length,
         geometry.angle,
         geometry.head,
