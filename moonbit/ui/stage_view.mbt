@@ -10,7 +10,7 @@ fn stage_view(
   feedback : @core.Any,
   prepared : @core.Any,
   key : String,
-  svg : StageSvg,
+  svg : @react.Element,
   canvas_visible : Bool,
   on_failure : () -> Unit,
 ) -> @react.Element {
@@ -119,7 +119,7 @@ fn stage_view(
       ),
     )
   }
-  content.push(stage_svg(svg, canvas_visible))
+  content.push(svg)
   content.push(stage_overlay(controller, selection, hovered, marquee))
   let active = truthy(feedback) && feedback._get("kind").cast() == "active"
   let cancelled = truthy(feedback) &&

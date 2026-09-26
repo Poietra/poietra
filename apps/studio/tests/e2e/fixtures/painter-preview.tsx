@@ -61,7 +61,11 @@ const observedRenderer = {
   },
   frameToSvgView(...args: Parameters<typeof renderer.frameToSvgView>) {
     probe.svgCalls++;
-    return renderer.frameToSvgView(...args);
+    const view = renderer.frameToSvgView(...args);
+    // Public renderer implementations may return immutable shared views. React
+    // must not attach its development key getter to the renderer's records.
+    for (const item of view.objects) Object.freeze(item);
+    return Object.freeze(view);
   },
 };
 const factory: PainterContract['createFramePainter'] = async canvas => {

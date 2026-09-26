@@ -191,16 +191,18 @@ test('retained SVG and serialized export SVG produce identical pixels with trans
 });
 
 test('cursor updates keep the unchanged canvas and SVG frame instead of repainting the scene', async ({ page }) => {
+  await countEditorRenders(page);
   await open(page);
   for (const compare of [false, true]) {
     if (compare) await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
     const counts = await page.evaluate(async () => {
+      window.renderCounts = {};
       const before = { svg: window.painterPreview.svgCalls, paint: window.painterPreview.renders.length };
       await window.painterPreview.cursors(12);
-      return { svg: window.painterPreview.svgCalls - before.svg, paint: window.painterPreview.renders.length - before.paint };
+      return { svg: window.painterPreview.svgCalls - before.svg, paint: window.painterPreview.renders.length - before.paint, elements: window.renderCounts.stage__svg ?? 0 };
     });
-    expect(counts).toEqual({ svg: 0, paint: 0 });
+    expect(counts).toEqual({ svg: 0, paint: 0, elements: 0 });
   }
   // A real scene change must still invalidate both rendering paths.
   await page.getByRole('button', { name: 'Composition 1', exact: true }).click();

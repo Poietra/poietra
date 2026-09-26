@@ -1,0 +1,54 @@
+--- a/moonbit/ui/stage_svg.mbt
++++ b/moonbit/ui/stage_svg.mbt
+@@ -13,6 +13,19 @@
+   props : @core.Any,
+   key : String,
+ ) -> @react.Element = "jsx"
++
++///|
++// Project native presentation attributes directly into React's DOM prop names.
++// Values and markup have already been produced by the typed SVG renderer.
++extern "js" fn svg_group_props(
++  input : @core.Any,
++  markup : @core.Any,
++) -> @core.Any =
++  #|(input, markup) => ({"data-object-id": input.id, transform: input.transform, opacity: input.opacity, fill: input.fill, color: input.color, stroke: input.stroke, strokeWidth: input.strokeWidth, strokeLinecap: "round", strokeLinejoin: "round", filter: input.filter, dangerouslySetInnerHTML: markup})
++
++///|
++extern "js" fn svg_markup(body : @core.Any) -> @core.Any =
++  #|body => ({__html: body})
+ 
+ ///|
+ let cached_svg_object : @core.Any = memo_component(svg_object)
+@@ -31,27 +44,10 @@
+ 
+ ///|
+ fn svg_object(input : @core.Any) -> @react.Element {
+-  let markup = @react.use_memo(
+-    fn() { host_record({ "__html": input._get("body") }) },
+-    [input._get("body")],
+-  )
+-  h(
+-    "g",
+-    {
+-      "data-object-id": input._get("id"),
+-      "transform": input._get("transform"),
+-      "opacity": input._get("opacity"),
+-      "fill": input._get("fill"),
+-      "color": input._get("color"),
+-      "stroke": input._get("stroke"),
+-      "strokeWidth": input._get("strokeWidth"),
+-      "strokeLinecap": @core.any("round"),
+-      "strokeLinejoin": @core.any("round"),
+-      "filter": input._get("filter"),
+-      "dangerouslySetInnerHTML": markup,
+-    },
+-    [],
+-  )
++  let markup = @react.use_memo(fn() { svg_markup(input._get("body")) }, [
++    input._get("body"),
++  ])
++  svg_element(@core.any("g"), svg_group_props(input, markup), "shape")
+ }
+ 
+ ///|

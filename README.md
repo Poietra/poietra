@@ -299,6 +299,9 @@ owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
 The public SVG view uses fixed native records and a single output array; it does
 not allocate intermediate key/value tuples or expose MoonBit record layout.
+The stage memoizes the corresponding React element tree with that view, so
+presence/selection updates do not rebuild unchanged SVG elements. React owns a
+shallow copy of each props record; external renderers can return frozen views.
 
 As of **2026-09-27**, the Canvas painter captures just the consumed frame values
 into a typed `PaintFrame` before its first await. Shape, text and raster stages
@@ -713,6 +716,24 @@ variation. This is a conversion result, not a browser frame-rate measurement.
 Validation passed 732 Vitest tests, five extension/linking checks, public API/type
 checks, a production build and 24 Canvas/primitive/preview browser checks,
 including pixel agreement between retained SVG and serialized export SVG.
+
+The subsequent stage change retains the React element tree as well as the SVG
+view. Browser tests count zero SVG-tree constructions during cursor updates,
+while geometry changes still invalidate it. All 15 preview tests also run with
+frozen renderer records, guarding against React's development props mutations.
+The production [before](benchmarks/2026-09-27-stage-props/interaction-before.json)
+/ [after](benchmarks/2026-09-27-stage-props/interaction-after.json) use the earlier
+drag/playback method, starting from `9d1e67d`'s application source. Pointer-to-DOM
+medians were **7.3 → 7.4 ms** at 100 objects and **12.0 → 11.7 ms** at 500; the
+latter ranges were **10.8–18.1 → 10.9–25.2 ms**. Playback rAF medians stayed
+16.7 ms. This run establishes no clear drag/playback speedup; the verified gain
+is avoiding repeated SVG construction for an unchanged presentation.
+
+A preceding attempt to replace each SVG group's Map with a native props factory
+was rejected: its 500-object median was 12.3 ms, versus 12.0 ms before, with no
+clear gain. Its [raw trial and patch](benchmarks/2026-09-27-stage-props/exploratory/)
+remain reproducible against `9d1e67d`. The accepted change passed 732 Vitest tests,
+five extension/linking checks, public API/type checks and a production build.
 
 ### Same-room collaboration — 2026-09-22
 

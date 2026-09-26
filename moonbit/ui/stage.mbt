@@ -136,11 +136,12 @@ pub fn stage(input : @core.Any) -> @react.Element {
         "idPrefix": @core.any(prefix),
         "hitVideo": @core.any(canvas_visible),
       })
-      if truthy(renderer._get("frameToSvgView")) {
+      let view = if truthy(renderer._get("frameToSvgView")) {
         SvgView(renderer._call("frameToSvgView", [displayed, options]))
       } else {
         SvgMarkup(renderer._call("frameToSvg", [displayed, options]).cast())
       }
+      stage_svg(view, canvas_visible)
     },
     [displayed, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )

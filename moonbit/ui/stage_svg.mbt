@@ -5,14 +5,19 @@ priv enum StageSvg {
 }
 
 ///|
-// The renderer already supplies native props. Keep this hot path out of Map
-// conversion; keys belong to React, not authored SVG attributes.
+// The renderer supplies native records. Give React its own shallow props:
+// development React installs a key getter and freezes them. Renderer views may
+// be immutable or reused. Keys belong to React, not authored SVG attributes.
 #module("react/jsx-runtime")
 extern "js" fn svg_element(
   component : @core.Any,
   props : @core.Any,
   key : String,
 ) -> @react.Element = "jsx"
+
+///|
+extern "js" fn svg_props(input : @core.Any) -> @core.Any =
+  #|input => ({...input})
 
 ///|
 let cached_svg_object : @core.Any = memo_component(svg_object)
@@ -102,7 +107,7 @@ fn stage_svg(value : StageSvg, canvas_visible : Bool) -> @react.Element {
         nodes.push(
           svg_element(
             cached_svg_object,
-            item,
+            svg_props(item),
             "object-" + string_value(item._get("id")),
           ),
         )
