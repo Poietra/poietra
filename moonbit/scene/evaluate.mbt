@@ -567,21 +567,22 @@ pub fn evaluate_scene(scene : Scene, time : Double, kernel : Kernel) -> Frame {
       break
     }
   }
-  let result = if current.kind == "composition" {
-    composition_frame(
-      scene,
-      scene.compositions[current.id],
-      time,
-      kernel.compare_ids,
-    )
-  } else {
-    transition_frame(
-      scene,
-      scene.transitions[current.id],
-      clamp(time - current.start, 0.0, current.duration),
-      time,
-      kernel,
-    )
+  let result = match current.kind {
+    CompositionSegment =>
+      composition_frame(
+        scene,
+        scene.compositions[current.id],
+        time,
+        kernel.compare_ids,
+      )
+    TransitionSegment =>
+      transition_frame(
+        scene,
+        scene.transitions[current.id],
+        clamp(time - current.start, 0.0, current.duration),
+        time,
+        kernel,
+      )
   }
   {
     ..result,

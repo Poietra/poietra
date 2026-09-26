@@ -78,7 +78,7 @@ pub fn scene_duration(scene : Scene) -> Double {
 }
 
 ///|
-pub fn segment_start(scene : Scene, kind : String, id : String) -> Double {
+pub fn segment_start(scene : Scene, kind : SegmentKind, id : String) -> Double {
   for segment in scene_segments(scene) {
     if segment.kind == kind && segment.id == id {
       return segment.start

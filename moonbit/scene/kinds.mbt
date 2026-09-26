@@ -22,6 +22,34 @@ pub(all) enum AnimationKind {
 } derive(Eq)
 
 ///|
+pub(all) enum SegmentKind {
+  CompositionSegment
+  TransitionSegment
+} derive(Eq)
+
+///|
+pub fn segment_kind(value : String) -> SegmentKind? {
+  match value {
+    "composition" => Some(CompositionSegment)
+    "transition" => Some(TransitionSegment)
+    _ => None
+  }
+}
+
+///|
+pub fn segment_kind_name(value : SegmentKind) -> String {
+  match value {
+    CompositionSegment => "composition"
+    TransitionSegment => "transition"
+  }
+}
+
+///|
+pub impl ToJson for SegmentKind with fn to_json(self) {
+  segment_kind_name(self).to_json()
+}
+
+///|
 /// Shared by authored tracks, evaluation, editing plans and rendering.
 pub(all) enum WriteOrder {
   Together

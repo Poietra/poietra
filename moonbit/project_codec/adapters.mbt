@@ -126,6 +126,21 @@ pub fn decode_WriteOrder(value : @core.Any) -> @scene.WriteOrder {
 }
 
 ///|
+pub fn decode_SegmentKind(value : @core.Any) -> @scene.SegmentKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected SegmentKind string")
+    panic()
+  }
+  match @scene.segment_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid SegmentKind")
+      panic()
+    }
+  }
+}
+
+///|
 pub fn decode_CurveValue(value : @core.Any) -> @scene.CurveValue {
   if @core.typeof_(value) == "number" {
     @scene.CurveNumber(value.cast())

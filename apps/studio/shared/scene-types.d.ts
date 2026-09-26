@@ -4,6 +4,7 @@ export type AnimationKind = 'move' | 'write' | 'fade' | 'grow' | 'none';
 export type Effect = 'none' | 'glow';
 export type CurveProperty = 'x' | 'y' | 'width' | 'height' | 'rotation' | 'opacity' | 'fill' | 'stroke' | 'strokeWidth' | 'fontSize' | 'cornerRadius' | 'c1x' | 'c1y' | 'c2x' | 'c2y' | 'reveal' | 'anchorX' | 'anchorY' | 'scaleX' | 'scaleY' | 'shear';
 export type WriteOrder = 'together' | 'sequential';
+export type SegmentKind = 'composition' | 'transition';
 export type PresetEasing = 'linear' | 'easeInOut' | 'easeIn' | 'easeOut';
 export interface CubicBezierEasing { type: 'cubicBezier'; x1: number; y1: number; x2: number; y2: number }
 export type Easing = PresetEasing | CubicBezierEasing;
@@ -157,7 +158,7 @@ export interface Project {
   scenes: Record<string, Scene>;
 }
 export interface Segment {
-  kind: 'composition' | 'transition';
+  kind: SegmentKind;
   id: string;
   start: number;
   duration: number;

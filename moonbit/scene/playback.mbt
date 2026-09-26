@@ -93,10 +93,9 @@ pub fn prepare_scene(scene : Scene, kernel : Kernel) -> PreparedScene {
       segment.duration.is_inf() {
       monotone = false
     }
-    let program = if segment.kind == "composition" {
-      Hold(holds[segment.id])
-    } else {
-      Change(changes[segment.id])
+    let program = match segment.kind {
+      CompositionSegment => Hold(holds[segment.id])
+      TransitionSegment => Change(changes[segment.id])
     }
     schedule.push({
       start: segment.start,

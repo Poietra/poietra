@@ -79,7 +79,7 @@ pub fn composition_frame(
     @scene.timeline_segments(decode_timeline(input))
     .iter()
     .find_first(fn(segment) {
-      segment.kind == "composition" && segment.id == composition.id
+      segment.kind == @scene.CompositionSegment && segment.id == composition.id
     })
     .map(fn(segment) { segment.start })
     .unwrap_or(0.0)
@@ -115,7 +115,7 @@ pub fn transition_frame(
   let scene = @project_codec.decode_Scene(input)
   let transition = @project_codec.decode_Transition(value)
   let scene_time : Double = if @core.is_undefined(scene_time) {
-    @scene.segment_start(scene, "transition", transition.id) + time
+    @scene.segment_start(scene, @scene.TransitionSegment, transition.id) + time
   } else {
     scene_time.cast()
   }
@@ -131,7 +131,12 @@ pub fn scene_segments(input : @core.Any) -> @core.Any {
   @core.any(
     FixedArray::makei(segments.length(), fn(i) {
       let segment = segments[i]
-      make_segment(segment.kind, segment.id, segment.start, segment.duration)
+      make_segment(
+        @scene.segment_kind_name(segment.kind),
+        segment.id,
+        segment.start,
+        segment.duration,
+      )
     }),
   )
 }

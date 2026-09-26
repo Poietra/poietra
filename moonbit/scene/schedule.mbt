@@ -28,12 +28,12 @@ pub fn timeline_segments(data : TimelineData) -> Array[Segment] {
   let mut start = 0.0
   for index, id in data.order {
     guard data.holds.get(id) is Some(duration) else { continue }
-    result.push({ kind: "composition", id, start, duration, })
+    result.push({ kind: CompositionSegment, id, start, duration, })
     start += duration
     if data.order.get(index + 1) is Some(next_id) &&
       links.get((id, next_id)) is Some(link) {
       result.push({
-        kind: "transition",
+        kind: TransitionSegment,
         id: link.id,
         start,
         duration: link.duration,

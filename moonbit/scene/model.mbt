@@ -231,7 +231,7 @@ pub(all) struct Project {
 
 ///|
 pub(all) struct Segment {
-  kind : String
+  kind : SegmentKind
   id : String
   start : Double
   duration : Double

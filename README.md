@@ -289,6 +289,8 @@ Write order is one `scene.WriteOrder` enum across tracks, editing/proposal plans
 evaluated frames and rendering. Generated adapters and declarations preserve the
 public `together` / `sequential` strings; pure packages no longer convert this
 value through strings. The `editor` and `render` type aliases share that enum.
+Timeline segments likewise carry `SegmentKind`; preparation and evaluation match
+both cases exhaustively, while native segment records keep their existing strings.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs

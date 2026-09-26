@@ -32,6 +32,7 @@ wire_enums = {
     'Effect': ('effect_kind', 'effect_name'),
     'CurveProperty': ('curve_property', 'curve_property_name'),
     'WriteOrder': ('write_order', 'write_order_name'),
+    'SegmentKind': ('segment_kind', 'segment_kind_name'),
 }
 
 def decode(kind, value):
@@ -249,7 +250,6 @@ for name, fields in structs.items():
         elif name == 'Track' and kind == 'Timing?':
             value += ' | null'
         if name == 'Project' and field == 'version': value = '1 | 2'
-        if name == 'Segment' and field == 'kind': value = "'composition' | 'transition'"
         types += '  ' + key + ('?' if optional else '') + ': ' + value + ';\n'
     if name == 'RenderObject': types += '  videoFrame?: string; // Portable SVG preparation only; not stored in a project.\n'
     types += '}\n'
