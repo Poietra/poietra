@@ -4,6 +4,7 @@ import { applyChanges, getShared, initializeDocument, readProject, toShared } fr
 import { makeDemoProject } from '../shared/demo';
 import { projectStructureView } from '../shared/structure-view';
 import type { Project } from '../shared/model';
+import { compositionFrame } from '../src/engine/evaluate';
 
 function fixture() {
   const doc = new Y.Doc(), project = makeDemoProject();
@@ -13,7 +14,12 @@ function fixture() {
   return doc;
 }
 const statePath = ['scenes', 'scene-1', 'compositions', 'comp-1', 'states', 'circle'];
-const x = (doc: Y.Doc) => readProject(doc)!.scenes['scene-1'].compositions['comp-1'].states.circle.x;
+const x = (doc: Y.Doc) => {
+  const scene = readProject(doc)!.scenes['scene-1'], composition = scene.compositions['comp-1'];
+  const value = composition.states.circle.x;
+  expect(compositionFrame(scene, composition).objects.find(item => item.object.id === 'circle')!.state.x).toBe(value);
+  return value;
+};
 const fullRead = (doc: Y.Doc) => projectStructureView(doc.getMap('project').toJSON() as Project);
 
 describe('MoonBit incremental shared snapshots', () => {
@@ -115,5 +121,49 @@ describe('MoonBit incremental shared snapshots', () => {
     expect(readProject(doc)!.sceneOrder).toEqual(['other', 'scene-1']);
     expect(readProject(doc)).toEqual(fullRead(doc));
     doc.destroy(); peer.destroy();
+  });
+
+  it('reuses scene structure without retaining old poses, parents, paint order or media timing', () => {
+    const doc = fixture(), peer = new Y.Doc();
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(doc));
+    const undo = new Y.UndoManager(doc.getMap('project'));
+    const frames = (target: Y.Doc) => {
+      const scene = readProject(target)!.scenes['scene-1'], copy = structuredClone(scene);
+      const actual = compositionFrame(scene, scene.compositions['comp-1'], 500);
+      expect(actual).toEqual(compositionFrame(copy, copy.compositions['comp-1'], 500));
+      return actual;
+    };
+    const initial = frames(doc), captured = structuredClone(initial);
+    frames(peer);
+    const parent = Object.keys(readProject(doc)!.scenes['scene-1'].objects).find(id => id !== 'circle')!;
+    const objectPath = ['scenes', 'scene-1', 'objects', 'circle'];
+    for (const changes of [
+      [{ path: [...objectPath, 'parentId'], value: parent }],
+      [{ path: ['scenes', 'scene-1', 'compositions', 'comp-1', 'states', parent, 'x'], value: 1234 }],
+      [{ path: [...objectPath, 'order'], value: -100 }],
+      [
+        { path: [...objectPath, 'kind'], value: 'video' },
+        { path: [...objectPath, 'media'], value: { src: '/clip.webm', mime: 'video/webm', duration: 2000, hasAudio: false } },
+        { path: [...objectPath, 'playback'], value: { start: 100, offset: 200, duration: 1000 } },
+      ],
+      [{ path: [...objectPath, 'playback', 'offset'], value: 700 }],
+      [{ path: [...objectPath, 'parentId'], value: null }],
+    ]) {
+      undo.stopCapturing();
+      applyChanges(doc, changes);
+      const edited = frames(doc);
+      Y.applyUpdate(peer, Y.encodeStateAsUpdate(doc));
+      expect(frames(peer)).toEqual(edited);
+      undo.undo(); frames(doc);
+      undo.redo(); expect(frames(doc)).toEqual(edited);
+      expect(initial).toEqual(captured);
+    }
+    const objects = getShared(doc, ['scenes', 'scene-1', 'objects']) as Y.Map<unknown>;
+    undo.stopCapturing();
+    objects.delete('circle');
+    expect(frames(doc).objects.some(item => item.object.id === 'circle')).toBe(false);
+    undo.undo();
+    expect(frames(doc).objects.some(item => item.object.id === 'circle')).toBe(true);
+    undo.destroy(); doc.destroy(); peer.destroy();
   });
 });

@@ -93,3 +93,19 @@ test('editing a composition does not decode other compositions or prepare transi
   Object.defineProperty(scene.transitions['transition-1'], 'tracks', { get() { throw new Error('Unrelated transition compiled'); } });
   expect(compositionFrame(scene, first)).toEqual(expected);
 });
+
+test('caller-owned frozen containers still observe mutable metadata and poses', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  Object.freeze(scene.objects);
+  Object.freeze(scene);
+  const first = scene.compositions['comp-1'];
+  compositionFrame(scene, first);
+  const parent = Object.keys(scene.objects).find(id => id !== 'circle')!;
+  scene.objects.circle.parentId = parent;
+  scene.objects.circle.order = -100;
+  first.states[parent].x = 1234;
+  const expected = structuredClone(scene);
+  const actual = compositionFrame(scene, first);
+  expect(actual).toEqual(compositionFrame(expected, expected.compositions['comp-1']));
+  expect(actual.objects[0].object.id).toBe('circle');
+});

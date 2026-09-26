@@ -196,11 +196,11 @@ pub fn composition_objects(
   composition : Composition,
   time : Double,
 ) -> Array[RenderObject] {
-  layout_objects(object_layout(ordered), composition, time)
+  object_layout(ordered).evaluate(composition, time)
 }
 
 ///|
-fn layout_objects(
+pub fn ObjectLayout::evaluate(
   layout : ObjectLayout,
   composition : Composition,
   time : Double,

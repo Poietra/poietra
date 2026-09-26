@@ -146,6 +146,28 @@ test "concurrent hierarchy cycles have a stable nonrecursive resolution" {
 }
 
 ///|
+test "reusable layout owns its order and evaluates each current pose" {
+  let ordered = [object("child", Some("parent")), object("parent", None)]
+  let layout = @scene.ObjectLayout::new(ordered)
+  ordered[0] = object("unrelated", None)
+  ordered.clear()
+  let state = { ..@scene.default_state(Rectangle), x: 10.0, y: 0.0, }
+  let first = {
+    ..@scene.empty_composition("a", "A", 1000.0, "#ffffff"),
+    states: { "parent": { ..state, visible: false, }, "child": state },
+  }
+  let earlier = layout.evaluate(first, 0.0)
+  assert_eq(earlier.length(), 1)
+  assert_eq(earlier[0].object.id, "child")
+  near(earlier[0].world.unwrap().e, 20.0)
+  first.states["parent"] = { ..state, x: 100.0, }
+  let latest = layout.evaluate(first, 0.0)
+  assert_eq(latest.length(), 2)
+  near(latest[0].world.unwrap().e, 110.0)
+  near(earlier[0].world.unwrap().e, 20.0)
+}
+
+///|
 test "prepared scene shares structure while keeping each visible and retained pose independent" {
   let parent = {
     ..@scene.default_state(Rectangle),

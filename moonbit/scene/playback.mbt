@@ -82,7 +82,7 @@ pub fn prepare_scene(scene : Scene, kernel : Kernel) -> PreparedScene {
   let schedule : Array[ScheduledSegment] = []
   let layout = object_layout(ordered_objects(scene, kernel.compare_ids))
   for id, composition in scene.compositions {
-    holds[id] = layout_objects(layout, composition, 0.0)
+    holds[id] = layout.evaluate(composition, 0.0)
   }
   for id, transition in scene.transitions {
     changes[id] = prepare_layout_transition(scene, transition, layout)

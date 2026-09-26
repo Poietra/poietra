@@ -278,6 +278,11 @@ editing data and deletion tombstones remain untouched in the document.
 One typed `ObjectLayout` also shares layer order and the lazily prepared parent
 graph across all holds/transitions. Composition matrices remain independent;
 reusing structure never reuses evaluated world transforms or serializes them.
+Editing also retains that typed layout while an immutable snapshot's object map
+is unchanged. Only `readProject` registers trusted snapshots: public caller-owned
+objects, even shallow-frozen ones, and in-transaction reads use fresh conversion.
+Weak keys follow snapshot lifetime; metadata, order and parent edits invalidate
+the layout, while pose edits still evaluate current world matrices.
 Prepared transitions resolve parent and item indices once. Each evaluated pose
 uses owned arrays in topological order instead of rebuilding ID-keyed state and
 matrix maps; authored paint order, hidden ancestors and missing poses remain
@@ -392,15 +397,15 @@ package versions are pinned in [package.json](apps/studio/package.json) and
 
 ### What the remaining TypeScript represents
 
-Source audit rerun **2026-09-22**, including the standalone render host:
+Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 302 | 60,444 |
+| MoonBit application | 307 | 61,320 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 150 | 16,849 |
-| Public/environment type declarations | 114 | 1,978 |
+| TypeScript tests, fixtures and test configurations | 151 | 17,214 |
+| Public/environment type declarations | 114 | 1,980 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
 These counts include generated code, comments and blanks; they exclude external
@@ -671,13 +676,36 @@ The latest ownership [control](benchmarks/2026-09-27-compiled-ownership/primitiv
 showed no clear per-frame change: flat 0.0980 → 0.0983 ms; parents + six keys
 0.5363 [0.5099–0.5440] → 0.5283 [0.5164–0.5314] ms.
 
-Validation of the latest ownership change passed 733 Vitest tests, five
+**Editing layout reuse.** The [CPU before](benchmarks/2026-09-27-shared-state-view/primitives-before.json)
+/ [after](benchmarks/2026-09-27-shared-state-view/primitives-after.json) start from
+`88ea863`. Five fresh processes use two warmup and seven measured batches of
+100 parent coordinate edits, including Yjs, selective Undo, immutable snapshots
+and current Composition frame conversion. At 500 objects, edit + frame time was
+1.363 [1.330–1.394] → 0.979 [0.966–1.002] ms; with six points per object it was
+1.354 [1.330–1.423] → 0.977 [0.961–1.007] ms. Playback evaluation remained within
+variation. The separate snapshot-only [before](benchmarks/2026-09-27-shared-state-view/snapshots-before.json)
+/ [after](benchmarks/2026-09-27-shared-state-view/snapshots-after.json), with three
+Scenes and five Compositions each, showed no clear registration penalty at 500
+objects: 0.176 [0.162–0.185] → 0.169 [0.159–0.175] ms per edit/read.
+The production drag [before](benchmarks/2026-09-27-shared-state-view/interaction-before.json)
+/ [after](benchmarks/2026-09-27-shared-state-view/interaction-after.json) showed
+no clear change: 500-circle DOM latency 11.8 [10.5–19.1] → 11.9 [10.6–25.4] ms,
+with rAF medians still 16.7 ms. These are the same local browser conditions above,
+not a demonstrated user-visible drag speedup. The new cache's retained heap and
+transient allocation have not been measured.
+
+Validation of the compiled ownership change passed 733 Vitest tests, five
 extension/linking checks, 56 JS and 53 WASM MoonBit tests, 19 headless checks,
 108 public API contracts, a production build and 26 playback/primitive/media/export
 browser checks. Those include independent MP4/WebM decoding, exact Scene/frame
 boundaries, retained poses, cancellation, audio and original key preservation.
-[Full CI on `5888fae`](https://github.com/Poietra/poietra/actions/runs/36274403548)
+[Full CI on `88ea863`](https://github.com/Poietra/poietra/actions/runs/36275413904)
 also passed the broader collaborative editing and real Worker restart suites.
+Editing layout reuse passed 735 Vitest checks, five extension/linking checks,
+57 JS and 54 WASM MoonBit checks, public contracts, production build and 24
+canvas/parent/keyframe/preview browser checks. Its regression tests include
+mutable public inputs, nested and observer-queued transactions, exception recovery,
+metadata changes, video timing, remote updates and Undo/Redo.
 No production deployment was made for these changes.
 
 ### Same-room collaboration — 2026-09-22

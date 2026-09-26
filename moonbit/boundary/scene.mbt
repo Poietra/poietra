@@ -88,14 +88,7 @@ pub fn composition_frame(
   }
   frame_value(
     {
-      objects: @scene.composition_objects(
-        ordered_objects(input)
-        .iter()
-        .map(@project_codec.decode_SceneObject)
-        .to_array(),
-        composition,
-        time,
-      ),
+      objects: composition_objects(input, composition, time),
       background: input._get("background").cast(),
       width: input._get("width").cast(),
       height: input._get("height").cast(),

@@ -1,11 +1,17 @@
 ///|
 /// Scene-wide structure is independent of Composition poses and track timing.
 /// A preparation pass shares one ordered list and lazily resolved parent graph.
-priv struct ObjectLayout {
-  ordered : Array[SceneObject]
-  has_parents : Bool
-  mut cached_hierarchy : Hierarchy?
-  mut cached_indices : IndexedHierarchy?
+pub struct ObjectLayout {
+  priv ordered : Array[SceneObject]
+  priv has_parents : Bool
+  priv mut cached_hierarchy : Hierarchy?
+  priv mut cached_indices : IndexedHierarchy?
+}
+
+///|
+/// Own the ordered metadata list; each evaluation reads the current poses.
+pub fn ObjectLayout::new(ordered : Array[SceneObject]) -> ObjectLayout {
+  object_layout(ordered.copy())
 }
 
 ///|

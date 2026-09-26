@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-26T22:14:12.337Z",
+  "environment": {
+    "applicationRevision": "88ea863526eea33400cb05c749430cd760f0793f",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "7eebbce92bce46e83991f8c0645d88aa4ee6930711202268d122780472f5d06e",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.02,
+      0.35,
+      0.56
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "6452981a1dbc7fd17b4cf05770301bbe6bd6acb114463ac6a6397369fe4220e5",
+    "boundarySha256": "ee24ef93406ce58cafa55052df01904f87ba31b546c78d096410c473984e4fb3",
+    "clientRuntimeSha256": "604cf1b6634028ab7459e432563aecf0fc7de4960e055182e2254d250af89949",
+    "viteManifestSha256": "34702ea791b51a9188c6d23737e812ee804ee000b2a95fff0771c49de4b0ae53"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "snapshots": {
+      "summary": [
+        {
+          "scenes": 3,
+          "compositionsPerScene": 5,
+          "objectsPerScene": 100,
+          "msPerEditAndRead": {
+            "n": 5,
+            "median": 0.05207174000000009,
+            "min": 0.05132657999999992,
+            "max": 0.05367074000000002
+          }
+        },
+        {
+          "scenes": 3,
+          "compositionsPerScene": 5,
+          "objectsPerScene": 500,
+          "msPerEditAndRead": {
+            "n": 5,
+            "median": 0.17586187999999991,
+            "min": 0.1620862999999997,
+            "max": 0.18477254000000015
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network",
+          "iterations": "7 batches × 50 edits after warmup",
+          "results": [
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 100,
+              "msPerEditAndRead": 0.05136480000000006,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.06246294000000034,
+                  0.06937725999999998,
+                  0.04642976000000033,
+                  0.05136480000000006,
+                  0.046238079999999966,
+                  0.06536653999999999,
+                  0.050504999999999994
+                ]
+              }
+            },
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 500,
+              "msPerEditAndRead": 0.18477254000000015,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.19144206000000052,
+                  0.16799487999999996,
+                  0.19083413999999949,
+                  0.16941862000000016,
+                  0.20529980000000023,
+                  0.16205052000000023,
+                  0.18477254000000015
+                ]
+              }
+            }
+          ],
+          "checksum": 19600
+        },
+        {
+          "scope": "One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network",
+          "iterations": "7 batches × 50 edits after warmup",
+          "results": [
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 100,
+              "msPerEditAndRead": 0.05367074000000002,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.05367074000000002,
+                  0.061717840000000024,
+                  0.04648676000000023,
+                  0.05461520000000007,
+                  0.0477369200000004,
+                  0.06787616000000014,
+                  0.04463832000000025
+                ]
+              }
+            },
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 500,
+              "msPerEditAndRead": 0.17440885999999978,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.18491539999999987,
+                  0.17440885999999978,
+                  0.1616868999999997,
+                  0.18771215999999982,
+                  0.15585753999999952,
+                  0.24320453999999928,
+                  0.16540476000000012
+                ]
+              }
+            }
+          ],
+          "checksum": 19600
+        },
+        {
+          "scope": "One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network",
+          "iterations": "7 batches × 50 edits after warmup",
+          "results": [
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 100,
+              "msPerEditAndRead": 0.05343519999999955,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.05432006000000001,
+                  0.06545463999999981,
+                  0.051830679999999914,
+                  0.05343519999999955,
+                  0.048461020000000306,
+                  0.059440960000000015,
+                  0.04531776000000036
+                ]
+              }
+            },
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 500,
+              "msPerEditAndRead": 0.17586187999999991,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.20110781999999972,
+                  0.1696479599999998,
+                  0.19367009999999937,
+                  0.16213280000000055,
+                  0.17586187999999991,
+                  0.23300079999999979,
+                  0.16543124000000034
+                ]
+              }
+            }
+          ],
+          "checksum": 19600
+        },
+        {
+          "scope": "One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network",
+          "iterations": "7 batches × 50 edits after warmup",
+          "results": [
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 100,
+              "msPerEditAndRead": 0.05132657999999992,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.08990105999999969,
+                  0.05132657999999992,
+                  0.05377994000000001,
+                  0.07420991999999955,
+                  0.04753026000000034,
+                  0.050129660000000055,
+                  0.049443219999999996
+                ]
+              }
+            },
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 500,
+              "msPerEditAndRead": 0.1620862999999997,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.15961650000000077,
+                  0.1934711399999992,
+                  0.1620862999999997,
+                  0.21598416000000042,
+                  0.15812911999999982,
+                  0.15763230000000023,
+                  0.16843099999999936
+                ]
+              }
+            }
+          ],
+          "checksum": 19600
+        },
+        {
+          "scope": "One Yjs leaf edit and a complete MoonBit project snapshot; excludes UI/rendering/network",
+          "iterations": "7 batches × 50 edits after warmup",
+          "results": [
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 100,
+              "msPerEditAndRead": 0.05207174000000009,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.07795463999999981,
+                  0.0686887999999999,
+                  0.04991175999999996,
+                  0.05207174000000009,
+                  0.0475982799999997,
+                  0.0585873799999996,
+                  0.04440954000000033
+                ]
+              }
+            },
+            {
+              "scenes": 3,
+              "compositionsPerScene": 5,
+              "objectsPerScene": 500,
+              "msPerEditAndRead": 0.17933969999999932,
+              "samples": {
+                "msPerEditAndRead": [
+                  0.1635726999999997,
+                  0.1895119599999998,
+                  0.23518971999999963,
+                  0.16949610000000007,
+                  0.17933969999999932,
+                  0.20621736000000054,
+                  0.16254406000000018
+                ]
+              }
+            }
+          ],
+          "checksum": 19600
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-26T22:14:14.508Z",
+  "loadAverageAfter": [
+    0.02,
+    0.35,
+    0.56
+  ]
+}

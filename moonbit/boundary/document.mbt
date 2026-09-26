@@ -277,6 +277,7 @@ pub fn read_project(doc : @core.Any, host : @core.Any) -> @core.Any {
     freeze(result._get("transitions")) |> ignore
     freeze(result._get("compositionOrder")) |> ignore
     freeze(result) |> ignore
+    remember_scene_snapshot(result)
     state.scenes.set(scene, result)
     result
   })
