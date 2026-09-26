@@ -22,12 +22,23 @@ priv enum ExportRange {
 
 ///|
 priv struct ExportSnapshot {
-  scene : @core.Any
-  project : @core.Any
+  range : ExportRange
+  title : String
+  duration : Double
+  source_size : @exporting.Size
+  scene_name : String
   name : String
   format : @exporting.Container
   fps : Double
   size : @exporting.Size
+}
+
+///|
+// Only the active async operation owns document data. Running/completed dialog
+// state retains small presentation values, including while saving again.
+priv enum ExportInput {
+  SceneInput(@core.Any)
+  ProjectInput(@core.Any)
 }
 
 ///|
@@ -80,12 +91,12 @@ fn ExportCapabilities::supports(
 
 ///|
 fn export_dimensions(
-  scene : @core.Any,
+  source : @exporting.Size,
   resolution : ExportResolution,
   format : @exporting.Container,
 ) -> @exporting.Size {
-  let width : Double = scene._get("width").cast()
-  let height : Double = scene._get("height").cast()
+  let width = source.width
+  let height = source.height
   let scale = match resolution {
     Source => 1.0
     HD => 720.0 / width.min(height)
@@ -99,6 +110,11 @@ fn export_dimensions(
     (round_number(value * scale / unit) * unit).max(unit)
   }
   { width: size(width), height: size(height), }
+}
+
+///|
+fn export_source_size(scene : @core.Any) -> @exporting.Size {
+  { width: scene._get("width").cast(), height: scene._get("height").cast(), }
 }
 
 ///|
@@ -202,22 +218,46 @@ fn begin_export(
   set_view : (ExportView) -> Unit,
 ) -> Unit {
   let exporter = input._get("exporter")
-  let frozen : ExportSnapshot = @core.throwable(fn() {
+  let (source, frozen) : (ExportInput, ExportSnapshot) = @core.throwable(fn() {
     let selected = selected_export_project(input, range)
     let project = if @core.is_nullish(selected) {
       selected
     } else {
       ui_snapshot(selected)
     }
-    let scene = first_export_scene(project, input._get("scene"))
-    {
-      scene: ui_snapshot(scene),
-      project,
+    let is_project = !@core.is_nullish(project)
+    let scene = if is_project {
+      first_export_scene(project, input._get("scene"))
+    } else {
+      ui_snapshot(input._get("scene"))
+    }
+    let source_size = export_source_size(scene)
+    let scene_name = string_value(scene._get("name"))
+    let frozen : ExportSnapshot = {
+      range: if is_project {
+        EntireProject
+      } else {
+        CurrentScene
+      },
+      title: if is_project {
+        string_value(project._get("name")) +
+        " · \{scene_count(project)} scenes"
+      } else {
+        scene_name
+      },
+      duration: if is_project {
+        @boundary.project_duration(project)
+      } else {
+        @boundary.scene_duration(scene)
+      },
+      source_size,
+      scene_name,
       name: input._get("name").cast(),
       format,
       fps,
-      size: export_dimensions(scene, resolution, format),
+      size: export_dimensions(source_size, resolution, format),
     }
+    (if is_project { ProjectInput(project) } else { SceneInput(scene) }, frozen)
   }) catch {
     error => {
       set_view(
@@ -261,25 +301,25 @@ fn begin_export(
           }),
         ),
       ])
-      let output = if !@core.is_nullish(frozen.project) &&
-        truthy(exporter._get("exportProject")) {
-        ui_call(exporter, "exportProject", [
-          frozen.project,
-          input._get("kernel"),
-          settings,
-        ])
-      } else {
-        ui_call(exporter, "exportScene", [
-          frozen.scene,
-          input._get("kernel"),
-          settings,
-        ])
+      let output = match source {
+        ProjectInput(project) =>
+          ui_call(exporter, "exportProject", [
+            project,
+            input._get("kernel"),
+            settings,
+          ])
+        SceneInput(scene) =>
+          ui_call(exporter, "exportScene", [
+            scene,
+            input._get("kernel"),
+            settings,
+          ])
       }
       if !job_is_current(job, active, current, exporter) {
         return
       }
-      let suffix = if @core.is_nullish(frozen.project) {
-        "-" + string_value(frozen.scene._get("name"))
+      let suffix = if frozen.range == CurrentScene {
+        "-" + frozen.scene_name
       } else {
         ""
       }

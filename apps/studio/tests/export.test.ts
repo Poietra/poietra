@@ -81,7 +81,7 @@ beforeEach(() => {
   vi.stubGlobal('VideoFrame', class {});
   vi.stubGlobal('isSecureContext', true);
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('export capabilities', () => {
   it('explains missing WebCodecs and insecure contexts without probing', async () => {
@@ -111,6 +111,7 @@ describe('exportScene', () => {
     const original = scene(100);
     const progress: number[] = [];
     const options: ExportOptions = { format: 'mp4', fps: 30, width: 640, onProgress: value => progress.push(value) };
+    const clone = vi.spyOn(globalThis, 'structuredClone');
     const promise = exportScene(original, kernel, options);
     original.compositions['test-comp-1'].states.circle.fill = '#ff0000';
     original.compositions['test-comp-1'].duration = 1000;
@@ -135,6 +136,21 @@ describe('exportScene', () => {
     expect(mocks.cancel).not.toHaveBeenCalled();
     expect(canvas.width).toBe(0);
     expect(canvas.height).toBe(0);
+    expect(clone.mock.calls.filter(([value]) => value && typeof value === 'object' && 'compositionOrder' in value)).toHaveLength(1);
+  });
+
+  it('keeps snapshot semantics when the MoonBit entry is used directly', async () => {
+    const runtime = await import('../../../_build/js/release/build/browser_export/browser_export.js');
+    const original = scene(100), pending = deferred<boolean>();
+    mocks.probe.mockReturnValueOnce(pending.promise);
+    const options: ExportOptions = { format: 'mp4', fps: 30 };
+    const running = runtime.exportScene(original, kernel, options, { prepareScene: mocks.prepare, createFramePainter: mocks.painter });
+    original.compositions['test-comp-1'].duration = 9000;
+    original.compositions['test-comp-1'].states.circle.fill = '#ff0000'; options.fps = 60;
+    pending.resolve(true);
+    expect((await running).durationMs).toBe(100);
+    expect(mocks.add).toHaveBeenCalledTimes(3);
+    expect(mocks.render.mock.calls[0][0].objects[0].state.fill).toBe('#abcdef');
   });
 
   it.each([24, 30, 60] as const)('samples the WASM-backed timeline at %i fps and clips the final frame duration', async fps => {
@@ -389,6 +405,7 @@ describe('exportProject', () => {
     const signal = new AbortController();
     mocks.probe.mockReturnValueOnce(pending.promise);
     const options: ExportOptions = { format: 'mp4', fps: 30, signal: signal.signal };
+    const clone = vi.spyOn(globalThis, 'structuredClone');
     const running = exportProject(original, kernel, options);
     original.sceneOrder.reverse(); original.scenes.b.background = '#000000';
     original.scenes.a.compositions['test-comp-1'].duration = 9000;
@@ -397,6 +414,20 @@ describe('exportProject', () => {
     expect((await running).durationMs).toBe(250);
     expect(mocks.prepare.mock.calls.map(([value]) => value)).toEqual([before.scenes.a, before.scenes.b]);
     expect(mocks.add).toHaveBeenCalledTimes(8);
+    expect(clone.mock.calls.filter(([value]) => value && typeof value === 'object' && 'sceneOrder' in value)).toHaveLength(1);
+  });
+
+  it('captures every Scene when calling the MoonBit project entry directly', async () => {
+    const runtime = await import('../../../_build/js/release/build/browser_export/browser_export.js');
+    const original = project(), pending = deferred<boolean>();
+    mocks.probe.mockReturnValueOnce(pending.promise);
+    const running = runtime.exportProject(original, kernel, { format: 'mp4', fps: 30 }, { prepareScene: mocks.prepare, createFramePainter: mocks.painter });
+    original.sceneOrder.reverse(); original.scenes.b.background = '#000000';
+    original.scenes.a.compositions['test-comp-1'].duration = 9000;
+    pending.resolve(true);
+    expect((await running).durationMs).toBe(250);
+    expect(mocks.prepare.mock.calls.map(([value]) => value.id)).toEqual(['a', 'b']);
+    expect(mocks.render.mock.calls[1][0].background).toBe('#ffffff');
   });
   it('cancels during a later Scene preparation without opening an encoder', async () => {
     const pending = deferred<void>(), controller = new AbortController();

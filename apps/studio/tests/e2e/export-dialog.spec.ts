@@ -103,3 +103,27 @@ test('capability errors are visible and a fresh opening can recover', async ({ p
   await page.getByRole('button', { name: 'Close', exact: true }).click(); await open(page); await ready(page, 1);
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
+
+test('captures a project once and keeps only stable display values across exporter mutation and completion', async ({ page }) => {
+  await page.goto('/tests/e2e/fixtures/export-dialog.html?project=1');
+  await open(page); await ready(page);
+  await expect(page.getByRole('combobox', { name: 'Export range' })).toHaveValue('project');
+  const before = (await page.evaluate(() => window.exportDialogProbe.state())).clones;
+  await start(page);
+  const state = await page.evaluate(() => window.exportDialogProbe.state());
+  expect(state.clones - before).toBe(1);
+  expect(state.exports[0].project!.sceneOrder).toHaveLength(2);
+  await expect(page.getByRole('dialog')).toContainText('Original project · 2 scenes · 6.80 seconds');
+  await page.evaluate(() => {
+    window.exportDialogProbe.changeSource(600, 600, 'Peer scene', 'Peer project');
+    window.exportDialogProbe.mutateCaptured(0);
+    window.exportDialogProbe.progress(0, .5);
+  });
+  await expect(page.getByRole('dialog')).toContainText('Original project · 2 scenes · 6.80 seconds');
+  await expect(page.getByRole('combobox', { name: 'Export resolution' })).toContainText('Source · 1280 × 720');
+  const downloaded = page.waitForEvent('download'); await page.evaluate(() => window.exportDialogProbe.finish(0));
+  expect((await downloaded).suggestedFilename()).toBe('Original project.mp4');
+  await expect(page.getByRole('dialog')).toContainText('Original project · 2 scenes · 6.80 seconds');
+  const again = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download again' }).click();
+  expect((await again).suggestedFilename()).toBe('Original project.mp4');
+});

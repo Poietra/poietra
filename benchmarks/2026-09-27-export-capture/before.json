@@ -1,0 +1,507 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-26T23:32:56.588Z",
+  "environment": {
+    "applicationRevision": "c1d24d882693aaac0ef7deea126a1d0b498e9345",
+    "trackedModifications": [
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "235c6fc9de7a749432bb5ae089a836f025ce9c5d63ac67e664c95663fdd516c2",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.11,
+      0.32,
+      0.39
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "a6d7a40392053ac7ae6a3a12fa92a35ad386fce0d5689b7eaf8339b12b613b62",
+    "boundarySha256": "aa06b781dad76fcac855e3f94bd64aae8182da2cc379c4a239107b7430108ab7",
+    "clientRuntimeSha256": "203d92d1d15aace811e43f14c63ec28bac97d9d028a498c05e85beffb53ab444",
+    "viteManifestSha256": "6ff867dc07f644409cd996b6736dceccda96d065e79074e2ef90f0adcdd70dcd"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "export-preparation": {
+      "summary": [
+        {
+          "scenes": 1,
+          "compositionsPerScene": 2,
+          "objectsPerScene": 500,
+          "clonesPerExport": 3,
+          "sourceClonesPerExport": 2,
+          "msPerPreparation": {
+            "n": 5,
+            "median": 4.321407599999998,
+            "min": 4.275615399999998,
+            "max": 4.478798
+          }
+        },
+        {
+          "scenes": 2,
+          "compositionsPerScene": 2,
+          "objectsPerScene": 500,
+          "clonesPerExport": 4,
+          "sourceClonesPerExport": 2,
+          "msPerPreparation": {
+            "n": 5,
+            "median": 8.133531599999992,
+            "min": 7.797409000000016,
+            "max": 8.4457226
+          }
+        },
+        {
+          "scenes": 1,
+          "compositionsPerScene": 12,
+          "objectsPerScene": 500,
+          "clonesPerExport": 3,
+          "sourceClonesPerExport": 2,
+          "msPerPreparation": {
+            "n": 5,
+            "median": 21.51186580000001,
+            "min": 21.35918140000001,
+            "max": 21.90338099999999
+          }
+        },
+        {
+          "scenes": 2,
+          "compositionsPerScene": 12,
+          "objectsPerScene": 500,
+          "clonesPerExport": 4,
+          "sourceClonesPerExport": 2,
+          "msPerPreparation": {
+            "n": 5,
+            "median": 40.38961040000004,
+            "min": 40.158113200000024,
+            "max": 44.95829739999999
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Public browser export capture + compiled timeline preparation through the missing-WebCodecs environment check, using real WASM. No UI/dialog, painting, encoding, media, I/O or asynchronous codec loading. Counts native structuredClone calls; not end-to-end export duration or allocated bytes.",
+          "iterations": "2 warmup + 7 measured batches of 5 preparations, 500 objects per Scene",
+          "results": [
+            {
+              "scenes": 1,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 4.319251800000001,
+              "samples": {
+                "msPerPreparation": [
+                  4.319251800000001,
+                  4.088923000000006,
+                  4.518073599999997,
+                  4.329981200000003,
+                  4.6759232,
+                  3.8259096,
+                  4.0155236
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 8.133531599999992,
+              "samples": {
+                "msPerPreparation": [
+                  9.322627399999998,
+                  8.105082400000004,
+                  8.133531599999992,
+                  8.388824799999998,
+                  8.222356000000014,
+                  7.9025993999999855,
+                  7.445344
+                ]
+              }
+            },
+            {
+              "scenes": 1,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 21.90338099999999,
+              "samples": {
+                "msPerPreparation": [
+                  21.45493940000001,
+                  21.950627599999983,
+                  22.219808399999966,
+                  22.737077200000023,
+                  21.90338099999999,
+                  21.668063200000006,
+                  20.63534340000001
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 40.158113200000024,
+              "samples": {
+                "msPerPreparation": [
+                  40.158113200000024,
+                  40.15318099999995,
+                  40.89931939999997,
+                  39.88474900000001,
+                  41.09733099999994,
+                  41.25559519999997,
+                  40.047414600000046
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "scope": "Public browser export capture + compiled timeline preparation through the missing-WebCodecs environment check, using real WASM. No UI/dialog, painting, encoding, media, I/O or asynchronous codec loading. Counts native structuredClone calls; not end-to-end export duration or allocated bytes.",
+          "iterations": "2 warmup + 7 measured batches of 5 preparations, 500 objects per Scene",
+          "results": [
+            {
+              "scenes": 1,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 4.478798,
+              "samples": {
+                "msPerPreparation": [
+                  4.367127800000003,
+                  4.577573599999999,
+                  4.478798,
+                  4.474394200000001,
+                  4.594683799999996,
+                  4.159229800000003,
+                  4.920518999999996
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 8.304539,
+              "samples": {
+                "msPerPreparation": [
+                  9.720630200000006,
+                  9.263051800000005,
+                  8.304539,
+                  7.656647199999997,
+                  7.611102800000003,
+                  7.790275600000018,
+                  8.437498000000005
+                ]
+              }
+            },
+            {
+              "scenes": 1,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 21.51186580000001,
+              "samples": {
+                "msPerPreparation": [
+                  21.795593999999983,
+                  21.51186580000001,
+                  21.44390440000002,
+                  21.683583,
+                  21.05338439999996,
+                  21.94403120000002,
+                  21.09988020000001
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 44.95829739999999,
+              "samples": {
+                "msPerPreparation": [
+                  44.23820240000005,
+                  45.60392819999997,
+                  44.95829739999999,
+                  44.10017120000002,
+                  46.57377579999993,
+                  46.27474540000003,
+                  44.73383899999999
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "scope": "Public browser export capture + compiled timeline preparation through the missing-WebCodecs environment check, using real WASM. No UI/dialog, painting, encoding, media, I/O or asynchronous codec loading. Counts native structuredClone calls; not end-to-end export duration or allocated bytes.",
+          "iterations": "2 warmup + 7 measured batches of 5 preparations, 500 objects per Scene",
+          "results": [
+            {
+              "scenes": 1,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 4.321407599999998,
+              "samples": {
+                "msPerPreparation": [
+                  4.396883200000002,
+                  4.312649199999998,
+                  4.321407599999998,
+                  4.508933200000001,
+                  4.6324447999999965,
+                  3.783582999999999,
+                  4.022774400000003
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 7.957815000000005,
+              "samples": {
+                "msPerPreparation": [
+                  9.121114999999998,
+                  7.997407599999997,
+                  9.104060000000004,
+                  7.467821999999989,
+                  7.957815000000005,
+                  7.608153199999992,
+                  7.7318804
+                ]
+              }
+            },
+            {
+              "scenes": 1,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 21.35918140000001,
+              "samples": {
+                "msPerPreparation": [
+                  21.3706958,
+                  21.35918140000001,
+                  21.15868740000001,
+                  21.928933200000028,
+                  21.474154199999976,
+                  21.317598399999998,
+                  21.306099200000016
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 40.63129479999998,
+              "samples": {
+                "msPerPreparation": [
+                  40.29686560000005,
+                  40.96872400000002,
+                  41.39562080000005,
+                  40.52888300000004,
+                  40.63129479999998,
+                  41.02062960000003,
+                  40.09096140000001
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "scope": "Public browser export capture + compiled timeline preparation through the missing-WebCodecs environment check, using real WASM. No UI/dialog, painting, encoding, media, I/O or asynchronous codec loading. Counts native structuredClone calls; not end-to-end export duration or allocated bytes.",
+          "iterations": "2 warmup + 7 measured batches of 5 preparations, 500 objects per Scene",
+          "results": [
+            {
+              "scenes": 1,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 4.275615399999998,
+              "samples": {
+                "msPerPreparation": [
+                  4.2649054000000035,
+                  4.275615399999998,
+                  4.341326000000004,
+                  4.423526000000004,
+                  5.220985400000001,
+                  3.844619599999999,
+                  3.8867755999999987
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 8.4457226,
+              "samples": {
+                "msPerPreparation": [
+                  9.224697400000002,
+                  8.852567000000011,
+                  8.853936,
+                  8.193792400000007,
+                  7.499314600000003,
+                  8.4457226,
+                  8.27425639999999
+                ]
+              }
+            },
+            {
+              "scenes": 1,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 21.513559600000008,
+              "samples": {
+                "msPerPreparation": [
+                  22.341964199999985,
+                  20.918153600000004,
+                  21.687108199999965,
+                  21.647855400000026,
+                  20.97577000000001,
+                  21.199842200000013,
+                  21.513559600000008
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 40.38961040000004,
+              "samples": {
+                "msPerPreparation": [
+                  39.97302040000004,
+                  41.57728219999999,
+                  40.38961040000004,
+                  39.560505600000035,
+                  40.227714600000034,
+                  42.40081800000007,
+                  42.18680479999993
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "scope": "Public browser export capture + compiled timeline preparation through the missing-WebCodecs environment check, using real WASM. No UI/dialog, painting, encoding, media, I/O or asynchronous codec loading. Counts native structuredClone calls; not end-to-end export duration or allocated bytes.",
+          "iterations": "2 warmup + 7 measured batches of 5 preparations, 500 objects per Scene",
+          "results": [
+            {
+              "scenes": 1,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 4.333276199999995,
+              "samples": {
+                "msPerPreparation": [
+                  4.624573999999998,
+                  4.946662599999996,
+                  5.180242199999998,
+                  4.208122600000001,
+                  4.0297588000000015,
+                  4.007948800000003,
+                  4.333276199999995
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 2,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 7.797409000000016,
+              "samples": {
+                "msPerPreparation": [
+                  9.1109422,
+                  7.597565599999996,
+                  7.551437199999998,
+                  7.693085399999996,
+                  8.450350400000001,
+                  7.797409000000016,
+                  8.064407200000005
+                ]
+              }
+            },
+            {
+              "scenes": 1,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 3,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 21.372456200000034,
+              "samples": {
+                "msPerPreparation": [
+                  20.910276599999996,
+                  21.83584900000003,
+                  21.372456200000034,
+                  21.149497599999997,
+                  21.107837199999995,
+                  22.337462400000003,
+                  22.11714820000002
+                ]
+              }
+            },
+            {
+              "scenes": 2,
+              "compositionsPerScene": 12,
+              "objectsPerScene": 500,
+              "clonesPerExport": 4,
+              "sourceClonesPerExport": 2,
+              "msPerPreparation": 40.320384399999966,
+              "samples": {
+                "msPerPreparation": [
+                  41.30742560000008,
+                  41.701590800000034,
+                  40.23830440000002,
+                  40.27784799999999,
+                  40.289552399999955,
+                  40.320384399999966,
+                  41.134997399999975
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-26T23:33:14.446Z",
+  "loadAverageAfter": [
+    0.58,
+    0.41,
+    0.42
+  ]
+}

@@ -177,26 +177,36 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
   let frozen = view.frozen()
   let selected = selected_export_project(input, range)
   let displayed_project = frozen
-    .map(fn(value) { value.project })
-    .unwrap_or(selected)
+    .map(fn(value) { value.range == EntireProject })
+    .unwrap_or(truthy(selected))
   let displayed = frozen
-    .map(fn(value) { value.scene })
-    .unwrap_or_else(fn() { first_export_scene(selected, scene) })
-  let duration = if truthy(displayed_project) {
-    @boundary.project_duration(displayed_project)
-  } else {
-    @boundary.scene_duration(displayed)
-  }
+    .map(fn(value) { value.source_size })
+    .unwrap_or_else(fn() {
+      export_source_size(first_export_scene(selected, scene))
+    })
+  let duration = frozen
+    .map(fn(value) { value.duration })
+    .unwrap_or_else(fn() {
+      if truthy(selected) {
+        @boundary.project_duration(selected)
+      } else {
+        @boundary.scene_duration(scene)
+      }
+    })
   let displayed_format = frozen
     .map(fn(value) { value.format })
     .unwrap_or(format)
   let displayed_fps = frozen.map(fn(value) { value.fps }).unwrap_or(fps)
-  let title = if truthy(displayed_project) {
-    string_value(displayed_project._get("name")) +
-    " · \{scene_count(displayed_project)} scenes"
-  } else {
-    string_value(displayed._get("name"))
-  }
+  let title = frozen
+    .map(fn(value) { value.title })
+    .unwrap_or_else(fn() {
+      if truthy(selected) {
+        string_value(selected._get("name")) +
+        " · \{scene_count(selected)} scenes"
+      } else {
+        string_value(scene._get("name"))
+      }
+    })
   let settings : Array[&@react.ReactNode] = []
   if can_project {
     settings.push(
@@ -297,15 +307,15 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
       settings,
     ),
   ]
-  if truthy(displayed_project) {
+  if displayed_project {
     content.push(
       h("p", { "className": @core.any("export-dialog-note") }, [
         "Scene の順番で一本の動画にします。出力の比率は最初の Scene に合わせ、異なる比率の Scene は余白を付けて表示します。",
       ]),
     )
   }
-  let source_width : Double = displayed._get("width").cast()
-  let source_height : Double = displayed._get("height").cast()
+  let source_width = displayed.width
+  let source_height = displayed.height
   if resolution == Source &&
     displayed_format == Mp4 &&
     (source_width % 2.0 != 0.0 || source_height % 2.0 != 0.0) {

@@ -348,6 +348,13 @@ public `render` and custom painters without draft support keep their contract.
 Export still owns its target and each encoded frame. Native WebGL and SVG paths
 share typed capture, cancellation and draft lifetime rules.
 
+The lazy export facade captures input/settings before loading the encoder and
+transfers that private snapshot to MoonBit without cloning it again. Direct
+MoonBit export entries retain their own capture contract. The dialog keeps typed
+presentation values (title, duration and sizes) apart from its Scene/Project input;
+progress and completed/download-again state no longer retain document snapshots
+or recompute their duration. Custom exporters still receive a UI-owned copy.
+
 The headless path reuses `scene.PreparedScene`, `motion`, `render`, `audio` and
 `exporting`; `math_render` shares equation preparation across browser and Node.
 Static holds reuse rasterized pixels while every output frame remains encoded.
@@ -423,10 +430,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 309 | 61,597 |
+| MoonBit application | 309 | 61,678 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 152 | 17,526 |
+| TypeScript tests, fixtures and test configurations | 152 | 17,599 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -505,6 +512,12 @@ public contracts and the production build. Its 21 browser checks cover shared
 audio edits, trim/volume/mute/Undo, portable media files, playback and independent
 MP4/WebM audio/video decoding. New command regressions cover changed source leaves,
 mutable/frozen-accessor inputs, invalid replacement assets and nested transactions.
+
+The export-capture change passed 757 Vitest checks, five extension/linking checks,
+public contracts and the production build. Its 23 browser checks cover dialog
+capture, completion/re-download, cancellation, exact Scene/frame boundaries,
+hierarchy/curve rendering and independently decoded MP4/WebM audio/video. Public
+facade and direct MoonBit entry tests both preserve input/settings across awaits.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -822,6 +835,27 @@ removing duplicate source validation reduced its 1 MiB median from 7.59 to 4.31 
 Normal browser imports upload embedded bytes to a room asset URL, so the large
 embedded-case reduction is not representative of ordinary browser drag latency.
 DOM, audio playback, networking and allocated bytes were not measured here.
+
+**Export capture.** The [before](benchmarks/2026-09-27-export-capture/before.json)
+/ [after](benchmarks/2026-09-27-export-capture/after.json) start from `c1d24d8`.
+Five fresh Node processes run two warmup and seven measured batches of five
+public export calls, with 500 circles per Scene and the real WASM kernel. The
+fixture deliberately stops at the missing-WebCodecs check, after capture and
+compiled timeline preparation. Process medians, median [min–max] ms:
+
+| Scenes | Compositions per Scene | Before | After |
+| ---: | ---: | ---: | ---: |
+| 1 | 2 | 4.321 [4.276–4.479] | 2.747 [2.561–2.926] |
+| 2 | 2 | 8.134 [7.797–8.446] | 5.169 [4.807–5.309] |
+| 1 | 12 | 21.512 [21.359–21.903] | 13.267 [12.429–13.853] |
+| 2 | 12 | 40.390 [40.158–44.958] | 27.280 [24.548–28.217] |
+
+Full source snapshots fell from two to one per public call. Compiled playback
+still copies native object metadata separately; the reports distinguish these
+copies. These CPU measurements exclude the dialog, async codec loading, painting,
+encoding, media and I/O; they do not measure complete export duration or heap use.
+The dialog separately captures its input for custom-exporter compatibility, but
+no longer also copies the first Scene of an already captured project.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

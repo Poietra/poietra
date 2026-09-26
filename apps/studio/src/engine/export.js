@@ -9,9 +9,9 @@ export async function getExportCapabilities() {
 // must not alter an export that has already started.
 export async function exportScene(scene, kernel, options) {
     const source = structuredClone(scene), settings = { ...options };
-    return (await runtime()).exportScene(source, kernel, settings, host);
+    return (await runtime()).exportCapturedScene(source, kernel, settings, host);
 }
 export async function exportProject(project, kernel, options) {
     const source = structuredClone(project), settings = { ...options };
-    return (await runtime()).exportProject(source, kernel, settings, host);
+    return (await runtime()).exportCapturedProject(source, kernel, settings, host);
 }

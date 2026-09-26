@@ -60,6 +60,22 @@ pub fn export_scene(
 ) -> @core.Promise[@core.Any] {
   @core.from_async(async fn() {
     let source = @core.throwable(fn() { snapshot(scene) })
+    let settings = shallow_copy(options)
+    export_captured_scene(source, kernel, settings, host).wait()
+  })
+  |> native_errors
+}
+
+///|
+/// Internal host handoff: source/settings are already privately captured before
+/// loading this module. The caller transfers them and must not mutate them.
+pub fn export_captured_scene(
+  source : @core.Any,
+  kernel : @core.Any,
+  settings : @core.Any,
+  host : @core.Any,
+) -> @core.Promise[@core.Any] {
+  @core.from_async(async fn() {
     let duration = @boundary.scene_duration(source)
     let timeline : Timeline = {
       segments: [
@@ -74,7 +90,7 @@ pub fn export_scene(
       size: size(source),
       audio: @browser_media.audible_tracks(source._get("audioTracks")),
     }
-    export_timeline(timeline, shallow_copy(options), host)
+    export_timeline(timeline, settings, host)
   })
   |> native_errors
 }
@@ -89,6 +105,21 @@ pub fn export_project(
   @core.from_async(async fn() {
     let source = @core.throwable(fn() { snapshot(project) })
     let settings = shallow_copy(options)
+    export_captured_project(source, kernel, settings, host).wait()
+  })
+  |> native_errors
+}
+
+///|
+/// Same ownership handoff as export_captured_scene; the public entry above still
+/// captures caller-owned input itself when used without the lazy JS facade.
+pub fn export_captured_project(
+  source : @core.Any,
+  kernel : @core.Any,
+  settings : @core.Any,
+  host : @core.Any,
+) -> @core.Promise[@core.Any] {
+  @core.from_async(async fn() {
     check_signal(settings._get("signal"))
     let values = @boundary.project_segments(source)
     if values.is_empty() {

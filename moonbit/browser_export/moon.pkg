@@ -16,6 +16,8 @@ options(
       "exports": [
         "export_scene:exportScene",
         "export_project:exportProject",
+        "export_captured_scene:exportCapturedScene",
+        "export_captured_project:exportCapturedProject",
         "get_export_capabilities:getExportCapabilities",
         "find_export_codec:findExportCodec",
         "environment_reason:environmentReason",
