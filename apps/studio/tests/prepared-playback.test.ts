@@ -33,6 +33,32 @@ test('compiled playback owns a snapshot and replacement programs see edits', () 
   expect(compileScene(scene, kernel).evaluate(1300)).not.toEqual(before);
 });
 
+test('typed playback owns nested values while preserving public object metadata', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  const object = Object.assign(scene.objects.circle, { extension: { labels: ['original'], nullable: null } });
+  const track = scene.transitions['transition-1'].tracks.circle;
+  track.easing = { type: 'cubicBezier', x1: .1, y1: .2, x2: .8, y2: .9 };
+  track.path = { c1: { x: 40, y: 30 }, c2: { x: 80, y: 50 } };
+  // Non-object extension data has no role in either evaluation or the public frame.
+  Object.defineProperty(scene.compositions['comp-1'], 'extension', {
+    enumerable: true, get() { throw new Error('Unconsumed composition data'); },
+  });
+  const program = compileScene(scene, kernel);
+  const before = structuredClone(program.evaluate(1300));
+  const originalObject = program.composition('comp-1').objects.find(item => item.object.id === 'circle')!.object;
+  expect(originalObject).toEqual(object);
+  expect(originalObject).not.toBe(object);
+  scene.compositions['comp-1'].states.circle.path.c1.x = 900;
+  scene.compositionOrder.reverse();
+  object.extension.labels.push('changed');
+  track.path.c1.x = 900;
+  track.easing.x1 = .9;
+  expect(program.evaluate(1300)).toEqual(before);
+  const evaluatedObject = program.evaluate(1300).objects.find(item => item.object.id === 'circle')!.object;
+  expect(evaluatedObject).toBe(originalObject);
+  expect(evaluatedObject).toHaveProperty('extension', { labels: ['original'], nullable: null });
+});
+
 test('compiled programs retain earlier frames across seeks and zero-duration cuts', () => {
   const scene = makeDemoProject().scenes['scene-1'];
   scene.compositions['comp-1'].duration = 0;

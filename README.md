@@ -267,6 +267,11 @@ Playback preparation resolves segments, tracks, hierarchy, layer order and curve
 once; repeated evaluation uses the shared engine for preview and export. Editing
 reads the current Composition. Static holds without visible video can reuse a
 prepared frame while export still encodes every timestamp.
+As of **2026-09-27**, preparation decodes directly into its owned typed snapshot;
+it retains a separate native copy only of object metadata required by public
+frames. It no longer clones or retains a second set of Composition states,
+tracks or audio data. Native object extensions, nulls and stable references
+within one program remain available to JS consumers.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -568,6 +573,33 @@ Validation: `pnpm test` (5 extension/linking checks and 728 Vitest tests),
 browser tests and 6 media/export browser tests passed. Those cover preview/SVG
 agreement, transforms/Undo, cancellation, stale publication, shared video
 decoders, WebM/MP4 decoding and audio playback. No production deployment was made.
+
+### Playback snapshot ownership — 2026-09-27
+
+The [before](benchmarks/2026-09-27-playback-ownership/before.json) and
+[after](benchmarks/2026-09-27-playback-ownership/after.json) reports compare
+`d239856` with the working-tree source/artifact hashes recorded in the latter.
+They use Node **24.13.0**, MoonBit **0.10.13+cbb11c36f** and the same Intel Core
+Ultra 7 255H / 32 GB WSL2 host, affinity **0–15**. Run after building with
+`node apps/studio/scripts/benchmark-playback.mjs --output <report.json>`.
+Each scenario runs in five sequential fresh processes: three warmups, seven
+timed compilations and eight retained programs, with explicit GC outside timing.
+All states and adjacent transitions are present. The caller's Scene stays alive.
+
+| Objects / Compositions | Prepare before → after, ms | Retained JS heap before → after, MB |
+| --- | ---: | ---: |
+| 100 / 2 | 1.014 → 0.606 | 0.339 → 0.215 |
+| 500 / 2 | 3.717 → 2.175 | 1.678 → 1.072 |
+| 500 / 12 | 24.828 → 12.012 | 11.464 → 7.093 |
+
+Time is the median of process medians; retained heap is the median incremental
+`heapUsed` per program (decimal MB). At 500 / 12, preparation process medians
+ranged **24.516–25.458 → 11.705–12.330 ms**; heap ranged
+**11.462–11.464 → 7.092–7.094 MB**. These measure CPU setup and retained JS heap,
+excluding transient allocations, native/WASM memory, media and browser rendering.
+They do not establish a frame-rate improvement. `pnpm test` (729 tests and five
+extension/linking checks) and `pnpm typecheck` passed, including ownership tests
+for nested inputs and preserved public object metadata.
 
 ### Same-room collaboration — 2026-09-22
 

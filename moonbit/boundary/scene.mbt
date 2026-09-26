@@ -15,11 +15,11 @@ fn kernel(value : @core.Any) -> @scene.Kernel {
 
 ///|
 /// Preserve the public object reference, including @project_codec.optional metadata and nulls.
-fn frame_value(frame : @scene.Frame, input : @core.Any) -> @core.Any {
+fn frame_value(frame : @scene.Frame, metadata : @core.Any) -> @core.Any {
   let objects = FixedArray::makei(frame.objects.length(), fn(i) {
     let item = frame.objects[i]
     let result = make_render_object(
-      input._get("objects")._get(item.object.id),
+      metadata._get(item.object.id),
       @project_codec.encode_ObjectState(item.state),
       item.writeProgress,
       item.order,
@@ -64,7 +64,7 @@ pub fn evaluate_scene(
       time,
       kernel(host),
     ),
-    input,
+    input._get("objects"),
   )
 }
 
@@ -100,7 +100,7 @@ pub fn composition_frame(
       width: input._get("width").cast(),
       height: input._get("height").cast(),
     },
-    input,
+    input._get("objects"),
   )
 }
 
@@ -121,7 +121,7 @@ pub fn transition_frame(
   }
   frame_value(
     @scene.transition_frame(scene, transition, time, scene_time, kernel(host)),
-    input,
+    input._get("objects"),
   )
 }
 

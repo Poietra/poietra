@@ -1,0 +1,313 @@
+{
+  "measuredAt": "2026-09-26T20:58:30.112Z",
+  "environment": {
+    "applicationRevision": "d2398564ddc2559f32a80cfe7396113208efe7c6",
+    "trackedModifications": [
+      "apps/studio/tests/prepared-playback.test.ts",
+      "moonbit/boundary/playback.mbt",
+      "moonbit/boundary/scene.mbt"
+    ],
+    "applicationSourcesSha256": "9b04eab32703842b7d5d86b6f52663103d04450947a4804369500e5d3313e240",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.17,
+      0.08,
+      0.14
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "c7d6e945075c1842c738c0163d824ce9da67fd3c1041681e41f3193683e38dd0",
+    "boundarySha256": "bfc8d69ba9de397da395b8b9a68d037d69d6f7f4ac45f91de55ba51d989b7ff9",
+    "clientRuntimeSha256": "0a339500bc2ca9109b9600a445cab20e3ee33f8136582f7c05b334c22e0faf32",
+    "viteManifestSha256": "b32af70c8cb81dbc6330b2e09d891043a6be0fa0ab0c0e5f8897079e40c8b6f8"
+  },
+  "method": "Sequential fresh Node processes; three compile warmups, seven timed compilations (GC outside timing), then eight retained programs with explicit GC. Heap delta excludes the caller input, WASM/native memory, and transient allocations. CPU setup only, not browser FPS.",
+  "results": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "prepareMs": {
+        "n": 5,
+        "median": 0.6057720000000018,
+        "min": 0.5921320000000065,
+        "max": 0.6495479999999958
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 214864,
+        "min": 214705,
+        "max": 224976
+      },
+      "samples": [
+        {
+          "objects": 100,
+          "compositions": 2,
+          "prepareMs": [
+            0.7650190000000023,
+            0.805577999999997,
+            0.5921320000000065,
+            0.5904589999999956,
+            0.5652899999999903,
+            0.6039679999999947,
+            0.5156570000000045
+          ],
+          "retainedBytes": 223284,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "prepareMs": [
+            1.3515569999999997,
+            0.728266000000005,
+            0.6495479999999958,
+            0.6393229999999903,
+            0.6499459999999999,
+            0.5997269999999872,
+            0.5252180000000095
+          ],
+          "retainedBytes": 214730,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "prepareMs": [
+            0.8683389999999989,
+            0.7514110000000045,
+            0.6033860000000004,
+            0.5962439999999987,
+            1.6171579999999892,
+            0.5958200000000033,
+            0.5795930000000027
+          ],
+          "retainedBytes": 224976,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "prepareMs": [
+            0.8652739999999994,
+            0.7677539999999965,
+            0.6259179999999986,
+            0.6032610000000034,
+            0.634917999999999,
+            0.607594000000006,
+            0.5453059999999965
+          ],
+          "retainedBytes": 214864,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "prepareMs": [
+            0.733826999999998,
+            0.7362190000000055,
+            0.6057720000000018,
+            0.5922979999999995,
+            0.702645000000004,
+            0.6009250000000037,
+            0.5125809999999973
+          ],
+          "retainedBytes": 214705,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 2,
+      "prepareMs": {
+        "n": 5,
+        "median": 2.175063999999992,
+        "min": 2.129433999999989,
+        "max": 2.220792000000003
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 1072240,
+        "min": 1071845,
+        "max": 1075965
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 2,
+          "prepareMs": [
+            2.003788,
+            2.0129439999999903,
+            2.278486000000001,
+            2.2060710000000086,
+            2.1623270000000048,
+            2.1935220000000015,
+            2.1091940000000022
+          ],
+          "retainedBytes": 1075965,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "prepareMs": [
+            2.2673970000000025,
+            2.220792000000003,
+            2.1935919999999953,
+            2.236805999999987,
+            2.1460539999999924,
+            2.3369029999999924,
+            2.062773000000007
+          ],
+          "retainedBytes": 1072228,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "prepareMs": [
+            1.542970000000011,
+            1.9954959999999886,
+            2.1091320000000024,
+            2.181625000000011,
+            2.327529999999996,
+            2.19261800000001,
+            2.2579309999999992
+          ],
+          "retainedBytes": 1072240,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "prepareMs": [
+            2.012307000000007,
+            3.8939069999999987,
+            2.7151159999999948,
+            2.175063999999992,
+            2.3326419999999928,
+            2.061954,
+            2.050370000000001
+          ],
+          "retainedBytes": 1072632,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "prepareMs": [
+            2.440814000000003,
+            2.146969000000013,
+            2.0291529999999938,
+            2.129433999999989,
+            2.2364889999999917,
+            2.107442000000006,
+            2.069637
+          ],
+          "retainedBytes": 1071845,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "prepareMs": {
+        "n": 5,
+        "median": 12.01240900000002,
+        "min": 11.705151999999998,
+        "max": 12.330495000000013
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7093308,
+        "min": 7092011,
+        "max": 7093555
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "prepareMs": [
+            14.31901599999999,
+            13.29683,
+            11.020096999999993,
+            11.714304999999996,
+            12.379823000000016,
+            12.330495000000013,
+            12.078679999999991
+          ],
+          "retainedBytes": 7093555,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "prepareMs": [
+            13.957109000000003,
+            12.88461000000001,
+            11.241344999999995,
+            11.985247999999984,
+            11.79162500000001,
+            11.911219000000017,
+            11.395644000000004
+          ],
+          "retainedBytes": 7093245,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "prepareMs": [
+            14.27274300000002,
+            12.981245000000001,
+            11.705073999999996,
+            11.705151999999998,
+            11.657654000000008,
+            11.864205999999996,
+            11.677998000000002
+          ],
+          "retainedBytes": 7092011,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "prepareMs": [
+            13.798821000000004,
+            13.526858000000004,
+            11.567627000000016,
+            11.643468000000013,
+            12.01240900000002,
+            12.045564000000013,
+            11.684699999999992
+          ],
+          "retainedBytes": 7093308,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "prepareMs": [
+            13.829516000000012,
+            13.641762999999997,
+            11.377237000000008,
+            11.598714999999999,
+            13.360417999999981,
+            12.274430000000024,
+            11.701414999999997
+          ],
+          "retainedBytes": 7093344,
+          "checksum": 270
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-26T20:58:33.427Z"
+}

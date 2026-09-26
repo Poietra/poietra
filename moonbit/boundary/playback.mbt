@@ -2,7 +2,7 @@
 /// Opaque compiled handle. Its fields are private even to MoonBit consumers.
 pub struct Playback {
   priv program : @scene.PreparedScene
-  priv source : @core.Any
+  priv objects : @core.Any
 }
 
 ///|
@@ -11,19 +11,21 @@ extern "js" fn snapshot(value : @core.Any) -> @core.Any =
 
 ///|
 pub fn prepare_playback(input : @core.Any, host : @core.Any) -> Playback {
-  let source = snapshot(input)
+  // Decoding owns every typed record/container. Only public object metadata
+  // needs a native snapshot to retain optional fields, nulls and extensions.
+  let objects = snapshot(input._get("objects"))
   {
     program: @scene.prepare_scene(
-      @project_codec.decode_Scene(source),
+      @project_codec.decode_Scene(input),
       kernel(host),
     ),
-    source,
+    objects,
   }
 }
 
 ///|
 pub fn playback_frame(playback : Playback, time : Double) -> @core.Any {
-  frame_value(playback.program.evaluate(time), playback.source)
+  frame_value(playback.program.evaluate(time), playback.objects)
 }
 
 ///|
@@ -65,7 +67,7 @@ pub fn playback_composition(
       id,
       @project_codec.optional(time, fn(value) { value.cast() }),
     ),
-    playback.source,
+    playback.objects,
   )
 }
 
@@ -82,6 +84,6 @@ pub fn playback_transition(
       time,
       @project_codec.optional(scene_time, fn(value) { value.cast() }),
     ),
-    playback.source,
+    playback.objects,
   )
 }
