@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeDemoProject } from '../shared/demo';
 import { defaultState, type ObjectKind } from '../shared/model';
 import { compositionFrame, type RenderObject } from '../src/engine/evaluate';
-import { frameToSvg, objectBounds, prepareScene } from '../src/engine/renderer';
+import { frameToSvg, frameToSvgView, objectBounds, prepareScene } from '../src/engine/renderer';
 
 function item(kind: ObjectKind, state: Parameters<typeof defaultState>[1] = {}): RenderObject {
   return { object: { id: kind, name: kind, kind, order: 0, groupId: null, locked: false }, state: defaultState(kind, state), writeProgress: 1, order: 'together' };
@@ -12,6 +12,27 @@ function svg(object: RenderObject, idPrefix?: string): string {
 }
 
 describe('SVG renderer', () => {
+  it('publishes independent plain SVG records with explicit absent attributes', () => {
+    const object = item('rectangle', { x: 17, y: 23, opacity: .25, fill: '#123456', stroke: '#abcdef', strokeWidth: 3 });
+    const frame = { width: 640, height: 360, background: '#08090b', objects: [object] };
+    const view = frameToSvgView(frame, { idPrefix: 'view', background: false });
+    expect(view).toMatchObject({ width: '640', height: '360', fonts: '', background: null });
+    expect(view.objects[0]).toMatchObject({
+      id: 'rectangle', transform: 'translate(17 23) rotate(0)', opacity: '0.25',
+      fill: '#123456', color: '#123456', stroke: '#abcdef', strokeWidth: '3', filter: null,
+    });
+    expect(Object.getPrototypeOf(view.objects[0])).toBe(Object.prototype);
+    expect(frameToSvg(frame, { idPrefix: 'view' })).toContain(view.objects[0].body);
+    view.objects[0].body = 'caller edit';
+    view.objects.length = 0;
+    expect(frameToSvgView(frame, { idPrefix: 'view' }).objects[0].body).toContain('<rect');
+    object.state.effect = 'glow';
+    const glowing = frameToSvgView(frame, { idPrefix: 'view' });
+    expect(glowing.background).toBe('#08090b');
+    expect(glowing.objects[0].filter).toContain('-glow)');
+    expect(glowing.objects[0].body).toContain('<filter ');
+  });
+
   it('renders all seven object kinds with centered or start anchors and finite bounds', () => {
     for (const kind of ['circle', 'rectangle', 'text', 'equation', 'path', 'arrow', 'numberline'] as const) {
       const object = item(kind, { x: 100, y: 200, rotation: 30, opacity: 0.6 });

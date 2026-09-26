@@ -213,27 +213,54 @@ pub fn frame_to_svg_view(
   host : @core.Any,
 ) -> @core.Any {
   let view = svg_view(frame, options, host)
-  let objects = view.objects.map(fn(item) {
-    @core.from_entries([
-      ("id", @core.any(item.id)),
-      ("transform", @core.any(item.transform)),
-      ("opacity", @core.any(item.opacity)),
-      ("fill", @core.any(item.fill)),
-      ("color", @core.any(item.color)),
-      ("stroke", @core.any(item.stroke)),
-      ("strokeWidth", @core.any(item.stroke_width)),
-      ("filter", @core.from_option(item.filter)),
-      ("body", @core.any(item.definitions + item.body)),
-    ])
+  let objects = FixedArray::makei(view.objects.length(), fn(index) {
+    let item = view.objects[index]
+    svg_object_value(
+      item.id,
+      item.transform,
+      item.opacity,
+      item.fill,
+      item.color,
+      item.stroke,
+      item.stroke_width,
+      @core.from_option(item.filter),
+      item.definitions + item.body,
+    )
   })
-  @core.from_entries([
-    ("width", @core.any(view.width)),
-    ("height", @core.any(view.height)),
-    ("fonts", @core.any(view.fonts)),
-    ("background", @core.from_option(view.background)),
-    ("objects", @core.any(FixedArray::from_array(objects[:]))),
-  ])
+  svg_frame_value(
+    view.width,
+    view.height,
+    view.fonts,
+    @core.from_option(view.background),
+    objects,
+  )
 }
+
+///|
+/// Fixed native records are the public ABI. Do not expose MoonBit structs or
+/// allocate a list of key/value pairs for every object on every stage update.
+extern "js" fn svg_object_value(
+  id : String,
+  transform : String,
+  opacity : String,
+  fill : String,
+  color : String,
+  stroke : String,
+  stroke_width : String,
+  filter : @core.Any,
+  body : String,
+) -> @core.Any =
+  #|(id, transform, opacity, fill, color, stroke, strokeWidth, filter, body) => ({id, transform, opacity, fill, color, stroke, strokeWidth, filter, body})
+
+///|
+extern "js" fn svg_frame_value(
+  width : String,
+  height : String,
+  fonts : String,
+  background : @core.Any,
+  objects : FixedArray[@core.Any],
+) -> @core.Any =
+  #|(width, height, fonts, background, objects) => ({width, height, fonts, background, objects})
 
 ///|
 extern "js" fn bounds_value(

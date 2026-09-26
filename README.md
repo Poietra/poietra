@@ -297,6 +297,8 @@ shapes without effects use cached native geometry for direct Canvas painting;
 opacity and Glow retain isolated compositing. Sequential video decoding keeps
 owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
+The public SVG view uses fixed native records and a single output array; it does
+not allocate intermediate key/value tuples or expose MoonBit record layout.
 
 As of **2026-09-27**, the Canvas painter captures just the consumed frame values
 into a typed `PaintFrame` before its first await. Shape, text and raster stages
@@ -689,6 +691,28 @@ the raw report retains that slower process. Single-property inspector preparatio
 was narrowed structurally but not timed separately. Validation includes 731
 Vitest tests, five extension/linking checks, 54 JS and 51 WASM MoonBit tests,
 19 headless checks, public API/type checks and 11 primitive/export browser tests.
+
+### Native SVG view conversion — 2026-09-27
+
+The [before](benchmarks/2026-09-27-render-view/before.json) and
+[after](benchmarks/2026-09-27-render-view/after.json) compare `fa0c3f6` with the
+recorded working-tree hashes, using the same Node/compiler/host described above.
+Run `node scripts/benchmark.mjs --suite render-view --runs 5 --output <file>`:
+five sequential fresh processes, two warmup and seven measured batches of 100
+frames per scenario. This includes native-frame decoding and typed rendering,
+but excludes DOM, React, resources, media, GPU work and encoding.
+
+| 500-object CPU conversion | Before, ms/view | After, ms/view |
+| --- | ---: | ---: |
+| Circles | 0.522 [0.510–0.536] | 0.302 [0.287–0.313] |
+| Mixed shapes + Glow | 0.805 [0.790–0.813] | 0.586 [0.548–0.592] |
+
+Values are median [min–max] of process medians. The unchanged SVG markup path
+was 0.521 → 0.521 ms for circles and 0.779 → 0.758 ms for mixed shapes, within
+variation. This is a conversion result, not a browser frame-rate measurement.
+Validation passed 732 Vitest tests, five extension/linking checks, public API/type
+checks, a production build and 24 Canvas/primitive/preview browser checks,
+including pixel agreement between retained SVG and serialized export SVG.
 
 ### Same-room collaboration — 2026-09-22
 
