@@ -22,7 +22,7 @@ fn frame_value(frame : @scene.Frame, metadata : @core.Any) -> @core.Any {
       metadata._get(item.object.id),
       @project_codec.encode_ObjectState(item.state),
       item.writeProgress,
-      item.order,
+      @scene.write_order_name(item.order),
       @core.from_option(item.videoTimeMs),
     )
     if item.world is Some(world) {

@@ -46,7 +46,7 @@ pub(all) enum TrackEdit {
   Start(Double)
   Duration(Double)
   Easing(@scene.Easing)
-  Order(String)
+  Order(@scene.WriteOrder)
   MotionPath(@scene.Bezier?)
   PropertyTiming(@scene.PropertyChannel, @scene.Timing?)
   KeyframeEdit(String, @scene.Keyframe?)

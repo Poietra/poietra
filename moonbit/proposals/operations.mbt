@@ -186,11 +186,11 @@ fn read_operation(input : @core.Any) -> @plan.Operation {
           if @core.typeof_(value) != "string" {
             return fail("アニメーションの順序が無効です。")
           }
-          let order : String = value.cast()
-          if order != "together" && order != "sequential" {
-            return fail("アニメーションの順序が無効です。")
+          match @scene.write_order(value.cast()) {
+            Some(order) => Order(order)
+            None =>
+              return fail("アニメーションの順序が無効です。")
           }
-          Order(order)
         }
         property => {
           if @core.typeof_(value) != "number" {

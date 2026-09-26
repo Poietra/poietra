@@ -285,6 +285,10 @@ Intermediate value keys still override that pose after those animation rules.
 Curve preparation validates and groups authored points by typed property once,
 constructing endpoints only for nonempty groups. The inspector prepares just
 its selected curve with the same endpoint and equal-time-key rules.
+Write order is one `scene.WriteOrder` enum across tracks, editing/proposal plans,
+evaluated frames and rendering. Generated adapters and declarations preserve the
+public `together` / `sequential` strings; pure packages no longer convert this
+value through strings. The `editor` and `render` type aliases share that enum.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs

@@ -31,6 +31,19 @@ fn object(id : String, parent : String?) -> @scene.SceneObject {
 }
 
 ///|
+test "write order retains the saved string representation through typed track roundtrips" {
+  for order in [@scene.Together, @scene.Sequential] {
+    let track = { ..@scene.default_track("object", 1000.0), order, }
+    let saved = track.to_json()
+    let restored : @scene.Track = @json.from_json(saved)
+    assert_true(restored.order == order)
+    assert_eq(restored.to_json(), saved)
+    let name = @scene.write_order_name(order)
+    assert_true(saved is { "order": String(value), .. } && value == name)
+  }
+}
+
+///|
 test "nested nonuniform rotation retains shear and reparent decomposition preserves all corners" {
   let parent = {
     ..@scene.default_state(Rectangle),

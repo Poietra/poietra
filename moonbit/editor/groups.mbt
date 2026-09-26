@@ -161,18 +161,7 @@ pub fn group_timing_limits(
 }
 
 ///|
-pub(all) enum WriteOrder {
-  Together
-  Sequential
-}
-
-///|
-pub fn write_order_name(value : WriteOrder) -> String {
-  match value {
-    Together => "together"
-    Sequential => "sequential"
-  }
-}
+pub using @scene {type WriteOrder, write_order_name}
 
 ///|
 pub(all) enum TrackField {
@@ -233,7 +222,7 @@ fn field_equal(track : @scene.Track, field : TrackField) -> Bool {
     Start(value) => number_equal(track.start, value)
     Duration(value) => number_equal(track.duration, value)
     Curve(value) => track.easing == value
-    Order(value) => track.order == write_order_name(value)
+    Order(value) => track.order == value
   }
 }
 
@@ -271,7 +260,7 @@ pub fn group_animation_plan(
           { ..track, duration: value, }
         }
         Curve(easing) => { ..track, easing, }
-        Order(order) => { ..track, order: write_order_name(order), }
+        Order(order) => { ..track, order, }
       }
     }
     if (target.stored is None || implicit) &&

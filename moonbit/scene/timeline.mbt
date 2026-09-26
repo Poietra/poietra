@@ -33,7 +33,7 @@ pub fn default_track(object_id : String, duration : Double) -> Track {
     start: 0.0,
     duration,
     easing: EaseInOut,
-    order: "together",
+    order: Together,
     path: None,
     positionTiming: None,
     opacityTiming: None,

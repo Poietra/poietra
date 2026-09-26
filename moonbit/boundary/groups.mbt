@@ -228,15 +228,7 @@ fn decode_track_patch(value : @core.Any) -> Array[@editor.TrackField] {
       "duration" => result.push(@editor.Duration(patch_number(item)))
       "easing" => result.push(@editor.Curve(@project_codec.decode_Easing(item)))
       "order" =>
-        result.push(
-          @editor.Order(
-            if strict_equal(item, @core.any("together")) {
-              @editor.Together
-            } else {
-              @editor.Sequential
-            },
-          ),
-        )
+        result.push(@editor.Order(@project_codec.decode_WriteOrder(item)))
       _ =>
         @core.throw_error(
           "アニメーションで変更できない属性です。",

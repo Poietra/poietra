@@ -117,7 +117,11 @@ fn Compiler::edit_track(
     Easing(easing) =>
       ("easing", EasingValue(easing), { ..entry.value, easing, })
     Order(order) =>
-      ("order", ScalarValue(Text(order)), { ..entry.value, order, })
+      (
+        "order",
+        ScalarValue(Text(@scene.write_order_name(order))),
+        { ..entry.value, order, },
+      )
     MotionPath(path) => {
       entry.motion_edited = true
       if entry.existing {

@@ -166,7 +166,7 @@ pub(all) struct Track {
   start : Double
   duration : Double
   easing : Easing
-  order : String
+  order : WriteOrder
   path : Bezier?
   positionTiming : Timing?
   opacityTiming : Timing?
@@ -242,7 +242,7 @@ pub(all) struct RenderObject {
   object : SceneObject
   state : ObjectState
   writeProgress : Double
-  order : String
+  order : WriteOrder
   videoTimeMs : Double?
   world : Affine?
 } derive(ToJson)

@@ -248,7 +248,7 @@ fn layer_paint(
         context.as_any(),
         @core.any(item.progress),
         @core.any(
-          if item.order == @render.Sequential {
+          if item.order == @render.WriteOrder::Sequential {
             "sequential"
           } else {
             "together"

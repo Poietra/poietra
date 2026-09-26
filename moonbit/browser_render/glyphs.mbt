@@ -302,9 +302,9 @@ pub fn prepare_equation_drawing(equation : @core.Any) -> @core.Any {
             glyphs,
             progress,
             if order == "sequential" {
-              @render.Sequential
+              @render.WriteOrder::Sequential
             } else {
-              @render.Together
+              @render.WriteOrder::Together
             },
             color,
           )

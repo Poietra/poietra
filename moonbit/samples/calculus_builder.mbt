@@ -173,9 +173,9 @@ fn sample_animate(
     type_: kind,
     start,
     order: if sequential {
-      "sequential"
+      @scene.Sequential
     } else {
-      "together"
+      @scene.Together
     },
   }
 }

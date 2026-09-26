@@ -111,6 +111,21 @@ pub fn decode_CurveProperty(value : @core.Any) -> @scene.CurveProperty {
 }
 
 ///|
+pub fn decode_WriteOrder(value : @core.Any) -> @scene.WriteOrder {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected WriteOrder string")
+    panic()
+  }
+  match @scene.write_order(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid WriteOrder")
+      panic()
+    }
+  }
+}
+
+///|
 pub fn decode_CurveValue(value : @core.Any) -> @scene.CurveValue {
   if @core.typeof_(value) == "number" {
     @scene.CurveNumber(value.cast())
@@ -276,7 +291,7 @@ pub fn decode_Track(value : @core.Any) -> @scene.Track {
     start: value._get("start").cast(),
     duration: value._get("duration").cast(),
     easing: decode_Easing(value._get("easing")),
-    order: value._get("order").cast(),
+    order: decode_WriteOrder(value._get("order")),
     path: optional(value._get("path"), fn(v) { decode_Bezier(v) }),
     positionTiming: optional(value._get("positionTiming"), fn(v) {
       decode_Timing(v)
@@ -498,7 +513,7 @@ pub fn encode_Track(value : @scene.Track) -> @core.Any {
     value.start,
     value.duration,
     encode_Easing(value.easing),
-    value.order,
+    @scene.write_order_name(value.order),
     path,
   )
   if value.implicit is Some(item) {
@@ -660,7 +675,11 @@ pub fn encode_Composition(value : @scene.Composition) -> @core.Any {
 ///|
 pub fn encode_Keyframe(value : @scene.Keyframe) -> @core.Any {
   let result = @core.new_object()
-  put_own(result, "property", encode_CurveProperty(value.property))
+  put_own(
+    result,
+    "property",
+    @core.any(@scene.curve_property_name(value.property)),
+  )
   put_own(result, "at", @core.any(value.at))
   put_own(result, "value", encode_CurveValue(value.value))
   put_own(result, "easing", encode_Easing(value.easing))

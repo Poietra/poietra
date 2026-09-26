@@ -22,6 +22,44 @@ pub(all) enum AnimationKind {
 } derive(Eq)
 
 ///|
+/// Shared by authored tracks, evaluation, editing plans and rendering.
+pub(all) enum WriteOrder {
+  Together
+  Sequential
+} derive(Eq)
+
+///|
+pub fn write_order(value : String) -> WriteOrder? {
+  match value {
+    "together" => Some(Together)
+    "sequential" => Some(Sequential)
+    _ => None
+  }
+}
+
+///|
+pub fn write_order_name(value : WriteOrder) -> String {
+  match value {
+    Together => "together"
+    Sequential => "sequential"
+  }
+}
+
+///|
+pub impl ToJson for WriteOrder with fn to_json(self) {
+  write_order_name(self).to_json()
+}
+
+///|
+pub impl @json.FromJson for WriteOrder with fn from_json(value, path) {
+  let text : String = @json.from_json(value, path~)
+  match write_order(text) {
+    Some(order) => order
+    None => raise @json.JsonDecodeError((path, "Unknown write order"))
+  }
+}
+
+///|
 pub(all) enum Effect {
   Normal
   Glow

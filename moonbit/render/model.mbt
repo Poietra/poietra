@@ -1,8 +1,5 @@
 ///|
-pub(all) enum WriteOrder {
-  Together
-  Sequential
-} derive(Eq)
+pub using @scene {type WriteOrder}
 
 ///|
 pub(all) struct Drawable {

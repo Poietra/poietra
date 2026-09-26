@@ -224,7 +224,7 @@ fn layout_objects(
         },
         videoTimeMs: video_time(object, time),
         writeProgress: 1.0,
-        order: "together",
+        order: Together,
       })
     }
   }

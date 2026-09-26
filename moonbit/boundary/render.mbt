@@ -1,9 +1,9 @@
 ///|
 fn write_order(value : @core.Any) -> @render.WriteOrder {
   if strict_equal(value, @core.any("sequential")) {
-    @render.Sequential
+    @render.WriteOrder::Sequential
   } else {
-    @render.Together
+    @render.WriteOrder::Together
   }
 }
 

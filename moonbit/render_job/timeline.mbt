@@ -140,11 +140,7 @@ fn Timeline::svg(
           state: item.state,
           world: item.world,
           progress: item.writeProgress,
-          order: if item.order == "sequential" {
-            @render.Sequential
-          } else {
-            @render.Together
-          },
+          order: item.order,
           image: item.object.image.map(fn(asset) { asset.src }),
           video_frame: None,
         }

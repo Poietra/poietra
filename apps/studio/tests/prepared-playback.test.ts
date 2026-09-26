@@ -33,6 +33,17 @@ test('compiled playback owns a snapshot and replacement programs see edits', () 
   expect(compileScene(scene, kernel).evaluate(1300)).not.toEqual(before);
 });
 
+test('typed write order stays a native string in transition and still frames', () => {
+  const scene = makeDemoProject().scenes['scene-1'];
+  for (const order of ['together', 'sequential'] as const) {
+    scene.transitions['transition-1'].tracks.circle.order = order;
+    const program = compileScene(scene, kernel);
+    const change = program.transition('transition-1', 400);
+    expect(change.objects.find(item => item.object.id === 'circle')!.order).toBe(order);
+    expect(program.composition('comp-1').objects.every(item => item.order === 'together')).toBe(true);
+  }
+});
+
 test('typed playback owns nested values while preserving public object metadata', () => {
   const scene = makeDemoProject().scenes['scene-1'];
   const object = Object.assign(scene.objects.circle, { extension: { labels: ['original'], nullable: null } });

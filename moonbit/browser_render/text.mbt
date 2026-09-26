@@ -21,7 +21,7 @@ fn text_key(item : @render.Drawable, scale : Double) -> String? {
             @core.any(@render.finite(item.state.fontSize).max(0.0)),
             @core.any(@render.finite(item.state.strokeWidth).max(0.0)),
             @core.any(
-              if item.order == @render.Sequential {
+              if item.order == @render.WriteOrder::Sequential {
                 "sequential"
               } else {
                 "together"
@@ -216,7 +216,7 @@ fn prepare_text(
         }
         let order = current.order
         saved_canvas(context, fn() {
-          if order == @render.Together && progress < 1.0 {
+          if order == @render.WriteOrder::Together && progress < 1.0 {
             let padding = plan.size * 0.2
             context.beginPath()
             context.rect(
@@ -227,7 +227,7 @@ fn prepare_text(
             )
             context.clip()
           }
-          if order == @render.Sequential && progress < 1.0 {
+          if order == @render.WriteOrder::Sequential && progress < 1.0 {
             for index = 0; index < plan.glyph_count; index = index + 1 {
               paint_cell(
                 context,
@@ -283,9 +283,9 @@ pub fn prepare_text_drawing(
             stroke: state._get("stroke").cast(),
             progress: input._get("writeProgress").cast(),
             order: if @core.equal(input._get("order"), @core.any("sequential")) {
-              @render.Sequential
+              @render.WriteOrder::Sequential
             } else {
-              @render.Together
+              @render.WriteOrder::Together
             },
           })
         }),
