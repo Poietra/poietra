@@ -275,6 +275,9 @@ within one program remain available to JS consumers.
 One typed `ObjectLayout` also shares layer order and the lazily prepared parent
 graph across all holds/transitions. Composition matrices remain independent;
 reusing structure never reuses evaluated world transforms or serializes them.
+Transition evaluation resolves path travel, presence opacity and growth before
+constructing the base immutable pose, avoiding successive whole-state copies.
+Intermediate value keys still override that pose after those animation rules.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -624,6 +627,29 @@ parents and retained deleted poses on both JS and WASM. Full validation includes
 the headless API/MCP suite, public API/type checks and a production build.
 Browser validation passed 33 Canvas/primitive/playback/preview tests and 14
 media/export tests, including independent MP4/WebM decoding.
+
+Removing intermediate base-pose copies was measured separately from `bde6294`:
+[evaluation before](benchmarks/2026-09-27-evaluated-pose/evaluation-before.json)
+/ [after](benchmarks/2026-09-27-evaluated-pose/evaluation-after.json) and
+[primitives before](benchmarks/2026-09-27-evaluated-pose/primitives-before.json)
+/ [after](benchmarks/2026-09-27-evaluated-pose/primitives-after.json).
+Run `node scripts/benchmark.mjs --suite evaluation --runs 5 --output <file>`
+and repeat with `--suite primitives`. The same Node/compiler/host applies.
+Each suite uses five sequential fresh processes and seven timed batches of 240
+frames per scenario; evaluation has one warmup batch, primitives has two.
+Numbers include the public JS frame conversion and exclude rendering/encoding.
+
+| 500-object CPU evaluation | Before, ms/frame | After, ms/frame |
+| --- | ---: | ---: |
+| Preset easing | 0.1247 [0.1184–0.1289] | 0.1058 [0.1031–0.1114] |
+| Custom easing | 0.2058 [0.1995–0.2092] | 0.1817 [0.1715–0.1947] |
+| Hierarchy + 6 points/object | 0.6158 [0.6085–0.6469] | 0.6136 [0.5950–0.6261] |
+
+Values are median [min–max] of process medians. The parented/keyframed case
+shows no clear gain; removing copies does not guarantee a useful overall speedup.
+Allocated bytes, GC time and browser FPS were not measured for this change.
+731 Vitest tests, the JS/WASM domain tests, 19 headless checks and 17 property
+timing/media/export browser tests passed.
 
 ### Same-room collaboration — 2026-09-22
 

@@ -372,6 +372,42 @@ pub fn evaluate_transition(
     }
     let opacity = channel(track.opacityTiming)
     let interpolate = kernel.interpolate
+    let presence = visibility.amount(reveal)
+    // Resolve the final scalar values before allocating the immutable pose.
+    // Presence and path travel must not rebuild the entire ObjectState.
+    let state_opacity = if animation == Write && presence == 0.0 {
+      0.0
+    } else if track.opacityTiming is Some(_) && visibility != Persistent {
+      interpolate(
+        if a_visible {
+          a.opacity
+        } else {
+          0.0
+        },
+        if b_visible {
+          b.opacity
+        } else {
+          0.0
+        },
+        opacity,
+      )
+    } else {
+      interpolate(a.opacity, b.opacity, opacity) *
+      (if animation == Write { 1.0 } else { visibility.amount(opacity) })
+    }
+    let growth = if animation == Grow && visibility != Persistent {
+      presence
+    } else {
+      1.0
+    }
+    let (x, y) = match track.path {
+      Some(path) if visibility == Persistent =>
+        (
+          (kernel.cubic_bezier)(a.x, path.c1.x, path.c2.x, b.x, position),
+          (kernel.cubic_bezier)(a.y, path.c1.y, path.c2.y, b.y, position),
+        )
+      _ => (interpolate(a.x, b.x, position), interpolate(a.y, b.y, position))
+    }
     let path_point = fn(a : Point, b : Point) -> Point {
       {
         x: interpolate(a.x, b.x, shape_path),
@@ -401,16 +437,16 @@ pub fn evaluate_transition(
         0.0,
         channel(track.rotationTiming),
       ),
-      x: interpolate(a.x, b.x, position),
-      y: interpolate(a.y, b.y, position),
-      width: interpolate(a.width, b.width, size),
-      height: interpolate(a.height, b.height, size),
+      x,
+      y,
+      width: interpolate(a.width, b.width, size) * growth,
+      height: interpolate(a.height, b.height, size) * growth,
       rotation: interpolate(
         a.rotation,
         b.rotation,
         channel(track.rotationTiming),
       ),
-      opacity: interpolate(a.opacity, b.opacity, opacity),
+      opacity: state_opacity,
       visible: (a_visible || b_visible) && video_active(object, scene_time),
       fill: color(fill, channel(track.fillTiming)),
       stroke: color(stroke, channel(track.strokeTiming)),
@@ -423,7 +459,8 @@ pub fn evaluate_transition(
         a.fontSize,
         b.fontSize,
         channel(track.fontSizeTiming),
-      ),
+      ) *
+      growth,
       cornerRadius: interpolate(
         a.cornerRadius,
         b.cornerRadius,
@@ -443,61 +480,6 @@ pub fn evaluate_transition(
         c1: path_point(a.path.c1, b.path.c1),
         c2: path_point(a.path.c2, b.path.c2),
       },
-    }
-    if track.path is Some(path) && a_visible && b_visible {
-      state = {
-        ..state,
-        x: (kernel.cubic_bezier)(a.x, path.c1.x, path.c2.x, b.x, position),
-        y: (kernel.cubic_bezier)(a.y, path.c1.y, path.c2.y, b.y, position),
-      }
-    }
-    let presence = if !a_visible {
-      reveal
-    } else if !b_visible {
-      1.0 - reveal
-    } else {
-      1.0
-    }
-    if track.opacityTiming is Some(_) && (!a_visible || !b_visible) {
-      state = {
-        ..state,
-        opacity: interpolate(
-          if a_visible {
-            a.opacity
-          } else {
-            0.0
-          },
-          if b_visible {
-            b.opacity
-          } else {
-            0.0
-          },
-          opacity,
-        ),
-      }
-    } else if animation != Write {
-      state = {
-        ..state,
-        opacity: state.opacity *
-        (if !a_visible {
-          opacity
-        } else if !b_visible {
-          1.0 - opacity
-        } else {
-          1.0
-        }),
-      }
-    }
-    if animation == Write && presence == 0.0 {
-      state = { ..state, opacity: 0.0, }
-    }
-    if animation == Grow && (!a_visible || !b_visible) {
-      state = {
-        ..state,
-        width: state.width * presence,
-        height: state.height * presence,
-        fontSize: state.fontSize * presence,
-      }
     }
     for curve in curves {
       if curve.property != ObjectReveal {

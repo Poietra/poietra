@@ -72,6 +72,28 @@ describe('independent property timing with the real WASM evaluator', () => {
     const path = transitionFrame(scene, transition, 200, kernel).objects.find(item => item.object.id === 'sigmoid')!;
     expect(path.state.path.c1.x).toBe(200); expect(path.state.rotation).toBe(90);
   });
+  test.each([false, true])('Grow applies independent presence before value keys without changing endpoints (exit: %s)', exit => {
+    const scene = makeDemoProject().scenes[sid], transition = scene.transitions[tid];
+    const a = scene.compositions['comp-1'].states.circle, b = scene.compositions['comp-2'].states.circle;
+    Object.assign(a, { visible: exit, x: 0, y: 0, width: 80, fontSize: 20, opacity: .25 });
+    Object.assign(b, { visible: !exit, x: 100, y: 100, width: 120, fontSize: 40, opacity: .75 });
+    const endpoints = structuredClone([a, b]);
+    const track = transition.tracks.circle = defaultTrack('circle', {
+      type: 'grow', duration: 1000, easing: 'linear',
+      revealTiming: timing(1000, 250), opacityTiming: timing(1000),
+      path: { c1: { x: 900, y: 900 }, c2: { x: 900, y: 900 } },
+    });
+    const frame = () => transitionFrame(scene, transition, 500, kernel).objects.find(item => item.object.id === 'circle')!;
+    const earlier = frame();
+    expect(earlier.state).toMatchObject({ x: 50, y: 50, width: exit ? 75 : 25, fontSize: exit ? 22.5 : 7.5, opacity: exit ? .125 : .375 });
+    track.keyframes = {
+      size: { property: 'width', at: .5, value: 200, easing: 'linear' },
+      alpha: { property: 'opacity', at: .5, value: .6, easing: 'linear' },
+    };
+    expect(frame().state).toMatchObject({ width: 200, opacity: .6, fontSize: exit ? 22.5 : 7.5 });
+    expect(earlier.state.width).toBe(exit ? 75 : 25);
+    expect([a, b]).toEqual(endpoints);
+  });
 });
 
 describe('stable parents, copy, timing bounds and collaborative Undo', () => {

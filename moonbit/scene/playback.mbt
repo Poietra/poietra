@@ -46,6 +46,15 @@ priv enum Presence {
   Entering
   Leaving
   Hidden
+} derive(Eq)
+
+///|
+fn Presence::amount(self : Presence, progress : Double) -> Double {
+  match self {
+    Persistent => 1.0
+    Entering | Hidden => progress
+    Leaving => 1.0 - progress
+  }
 }
 
 ///|
