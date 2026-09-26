@@ -1,0 +1,431 @@
+{
+  "measuredAt": "2026-09-26T21:01:52.566Z",
+  "environment": {
+    "applicationRevision": "e072667bc1a1550af6b2398df6a643d5d22612a0",
+    "trackedModifications": [
+      "apps/studio/scripts/benchmark-playback.mjs",
+      "moonbit/scene/evaluate.mbt",
+      "moonbit/scene/playback.mbt",
+      "moonbit/scene/primitives_test.mbt"
+    ],
+    "applicationSourcesSha256": "3fec3216d6ea787bae353418cd9c24da8bf9a811064cd803c787b7c9d5c21631",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.29,
+      0.42,
+      0.25
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "6fc2eeb20a725da627a8edfa35b6ba1e42031ab628f694f80852f61841b6ebd8",
+    "boundarySha256": "00a0dba94b117fe53132ba046f8f674b2faee7f21a255f4682e05c6c78daf3b2",
+    "clientRuntimeSha256": "cfa542bddfc01aed3ed12b568831bffe7fe7fb60ed301f40e13c30476e1abb22",
+    "viteManifestSha256": "b32af70c8cb81dbc6330b2e09d891043a6be0fa0ab0c0e5f8897079e40c8b6f8"
+  },
+  "method": "Sequential fresh Node processes; three compile warmups, seven timed compilations (GC outside timing), then eight retained programs with explicit GC. Heap delta excludes the caller input, WASM/native memory, and transient allocations. CPU setup only, not browser FPS.",
+  "results": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "parents": false,
+      "prepareMs": {
+        "n": 5,
+        "median": 0.5943500000000057,
+        "min": 0.5868870000000044,
+        "max": 0.6350130000000007
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 220462,
+        "min": 219536,
+        "max": 221021
+      },
+      "samples": [
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            0.6527590000000032,
+            0.7434769999999986,
+            0.5707659999999919,
+            0.5943500000000057,
+            0.7875380000000121,
+            0.5841630000000038,
+            0.5457159999999988
+          ],
+          "retainedBytes": 221021,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            0.8140399999999914,
+            0.7551310000000058,
+            0.6346709999999973,
+            0.5739599999999996,
+            0.6044389999999993,
+            0.7015919999999909,
+            0.502082999999999
+          ],
+          "retainedBytes": 220271,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            0.7206440000000001,
+            0.7140459999999962,
+            0.6350130000000007,
+            0.6386009999999942,
+            0.6044040000000024,
+            0.5724840000000029,
+            0.5926989999999961
+          ],
+          "retainedBytes": 220831,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            0.6885929999999973,
+            0.8083219999999898,
+            0.579858999999999,
+            0.5810910000000007,
+            0.5868870000000044,
+            0.5989670000000018,
+            0.5409539999999993
+          ],
+          "retainedBytes": 219536,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            0.7206169999999972,
+            0.7916270000000054,
+            0.6251630000000006,
+            0.5898380000000003,
+            0.548437000000007,
+            0.567097000000004,
+            0.5316060000000107
+          ],
+          "retainedBytes": 220462,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 2,
+      "parents": false,
+      "prepareMs": {
+        "n": 5,
+        "median": 2.0575919999999996,
+        "min": 2.041646,
+        "max": 2.1709089999999946
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 1070117,
+        "min": 1069707,
+        "max": 1070318
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            1.6923749999999984,
+            1.9236120000000057,
+            2.352954000000011,
+            2.157804999999996,
+            1.9764709999999894,
+            2.1241679999999974,
+            2.116647999999998
+          ],
+          "retainedBytes": 1070117,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            2.7265370000000075,
+            2.1709089999999946,
+            2.1906939999999935,
+            1.934905999999998,
+            2.353613999999993,
+            2.1104860000000087,
+            2.0216940000000108
+          ],
+          "retainedBytes": 1069707,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            2.110931000000008,
+            1.9974319999999892,
+            2.041646,
+            2.1629950000000093,
+            2.047103000000007,
+            2.0275999999999925,
+            1.919503000000006
+          ],
+          "retainedBytes": 1070098,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            2.047147999999993,
+            1.9172989999999999,
+            2.2633550000000042,
+            2.0342230000000114,
+            2.2334840000000042,
+            2.0458229999999986,
+            1.9669290000000075
+          ],
+          "retainedBytes": 1070155,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "prepareMs": [
+            2.065086000000008,
+            2.0241060000000033,
+            2.2118480000000034,
+            2.0303339999999963,
+            2.0575919999999996,
+            2.062940999999995,
+            2.0479160000000007
+          ],
+          "retainedBytes": 1070318,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": false,
+      "prepareMs": {
+        "n": 5,
+        "median": 11.427967000000024,
+        "min": 11.16876400000001,
+        "max": 11.702148999999991
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7093634,
+        "min": 7090850,
+        "max": 7094047
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "prepareMs": [
+            14.009274000000005,
+            12.932583999999991,
+            10.959012000000001,
+            11.383190999999982,
+            11.15796499999999,
+            11.200567000000007,
+            11.06167400000001
+          ],
+          "retainedBytes": 7093634,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "prepareMs": [
+            13.007879999999986,
+            12.759906,
+            11.105525999999998,
+            11.146641000000017,
+            11.57415499999999,
+            11.015972000000005,
+            11.16876400000001
+          ],
+          "retainedBytes": 7093665,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "prepareMs": [
+            13.432638999999995,
+            12.985017,
+            11.055436000000014,
+            11.165161999999981,
+            11.427967000000024,
+            11.650399000000021,
+            11.01475099999999
+          ],
+          "retainedBytes": 7090850,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "prepareMs": [
+            13.215456999999986,
+            12.483577999999994,
+            11.955910999999986,
+            11.079751000000016,
+            11.32360300000002,
+            11.702148999999991,
+            11.339640000000003
+          ],
+          "retainedBytes": 7093533,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "prepareMs": [
+            14.101439,
+            12.727344999999985,
+            11.02680700000002,
+            11.093766000000016,
+            11.458715999999981,
+            11.838751000000002,
+            11.242968000000019
+          ],
+          "retainedBytes": 7094047,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 12.826695999999998,
+        "min": 12.375807000000009,
+        "max": 13.38548400000002
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7591385,
+        "min": 7591162,
+        "max": 7592499
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "prepareMs": [
+            14.97790599999999,
+            15.126345000000015,
+            12.344843999999995,
+            12.414777999999984,
+            13.287588,
+            12.468180000000018,
+            12.347282000000007
+          ],
+          "retainedBytes": 7591385,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "prepareMs": [
+            15.005352000000016,
+            15.379429000000016,
+            12.575754999999987,
+            13.020098999999988,
+            13.794049000000001,
+            13.127614999999992,
+            13.38548400000002
+          ],
+          "retainedBytes": 7591162,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "prepareMs": [
+            16.132632,
+            15.214005000000014,
+            12.548547000000013,
+            12.826695999999998,
+            12.580169000000012,
+            12.947577999999993,
+            12.406691000000023
+          ],
+          "retainedBytes": 7591385,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "prepareMs": [
+            17.412717999999984,
+            15.391024000000016,
+            12.961492000000021,
+            12.743043999999998,
+            12.998190999999991,
+            13.245431999999994,
+            13.430379000000016
+          ],
+          "retainedBytes": 7592499,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "prepareMs": [
+            14.952540999999997,
+            14.856490999999977,
+            12.089731,
+            12.354478999999998,
+            12.375807000000009,
+            12.42852099999999,
+            12.285367000000008
+          ],
+          "retainedBytes": 7591749,
+          "checksum": 270
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-26T21:01:57.955Z"
+}

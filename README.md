@@ -272,6 +272,9 @@ it retains a separate native copy only of object metadata required by public
 frames. It no longer clones or retains a second set of Composition states,
 tracks or audio data. Native object extensions, nulls and stable references
 within one program remain available to JS consumers.
+One typed `ObjectLayout` also shares layer order and the lazily prepared parent
+graph across all holds/transitions. Composition matrices remain independent;
+reusing structure never reuses evaluated world transforms or serializes them.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -574,7 +577,7 @@ browser tests and 6 media/export browser tests passed. Those cover preview/SVG
 agreement, transforms/Undo, cancellation, stale publication, shared video
 decoders, WebM/MP4 decoding and audio playback. No production deployment was made.
 
-### Playback snapshot ownership — 2026-09-27
+### Playback preparation and ownership — 2026-09-27
 
 The [before](benchmarks/2026-09-27-playback-ownership/before.json) and
 [after](benchmarks/2026-09-27-playback-ownership/after.json) reports compare
@@ -600,6 +603,27 @@ excluding transient allocations, native/WASM memory, media and browser rendering
 They do not establish a frame-rate improvement. `pnpm test` (729 tests and five
 extension/linking checks) and `pnpm typecheck` passed, including ownership tests
 for nested inputs and preserved public object metadata.
+
+A subsequent [layout before](benchmarks/2026-09-27-shared-scene-layout/before.json)
+/ [after](benchmarks/2026-09-27-shared-scene-layout/after.json) comparison starts
+from `e072667` and shares object order and parent graphs across Compositions and
+Transitions. The same command, host and sampling method apply; the additional
+parented fixture has groups of ten objects, with nine children per root.
+
+| 500 objects / 12 Compositions | Prepare before → after, ms | Retained JS heap before → after, MB |
+| --- | ---: | ---: |
+| No parents | 12.327 → 11.428 | 7.094 → 7.094 |
+| With parents | 19.651 → 12.827 | 8.040 → 7.591 |
+
+For the parented fixture, preparation process medians ranged
+**19.250–20.553 → 12.376–13.385 ms**; retained heap ranged
+**8.039–8.041 → 7.591–7.592 MB**. These remain setup/heap measurements, not FPS.
+The compiled and direct evaluators agree across holds, transitions, hidden
+parents and retained deleted poses on both JS and WASM. Full validation includes
+729 Vitest tests, five extension/linking checks, 52 JS and 49 WASM MoonBit tests,
+the headless API/MCP suite, public API/type checks and a production build.
+Browser validation passed 33 Canvas/primitive/playback/preview tests and 14
+media/export tests, including independent MP4/WebM decoding.
 
 ### Same-room collaboration — 2026-09-22
 

@@ -119,6 +119,79 @@ test "concurrent hierarchy cycles have a stable nonrecursive resolution" {
 }
 
 ///|
+test "prepared scene shares structure while keeping each visible and retained pose independent" {
+  let parent = {
+    ..@scene.default_state(Rectangle),
+    x: 10.0,
+    y: 20.0,
+    rotation: 90.0,
+    visible: false,
+  }
+  let child = { ..@scene.default_state(Rectangle), x: 5.0, y: 0.0, }
+  let first = {
+    ..@scene.empty_composition("first", "First", 1000.0, "#ffffff"),
+    states: { "parent": parent, "child": child },
+  }
+  let last = {
+    ..@scene.empty_composition("last", "Last", 1000.0, "#ffffff"),
+    states: {
+      "parent": {
+        ..parent,
+        x: 100.0,
+        y: 40.0,
+        rotation: 0.0,
+        scaleX: Some(2.0),
+      },
+      "child": { ..child, x: 15.0, },
+    },
+  }
+  let retained = { ..first, id: "retained", deleted: Some(true), }
+  let scene = {
+    ..@scene.blank_scene("scene", "Scene"),
+    objects: {
+      "child": object("child", Some("parent")),
+      "parent": object("parent", None),
+    },
+    compositions: { "first": first, "last": last, "retained": retained },
+    compositionOrder: ["first", "last"],
+    transitions: {
+      "change": @scene.Transition::{
+        id: "change",
+        fromId: "first",
+        toId: "last",
+        duration: 1000.0,
+        tracks: {
+          "parent": {
+            ..@scene.default_track("parent", 1000.0),
+            easing: Linear,
+          },
+          "child": { ..@scene.default_track("child", 1000.0), easing: Linear, },
+        },
+      },
+    },
+  }
+  let prepared = @scene.prepare_scene(scene, kernel())
+  let earlier = prepared.composition("first", None)
+  for time in [0.0, 1000.0, 1250.0, 1500.0, 1750.0, 2000.0, 3000.0] {
+    assert_eq(
+      prepared.evaluate(time).to_json(),
+      @scene.evaluate_scene(scene, time, kernel()).to_json(),
+    )
+  }
+  let last_matrix = prepared.composition("last", None).objects[0].world.unwrap()
+  near(last_matrix.e, 130.0)
+  near(last_matrix.f, 40.0)
+  let initial = earlier.objects[0].world.unwrap()
+  near(initial.e, 10.0)
+  near(initial.f, 25.0)
+  assert_eq(
+    prepared.composition("retained", None).objects[0].world,
+    Some(initial),
+  )
+  assert_eq(prepared.composition("first", None).to_json(), earlier.to_json())
+}
+
+///|
 test "intermediate values allow an out and back motion with linked endpoints and proportional timing" {
   let track = {
     ..@scene.default_track("a", 1000.0),

@@ -196,15 +196,24 @@ pub fn composition_objects(
   composition : Composition,
   time : Double,
 ) -> Array[RenderObject] {
-  let extended = ordered.any(fn(o) { o.parentId is Some(_) }) ||
+  layout_objects(object_layout(ordered), composition, time)
+}
+
+///|
+fn layout_objects(
+  layout : ObjectLayout,
+  composition : Composition,
+  time : Double,
+) -> Array[RenderObject] {
+  let extended = layout.has_parents ||
     composition.states.values().any(fn(s) { s.has_transform() })
   let matrices = if extended {
-    Some(prepare_hierarchy(ordered).matrices(composition.states))
+    Some(layout.hierarchy().matrices(composition.states))
   } else {
     None
   }
   let objects : Array[RenderObject] = []
-  for object in ordered {
+  for object in layout.ordered {
     if composition.states.get(object.id) is Some(state) && state.visible {
       objects.push({
         object,
@@ -228,14 +237,26 @@ pub fn prepare_transition(
   transition : Transition,
   kernel : Kernel,
 ) -> PreparedTransition {
+  prepare_layout_transition(
+    scene,
+    transition,
+    object_layout(ordered_objects(scene, kernel.compare_ids)),
+  )
+}
+
+///|
+fn prepare_layout_transition(
+  scene : Scene,
+  transition : Transition,
+  layout : ObjectLayout,
+) -> PreparedTransition {
   guard scene.compositions.get(transition.fromId) is Some(from) else {
     return PreparedTransition::{ items: [], hierarchy: None, }
   }
   guard scene.compositions.get(transition.toId) is Some(to) else {
     return PreparedTransition::{ items: [], hierarchy: None, }
   }
-  let ordered = ordered_objects(scene, kernel.compare_ids)
-  let extended = ordered.any(fn(o) { o.parentId is Some(_) }) ||
+  let extended = layout.has_parents ||
     from.states.values().any(fn(s) { s.has_transform() }) ||
     to.states.values().any(fn(s) { s.has_transform() }) ||
     transition.tracks
@@ -258,9 +279,9 @@ pub fn prepare_transition(
         None => false
       }
     })
-  let hierarchy = if extended { Some(prepare_hierarchy(ordered)) } else { None }
+  let hierarchy = if extended { Some(layout.hierarchy()) } else { None }
   let items : Array[AnimatedObject] = []
-  for object in ordered {
+  for object in layout.ordered {
     let a_state = from.states.get(object.id)
     let b_state = to.states.get(object.id)
     let a_visible = a_state.map(fn(s) { s.visible }).unwrap_or(false)

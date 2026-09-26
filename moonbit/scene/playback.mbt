@@ -69,11 +69,12 @@ pub fn prepare_scene(scene : Scene, kernel : Kernel) -> PreparedScene {
   let changes : Map[String, PreparedTransition] = Map([])
   let starts : Map[String, Double] = Map([])
   let schedule : Array[ScheduledSegment] = []
+  let layout = object_layout(ordered_objects(scene, kernel.compare_ids))
   for id, composition in scene.compositions {
-    holds[id] = composition_frame(scene, composition, 0.0, kernel.compare_ids).objects
+    holds[id] = layout_objects(layout, composition, 0.0)
   }
   for id, transition in scene.transitions {
-    changes[id] = prepare_transition(scene, transition, kernel)
+    changes[id] = prepare_layout_transition(scene, transition, layout)
   }
   let mut monotone = true
   for segment in scene_segments(scene) {
