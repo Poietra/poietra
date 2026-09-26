@@ -13,6 +13,45 @@ priv struct FramePainter {
   videos : @browser_media.VideoFrames
   lifetime : @core.Any
   mut backend : PainterBackend
+  mut draft : PaintDraft?
+}
+
+///|
+priv enum DraftState {
+  Available
+  Presented
+  Expired
+} derive(Eq)
+
+///|
+// A one-use borrow of the painter's completed staging surface. The next render
+// or disposal expires it before that surface can be resized or overwritten.
+priv struct PaintDraft {
+  surface : Surface
+  signal : @core.Any
+  mut state : DraftState
+}
+
+///|
+fn FramePainter::expire_draft(self : FramePainter) -> Unit {
+  if self.draft is Some(draft) {
+    draft.state = Expired
+  }
+  self.draft = None
+}
+
+///|
+fn PaintDraft::present(
+  self : PaintDraft,
+  context : @canvas.CanvasRenderingContext2D,
+) -> Bool {
+  if self.state != Available || aborted(self.signal) {
+    self.state = Expired
+    return false
+  }
+  self.state = Presented
+  commit_frame(context, self.surface.canvas)
+  true
 }
 
 ///|
@@ -42,6 +81,7 @@ fn FramePainter::use_svg(self : FramePainter) -> Unit {
 
 ///|
 fn FramePainter::dispose(self : FramePainter) -> Unit {
+  self.expire_draft()
   if aborted(self.lifetime._get("signal")) {
     return
   }
@@ -238,6 +278,31 @@ async fn FramePainter::render(
   input : @core.Any,
   options : @core.Any,
 ) -> Unit {
+  let draft = self.render_draft(
+    input,
+    self.target.canvas._get("width").cast(),
+    self.target.canvas._get("height").cast(),
+    options,
+  )
+  try {
+    image_check_abort(draft.signal)
+    if !@core.throwable(fn() { draft.present(self.target.context) }) {
+      raise BrowserFailure(image_abort_error())
+    }
+  } catch {
+    error => raise normalize_image_failure(error, draft.signal)
+  }
+}
+
+///|
+async fn FramePainter::render_draft(
+  self : FramePainter,
+  input : @core.Any,
+  width : Double,
+  height : Double,
+  options : @core.Any,
+) -> PaintDraft {
+  self.expire_draft()
   let signal = combined_signal(
     self.lifetime._get("signal"),
     if @core.is_nullish(options) {
@@ -250,8 +315,8 @@ async fn FramePainter::render(
   let input = @core.throwable(fn() { capture_frame(input) })
   for
     dimension in [
-      self.target.canvas._get("width"),
-      self.target.canvas._get("height"),
+      @core.any(width),
+      @core.any(height),
       @core.any(input.width),
       @core.any(input.height),
     ] {
@@ -262,13 +327,17 @@ async fn FramePainter::render(
       )
     }
   }
+  if width.trunc() != width ||
+    height.trunc() != height ||
+    width > 2147483647.0 ||
+    height > 2147483647.0 {
+    raise FontError(
+      "Canvas のピクセル幅・高さを整数にしてください。",
+    )
+  }
   try {
     @core.throwable(fn() {
-      resize_canvas(
-        self.staging.canvas,
-        self.target.canvas._get("width").cast(),
-        self.target.canvas._get("height").cast(),
-      )
+      resize_canvas(self.staging.canvas, width.to_int(), height.to_int())
     })
     let videos = self.videos
       .prepare_requests(
@@ -322,9 +391,9 @@ async fn FramePainter::render(
       ).wait()
     }
     image_check_abort(signal)
-    @core.throwable(fn() {
-      commit_frame(self.target.context, self.staging.canvas)
-    })
+    let draft = { surface: self.staging, signal, state: Available, }
+    self.draft = Some(draft)
+    draft
   } catch {
     error => raise normalize_image_failure(error, signal)
   }
@@ -361,6 +430,7 @@ pub fn create_frame_painter(
       lifetime,
       layers: new_raster_cache(resources),
       shapes: Map([]),
+      draft: None,
       backend: if @core.is_nullish(glow) {
         Svg
       } else {
@@ -372,6 +442,28 @@ pub fn create_frame_painter(
         "render",
         @core.any(fn(input : @core.Any, options : @core.Any) {
           @core.from_async(async fn() { painter.render(input, options) })
+          |> host_errors
+        }),
+      ),
+      (
+        "renderDraft",
+        @core.any(fn(
+          input : @core.Any,
+          width : Double,
+          height : Double,
+          options : @core.Any,
+        ) {
+          @core.from_async(async fn() {
+            let draft = painter.render_draft(input, width, height, options)
+            @core.from_entries([
+              (
+                "present",
+                @core.any(fn(context : @core.Any) {
+                  draft.present(context.cast())
+                }),
+              ),
+            ])
+          })
           |> host_errors
         }),
       ),

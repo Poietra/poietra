@@ -25,15 +25,16 @@ import { environment } from './benchmark-environment.mjs';
 const options = {
   url: process.env.POIETRA_BENCH_URL || 'http://127.0.0.1:5173',
   output: process.env.POIETRA_BENCH_OUTPUT || 'test-results/benchmarks/rendering.json',
-  ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg', frames: 20, video: true,
+  ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg', frames: 20, video: true, previewCopies: false,
 };
 for (let index = 2; index < process.argv.length; index++) {
   const flag = process.argv[index];
   if (flag === '--help') {
-    console.log('Usage: node scripts/benchmark-rendering.mjs [--url VITE_URL] [--output JSON_PATH] [--frames 3..60] [--ffmpeg PATH] [--skip-video]\nRequires an already running Vite server and Playwright Chromium; video also requires ffmpeg/libx264.\nCHROME_PATH optionally selects an installed Chromium executable.');
+    console.log('Usage: node scripts/benchmark-rendering.mjs [--url VITE_URL] [--output JSON_PATH] [--frames 3..60] [--ffmpeg PATH] [--skip-video] [--preview-copies]\nRequires an already running Vite server and Playwright Chromium; video also requires ffmpeg/libx264.\nCHROME_PATH optionally selects an installed Chromium executable.');
     process.exit(0);
   }
   if (flag === '--skip-video') { options.video = false; continue; }
+  if (flag === '--preview-copies') { options.previewCopies = true; continue; }
   const key = { '--url': 'url', '--output': 'output', '--frames': 'frames', '--ffmpeg': 'ffmpeg' }[flag];
   const value = process.argv[++index];
   if (!key || !value || value.startsWith('--')) throw new Error(`Unknown or incomplete argument: ${flag}. Use --help.`);
@@ -65,7 +66,7 @@ try {
   await page.route('**/__poietra_render_bench', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body><div id="svg"></div></body></html>' }));
   if (media) await page.route(`**${mediaPath}`, route => route.fulfill({ contentType: 'video/mp4', body: media }));
   await page.goto(new URL('/__poietra_render_bench', base).href);
-  const result = await page.evaluate(async ({ frameCount, video, mediaPath }) => {
+  const result = await page.evaluate(async ({ frameCount, video, mediaPath, previewCopies }) => {
     // This routed fixture bypasses Vite's HTML transform. Initialize the same
     // React refresh preamble before importing the shared browser artifact.
     const refresh = (await import('/@react-refresh')).default;
@@ -145,7 +146,50 @@ try {
         const dom = await measure(15, () => { container.innerHTML = markup; void container.getBoundingClientRect().width; }); container.innerHTML = '';
         // Includes the explicit frame clone and asynchronous publication by the painter.
         const moving = await measure(30, index => { const next = structuredClone(frame); next.objects[0].state.x += index; return painter.render(next); });
-        shapes.push({ count, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, marks: reportMarks() });
+        let preview = null;
+        if (previewCopies) {
+          // Alternate the same painter/input between two-copy publication and a
+          // single-use draft. Pose changes and rAF scheduling are outside timers.
+          // Keep the constructor canvas allocated in both cases to isolate copies.
+          const display = document.createElement('canvas');
+          display.width = 1280; display.height = 720; document.body.append(display);
+          const context = display.getContext('2d', { alpha: false });
+          const samples = { target: [], draft: [] }, batches = { target: [], draft: [] };
+          const next = structuredClone(frame), initialX = next.objects[0].state.x;
+          const publish = async mode => {
+            if (mode === 'draft') {
+              const draft = await painter.renderDraft(next, display.width, display.height);
+              if (!draft.present(context)) throw new Error('Fresh preview draft was unavailable.');
+            } else {
+              await painter.render(next);
+              context.save();
+              try { context.resetTransform(); context.globalAlpha = 1; context.globalCompositeOperation = 'copy'; context.drawImage(canvas, 0, 0); }
+              finally { context.restore(); }
+            }
+          };
+          try {
+            for (let batch = -2; batch < 7; batch++) {
+              for (const mode of batch % 2 ? ['draft', 'target'] : ['target', 'draft']) {
+                await new Promise(requestAnimationFrame);
+                const values = [];
+                for (let index = 0; index < 15; index++) {
+                  next.objects[0].state.x = initialX + index;
+                  const start = performance.now(); await publish(mode); values.push(performance.now() - start);
+                }
+                if (batch >= 0) { samples[mode].push(...values); batches[mode].push(stats(values)); }
+              }
+            }
+            // Read pixels only after all timed batches: readback can change the
+            // browser's canvas backend. This is a parity check, not timed work.
+            await publish('target');
+            const targetPixels = context.getImageData(0, 0, display.width, display.height).data;
+            await publish('draft');
+            const draftPixels = context.getImageData(0, 0, display.width, display.height).data;
+            if (!targetPixels.every((value, index) => value === draftPixels[index])) throw new Error('Preview publication changed pixels.');
+            preview = { target: stats(samples.target), draft: stats(samples.draft), batches, identicalPixels: true };
+          } finally { display.remove(); }
+        }
+        shapes.push({ count, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, marks: reportMarks(), ...(preview ? { previewCopies: preview } : {}) });
       } finally { painter.dispose(); canvas.remove(); }
     }
     const preparations = [];
@@ -194,11 +238,12 @@ try {
     const gpu = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null;
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     return { userAgent: navigator.userAgent, gpu, headless: true, units: 'milliseconds (except counts and pngBytes/svgBytes)', shapes, preparations, video: videos, decodeOnly };
-  }, { frameCount: options.frames, video: options.video, mediaPath });
+  }, { frameCount: options.frames, video: options.video, mediaPath, previewCopies: options.previewCopies });
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode and drawing (PNG only on SVG fallback); evaluation excluded', ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
+  await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode and drawing (PNG only on SVG fallback); evaluation excluded', previewCopies: options.previewCopies ? 'Same painter and moving input; two warmup + seven measured batches of 15 frames per mode, alternating mode order, rAF outside timers; includes paint and publication, excludes evaluation/clone/readback; constructor target retained in both modes; full pixel parity checked after timing; async wall time, not GPU completion' : null, ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
   console.log(`Saved ${outputPath}\nGPU: ${result.gpu}\nMean milliseconds; asynchronous microbench timings, not user-visible FPS:`);
   console.table(result.shapes.map(value => ({ objects: value.count, evaluate: value.evaluation.mean, clone: value.cloning.mean, svg: value.svg.mean, domReplace: value.dom.mean, moveAndPaint: value.moving.mean })));
+  if (options.previewCopies) console.table(result.shapes.map(value => ({ objects: value.count, target: value.previewCopies.target.mean, draft: value.previewCopies.draft.mean, identicalPixels: value.previewCopies.identicalPixels })));
   if (options.video) console.table(result.video.map(value => ({ scenario: value.name, paint: value.paint.mean, randomRequests: value.marks.decode?.n ?? 0, sequentialReads: value.marks.sequentialDecode?.n ?? 0, pngEncodes: value.marks.png?.n ?? 0 })));
 } finally {
   try { await browser?.close(); }

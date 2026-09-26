@@ -202,6 +202,61 @@ const fixture = {
       return { backend: painter.backend, samples };
     } finally { painter.dispose(); }
   },
+  async painterDrafts(forceSvg = false) {
+    const target = document.createElement('canvas'); target.width = 32; target.height = 32;
+    const output = document.createElement('canvas'); output.width = 64; output.height = 64;
+    const targetContext = target.getContext('2d')!, display = output.getContext('2d')!;
+    targetContext.fillStyle = '#00ff00'; targetContext.fillRect(0, 0, 32, 32);
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    if (forceSvg) HTMLCanvasElement.prototype.getContext = new Proxy(getContext, { apply(fn, canvas, args) {
+      return args[0] === 'webgl2' ? null : Reflect.apply(fn, canvas, args);
+    } });
+    const painter = await createFramePainter(target).finally(() => { HTMLCanvasElement.prototype.getContext = getContext; });
+    if (!painter.renderDraft) throw new Error('Expected native draft support');
+    const backend = painter.backend;
+    const frame: Frame = { width: 32, height: 32, background: '#000000', objects: [{
+      object: { id: 'box', kind: 'rectangle', name: '', order: 0, groupId: null, locked: false },
+      state: defaultState('rectangle', { x: 16, y: 16, width: 20, height: 20, cornerRadius: 0, fill: '#ff0000', strokeWidth: 0 }),
+      writeProgress: 1, order: 'together',
+    }] };
+    const pixel = (context: CanvasRenderingContext2D, at: number) => Array.from(context.getImageData(at, at, 1, 1).data);
+    const copies = { target: 0, display: 0 };
+    const original = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = new Proxy(original, { apply(fn, context, args) {
+      if (context === targetContext) copies.target++;
+      if (context === display) copies.display++;
+      return Reflect.apply(fn, context, args);
+    } });
+    try {
+      const pending = painter.renderDraft(frame, 64, 64);
+      frame.objects[0].state.fill = '#0000ff';
+      const draft = await pending;
+      const beforePresent = { copies: { ...copies }, target: pixel(targetContext, 16), targetSize: [target.width, target.height] };
+      display.translate(3, 4); display.globalAlpha = .25; display.globalCompositeOperation = 'xor';
+      const first = draft.present(display), captured = pixel(display, 32), repeated = draft.present(display);
+      const state = { x: display.getTransform().e, y: display.getTransform().f, alpha: display.globalAlpha, operation: display.globalCompositeOperation };
+      const afterPresent = { ...copies };
+      const old = await painter.renderDraft(frame, 64, 64);
+      frame.objects[0].state.fill = '#00ff00';
+      const newer = await painter.renderDraft(frame, 64, 64);
+      const expired = old.present(display), current = newer.present(display), latest = pixel(display, 32);
+      const abort = new AbortController();
+      const canceled = await painter.renderDraft(frame, 64, 64, { signal: abort.signal });
+      abort.abort();
+      const canceledPresent = canceled.present(display);
+      let canceledName = '';
+      try { await painter.renderDraft(frame, 64, 64, { signal: abort.signal }); }
+      catch (error) { canceledName = (error as Error).name; }
+      const pendingLegacy = await painter.renderDraft(frame, 64, 64);
+      frame.objects[0].state.fill = '#0000ff';
+      await painter.render(frame);
+      const legacy = { target: pixel(targetContext, 16), expired: pendingLegacy.present(display), copies: { ...copies } };
+      const pendingDisposal = await painter.renderDraft(frame, 64, 64);
+      painter.dispose();
+      const disposedPresent = pendingDisposal.present(display);
+      return { backend, beforePresent, first, captured, repeated, state, afterPresent, expired, current, latest, canceledPresent, canceledName, legacy, disposedPresent };
+    } finally { CanvasRenderingContext2D.prototype.drawImage = original; painter.dispose(); }
+  },
   async cancel(format: 'mp4' | 'webm', preAborted = false) {
     const controller = new AbortController();
     let lastProgress = -1;

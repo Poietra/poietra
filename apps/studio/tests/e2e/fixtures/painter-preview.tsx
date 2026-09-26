@@ -6,16 +6,20 @@ import '../../../src/styles.css';
 import { App } from '../../../src/App';
 import { EditorStore, currentRoom } from '../../../src/editor/store';
 import { loadKernel } from '../../../src/engine/kernel';
-import { compositionFrame } from '../../../src/engine/evaluate';
+import { compositionFrame, type Frame } from '../../../src/engine/evaluate';
 import type { ObjectState } from '../../../shared/model';
 import * as renderer from '../../../src/engine/renderer';
 import { drawSvgFrame } from '../../../src/engine/exporting/rasterize';
-import type { PainterContract } from '../../../src/engine/painter-contract';
+import type { PainterContract, FramePainter, PaintOptions } from '../../../src/engine/painter-contract';
 
 const heldRenders = new Set<() => void>();
+const draftMode = new URLSearchParams(location.search).has('draft');
 const probe = {
   delay: 35, failNext: false, creations: 0, disposals: 0, active: 0, maximumConcurrentPerInstance: 0,
   svgCalls: 0, preparations: 0, preparationError: false,
+  legacyCalls: 0, draftCalls: 0,
+  draftTargets: [] as number[][],
+  presentations: [] as { instance: number; x: number | null; width: number; height: number }[],
   message(content: string) {
     store.chat.append({ id: crypto.randomUUID(), role: 'user', content, authorId: 'peer-probe', authorName: 'Peer', color: '#123456', createdAt: Date.now(), scope: { sceneId: 'scene-1', selection: { kind: 'composition', id: 'comp-1' }, selectedIds: [], label: 'Composition 1' } });
   },
@@ -71,25 +75,48 @@ const observedRenderer = {
 const factory: PainterContract['createFramePainter'] = async canvas => {
   const instance = ++probe.creations;
   let disposed = false, activeRenders = 0;
-  return {
+  async function paint(frame: Frame, destination: HTMLCanvasElement, options?: PaintOptions) {
+    const record = { instance, x: frame.objects.find(item => item.object.id === 'circle')?.state.x ?? null, finished: false, aborted: false };
+    probe.renders.push(record); probe.active++; activeRenders++;
+    probe.maximumConcurrentPerInstance = Math.max(probe.maximumConcurrentPerInstance, activeRenders);
+    const width = destination.width, height = destination.height;
+    try {
+      if (probe.hold) await new Promise<void>(resolve => heldRenders.add(resolve));
+      // The draft fixture deliberately finishes after disposal/cancellation and
+      // even offers to present: the preview owner must suppress late publication.
+      await new Promise(resolve => setTimeout(resolve, probe.delay));
+      record.aborted = Boolean(options?.signal?.aborted);
+      if (record.aborted && !draftMode) throw new DOMException('Canceled', 'AbortError');
+      if (probe.failNext) { probe.failNext = false; throw new Error('Simulated painter failure'); }
+      await drawSvgFrame(renderer.frameToSvg(frame), destination.getContext('2d')!, width, height, frame.width, frame.height, frame.background, draftMode ? undefined : options?.signal);
+      record.finished = true;
+      return record;
+    } finally { probe.active--; activeRenders--; }
+  }
+  const painter: FramePainter = {
     backend: 'canvas2d',
     async render(frame, options) {
-      const record = { instance, x: frame.objects.find(item => item.object.id === 'circle')?.state.x ?? null, finished: false, aborted: false };
-      probe.renders.push(record); probe.active++; activeRenders++;
-      probe.maximumConcurrentPerInstance = Math.max(probe.maximumConcurrentPerInstance, activeRenders);
-      const width = canvas.width, height = canvas.height;
-      try {
-        if (probe.hold) await new Promise<void>(resolve => heldRenders.add(resolve));
-        // Deliberately finish the delay after dispose: stale renders must never publish.
-        await new Promise(resolve => setTimeout(resolve, probe.delay));
-        if (options?.signal?.aborted) { record.aborted = true; throw new DOMException('Canceled', 'AbortError'); }
-        if (probe.failNext) { probe.failNext = false; throw new Error('Simulated painter failure'); }
-        await drawSvgFrame(renderer.frameToSvg(frame), canvas.getContext('2d')!, width, height, frame.width, frame.height, frame.background, options?.signal);
-        record.finished = true;
-      } finally { probe.active--; activeRenders--; }
+      probe.legacyCalls++;
+      await paint(frame, canvas, options);
     },
     dispose() { if (!disposed) { disposed = true; probe.disposals++; } },
   };
+  if (draftMode) painter.renderDraft = async (frame, width, height, options) => {
+    probe.draftCalls++;
+    probe.draftTargets.push([canvas.width, canvas.height]);
+    const staging = document.createElement('canvas'); staging.width = width; staging.height = height;
+    const record = await paint(frame, staging, options);
+    return { present(context) {
+      probe.presentations.push({ instance, x: record.x, width, height });
+      context.save();
+      try {
+        context.resetTransform(); context.globalAlpha = 1; context.globalCompositeOperation = 'copy';
+        context.drawImage(staging, 0, 0);
+        return true;
+      } finally { context.restore(); }
+    } };
+  };
+  return painter;
 };
 const store = new EditorStore(currentRoom());
 const kernel = await loadKernel();

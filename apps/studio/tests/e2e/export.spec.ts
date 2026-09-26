@@ -84,6 +84,24 @@ test('switching between direct shapes and isolated opacity preserves fill/stroke
   }
 });
 
+for (const forceSvg of [false, true]) test(`completed painter drafts copy once and expire on reuse, cancellation or disposal (SVG=${forceSvg})`, async ({ page }) => {
+  const report = await page.evaluate(forceSvg => window.exportFixture.painterDrafts(forceSvg), forceSvg);
+  expect(report.backend).toBe(forceSvg ? 'canvas2d' : 'webgl2');
+  expect(report.beforePresent).toEqual({ copies: { target: 0, display: 0 }, target: [0, 255, 0, 255], targetSize: [32, 32] });
+  expect(report.first).toBe(true);
+  expect(report.captured).toEqual([255, 0, 0, 255]);
+  expect(report.repeated).toBe(false);
+  expect(report.state).toEqual({ x: 3, y: 4, alpha: .25, operation: 'xor' });
+  expect(report.afterPresent).toEqual({ target: 0, display: 1 });
+  expect(report.expired).toBe(false);
+  expect(report.current).toBe(true);
+  expect(report.latest).toEqual([0, 255, 0, 255]);
+  expect(report.canceledPresent).toBe(false);
+  expect(report.canceledName).toBe('AbortError');
+  expect(report.legacy).toEqual({ target: [0, 0, 255, 255], expired: false, copies: { target: 1, display: 2 } });
+  expect(report.disposedPresent).toBe(false);
+});
+
 test('supports cancellation before starting and while encoding', async ({ page }) => {
   const capabilities = await page.evaluate(() => window.exportFixture.capabilities());
   const format: 'mp4' | 'webm' = capabilities.mp4 ? 'mp4' : 'webm';

@@ -13,9 +13,28 @@ priv struct PaintJob {
 ///|
 priv enum PaintLifecycle {
   Opening
-  Ready(@core.Any)
+  Ready(HostPainter)
   Failed
   Closed
+}
+
+///|
+priv enum HostPainter {
+  DraftPainter(@core.Any)
+  TargetPainter(@core.Any)
+}
+
+///|
+fn HostPainter::native(self : HostPainter) -> @core.Any {
+  match self {
+    DraftPainter(value) | TargetPainter(value) => value
+  }
+}
+
+///|
+priv enum PaintResult {
+  TargetCanvas
+  Draft(@core.Any)
 }
 
 ///|
@@ -60,7 +79,7 @@ fn CanvasSession::stop(self : CanvasSession, failed : Bool) -> Unit {
   self.pending = None
   self.lifetime._call("abort", []) |> ignore
   if previous is Ready(painter) {
-    ui_quiet(painter, "dispose")
+    ui_quiet(painter.native(), "dispose")
   }
   resize_preview(self.target, 0.0, 0.0)
   if failed {
@@ -118,14 +137,25 @@ fn CanvasSession::drain(self : CanvasSession) -> Unit {
           next = queued
           self.pending = None
         }
-        @core.throwable(fn() {
-          resize_preview(self.target, next.pixel_width, next.pixel_height)
-        })
-        ui_call(painter, "render", [
-          next.frame,
-          @core.from_entries([("signal", signal)]),
-        ])
-        |> ignore
+        let options = @core.from_entries([("signal", signal)])
+        let result = match painter {
+          DraftPainter(painter) =>
+            Draft(
+              ui_call(painter, "renderDraft", [
+                next.frame,
+                @core.any(next.pixel_width),
+                @core.any(next.pixel_height),
+                options,
+              ]),
+            )
+          TargetPainter(painter) => {
+            @core.throwable(fn() {
+              resize_preview(self.target, next.pixel_width, next.pixel_height)
+            })
+            ui_call(painter, "render", [next.frame, options]) |> ignore
+            TargetCanvas
+          }
+        }
         let current = (self.latest)()
         if !self.active() ||
           next.key != current.key ||
@@ -135,14 +165,26 @@ fn CanvasSession::drain(self : CanvasSession) -> Unit {
         }
         @core.throwable(fn() {
           resize_preview(self.output, next.pixel_width, next.pixel_height)
-          self.display._call("resetTransform", []) |> ignore
-          self.display._set("globalCompositeOperation", @core.any("copy"))
-          self.display._call("drawImage", [
-            self.target,
-            @core.any(0),
-            @core.any(0),
-          ])
-          |> ignore
+          match result {
+            Draft(draft) => {
+              let presented : Bool = draft
+                ._call("present", [self.display])
+                .cast()
+              if !presented {
+                return
+              }
+            }
+            TargetCanvas => {
+              self.display._call("resetTransform", []) |> ignore
+              self.display._set("globalCompositeOperation", @core.any("copy"))
+              self.display._call("drawImage", [
+                self.target,
+                @core.any(0),
+                @core.any(0),
+              ])
+              |> ignore
+            }
+          }
           (self.publish)(
             @core.from_entries([
               ("frame", next.frame),
@@ -176,7 +218,17 @@ fn CanvasSession::initialize(self : CanvasSession, create : @core.Any) -> Unit {
       let value = @core.throwable(fn() { create._invoke([self.target]) })
       let painter = @core.Promise::resolve(value).wait()
       if self.active() {
-        self.state = Ready(painter)
+        let port = if @core.typeof_(painter._get("renderDraft")) == "function" {
+          DraftPainter(painter)
+        } else {
+          TargetPainter(painter)
+        }
+        self.state = Ready(port)
+        if port is DraftPainter(_) {
+          // This owner presents drafts directly to the display. Keep no unused
+          // intermediate pixel buffer; legacy painters still receive a target.
+          @core.throwable(fn() { resize_preview(self.target, 0.0, 0.0) })
+        }
         self.drain()
       } else {
         ui_quiet(painter, "dispose")

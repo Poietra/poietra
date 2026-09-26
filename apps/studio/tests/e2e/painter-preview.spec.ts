@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { countEditorRenders } from './render-counts';
 
-async function open(page: Page) {
-  await page.goto(`/tests/e2e/fixtures/painter-preview.html?room=${crypto.randomUUID()}`);
+async function open(page: Page, draft = false) {
+  await page.goto(`/tests/e2e/fixtures/painter-preview.html?room=${crypto.randomUUID()}${draft ? '&draft=1' : ''}`);
   await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-testid="stage-main"] .scene-hit-svg')).toHaveCount(1);
 }
@@ -278,4 +278,55 @@ test('the backing canvas follows viewport size and device pixel density', async 
     await expect(page.locator('[data-testid="stage-main"] .scene-hit-svg')).toHaveCount(1);
   }
   await context.close();
+});
+
+test('draft preview serializes and coalesces work before presenting the latest frame', async ({ page }) => {
+  await open(page, true);
+  await page.evaluate(async () => {
+    window.painterPreview.delay = 80;
+    await window.painterPreview.positions([300, 320, 340, 360, 380, 400, 420, 440, 460, 480, 500, 520]);
+  });
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(520 520) rotate(0)');
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const report = await page.evaluate(() => ({ maximum: window.painterPreview.maximumConcurrentPerInstance, legacy: window.painterPreview.legacyCalls, drafts: window.painterPreview.draftCalls, latest: window.painterPreview.presentations.at(-1)?.x, emptyTargets: window.painterPreview.draftTargets.every(([width, height]) => width === 0 && height === 0) }));
+  expect(report.maximum).toBe(1);
+  expect(report.legacy).toBe(0);
+  expect(report.drafts).toBeGreaterThan(1);
+  expect(report.drafts).toBeLessThan(12);
+  expect(report.latest).toBe(520);
+  expect(report.emptyTargets).toBe(true);
+});
+
+test('draft preview never presents a late completed frame from the previous Composition', async ({ page }) => {
+  await open(page, true);
+  await page.evaluate(async () => { window.painterPreview.hold = true; await window.painterPreview.positions([390]); });
+  await expect.poll(() => page.evaluate(() => window.painterPreview.renders.some(item => item.x === 390 && !item.finished))).toBe(true);
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+  await page.evaluate(() => window.painterPreview.release());
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(955 190) rotate(0)');
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const report = await page.evaluate(() => ({ lateFinished: window.painterPreview.renders.some(item => item.x === 390 && item.finished && item.aborted), stalePresented: window.painterPreview.presentations.some(item => item.x === 390), legacy: window.painterPreview.legacyCalls }));
+  expect(report).toEqual({ lateFinished: true, stalePresented: false, legacy: 0 });
+});
+
+test('draft preview discards outdated pixel sizes and restores SVG after a painter failure', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  try {
+    const page = await context.newPage(); await open(page, true);
+    const oldWidth = await page.locator('[data-testid="stage-main"] .scene-canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width);
+    await page.evaluate(async () => { window.painterPreview.hold = true; await window.painterPreview.positions([500]); });
+    await expect.poll(() => page.evaluate(() => window.painterPreview.renders.some(item => item.x === 500 && !item.finished))).toBe(true);
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.evaluate(() => window.painterPreview.release());
+    await expect(circle(page)).toHaveAttribute('transform', 'translate(500 520) rotate(0)');
+    await expect.poll(() => page.locator('[data-testid="stage-main"] .scene-canvas').evaluate((canvas: HTMLCanvasElement) => Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio))).toBeLessThan(1);
+    const presentations = await page.evaluate(() => window.painterPreview.presentations.filter(item => item.x === 500));
+    expect(presentations.length).toBeGreaterThan(0);
+    expect(presentations.every(item => item.width !== oldWidth)).toBe(true);
+    await page.evaluate(async () => { window.painterPreview.failNext = true; await window.painterPreview.positions([390]); });
+    await expect(page.locator('.scene-hit-svg')).toHaveCount(0);
+    await expect(page.locator('.scene-canvas')).not.toBeVisible();
+    await expect(circle(page)).toHaveAttribute('transform', 'translate(390 520) rotate(0)');
+  } finally { await context.close(); }
 });

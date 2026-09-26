@@ -333,6 +333,15 @@ Public JS drawing adapters remain available. Evaluation-to-UI marshalling still
 exists; this change removes the painter's deep copy and internal round trips,
 not every browser boundary conversion.
 
+Preview uses a one-use completed `PaintDraft`: the painter lends its staging
+surface until the next render, cancellation or disposal. After checking the
+current Scene, dimensions and owner lifetime, the UI copies it directly to the
+display. This removes the intermediate Canvas copy and releases that unused
+pixel buffer. An enum selects draft or target-based painters once at startup;
+public `render` and custom painters without draft support keep their contract.
+Export still owns its target and each encoded frame. Native WebGL and SVG paths
+share typed capture, cancellation and draft lifetime rules.
+
 The headless path reuses `scene.PreparedScene`, `motion`, `render`, `audio` and
 `exporting`; `math_render` shares equation preparation across browser and Node.
 Static holds reuse rasterized pixels while every output frame remains encoded.
@@ -408,11 +417,11 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 308 | 61,392 |
+| MoonBit application | 308 | 61,536 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 151 | 17,256 |
-| Public/environment type declarations | 114 | 1,980 |
+| TypeScript tests, fixtures and test configurations | 151 | 17,407 |
+| Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
 These counts include generated code, comments and blanks; they exclude external
@@ -466,14 +475,23 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `2d76eed` passed the complete
-[CI run 35684134367](https://github.com/Poietra/poietra/actions/runs/35684134367)
-on **2026-09-22**: 727 Vitest checks, 51 MoonBit JS checks, 48 WASM checks,
+Application revision `51e72d2` passed the complete
+[CI run 36277397044](https://github.com/Poietra/poietra/actions/runs/36277397044)
+on **2026-09-27**: 737 Vitest checks, 58 MoonBit JS checks, 55 WASM checks,
 173 main browser checks, eight export checks, six media checks and 28 production
 page checks. Generated bindings, warning-free MoonBit types, public TypeScript
-contracts, headless API/MCP and the production build also passed.
+contracts, five extension/linking checks, 19 headless API/MCP checks and the
+production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
+
+The subsequent preview-draft change passed 737 Vitest checks, five extension/linking
+checks, public contracts and the production build locally. Its 52 selected browser
+checks cover canvas/playback, delayed preview completion, resizing, preparation
+failure, MP4/WebM decoding, audio, cancellation and both WebGL/SVG draft paths.
+Draft tests verify a single display copy, identical pixels, preserved context
+state and expiry on reuse/cancellation/disposal. This local selection is narrower
+than complete CI.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -603,6 +621,29 @@ Pre-delivery waiting is excluded; this is not field INP. Playback rAF spacing
 stayed 16.7 ms median. Reports retain event/frame samples and adjacent CPU
 profiles. Each condition is one process without media or WAN; unchanged stages
 also varied. Allocated bytes and GC time were not measured.
+
+**Preview publication.** The [same-build comparison](benchmarks/2026-09-27-preview-drafts/)
+uses the draft working tree based on `51e72d2`, identified by source/artifact
+hashes. Five fresh browser processes each compare the target and draft paths
+on the same painter at 1280×720: two warmup and seven measured batches of 15
+moving frames per mode, alternating order. Pose updates, rAF waits and final
+pixel readback are outside timing; paint and publication are included. The
+constructor canvas remains allocated in both modes to isolate copying. Process
+mean wall times, median [min–max] ms:
+
+| Circles | Two copies through target | Direct draft copy |
+| --- | ---: | ---: |
+| 100 | 3.110 [3.103–3.191] | 2.549 [2.465–2.597] |
+| 500 | 4.737 [4.648–4.923] | 4.132 [4.060–4.190] |
+
+Every comparison checked full pixel equality after timing. These are SwiftShader
+async wall times, not GPU completion or visible FPS. The production editor's
+separate parented drag [before](benchmarks/2026-09-27-parent-interaction/before.json)
+/ [after](benchmarks/2026-09-27-parent-interaction/after.json) has one root and
+499 children, with world geometry matching the flat fixture. Under the same
+pointer protocol above, 500-object DOM latency was **13.5 [12.1–18.1] →
+13.2 [11.3–20.2] ms**; delivered input and playback rAF medians stayed 33.3 and
+16.7 ms. This single-process comparison does not establish an interaction gain.
 
 **Native SVG conversion.** The [before](benchmarks/2026-09-27-render-view/before.json)
 and [after](benchmarks/2026-09-27-render-view/after.json) start from `fa0c3f6`.
@@ -748,20 +789,10 @@ and 15.115 MB with points. Editing-view [heap before](benchmarks/2026-09-27-inde
 / [after](benchmarks/2026-09-27-indexed-compositions/heap-after.json) was
 0.273 → 0.280 MB at 500 objects; after 100 edits, 0.326 → 0.334 MB.
 
-Validation of the compiled ownership change passed 733 Vitest tests, five
-extension/linking checks, 56 JS and 53 WASM MoonBit tests, 19 headless checks,
-108 public API contracts, a production build and 26 playback/primitive/media/export
-browser checks. Those include independent MP4/WebM decoding, exact Scene/frame
-boundaries, retained poses, cancellation, audio and original key preservation.
-[Full CI on `88ea863`](https://github.com/Poietra/poietra/actions/runs/36275413904)
-also passed the broader collaborative editing and real Worker restart suites.
-The editing pipeline with indexed Composition evaluation passed 737 Vitest checks,
-five extension/linking checks, 58 JS and 55 WASM MoonBit checks, 19 headless checks,
-public contracts, production build and 38 canvas/parent/keyframe/preview/export/media
-browser checks. Its regression tests include
-mutable public inputs, nested and observer-queued transactions, exception recovery,
-metadata changes, video timing, remote updates, Undo/Redo and mutable frame outputs.
-No production deployment was made for these changes.
+The [current checks](#checks) include mutable public inputs, nested and
+observer-queued transactions, exception recovery, metadata changes, video timing,
+remote updates, Undo/Redo and mutable frame outputs. No production deployment
+was made for these changes.
 
 ### Same-room collaboration — 2026-09-22
 
