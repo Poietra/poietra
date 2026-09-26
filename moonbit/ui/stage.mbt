@@ -111,7 +111,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     ":" +
     drawing_kind.map(@scene.object_kind_name).unwrap_or("idle")
   let factory = editor._get("createFramePainter")
-  let prepared = use_prepared_stage_frame(
+  let prepared = use_frame_preparation(
     drawn_frame,
     renderer,
     key,
@@ -128,7 +128,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
   let displayed = if canvas_visible {
     painted.unwrap().frame
   } else {
-    prepared._get("frame")
+    prepared.frame
   }
   let svg = @react.use_memo(
     fn() {
@@ -141,7 +141,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
       } else {
         SvgMarkup(renderer._call("frameToSvg", [displayed, options]).cast())
       }
-      stage_svg(view, canvas_visible)
+      stage_svg(view, canvas_visible, "scene-svg")
     },
     [displayed, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )

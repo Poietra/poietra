@@ -72,16 +72,29 @@ fn FramePreparation::enqueue(
 }
 
 ///|
-pub fn use_prepared_stage_frame(
+priv struct PreparedFrameState {
+  frame : @core.Any
+  ready : Bool
+  pending : Bool
+  failure : String?
+}
+
+///|
+fn use_frame_preparation(
   source : @core.Any,
   renderer : @core.Any,
   scope : String,
   enabled? : Bool = true,
-) -> @core.Any {
+  revision? : @core.Any = @core.undefined(),
+) -> PreparedFrameState {
   let (prepared, set_prepared) = @react.use_state((None : PreparedFrame?))
   let (failure, set_failure) = @react.use_state((None : PreparationFailure?))
   let owner = @react.use_ref((None : FramePreparation?))
-  let objects : FixedArray[@core.Any] = source._get("objects").cast()
+  let objects : FixedArray[@core.Any] = if @core.is_nullish(source) {
+    []
+  } else {
+    source._get("objects").cast()
+  }
   let needs_preparation = enabled &&
     truthy(renderer._get("prepareFrame")) &&
     objects
@@ -102,13 +115,15 @@ pub fn use_prepared_stage_frame(
         pending: None,
       }
       owner.set_current(Some(current))
+      set_prepared(None)
+      set_failure(None)
       fn() {
         current.lifetime._call("abort", []) |> ignore
         current.pending = None
         owner.set_current(None)
       }
     },
-    [renderer, @core.any(scope)],
+    [renderer, @core.any(scope), @core.any(enabled), revision],
   )
   @react.use_effect(
     fn() {
@@ -144,33 +159,35 @@ pub fn use_prepared_stage_frame(
       @core.any(scope),
     ],
   )
+  {
+    frame,
+    ready: !needs_preparation ||
+    prepared.map(fn(value) { value.scope == scope }).unwrap_or(false),
+    pending: needs_preparation &&
+    !prepared
+    .map(fn(value) { @core.equal(value.source, source) })
+    .unwrap_or(false),
+    failure: match failure {
+      Some(value) if value.scope == scope && @core.equal(value.source, source) =>
+        Some(value.message)
+      _ => None
+    },
+  }
+}
+
+///|
+// Preserve the public native hook while editor consumers share a typed result.
+pub fn use_prepared_stage_frame(
+  source : @core.Any,
+  renderer : @core.Any,
+  scope : String,
+  enabled? : Bool = true,
+) -> @core.Any {
+  let state = use_frame_preparation(source, renderer, scope, enabled~)
   @core.from_entries([
-    ("frame", frame),
-    (
-      "ready",
-      @core.any(
-        !needs_preparation ||
-        prepared.map(fn(value) { value.scope == scope }).unwrap_or(false),
-      ),
-    ),
-    (
-      "pending",
-      @core.any(
-        needs_preparation &&
-        !prepared
-        .map(fn(value) { @core.equal(value.source, source) })
-        .unwrap_or(false),
-      ),
-    ),
-    (
-      "error",
-      @core.any(
-        failure
-        .map(fn(value) {
-          value.scope == scope && @core.equal(value.source, source)
-        })
-        .unwrap_or(false),
-      ),
-    ),
+    ("frame", state.frame),
+    ("ready", @core.any(state.ready)),
+    ("pending", @core.any(state.pending)),
+    ("error", @core.any(state.failure is Some(_))),
   ])
 }

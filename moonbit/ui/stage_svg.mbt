@@ -60,14 +60,18 @@ fn svg_object(input : @core.Any) -> @react.Element {
 }
 
 ///|
-fn stage_svg(value : StageSvg, canvas_visible : Bool) -> @react.Element {
+fn stage_svg(
+  value : StageSvg,
+  canvas_visible : Bool,
+  class_name : String,
+) -> @react.Element {
   let props = {
     "key": @core.any("svg"),
     "className": @core.any(
       if canvas_visible {
-        "scene-svg scene-hit-svg"
+        class_name + " scene-hit-svg"
       } else {
-        "scene-svg"
+        class_name
       },
     ),
   }

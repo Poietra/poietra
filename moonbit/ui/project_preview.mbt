@@ -56,9 +56,7 @@ fn project_playback(input : @core.Any) -> @react.Element {
   let (playing, set_playing) = @react.use_state(false)
   let (prepared, set_prepared) = @react.use_state((None : @core.Any?))
   let (error, set_error) = @react.use_state("")
-  let (prepared_frame, set_prepared_frame) = @react.use_state(
-    (None : PreparedFrame?),
-  )
+  let (failed_canvas, set_failed_canvas) = @react.use_state((None : String?))
   let play_request = @react.use_ref(Some(0))
   let (painted, set_painted) = @react.use_state((None : CanvasPresentation?))
   let (size, set_size) = @react.use_state(@exporting.Size::{
@@ -129,87 +127,43 @@ fn project_playback(input : @core.Any) -> @react.Element {
   let ready = prepared
     .map(fn(value) { @core.equal(value, project) })
     .unwrap_or(false)
-  let display_frame = match frame {
-    Some(frame) => {
-      let objects : FixedArray[@core.Any] = frame._get("objects").cast()
-      if objects
-        .iter()
-        .any(fn(item) {
-          @core.equal(item._get("object")._get("kind"), @core.any("video"))
-        }) {
-        match prepared_frame {
-          Some(value) =>
-            if value.scope == string_value(scene_id) {
-              Some(value.frame)
-            } else {
-              None
-            }
-          None => None
-        }
-      } else {
-        Some(frame)
-      }
-    }
-    None => None
-  }
-  let svg = @react.use_memo(
-    fn() {
-      if display_frame is Some(frame) && ready {
-        renderer
-        ._call("frameToSvg", [
-          frame,
-          @core.from_entries([("idPrefix", @core.any("project-preview"))]),
-        ])
-        .cast()
-      } else {
-        ""
-      }
-    },
-    [display_frame.unwrap_or(@core.undefined()), @core.any(ready), renderer],
+  let canvas_enabled = truthy(factory) && failed_canvas != Some(key)
+  let fallback = use_frame_preparation(
+    frame.unwrap_or(@core.undefined()),
+    renderer,
+    key,
+    enabled=ready && !canvas_enabled,
+    revision=project,
   )
-  let queue = @react.use_ref((None : FramePreparation?))
+  let frame_error = fallback.failure.unwrap_or("")
   @react.use_effect(
     fn() {
-      let owner : FramePreparation = {
-        renderer,
-        scope: string_value(scene_id),
-        lifetime: new_controller(),
-        publish: fn(value) { set_prepared_frame(Some(value)) },
-        fail: fn(failure) {
-          if failure is Some(value) {
-            set_playing(false)
-            set_error(value.message)
-          }
-        },
-        busy: false,
-        pending: None,
-      }
-      queue.set_current(Some(owner))
-      set_prepared_frame(None)
-      fn() {
-        owner.lifetime._call("abort", []) |> ignore
-        owner.pending = None
-        queue.set_current(None)
-      }
-    },
-    [scene_id, renderer, project],
-  )
-  @react.use_effect(
-    fn() {
-      if ready && frame is Some(frame) && queue.get_current() is Some(owner) {
-        let objects : FixedArray[@core.Any] = frame._get("objects").cast()
-        if !objects
-          .iter()
-          .any(fn(item) {
-            @core.equal(item._get("object")._get("kind"), @core.any("video"))
-          }) {
-          return fn() { () }
-        }
-        owner.enqueue(frame)
+      if !frame_error.is_empty() {
+        set_playing(false)
       }
       fn() { () }
     },
-    [@core.any(frame), @core.any(ready), renderer, project],
+    [@core.any(frame_error)],
+  )
+  let svg = @react.use_memo(
+    fn() {
+      if !canvas_enabled && frame is Some(_) && ready {
+        let options = @core.from_entries([
+          ("idPrefix", @core.any("project-preview")),
+        ])
+        let view = if truthy(renderer._get("frameToSvgView")) {
+          SvgView(renderer._call("frameToSvgView", [fallback.frame, options]))
+        } else {
+          SvgMarkup(
+            renderer._call("frameToSvg", [fallback.frame, options]).cast(),
+          )
+        }
+        Some(stage_svg(view, false, "project-preview-svg"))
+      } else {
+        None
+      }
+    },
+    [fallback.frame, @core.any(ready), renderer, @core.any(canvas_enabled)],
   )
   @react.use_effect(
     fn() {
@@ -219,7 +173,7 @@ fn project_playback(input : @core.Any) -> @react.Element {
     },
     [],
   )
-  let canvas_visible = truthy(factory) &&
+  let canvas_visible = canvas_enabled &&
     ready &&
     painted
     .map(fn(value) {
@@ -251,7 +205,6 @@ fn project_playback(input : @core.Any) -> @react.Element {
       play_request.set_current(Some(play_request.get_current().unwrap() + 1))
       media._call("cancel", []) |> ignore
       set_playing(false)
-      set_prepared_frame(None)
       @core.from_async(async fn() {
         try {
           let requests = timeline.segments.map(fn(segment) {
@@ -406,18 +359,23 @@ fn project_playback(input : @core.Any) -> @react.Element {
       scene,
       first,
       frame,
-      display_frame,
       key,
       ready,
       canvas_visible,
+      canvas_enabled,
       size,
       svg,
       time,
       playing,
-      error,
+      error: if error.is_empty() {
+        frame_error
+      } else {
+        error
+      },
     },
     viewport,
     set_painted,
+    fn() { set_failed_canvas(Some(key)) },
     seek,
     toggle,
     edit,

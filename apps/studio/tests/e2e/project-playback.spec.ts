@@ -107,7 +107,12 @@ function exportProject(): Project {
   return project;
 }
 
-test('video preview seeks across Scenes without publishing an old video frame into the next Scene', async ({ page }, info) => {
+for (const svgFallback of [false, true]) test(`video preview seeks across Scenes without publishing an old video frame (SVG=${svgFallback})`, async ({ page }, info) => {
+  let intercepted = 0;
+  if (svgFallback) await page.route('**/src/engine/painter.js*', route => {
+    intercepted++;
+    return route.fulfill({ contentType: 'text/javascript', body: 'export async function createFramePainter() { throw new Error("Forced project preview fallback"); }' });
+  });
   const file = info.outputPath('preview.mp4');
   await execute('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=10:duration=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', file]);
   const project = blankProject(), first = project.scenes.opening;
@@ -122,17 +127,46 @@ test('video preview seeks across Scenes without publishing an old video frame in
   const room = await open(page, project), errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   try {
+    await page.evaluate(() => {
+      const original = HTMLCanvasElement.prototype.toDataURL;
+      (window as typeof window & { previewPngs: number }).previewPngs = 0;
+      HTMLCanvasElement.prototype.toDataURL = function(...args) {
+        (window as typeof window & { previewPngs: number }).previewPngs++;
+        return original.apply(this, args);
+      };
+    });
     await preview(page);
     const slider = page.getByRole('slider', { name: 'Project preview position', exact: true });
+    const frame = page.getByTestId('project-preview-frame'), canvas = frame.locator('canvas.scene-canvas');
     const image = page.locator('.project-preview-svg [data-object-id="clip"] image');
-    await expect(image).toHaveAttribute('href', /^data:image\/png/);
-    const initial = await image.getAttribute('href');
+    const pixels = () => canvas.evaluate(element => {
+      const canvas = element as HTMLCanvasElement, data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      let hash = 2166136261;
+      for (let index = 0; index < data.length; index += 16) hash = Math.imul(hash ^ data[index], 16777619);
+      const center = (Math.floor(canvas.height / 2) * canvas.width + Math.floor(canvas.width / 2)) * 4;
+      return { hash, center: [...data.subarray(center, center + 3)] };
+    });
+    if (svgFallback) await expect(image).toHaveAttribute('href', /^data:image\/png/);
+    else await expect(canvas).toHaveCSS('visibility', 'visible');
+    const initial = svgFallback ? await image.getAttribute('href') : (await pixels()).hash;
     await slider.fill('500');
-    await expect(page.getByTestId('project-preview-frame')).toHaveAttribute('data-scene-id', 'closing');
+    await expect(frame).toHaveAttribute('data-scene-id', 'closing');
     await expect(image).toHaveCount(0);
+    if (!svgFallback) {
+      await expect(canvas).toHaveCSS('visibility', 'visible');
+      await expect.poll(async () => (await pixels()).center).toEqual([128, 32, 32]);
+    }
     await slider.fill('300');
-    await expect(image).toHaveAttribute('href', /^data:image\/png/);
-    await expect.poll(() => image.getAttribute('href')).not.toBe(initial);
+    if (svgFallback) {
+      await expect(image).toHaveAttribute('href', /^data:image\/png/);
+      await expect.poll(() => image.getAttribute('href')).not.toBe(initial);
+      expect(intercepted).toBeGreaterThan(0);
+    } else {
+      await expect(canvas).toHaveCSS('visibility', 'visible');
+      await expect.poll(async () => (await pixels()).hash).not.toBe(initial);
+      await expect(frame.locator('.project-preview-svg')).toHaveCount(0);
+      expect(await page.evaluate(() => (window as typeof window & { previewPngs: number }).previewPngs)).toBe(0);
+    }
     await slider.fill('800'); await expect(image).toHaveCount(0);
     await page.getByRole('button', { name: '閉じる', exact: true }).click();
     expect(errors).toEqual([]);

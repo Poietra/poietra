@@ -267,6 +267,12 @@ Playback preparation resolves segments, tracks, hierarchy, layer order and curve
 once; repeated evaluation uses the shared engine for preview and export. Editing
 reads the current Composition. Static holds without visible video can reuse a
 prepared frame while export still encodes every timestamp.
+Project preview selects Canvas or SVG fallback before preparing a frame. Canvas
+receives the source frame directly; it neither serializes a hidden SVG nor
+converts video to PNG before the painter decodes it. If Canvas fails, preview
+uses the stage's typed preparation state and retained SVG nodes. Legacy renderers
+with only `frameToSvg` remain supported. Cancellation prevents prepared video
+from crossing Scene boundaries or publishing after the preview closes.
 As of **2026-09-27**, preparation decodes directly into its owned typed snapshot;
 it retains a separate native copy only of object metadata required by public
 frames. It no longer clones or retains a second set of Composition states,
@@ -430,10 +436,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 309 | 61,678 |
+| MoonBit application | 309 | 61,645 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 152 | 17,599 |
+| TypeScript tests, fixtures and test configurations | 154 | 17,773 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -488,36 +494,22 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `51e72d2` passed the complete
-[CI run 36277397044](https://github.com/Poietra/poietra/actions/runs/36277397044)
-on **2026-09-27**: 737 Vitest checks, 58 MoonBit JS checks, 55 WASM checks,
-173 main browser checks, eight export checks, six media checks and 28 production
+Application revision `cc615e0` passed the complete
+[CI run 36280136534](https://github.com/Poietra/poietra/actions/runs/36280136534)
+on **2026-09-27**: 757 Vitest checks, 58 MoonBit JS checks, 55 WASM checks,
+177 main browser checks, ten export checks, six media checks and 28 production
 page checks. Generated bindings, warning-free MoonBit types, public TypeScript
 contracts, five extension/linking checks, 19 headless API/MCP checks and the
 production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The subsequent preview-draft change passed 737 Vitest checks, five extension/linking
-checks, public contracts and the production build locally. Its 52 selected browser
-checks cover canvas/playback, delayed preview completion, resizing, preparation
-failure, MP4/WebM decoding, audio, cancellation and both WebGL/SVG draft paths.
-Draft tests verify a single display copy, identical pixels, preserved context
-state and expiry on reuse/cancellation/disposal. This local selection is narrower
-than complete CI.
-
-The audio-validation change passed 755 Vitest checks, five extension/linking
-checks, 58 JS and 56 WASM MoonBit checks (including `assets`), 19 headless checks,
-public contracts and the production build. Its 21 browser checks cover shared
-audio edits, trim/volume/mute/Undo, portable media files, playback and independent
-MP4/WebM audio/video decoding. New command regressions cover changed source leaves,
-mutable/frozen-accessor inputs, invalid replacement assets and nested transactions.
-
-The export-capture change passed 757 Vitest checks, five extension/linking checks,
-public contracts and the production build. Its 23 browser checks cover dialog
-capture, completion/re-download, cancellation, exact Scene/frame boundaries,
-hierarchy/curve rendering and independently decoded MP4/WebM audio/video. Public
-facade and direct MoonBit entry tests both preserve input/settings across awaits.
+The subsequent project-preview change passed 757 Vitest checks, five extension/
+linking checks, public contracts and the production build locally. Its 39 selected
+browser checks cover Canvas/SVG fallback, retained nodes, delayed video completion,
+Scene changes, preparation failure/retry, panel subscription isolation and actual
+MP4/WebM export. Native video preview performs no PNG conversion; legacy SVG-only
+renderers and cancellation remain covered. This selection is narrower than CI.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -856,6 +848,24 @@ copies. These CPU measurements exclude the dialog, async codec loading, painting
 encoding, media and I/O; they do not measure complete export duration or heap use.
 The dialog separately captures its input for custom-exporter compatibility, but
 no longer also copies the first Scene of an already captured project.
+
+**Project preview.** The [raw before/after reports](benchmarks/2026-09-27-project-preview/)
+compare `cc615e0` with the identified working-tree build. Three fresh Chromium
+processes per version each run one warmup and three measured 3.5-second transition
+passes per size, through the production loopback server at 1440×900 with
+SwiftShader. CDP browser-task and script durations include instrumented playback
+and play/pause handling. Process medians, median [min–max] ms per Canvas publication:
+
+| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 5.182 [5.130–5.185] | 3.768 [3.719–3.776] | 1.333 [1.315–1.346] | 0.650 [0.642–0.671] |
+| 500 | 13.931 [13.913–13.999] | 6.496 [6.443–6.688] | 5.212 [4.994–5.259] | 1.039 [0.951–1.058] |
+
+For 500 objects, each measured pass previously replaced hidden SVG markup
+213–217 times, writing 27.46–27.98 million characters. Both counts are now zero.
+Canvas publication and rAF medians remain about 16.7 ms. These measurements show
+less browser work, not increased display FPS; they exclude media, hardware GPU,
+WAN and input latency. Separate browser checks exercise actual video in both paths.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

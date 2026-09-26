@@ -8,7 +8,7 @@ fn stage_view(
   on_present : (StagePresentation?) -> Unit,
   hover_id : String,
   feedback : @core.Any,
-  prepared : @core.Any,
+  prepared : PreparedFrameState,
   key : String,
   svg : @react.Element,
   canvas_visible : Bool,
@@ -91,7 +91,7 @@ fn stage_view(
         canvas_frame,
         {
           "key": @core.any("canvas"),
-          "frame": prepared._get("frame"),
+          "frame": prepared.frame,
           "scene": controller.scene,
           "renderer": controller.renderer,
           "createFramePainter": factory,
@@ -142,8 +142,8 @@ fn stage_view(
       ),
     )
   }
-  if truthy(prepared._get("error")) || !truthy(prepared._get("ready")) {
-    let error = truthy(prepared._get("error"))
+  if prepared.failure is Some(_) || !prepared.ready {
+    let error = prepared.failure is Some(_)
     content.push(
       h(
         "div",

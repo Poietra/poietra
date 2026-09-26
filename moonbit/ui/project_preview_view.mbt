@@ -4,12 +4,12 @@ priv struct ProjectPreviewView {
   scene : @core.Any
   first : @core.Any?
   frame : @core.Any?
-  display_frame : @core.Any?
   key : String
   ready : Bool
   canvas_visible : Bool
+  canvas_enabled : Bool
   size : @exporting.Size
-  svg : String
+  svg : @react.Element?
   time : Double
   playing : Bool
   error : String
@@ -21,6 +21,7 @@ fn project_playback_view(
   view : ProjectPreviewView,
   viewport : @react.ReactRef[@core.Any],
   on_present : (CanvasPresentation?) -> Unit,
+  on_failure : () -> Unit,
   seek : (Double) -> Unit,
   toggle : () -> Unit,
   edit : () -> Unit,
@@ -32,7 +33,10 @@ fn project_playback_view(
     @core.undefined()
   }
   let stage : Array[&@react.ReactNode] = []
-  if truthy(view.scene) && view.display_frame is Some(frame) && truthy(factory) {
+  if truthy(view.scene) &&
+    view.frame is Some(frame) &&
+    view.canvas_enabled &&
+    view.ready {
     stage.push(
       component(
         canvas_frame,
@@ -45,6 +49,7 @@ fn project_playback_view(
           "width": @core.any(view.size.width),
           "height": @core.any(view.size.height),
           "visible": @core.any(view.canvas_visible),
+          "onFailure": @core.any(on_failure),
           "onPresent": @core.any(fn(value : @core.Any) {
             if @core.is_nullish(value) {
               on_present(None)
@@ -63,25 +68,8 @@ fn project_playback_view(
       ),
     )
   }
-  if view.frame is Some(_) && view.ready {
-    stage.push(
-      h(
-        "div",
-        {
-          "className": @core.any("project-preview-svg"),
-          "style": @core.from_entries([
-            (
-              "visibility",
-              @core.any(if view.canvas_visible { "hidden" } else { "visible" }),
-            ),
-          ]),
-          "dangerouslySetInnerHTML": @core.from_entries([
-            ("__html", @core.any(view.svg)),
-          ]),
-        },
-        [],
-      ),
-    )
+  if view.svg is Some(svg) {
+    stage.push(svg)
   }
   if !view.ready && view.error.is_empty() {
     stage.push(
