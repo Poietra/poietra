@@ -66,6 +66,13 @@ try {
   if (media) await page.route(`**${mediaPath}`, route => route.fulfill({ contentType: 'video/mp4', body: media }));
   await page.goto(new URL('/__poietra_render_bench', base).href);
   const result = await page.evaluate(async ({ frameCount, video, mediaPath }) => {
+    // This routed fixture bypasses Vite's HTML transform. Initialize the same
+    // React refresh preamble before importing the shared browser artifact.
+    const refresh = (await import('/@react-refresh')).default;
+    refresh.injectIntoGlobalHook(window);
+    window.$RefreshReg$ = () => {};
+    window.$RefreshSig$ = () => type => type;
+    window.__vite_plugin_react_preamble_installed__ = true;
     const renderer = await import('/src/engine/renderer.js');
     const { compileScene, compositionFrame } = await import('/src/engine/evaluate.js');
     const { defaultState } = await import('/shared/model.js');
