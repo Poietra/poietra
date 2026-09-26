@@ -1,6 +1,6 @@
 ///|
-/// Host cache keys are Yjs shared types; cached values are immutable JS snapshots.
-/// Weak keys release replaced/deleted branches when Yjs and Undo release them.
+/// Host identity keys retain immutable snapshots or privately owned typed views.
+/// Weak keys follow the lifetime of the shared types and snapshots they describe.
 #external
 priv type WeakCache[V]
 
@@ -268,7 +268,9 @@ pub fn read_project(doc : @core.Any, host : @core.Any) -> @core.Any {
     // Only projection-owned containers need freezing; retained subtrees already
     // belong to immutable cached snapshots.
     for id in @core.object_keys(result._get("compositions")) {
-      freeze(result._get("compositions")._get(id)) |> ignore
+      let composition = result._get("compositions")._get(id)
+      freeze(composition) |> ignore
+      remember_composition_snapshot(composition)
     }
     for id in @core.object_keys(result._get("transitions")) {
       freeze(result._get("transitions")._get(id)) |> ignore

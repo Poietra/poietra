@@ -283,6 +283,12 @@ is unchanged. Only `readProject` registers trusted snapshots: public caller-owne
 objects, even shallow-frozen ones, and in-transaction reads use fresh conversion.
 Weak keys follow snapshot lifetime; metadata, order and parent edits invalidate
 the layout, while pose edits still evaluate current world matrices.
+The reader likewise registers immutable Composition snapshots so editing can
+share decoded `ObjectState` leaves. The generated Composition adapter accepts a
+typed leaf decoder; it does not decide ownership or cache caller-owned inputs.
+State maps remain private to each decode, and public frames receive fresh native
+state/path records. Old snapshots, nested writes and accessor-based inputs keep
+their respective value semantics.
 Prepared transitions resolve parent and item indices once. Each evaluated pose
 uses owned arrays in topological order instead of rebuilding ID-keyed state and
 matrix maps; authored paint order, hidden ancestors and missing poses remain
@@ -401,10 +407,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 307 | 61,320 |
+| MoonBit application | 308 | 61,361 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 151 | 17,214 |
+| TypeScript tests, fixtures and test configurations | 151 | 17,256 |
 | Public/environment type declarations | 114 | 1,980 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -691,8 +697,35 @@ The production drag [before](benchmarks/2026-09-27-shared-state-view/interaction
 / [after](benchmarks/2026-09-27-shared-state-view/interaction-after.json) showed
 no clear change: 500-circle DOM latency 11.8 [10.5–19.1] → 11.9 [10.6–25.4] ms,
 with rAF medians still 16.7 ms. These are the same local browser conditions above,
-not a demonstrated user-visible drag speedup. The new cache's retained heap and
-transient allocation have not been measured.
+not a demonstrated user-visible drag speedup. Retained view heap is measured in
+the following comparison; transient allocation has not been measured.
+
+**Immutable pose reuse.** Starting from `e7d14fa`, the same CPU harness now also
+measures editing without parents. Its [before](benchmarks/2026-09-27-immutable-poses/primitives-before.json)
+/ [after](benchmarks/2026-09-27-immutable-poses/primitives-after.json) use five
+fresh processes and the edit/frame method above. At 500 objects, edit + frame
+time was 0.606 [0.578–0.636] → 0.517 [0.502–0.547] ms without parents and
+0.971 [0.958–1.030] → 0.919 [0.881–0.922] ms with parents. Snapshot-only
+[before](benchmarks/2026-09-27-immutable-poses/snapshots-before.json) /
+[after](benchmarks/2026-09-27-immutable-poses/snapshots-after.json) medians were
+0.172 → 0.180 ms, with overlapping process ranges. Preparation and playback
+controls showed no clear regression.
+
+Run `node apps/studio/scripts/benchmark-edit-heap.mjs --output <file>` for the
+[heap before](benchmarks/2026-09-27-immutable-poses/heap-before.json) /
+[after](benchmarks/2026-09-27-immutable-poses/heap-after.json). Each of five fresh
+processes warms three disposable documents, then retains eight documents and
+renders one Composition. At 500 objects, GC-retained view heap per document grew
+from 0.116 [0.093–0.118] to 0.273 [0.244–0.276] MB. After 100 parent edits it was
+0.167 → 0.327 MB above the original native snapshots; that delta also includes
+Yjs/snapshot bookkeeping. The CPU reduction costs roughly 0.16 MB of additional
+retained typed poses in this fixture. Native/WASM memory, transient allocations,
+DOM, media and Undo history are excluded from this heap measurement.
+
+The production [drag result](benchmarks/2026-09-27-immutable-poses/interaction-after.json)
+was 11.6 [10.3–27.0] ms at 500 circles, compared with the preceding layout build's
+11.9 [10.6–25.4] ms; rAF medians stayed 16.7 ms. This single-process comparison
+does not establish a user-visible drag/playback speedup.
 
 Validation of the compiled ownership change passed 733 Vitest tests, five
 extension/linking checks, 56 JS and 53 WASM MoonBit tests, 19 headless checks,
@@ -701,11 +734,11 @@ browser checks. Those include independent MP4/WebM decoding, exact Scene/frame
 boundaries, retained poses, cancellation, audio and original key preservation.
 [Full CI on `88ea863`](https://github.com/Poietra/poietra/actions/runs/36275413904)
 also passed the broader collaborative editing and real Worker restart suites.
-Editing layout reuse passed 735 Vitest checks, five extension/linking checks,
+Editing layout and pose reuse passed 737 Vitest checks, five extension/linking checks,
 57 JS and 54 WASM MoonBit checks, public contracts, production build and 24
 canvas/parent/keyframe/preview browser checks. Its regression tests include
 mutable public inputs, nested and observer-queued transactions, exception recovery,
-metadata changes, video timing, remote updates and Undo/Redo.
+metadata changes, video timing, remote updates, Undo/Redo and mutable frame outputs.
 No production deployment was made for these changes.
 
 ### Same-room collaboration — 2026-09-22

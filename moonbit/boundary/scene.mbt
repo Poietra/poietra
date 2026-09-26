@@ -74,7 +74,7 @@ pub fn composition_frame(
   value : @core.Any,
   time : @core.Any,
 ) -> @core.Any {
-  let composition = @project_codec.decode_Composition(value)
+  let composition = decode_composition_snapshot(value)
   let time : Double = if @core.is_undefined(time) {
     @scene.timeline_segments(decode_timeline(input))
     .iter()

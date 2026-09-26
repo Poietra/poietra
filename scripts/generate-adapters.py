@@ -35,15 +35,22 @@ wire_enums = {
     'SegmentKind': ('segment_kind', 'segment_kind_name'),
 }
 
-def decode(kind, value):
+# Immutable snapshot readers may share decoded leaves. Keep that ownership
+# policy outside this representation-only codec; ordinary callers decode afresh.
+leaf_decoders = {'Composition': {'ObjectState': 'state_decoder'}}
+
+def decode(kind, value, overrides=None):
+    overrides = overrides or {}
+    if kind in overrides:
+        return f'{overrides[kind]}({value})'
     if kind.endswith('?'):
-        return f'optional({value}, fn(v) {{ {decode(kind[:-1], "v")} }})'
+        return f'optional({value}, fn(v) {{ {decode(kind[:-1], "v", overrides)} }})'
     if kind in ['Double', 'Int', 'String', 'Bool']:
         return f'{value}.cast()'
     if kind.startswith('Array['):
-        return f'decode_array({value}, fn(v) {{ {decode(kind[6:-1], "v")} }})'
+        return f'decode_array({value}, fn(v) {{ {decode(kind[6:-1], "v", overrides)} }})'
     if kind.startswith('Map[String, '):
-        return f'decode_map({value}, fn(v) {{ {decode(kind[12:-1], "v")} }})'
+        return f'decode_map({value}, fn(v) {{ {decode(kind[12:-1], "v", overrides)} }})'
     if kind in wire_enums or kind in ['Easing', 'CurveValue'] or kind in structs:
         return f'decode_{kind}({value})'
     raise ValueError(kind)
@@ -126,10 +133,12 @@ fn encode_CurveProperty(value : @scene.CurveProperty) -> @core.Any { @core.any(@
 for name, fields in structs.items():
     if name in ['RenderObject', 'Frame', 'Segment', 'Project']:
         continue
-    source += f'///|\nfn decode_{name}(value : @core.Any) -> @scene.{name} {{\n  {{\n'
+    overrides = leaf_decoders.get(name, {})
+    parameters = ''.join(f', {parameter}? : (@core.Any) -> @scene.{kind} = decode_{kind}' for kind, parameter in overrides.items())
+    source += f'///|\nfn decode_{name}(value : @core.Any{parameters}) -> @scene.{name} {{\n  {{\n'
     for field, kind in fields:
         key = 'type' if field == 'type_' else field
-        source += f'    {field}: {decode(kind, f"value._get(\"{key}\")")},\n'
+        source += f'    {field}: {decode(kind, f"value._get(\"{key}\")", overrides)},\n'
     source += '  }\n}\n'
 for name in ['Point', 'Bezier', 'ObjectState']:
     fields = structs[name]

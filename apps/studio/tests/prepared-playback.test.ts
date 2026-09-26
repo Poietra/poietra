@@ -99,11 +99,14 @@ test('caller-owned frozen containers still observe mutable metadata and poses', 
   Object.freeze(scene.objects);
   Object.freeze(scene);
   const first = scene.compositions['comp-1'];
+  Object.freeze(first.states);
+  Object.freeze(first);
   compositionFrame(scene, first);
   const parent = Object.keys(scene.objects).find(id => id !== 'circle')!;
   scene.objects.circle.parentId = parent;
   scene.objects.circle.order = -100;
   first.states[parent].x = 1234;
+  first.states.circle.path.c1.x = 987;
   const expected = structuredClone(scene);
   const actual = compositionFrame(scene, first);
   expect(actual).toEqual(compositionFrame(expected, expected.compositions['comp-1']));

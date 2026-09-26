@@ -31,6 +31,8 @@ options(
     "playback.mbt": [ "js" ],
     "structure.mbt": [ "js" ],
     "document.mbt": [ "js" ],
+    "scene_layout.mbt": [ "js" ],
+    "composition_snapshot.mbt": [ "js" ],
     "shared.mbt": [ "js" ],
     "editing.mbt": [ "js" ],
     "groups.mbt": [ "js" ],

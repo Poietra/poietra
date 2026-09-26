@@ -251,13 +251,16 @@ pub fn decode_SceneObject(value : @core.Any) -> @scene.SceneObject {
 }
 
 ///|
-pub fn decode_Composition(value : @core.Any) -> @scene.Composition {
+pub fn decode_Composition(
+  value : @core.Any,
+  state_decoder? : (@core.Any) -> @scene.ObjectState = decode_ObjectState,
+) -> @scene.Composition {
   {
     id: value._get("id").cast(),
     name: value._get("name").cast(),
     duration: value._get("duration").cast(),
     accent: value._get("accent").cast(),
-    states: decode_map(value._get("states"), fn(v) { decode_ObjectState(v) }),
+    states: decode_map(value._get("states"), fn(v) { state_decoder(v) }),
     deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
     incomingTransitionId: optional(value._get("incomingTransitionId"), fn(v) {
       v.cast()

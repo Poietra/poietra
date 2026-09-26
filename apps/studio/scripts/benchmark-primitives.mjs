@@ -33,8 +33,8 @@ for (const count of [100, 500]) for (const variant of ['flat', 'hierarchy', 'hie
   const preparation = measure(() => { compileScene(scene, kernel); checksum += 1; }, 20);
   const program = compileScene(scene, kernel);
   const evaluation = measure(index => { const frame = program.transition('transition-1', index % 48 / 60 * 1000); checksum += frame.objects.at(-1).state.x; assert.equal(frame.objects.length, count); }, 240);
-  let editAndFrame = null;
-  if (variant !== 'flat') {
+  let editAndFrame;
+  {
     const doc = new Y.Doc(); initializeDocument(doc, project);
     const store = Object.assign(Object.create(EditorStore.prototype), { doc, undoManager: new EditorUndoManager(doc) });
     // Compare snapshots from the same public reader/cache on both sides.
@@ -45,13 +45,13 @@ for (const count of [100, 500]) for (const variant of ['flat', 'hierarchy', 'hie
       const current = readProject(doc).scenes['scene-1'];
       assert.equal(current.compositions['comp-1'].states.o1, before.o1);
       const frame = compositionFrame(current, current.compositions['comp-1']);
-      checksum += frame.objects[1].world.e;
+      checksum += frame.objects[1].world?.e ?? frame.objects[1].state.x;
     }, 100);
     const after = readProject(doc).scenes['scene-1'].compositions['comp-1'].states;
     for (const [id, state] of Object.entries(before)) if (id !== 'o0') assert.equal(after[id], state);
     doc.destroy();
   }
-  results.push({ objects: count, variant, prepareMs: preparation.median, msPerFrame: evaluation.median, parentEditAndFrameMs: editAndFrame?.median ?? 0, samples: { prepareMs: preparation.samples, msPerFrame: evaluation.samples, parentEditAndFrameMs: editAndFrame?.samples ?? [] } });
+  results.push({ objects: count, variant, prepareMs: preparation.median, msPerFrame: evaluation.median, parentEditAndFrameMs: editAndFrame.median, samples: { prepareMs: preparation.samples, msPerFrame: evaluation.samples, parentEditAndFrameMs: editAndFrame.samples } });
 }
 assert(Number.isFinite(checksum));
 console.log(JSON.stringify({ scope: 'Prepared transition evaluation (includes JS representation output), preparation, and parent coordinate edit + real Yjs snapshot/Undo + current Composition frame. No DOM, painting, encoding or network. Every child snapshot must retain identity after the parent edit.', iterations: '2 warmup + 7 measured batches: 20 preparations, 240 frames or 100 edits per batch', results, checksum }, null, 2));

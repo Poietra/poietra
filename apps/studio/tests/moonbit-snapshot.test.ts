@@ -166,4 +166,43 @@ describe('MoonBit incremental shared snapshots', () => {
     expect(frames(doc).objects.some(item => item.object.id === 'circle')).toBe(true);
     undo.destroy(); doc.destroy(); peer.destroy();
   });
+
+  it('shares immutable pose inputs while returning independent native state and path values', () => {
+    const doc = fixture();
+    const scene = readProject(doc)!.scenes['scene-1'], composition = scene.compositions['comp-1'];
+    const earlier = compositionFrame(scene, composition), saved = structuredClone(earlier);
+    const changed = earlier.objects.find(item => item.object.id === 'circle')!.state;
+    changed.x = -900;
+    changed.path.c1.x = -800;
+    expect(compositionFrame(scene, composition)).toEqual(saved);
+    applyChanges(doc, [
+      { path: [...statePath, 'path', 'c1', 'x'], value: 123 },
+      { path: [...statePath, 'scaleX'], value: 1.5 },
+      { path: [...statePath, 'effect'], value: 'glow' },
+    ]);
+    const latest = readProject(doc)!.scenes['scene-1'];
+    const pose = compositionFrame(latest, latest.compositions['comp-1']).objects.find(item => item.object.id === 'circle')!.state;
+    expect(pose.path.c1.x).toBe(123);
+    expect(pose.scaleX).toBe(1.5);
+    expect(pose.effect).toBe('glow');
+    expect(compositionFrame(scene, composition)).toEqual(saved);
+    doc.destroy();
+  });
+
+  it('does not trust a public accessor merely because it first returns a shared states map', () => {
+    const doc = fixture(), scene = readProject(doc)!.scenes['scene-1'];
+    const composition = scene.compositions['comp-1'];
+    let states = composition.states;
+    const wrapper = Object.freeze({ ...composition, get states() { return states; } });
+    compositionFrame(scene, composition);
+    const earlier = compositionFrame(scene, wrapper);
+    states = structuredClone(states);
+    states.circle.x = 765;
+    states.circle.path.c2.y = 432;
+    const pose = compositionFrame(scene, wrapper).objects.find(item => item.object.id === 'circle')!.state;
+    expect(pose.x).toBe(765);
+    expect(pose.path.c2.y).toBe(432);
+    expect(earlier).toEqual(compositionFrame(scene, composition));
+    doc.destroy();
+  });
 });
