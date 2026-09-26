@@ -280,6 +280,15 @@ opacity and Glow retain isolated compositing. Sequential video decoding keeps
 owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
 
+As of **2026-09-27**, the Canvas painter captures just the consumed frame values
+into a typed `PaintFrame` before its first await. Shape, text and raster stages
+share those records instead of cloning the native frame and repeatedly decoding
+its objects. Video requests capture their metadata and publish prepared images
+separately from the input; decoder surfaces retain their existing ownership.
+Public JS drawing adapters remain available. Evaluation-to-UI marshalling still
+exists; this change removes the painter's deep copy and internal round trips,
+not every browser boundary conversion.
+
 The headless path reuses `scene.PreparedScene`, `motion`, `render`, `audio` and
 `exporting`; `math_render` shares equation preparation across browser and Node.
 Static holds reuse rasterized pixels while every output frame remains encoded.
@@ -511,6 +520,54 @@ Measurements are stored in [benchmarks/](benchmarks/) with source/artifact hashe
 environment, workloads and raw samples. The following results describe specific
 local fixtures. Production CDN delivery, real mobile hardware, WAN collaboration
 and long source-media projects need separate measurement.
+
+### Typed Canvas frame capture — 2026-09-27
+
+Before: `5cf56f1`; after: the working tree on that revision, identified by the
+source and release-artifact hashes in the raw reports. Node **24.13.0**, MoonBit
+**0.10.13+cbb11c36f**, Chromium **153.0.8010.12**, Intel Core Ultra 7 255H,
+32 GB WSL2, affinity **0–15**. Builds, checks and measurements ran separately;
+application sources and generated output were frozen during each browser run.
+
+The [rendering before](benchmarks/2026-09-27-typed-frames/rendering-before.json)
+and [after](benchmarks/2026-09-27-typed-frames/rendering-after.json) runs use
+release MoonBit modules through Vite, a 1280×720 Canvas, one painter warmup and
+30 moving paints per size. The workload still includes its explicit caller-side
+frame clone; the painter's own whole-frame clone has been removed. Values below
+are asynchronous wall time, **mean [p95] in ms**, on SwiftShader, not hardware GPU
+completion or user-visible FPS.
+
+| Objects | Before | After |
+| --- | ---: | ---: |
+| 100 circles | 4.69 [13.20] | 3.48 [10.20] |
+| 500 circles | 9.43 [17.70] | 6.55 [13.30] |
+
+The production editor [before](benchmarks/2026-09-27-typed-frames/interaction-before.json)
+and [after](benchmarks/2026-09-27-typed-frames/interaction-after.json) runs use
+isolated loopback rooms, one browser, a 1440×900 viewport, one drag warmup and
+three runs of 60 trusted pointer moves. Pointer-event delivery to observed DOM
+mutation, **median [min–max] in ms**, was:
+
+| Objects | Before | After |
+| --- | ---: | ---: |
+| 100 circles | 11.3 [8.4–19.8] | 7.6 [6.8–11.7] |
+| 500 circles | 19.3 [15.4–30.9] | 12.4 [11.3–16.8] |
+
+At 500 objects, actual input spacing changed from a 50.0 to a 33.3 ms median;
+these results exclude waiting before event delivery and are not field INP.
+Playback rAF spacing remained **16.7 ms median** at both sizes. Raw event/frame
+samples and adjacent CPU profiles retain the variation and sampler overhead.
+These are one process per condition, with no media or WAN; unchanged benchmark
+stages also varied, so the figures do not establish a general speedup. Allocated
+heap bytes and GC time were not measured. A regression test verifies that the
+painter never deep-clones the frame, ignores unrelated metadata and remains
+isolated from caller mutations after rendering starts.
+
+Validation: `pnpm test` (5 extension/linking checks and 728 Vitest tests),
+`pnpm build` (including public API/type checks), 24 Canvas/primitive/preview
+browser tests and 6 media/export browser tests passed. Those cover preview/SVG
+agreement, transforms/Undo, cancellation, stale publication, shared video
+decoders, WebM/MP4 decoding and audio playback. No production deployment was made.
 
 ### Same-room collaboration — 2026-09-22
 
