@@ -207,19 +207,23 @@ pub fn ObjectLayout::evaluate(
 ) -> Array[RenderObject] {
   let extended = layout.has_parents ||
     composition.states.values().any(fn(s) { s.has_transform() })
-  let matrices = if extended {
-    Some(layout.hierarchy().matrices(composition.states))
+  let poses = if extended {
+    Some(layout.composition_poses(composition.states))
   } else {
     None
   }
   let objects : Array[RenderObject] = []
-  for object in layout.ordered {
-    if composition.states.get(object.id) is Some(state) && state.visible {
+  for index, object in layout.ordered {
+    let state = match poses {
+      Some(poses) => poses.states[poses.slots[index]]
+      None => composition.states.get(object.id)
+    }
+    if state is Some(state) && state.visible {
       objects.push({
         object,
         state,
-        world: match matrices {
-          Some(matrices) => matrices.get(object.id)
+        world: match poses {
+          Some(poses) => Some(poses.matrices[poses.slots[index]])
           None => None
         },
         videoTimeMs: video_time(object, time),

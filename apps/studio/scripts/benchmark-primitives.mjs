@@ -33,6 +33,8 @@ for (const count of [100, 500]) for (const variant of ['flat', 'hierarchy', 'hie
   const preparation = measure(() => { compileScene(scene, kernel); checksum += 1; }, 20);
   const program = compileScene(scene, kernel);
   const evaluation = measure(index => { const frame = program.transition('transition-1', index % 48 / 60 * 1000); checksum += frame.objects.at(-1).state.x; assert.equal(frame.objects.length, count); }, 240);
+  // A caller-owned mutable scene cannot reuse a snapshot's prepared layout.
+  const composition = measure(() => { const frame = compositionFrame(scene, scene.compositions['comp-1']); checksum += frame.objects.at(-1).state.x; }, 100);
   let editAndFrame;
   {
     const doc = new Y.Doc(); initializeDocument(doc, project);
@@ -51,7 +53,7 @@ for (const count of [100, 500]) for (const variant of ['flat', 'hierarchy', 'hie
     for (const [id, state] of Object.entries(before)) if (id !== 'o0') assert.equal(after[id], state);
     doc.destroy();
   }
-  results.push({ objects: count, variant, prepareMs: preparation.median, msPerFrame: evaluation.median, parentEditAndFrameMs: editAndFrame.median, samples: { prepareMs: preparation.samples, msPerFrame: evaluation.samples, parentEditAndFrameMs: editAndFrame.samples } });
+  results.push({ objects: count, variant, prepareMs: preparation.median, msPerFrame: evaluation.median, compositionMs: composition.median, parentEditAndFrameMs: editAndFrame.median, samples: { prepareMs: preparation.samples, msPerFrame: evaluation.samples, compositionMs: composition.samples, parentEditAndFrameMs: editAndFrame.samples } });
 }
 assert(Number.isFinite(checksum));
-console.log(JSON.stringify({ scope: 'Prepared transition evaluation (includes JS representation output), preparation, and parent coordinate edit + real Yjs snapshot/Undo + current Composition frame. No DOM, painting, encoding or network. Every child snapshot must retain identity after the parent edit.', iterations: '2 warmup + 7 measured batches: 20 preparations, 240 frames or 100 edits per batch', results, checksum }, null, 2));
+console.log(JSON.stringify({ scope: 'Prepared transition evaluation (includes JS representation output), preparation, uncached mutable-input Composition frames, and coordinate edit + real Yjs snapshot/Undo + current Composition frame. The first object is a parent in hierarchy fixtures. No DOM, painting, encoding or network. Every other snapshot must retain identity after the edit.', iterations: '2 warmup + 7 measured batches: 20 preparations, 240 transition frames, 100 Composition frames or 100 edits per batch', results, checksum }, null, 2));

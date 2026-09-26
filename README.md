@@ -289,10 +289,11 @@ typed leaf decoder; it does not decide ownership or cache caller-owned inputs.
 State maps remain private to each decode, and public frames receive fresh native
 state/path records. Old snapshots, nested writes and accessor-based inputs keep
 their respective value semantics.
-Prepared transitions resolve parent and item indices once. Each evaluated pose
-uses owned arrays in topological order instead of rebuilding ID-keyed state and
-matrix maps; authored paint order, hidden ancestors and missing poses remain
-independent of that traversal order.
+The layout resolves parent and paint indices once. Composition and transition
+evaluation share one traversal over current pose arrays; neither rebuilds an
+ID-keyed world-matrix map. Authored paint order, hidden ancestors and missing
+poses remain independent of that traversal order. The temporary parent-ID map
+is released after indexing, and evaluated arrays belong to each individual frame.
 Transition evaluation resolves path travel, presence opacity and growth before
 constructing the base immutable pose, avoiding successive whole-state copies.
 Intermediate value keys still override that pose after those animation rules.
@@ -407,7 +408,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 308 | 61,361 |
+| MoonBit application | 308 | 61,392 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
 | TypeScript tests, fixtures and test configurations | 151 | 17,256 |
@@ -727,6 +728,26 @@ was 11.6 [10.3–27.0] ms at 500 circles, compared with the preceding layout bui
 11.9 [10.6–25.4] ms; rAF medians stayed 16.7 ms. This single-process comparison
 does not establish a user-visible drag/playback speedup.
 
+**Indexed Composition evaluation.** Starting from `aa93bec`, still frames share
+the indexed parent traversal already used by transitions. The [CPU before](benchmarks/2026-09-27-indexed-compositions/primitives-before.json)
+/ [after](benchmarks/2026-09-27-indexed-compositions/primitives-after.json) use
+the same five-process method and additionally measure 100 mutable-input
+Composition frames per batch. At 500 objects with parents, edit + frame time was
+0.924 [0.918–0.929] → 0.868 [0.852–0.923] ms. Uncached mutable-input evaluation
+cost slightly more: 0.906 [0.905–0.915] → 0.930 [0.920–0.985] ms, since each call
+prepares its own indices. Flat and prepared-transition controls stayed within
+variation; no new browser latency improvement is claimed for this change.
+
+The twelve-Composition playback [before](benchmarks/2026-09-27-indexed-compositions/playback-before.json)
+/ [after](benchmarks/2026-09-27-indexed-compositions/playback-after.json) use the
+GC-separated preparation method above. With 500 objects and parents, preparation
+was 13.944 [13.842–14.561] → 12.942 [12.425–13.242] ms for explicit tracks,
+28.101 → 26.638 ms with six authored points per track, and 11.399 → 9.827 ms for
+inherited tracks. Retained playback heap stayed around 5.485 MB without points
+and 15.115 MB with points. Editing-view [heap before](benchmarks/2026-09-27-indexed-compositions/heap-before.json)
+/ [after](benchmarks/2026-09-27-indexed-compositions/heap-after.json) was
+0.273 → 0.280 MB at 500 objects; after 100 edits, 0.326 → 0.334 MB.
+
 Validation of the compiled ownership change passed 733 Vitest tests, five
 extension/linking checks, 56 JS and 53 WASM MoonBit tests, 19 headless checks,
 108 public API contracts, a production build and 26 playback/primitive/media/export
@@ -734,9 +755,10 @@ browser checks. Those include independent MP4/WebM decoding, exact Scene/frame
 boundaries, retained poses, cancellation, audio and original key preservation.
 [Full CI on `88ea863`](https://github.com/Poietra/poietra/actions/runs/36275413904)
 also passed the broader collaborative editing and real Worker restart suites.
-Editing layout and pose reuse passed 737 Vitest checks, five extension/linking checks,
-57 JS and 54 WASM MoonBit checks, public contracts, production build and 24
-canvas/parent/keyframe/preview browser checks. Its regression tests include
+The editing pipeline with indexed Composition evaluation passed 737 Vitest checks,
+five extension/linking checks, 58 JS and 55 WASM MoonBit checks, 19 headless checks,
+public contracts, production build and 38 canvas/parent/keyframe/preview/export/media
+browser checks. Its regression tests include
 mutable public inputs, nested and observer-queued transactions, exception recovery,
 metadata changes, video timing, remote updates, Undo/Redo and mutable frame outputs.
 No production deployment was made for these changes.

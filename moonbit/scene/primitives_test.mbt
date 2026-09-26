@@ -168,6 +168,54 @@ test "reusable layout owns its order and evaluates each current pose" {
 }
 
 ///|
+test "indexed composition poses agree with ID hierarchy through cycles and missing or hidden ancestors" {
+  let objects = [
+    object("leaf", Some("middle")),
+    object("z", Some("a")),
+    object("middle", Some("root")),
+    object("orphan", Some("missing")),
+    object("a", Some("z")),
+    object("root", None),
+  ]
+  let layout = @scene.ObjectLayout::new(objects)
+  let hierarchy = @scene.prepare_hierarchy(objects)
+  for step in 0..<6 {
+    let states : Map[String, @scene.ObjectState] = Map([])
+    for index, object in objects {
+      if object.id == "middle" && step % 2 == 0 {
+        continue
+      }
+      states[object.id] = {
+        ..@scene.default_state(Rectangle),
+        x: (step * 17 + index * 7).to_double(),
+        y: (step - index * 5).to_double(),
+        rotation: (step * 11 - index * 8).to_double(),
+        scaleX: Some(-0.5),
+        scaleY: Some(1.5),
+        shear: Some(0.3),
+        anchorY: Some(23.0),
+        visible: index != step,
+      }
+    }
+    let composition = {
+      ..@scene.empty_composition("c", "C", 1000.0, "#ffffff"),
+      states,
+    }
+    let expected = hierarchy.matrices(states)
+    let actual = layout.evaluate(composition, 0.0)
+    let visible = objects.filter(fn(object) {
+      states.get(object.id) is Some(state) && state.visible
+    })
+    assert_eq(actual.length(), visible.length())
+    for index, item in actual {
+      assert_eq(item.object.id, visible[index].id)
+      assert_eq(item.world, Some(expected[item.object.id]))
+      assert_true(item.state == states[item.object.id])
+    }
+  }
+}
+
+///|
 test "prepared scene shares structure while keeping each visible and retained pose independent" {
   let parent = {
     ..@scene.default_state(Rectangle),

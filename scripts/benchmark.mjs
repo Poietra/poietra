@@ -20,7 +20,7 @@ const suites = [
   ['timing', 'benchmark-timing.mjs', ['msPerOperation']],
   ['track', 'benchmark-track.mjs', ['msPerOperation']],
   ['creation', 'benchmark-creation.mjs', ['msPerOperation']],
-  ['primitives', 'benchmark-primitives.mjs', ['prepareMs', 'msPerFrame', 'parentEditAndFrameMs']],
+  ['primitives', 'benchmark-primitives.mjs', ['prepareMs', 'msPerFrame', 'compositionMs', 'parentEditAndFrameMs']],
   ['render-view', 'benchmark-render-view.mjs', ['msPerView', 'msPerSvg']],
 ];
 if (values.suite && !suites.some(([name]) => name === values.suite)) throw new Error('Unknown --suite');

@@ -1,0 +1,130 @@
+{
+  "measuredAt": "2026-09-26T22:41:54.121Z",
+  "environment": {
+    "applicationRevision": "aa93bec50d0a08e785320ee58fca4d76bda5b945",
+    "trackedModifications": [
+      "apps/studio/scripts/benchmark-primitives.mjs",
+      "moonbit/scene/evaluate.mbt",
+      "moonbit/scene/layout.mbt",
+      "moonbit/scene/primitives_test.mbt",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "2843325b84bc740e7a38b18e4fd664044f04c8fd7919da085bd334b3d5bf6974",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.2,
+      0.69,
+      0.59
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "8628b7a05aeda976cad5b54d69c405f5346fe81d77a9e137495f4e04cbc1d7e5",
+    "boundarySha256": "5e62d5630a8e42525238b71ce2126dfa43823e238ed4bb6bd37e6273599f7e68",
+    "clientRuntimeSha256": "4c69cd4d3987a9ba3c7543fa769e4a59f4b0e827068a038743929875ccc9ffec",
+    "viteManifestSha256": "39d59cc526af76cc7bd1a69a72b4fa8ecbe624a8ac4ea9b6fbf5284999238aa9"
+  },
+  "method": "Five sequential fresh processes by default. Three disposable warmup documents, 20 frames each. Eight live documents with two Compositions and parents; only the first Composition is rendered. JS heap delta after forced GC, relative to the native snapshot before its first frame. After-edit delta also includes Yjs and snapshot bookkeeping for 100 parent edits. Excludes transient allocation, native/WASM memory, DOM, media and Undo history.",
+  "results": [
+    {
+      "objects": 100,
+      "retainedViewBytes": {
+        "n": 5,
+        "median": 69109,
+        "min": 36391,
+        "max": 69931
+      },
+      "retainedAfterEditsBytes": {
+        "n": 5,
+        "median": 130129,
+        "min": 99336,
+        "max": 133351
+      },
+      "samples": [
+        {
+          "objects": 100,
+          "retainedViewBytes": 69931,
+          "retainedAfterEditsBytes": 133084,
+          "checksum": 213840
+        },
+        {
+          "objects": 100,
+          "retainedViewBytes": 64048,
+          "retainedAfterEditsBytes": 127147,
+          "checksum": 213840
+        },
+        {
+          "objects": 100,
+          "retainedViewBytes": 69581,
+          "retainedAfterEditsBytes": 133351,
+          "checksum": 213840
+        },
+        {
+          "objects": 100,
+          "retainedViewBytes": 69109,
+          "retainedAfterEditsBytes": 130129,
+          "checksum": 213840
+        },
+        {
+          "objects": 100,
+          "retainedViewBytes": 36391,
+          "retainedAfterEditsBytes": 99336,
+          "checksum": 213840
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "retainedViewBytes": {
+        "n": 5,
+        "median": 280196,
+        "min": 277383,
+        "max": 281664
+      },
+      "retainedAfterEditsBytes": {
+        "n": 5,
+        "median": 333815,
+        "min": 330025,
+        "max": 335391
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "retainedViewBytes": 278893,
+          "retainedAfterEditsBytes": 335391,
+          "checksum": 914640
+        },
+        {
+          "objects": 500,
+          "retainedViewBytes": 280196,
+          "retainedAfterEditsBytes": 334133,
+          "checksum": 914640
+        },
+        {
+          "objects": 500,
+          "retainedViewBytes": 280453,
+          "retainedAfterEditsBytes": 333219,
+          "checksum": 914640
+        },
+        {
+          "objects": 500,
+          "retainedViewBytes": 277383,
+          "retainedAfterEditsBytes": 330025,
+          "checksum": 914640
+        },
+        {
+          "objects": 500,
+          "retainedViewBytes": 281664,
+          "retainedAfterEditsBytes": 333815,
+          "checksum": 914640
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-26T22:42:00.963Z"
+}

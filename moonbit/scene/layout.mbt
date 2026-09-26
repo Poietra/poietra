@@ -4,7 +4,6 @@
 pub struct ObjectLayout {
   priv ordered : Array[SceneObject]
   priv has_parents : Bool
-  priv mut cached_hierarchy : Hierarchy?
   priv mut cached_indices : IndexedHierarchy?
 }
 
@@ -19,27 +18,16 @@ fn object_layout(ordered : Array[SceneObject]) -> ObjectLayout {
   {
     ordered,
     has_parents: ordered.any(fn(object) { object.parentId is Some(_) }),
-    cached_hierarchy: None,
     cached_indices: None,
   }
 }
 
 ///|
-fn ObjectLayout::hierarchy(self : ObjectLayout) -> Hierarchy {
-  match self.cached_hierarchy {
-    Some(hierarchy) => hierarchy
-    None => {
-      let hierarchy = prepare_hierarchy(self.ordered)
-      self.cached_hierarchy = Some(hierarchy)
-      hierarchy
-    }
-  }
-}
-
-///|
 priv struct IndexedHierarchy {
+  order : Array[String]
   parents : Array[Int]
   indices : Map[String, Int]
+  paint_slots : Array[Int]
 }
 
 ///|
@@ -52,20 +40,19 @@ priv struct TransitionHierarchy {
 }
 
 ///|
-fn ObjectLayout::transition_hierarchy(
-  self : ObjectLayout,
-  items : Array[AnimatedObject],
-) -> TransitionHierarchy {
-  let graph = match self.cached_indices {
+fn ObjectLayout::indexed_hierarchy(self : ObjectLayout) -> IndexedHierarchy {
+  match self.cached_indices {
     Some(graph) => graph
     None => {
-      let hierarchy = self.hierarchy()
+      let hierarchy = prepare_hierarchy(self.ordered)
       let indices : Map[String, Int] = Map([])
       for index, id in hierarchy.order {
         indices[id] = index
       }
       let graph : IndexedHierarchy = {
+        order: hierarchy.order,
         indices,
+        paint_slots: self.ordered.map(fn(object) { indices[object.id] }),
         parents: hierarchy.order.map(fn(id) {
           match hierarchy.parents.get(id) {
             Some(parent) => indices[parent]
@@ -77,6 +64,14 @@ fn ObjectLayout::transition_hierarchy(
       graph
     }
   }
+}
+
+///|
+fn ObjectLayout::transition_hierarchy(
+  self : ObjectLayout,
+  items : Array[AnimatedObject],
+) -> TransitionHierarchy {
+  let graph = self.indexed_hierarchy()
   {
     parents: graph.parents,
     slots: items.map(fn(item) { graph.indices[item.object.id] }),
@@ -88,9 +83,41 @@ fn TransitionHierarchy::matrices(
   self : TransitionHierarchy,
   states : Array[ObjectState?],
 ) -> Array[Affine] {
-  let matrices : Array[Affine] = []
-  for index, parent in self.parents {
-    let parent = if parent < 0 { Affine::identity() } else { matrices[parent] }
+  indexed_matrices(self.parents, states)
+}
+
+///|
+priv struct CompositionPoses {
+  slots : Array[Int]
+  states : Array[ObjectState?]
+  matrices : Array[Affine]
+}
+
+///|
+fn ObjectLayout::composition_poses(
+  self : ObjectLayout,
+  states : Map[String, ObjectState],
+) -> CompositionPoses {
+  let graph = self.indexed_hierarchy()
+  let states = graph.order.map(fn(id) { states.get(id) })
+  {
+    slots: graph.paint_slots,
+    states,
+    matrices: indexed_matrices(graph.parents, states),
+  }
+}
+
+///|
+// Both still and animated frames use the same topological traversal. Only its
+// inputs differ; world matrices belong to this evaluation and are never cached.
+fn indexed_matrices(
+  parents : Array[Int],
+  states : Array[ObjectState?],
+) -> Array[Affine] {
+  let matrices : Array[Affine] = Array(capacity=parents.length())
+  let identity = Affine::identity()
+  for index, parent in parents {
+    let parent = if parent < 0 { identity } else { matrices[parent] }
     matrices.push(
       match states[index] {
         Some(state) => parent.compose(state.local_matrix())
