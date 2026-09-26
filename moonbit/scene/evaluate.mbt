@@ -279,7 +279,6 @@ fn prepare_layout_transition(
         None => false
       }
     })
-  let hierarchy = if extended { Some(layout.hierarchy()) } else { None }
   let items : Array[AnimatedObject] = []
   for object in layout.ordered {
     let a_state = from.states.get(object.id)
@@ -320,7 +319,14 @@ fn prepare_layout_transition(
       curves: prepare_object_curves(track, a, b, a_visible, b_visible),
     })
   }
-  PreparedTransition::{ items, hierarchy, }
+  PreparedTransition::{
+    items,
+    hierarchy: if extended {
+      Some(layout.transition_hierarchy(items))
+    } else {
+      None
+    },
+  }
 }
 
 ///|
@@ -331,7 +337,10 @@ pub fn evaluate_transition(
   kernel : Kernel,
 ) -> Array[RenderObject] {
   let objects : Array[RenderObject] = []
-  for item in prepared.items {
+  let poses = prepared.hierarchy.map(fn(hierarchy) {
+    Array::make(hierarchy.parents.length(), (None : ObjectState?))
+  })
+  for index, item in prepared.items {
     let {
       object,
       a,
@@ -490,6 +499,9 @@ pub fn evaluate_transition(
         )
       }
     }
+    if prepared.hierarchy is Some(hierarchy) && poses is Some(poses) {
+      poses[hierarchy.slots[index]] = Some(state)
+    }
     objects.push({
       object,
       state,
@@ -510,14 +522,17 @@ pub fn evaluate_transition(
   match prepared.hierarchy {
     None => objects
     Some(hierarchy) => {
-      let states : Map[String, ObjectState] = Map([])
-      for item in objects {
-        states[item.object.id] = item.state
+      let matrices = hierarchy.matrices(poses.unwrap())
+      let visible : Array[RenderObject] = []
+      for index, item in objects {
+        if item.state.visible {
+          visible.push({
+            ..item,
+            world: Some(matrices[hierarchy.slots[index]]),
+          })
+        }
       }
-      let matrices = hierarchy.matrices(states)
-      objects
-      .filter(fn(item) { item.state.visible })
-      .map(fn(item) { { ..item, world: matrices.get(item.object.id), } })
+      visible
     }
   }
 }

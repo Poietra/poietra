@@ -68,7 +68,7 @@ priv enum ColorProgram {
 ///|
 pub struct PreparedTransition {
   priv items : Array[AnimatedObject]
-  priv hierarchy : Hierarchy?
+  priv hierarchy : TransitionHierarchy?
 }
 
 ///|

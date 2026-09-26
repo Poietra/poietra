@@ -192,6 +192,58 @@ test "prepared scene shares structure while keeping each visible and retained po
 }
 
 ///|
+test "prepared hierarchy preserves paint order through cycles and ancestors without endpoint states" {
+  let pose = { ..@scene.default_state(Rectangle), x: 10.0, y: 0.0, }
+  let first = {
+    ..@scene.empty_composition("a", "A", 1000.0, "#ffffff"),
+    states: {
+      "a": pose,
+      "b": { ..pose, x: 20.0, visible: false, },
+      "d": { ..pose, x: 30.0, },
+    },
+  }
+  let last = {
+    ..@scene.empty_composition("b", "B", 1000.0, "#ffffff"),
+    states: {
+      "a": { ..pose, x: 100.0, },
+      "b": first.states["b"],
+      "d": { ..pose, x: 50.0, },
+    },
+  }
+  let scene = {
+    ..@scene.blank_scene("s", "S"),
+    objects: {
+      "a": { ..object("a", Some("b")), order: 2.0, },
+      "b": { ..object("b", Some("a")), order: 1.0, },
+      "c": { ..object("c", Some("b")), order: 3.0, },
+      "d": object("d", Some("c")),
+    },
+    compositions: { "a": first, "b": last },
+    compositionOrder: ["a", "b"],
+    transitions: {
+      "t": {
+        ..@scene.implicit_transition("t", "a", "b", 1000.0, ["a", "b", "c", "d"]),
+        tracks: {
+          "a": { ..@scene.default_track("a", 1000.0), easing: Linear, },
+          "b": { ..@scene.default_track("b", 1000.0), easing: Linear, },
+          "d": { ..@scene.default_track("d", 1000.0), easing: Linear, },
+        },
+      },
+    },
+  }
+  let program = @scene.prepare_scene(scene, kernel())
+  let frame = program.transition("t", 500.0, None)
+  assert_eq(frame.objects.map(fn(item) { item.object.id }), ["d", "a"])
+  near(frame.objects[0].world.unwrap().e, 115.0)
+  near(frame.objects[1].world.unwrap().e, 55.0)
+  near(program.composition("a", None).objects[0].world.unwrap().e, 60.0)
+  near(program.composition("b", None).objects[0].world.unwrap().e, 170.0)
+  // World transforms stay runtime-only; preparation does not repair authored cycles.
+  assert_eq(scene.objects["a"].parentId, Some("b"))
+  assert_true(!first.states.contains("c"))
+}
+
+///|
 test "intermediate values allow an out and back motion with linked endpoints and proportional timing" {
   let track = {
     ..@scene.default_track("a", 1000.0),

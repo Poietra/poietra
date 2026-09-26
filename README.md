@@ -275,6 +275,10 @@ within one program remain available to JS consumers.
 One typed `ObjectLayout` also shares layer order and the lazily prepared parent
 graph across all holds/transitions. Composition matrices remain independent;
 reusing structure never reuses evaluated world transforms or serializes them.
+Prepared transitions resolve parent and item indices once. Each evaluated pose
+uses owned arrays in topological order instead of rebuilding ID-keyed state and
+matrix maps; authored paint order, hidden ancestors and missing poses remain
+independent of that traversal order.
 Transition evaluation resolves path travel, presence opacity and growth before
 constructing the base immutable pose, avoiding successive whole-state copies.
 Intermediate value keys still override that pose after those animation rules.
@@ -650,6 +654,26 @@ shows no clear gain; removing copies does not guarantee a useful overall speedup
 Allocated bytes, GC time and browser FPS were not measured for this change.
 731 Vitest tests, the JS/WASM domain tests, 19 headless checks and 17 property
 timing/media/export browser tests passed.
+
+The next [indexed-hierarchy run](benchmarks/2026-09-27-indexed-hierarchy/primitives-after.json)
+uses the same `primitives` workload and five-process method, comparing against
+the preceding [pose result](benchmarks/2026-09-27-evaluated-pose/primitives-after.json)
+(`f3a3e43` source). Resolving parent indices during preparation removes two
+per-frame ID maps and the intermediate visible-object array.
+
+| 500-object CPU evaluation | Before, ms/frame | After, ms/frame |
+| --- | ---: | ---: |
+| Flat | 0.0945 [0.0889–0.1034] | 0.0960 [0.0916–0.1035] |
+| Hierarchy | 0.5328 [0.5125–0.5386] | 0.4579 [0.4538–0.4665] |
+| Hierarchy + 6 points/object | 0.6136 [0.5950–0.6261] | 0.5140 [0.5136–0.5265] |
+
+Flat evaluation is unchanged within variation. The extra index preparation has
+a cost: the hierarchy-only setup median was **1.277 → 1.384 ms**; six-point setup
+was **3.586 → 3.571 ms**. No browser FPS or allocation-byte improvement is claimed.
+Validation passed 731 Vitest tests, five extension/linking checks, 53 JS and 50
+WASM MoonBit tests, 19 headless checks and a production build. A new backend
+test covers cyclic links, hidden/missing ancestors and paint order explicitly.
+21 primitive/project-playback/media/export browser tests also passed.
 
 ### Same-room collaboration — 2026-09-22
 
