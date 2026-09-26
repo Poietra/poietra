@@ -171,15 +171,14 @@ pub fn keyframe_curve(
     id,
     transition._get("duration").cast(),
   )
-  @scene.prepare_object_curves(
+  @scene.prepare_object_curve(
     track,
+    property,
     from,
     to,
     !@core.is_nullish(a) && truthy(a._get("visible")),
     !@core.is_nullish(b) && truthy(b._get("visible")),
   )
-  .iter()
-  .find_first(fn(curve) { curve.property == property })
 }
 
 ///|

@@ -30,29 +30,19 @@ pub fn curve_channel(property : CurveProperty) -> PropertyChannel {
 
 ///|
 pub fn curve_properties(channel : PropertyChannel) -> Array[CurveProperty] {
-  [
-    PositionX,
-    PositionY,
-    ObjectWidth,
-    ObjectHeight,
-    ObjectRotation,
-    ObjectOpacity,
-    ObjectFill,
-    ObjectStroke,
-    ObjectStrokeWidth,
-    ObjectFontSize,
-    ObjectCornerRadius,
-    Control1X,
-    Control1Y,
-    Control2X,
-    Control2Y,
-    ObjectReveal,
-    ObjectAnchorX,
-    ObjectAnchorY,
-    ObjectScaleX,
-    ObjectScaleY,
-    ObjectShear,
-  ].filter(fn(p) { curve_channel(p) == channel })
+  match channel {
+    Position => [PositionX, PositionY, ObjectAnchorX, ObjectAnchorY]
+    Opacity => [ObjectOpacity]
+    Size => [ObjectWidth, ObjectHeight, ObjectScaleX, ObjectScaleY]
+    Rotation => [ObjectRotation, ObjectShear]
+    Fill => [ObjectFill]
+    Stroke => [ObjectStroke]
+    StrokeWidth => [ObjectStrokeWidth]
+    FontSize => [ObjectFontSize]
+    CornerRadius => [ObjectCornerRadius]
+    ShapePath => [Control1X, Control1Y, Control2X, Control2Y]
+    Reveal => [ObjectReveal]
+  }
 }
 
 ///|
@@ -186,8 +176,21 @@ pub fn prepare_curve(
   from : CurveValue,
   to : CurveValue,
 ) -> PreparedCurve? {
-  guard track.keyframes is Some(keys) else { return None }
+  let points = curve_points(track, property)
+  if points.is_empty() {
+    None
+  } else {
+    Some(compile_curve(track, property, from, to, points))
+  }
+}
+
+///|
+fn curve_points(
+  track : Track,
+  property : CurveProperty,
+) -> Array[(String, Keyframe)] {
   let points : Array[(String, Keyframe)] = []
+  guard track.keyframes is Some(keys) else { return points }
   for id, key in keys {
     if key.property == property &&
       key.deleted != Some(true) &&
@@ -195,9 +198,18 @@ pub fn prepare_curve(
       points.push((id, key))
     }
   }
-  if points.is_empty() {
-    return None
-  }
+  points
+}
+
+///|
+/// Callers own this nonempty bucket; sorting never changes authored keyframes.
+fn compile_curve(
+  track : Track,
+  property : CurveProperty,
+  from : CurveValue,
+  to : CurveValue,
+  points : Array[(String, Keyframe)],
+) -> PreparedCurve {
   points.sort_by(fn(a, b) {
     if a.1.at < b.1.at {
       -1
@@ -239,7 +251,7 @@ pub fn prepare_curve(
     timing: { start, duration: 1.0 - start, easing, },
     value: value_segment(previous, to),
   })
-  Some({ property, timing, segments, })
+  { property, timing, segments, }
 }
 
 ///|
@@ -275,6 +287,61 @@ pub fn PreparedCurve::evaluate(
 }
 
 ///|
+fn curve_endpoint(
+  animation : AnimationKind,
+  property : CurveProperty,
+  state : ObjectState,
+  visible : Bool,
+  from : Bool,
+) -> CurveValue {
+  if property == ObjectReveal {
+    CurveNumber(if from { 0.0 } else { 1.0 })
+  } else if !visible &&
+    (
+      property == ObjectOpacity ||
+      (
+        animation == Grow &&
+        (
+          property == ObjectWidth ||
+          property == ObjectHeight ||
+          property == ObjectFontSize
+        )
+      )
+    ) {
+    CurveNumber(0.0)
+  } else {
+    state_curve_value(state, property)
+  }
+}
+
+///|
+pub fn prepare_object_curve(
+  track : Track,
+  property : CurveProperty,
+  a : ObjectState,
+  b : ObjectState,
+  a_visible : Bool,
+  b_visible : Bool,
+) -> PreparedCurve? {
+  if track.type_ == Cut {
+    return None
+  }
+  let points = curve_points(track, property)
+  if points.is_empty() {
+    return None
+  }
+  Some(
+    compile_curve(
+      track,
+      property,
+      curve_endpoint(track.type_, property, a, a_visible, true),
+      curve_endpoint(track.type_, property, b, b_visible, false),
+      points,
+    ),
+  )
+}
+
+///|
 pub fn prepare_object_curves(
   track : Track,
   a : ObjectState,
@@ -286,36 +353,35 @@ pub fn prepare_object_curves(
   guard track.type_ != Cut && track.keyframes is Some(keys) && !keys.is_empty() else {
     return curves
   }
+  // Validate and partition once, instead of scanning all keys for every property
+  // and constructing endpoints for properties without an authored curve.
+  let groups : Map[CurveProperty, Array[(String, Keyframe)]] = Map([])
+  for id, key in keys {
+    if key.deleted == Some(true) || !valid_keyframe(key) {
+      continue
+    }
+    let points = match groups.get(key.property) {
+      Some(points) => points
+      None => {
+        let points = []
+        groups[key.property] = points
+        points
+      }
+    }
+    points.push((id, key))
+  }
   for channel in property_channels() {
     for property in curve_properties(channel) {
-      let endpoint = fn(state : ObjectState, visible : Bool, from : Bool) {
-        if property == ObjectReveal {
-          CurveNumber(if from { 0.0 } else { 1.0 })
-        } else if !visible &&
-          (
-            property == ObjectOpacity ||
-            (
-              track.type_ == Grow &&
-              (
-                property == ObjectWidth ||
-                property == ObjectHeight ||
-                property == ObjectFontSize
-              )
-            )
-          ) {
-          CurveNumber(0.0)
-        } else {
-          state_curve_value(state, property)
-        }
-      }
-      if prepare_curve(
-          track,
-          property,
-          endpoint(a, a_visible, true),
-          endpoint(b, b_visible, false),
+      if groups.get(property) is Some(points) {
+        curves.push(
+          compile_curve(
+            track,
+            property,
+            curve_endpoint(track.type_, property, a, a_visible, true),
+            curve_endpoint(track.type_, property, b, b_visible, false),
+            points,
+          ),
         )
-        is Some(curve) {
-        curves.push(curve)
       }
     }
   }

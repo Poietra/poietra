@@ -179,7 +179,7 @@ pub(all) enum CurveProperty {
   ObjectScaleX
   ObjectScaleY
   ObjectShear
-} derive(Eq)
+} derive(Eq, Hash)
 
 ///|
 pub fn curve_property(value : String) -> CurveProperty? {

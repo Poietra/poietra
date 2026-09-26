@@ -282,6 +282,9 @@ independent of that traversal order.
 Transition evaluation resolves path travel, presence opacity and growth before
 constructing the base immutable pose, avoiding successive whole-state copies.
 Intermediate value keys still override that pose after those animation rules.
+Curve preparation validates and groups authored points by typed property once,
+constructing endpoints only for nonempty groups. The inspector prepares just
+its selected curve with the same endpoint and equal-time-key rules.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -674,6 +677,18 @@ Validation passed 731 Vitest tests, five extension/linking checks, 53 JS and 50
 WASM MoonBit tests, 19 headless checks and a production build. A new backend
 test covers cyclic links, hidden/missing ancestors and paint order explicitly.
 21 primitive/project-playback/media/export browser tests also passed.
+
+Partitioning keys once was then measured against that indexed-hierarchy result
+(`2b23d42`), using the same five-process `primitives` workload:
+[curve preparation result](benchmarks/2026-09-27-curve-preparation/primitives-after.json).
+For 500 objects with hierarchy and six points each, preparation was
+**3.571 [3.421–3.766] → 2.114 [2.060–2.238] ms**, median [min–max] of process
+medians. Per-frame evaluation remained **0.514 → 0.512 ms**. At 100 objects,
+preparation medians were 0.699 → 0.442 ms, with an after range of 0.415–0.955 ms;
+the raw report retains that slower process. Single-property inspector preparation
+was narrowed structurally but not timed separately. Validation includes 731
+Vitest tests, five extension/linking checks, 54 JS and 51 WASM MoonBit tests,
+19 headless checks, public API/type checks and 11 primitive/export browser tests.
 
 ### Same-room collaboration — 2026-09-22
 

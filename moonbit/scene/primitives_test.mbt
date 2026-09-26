@@ -327,6 +327,70 @@ test "equal-time keys converge and tombstoned keys do not affect interpolation" 
 }
 
 ///|
+test "single-property and grouped curve preparation retain endpoint semantics and key selection" {
+  let key : @scene.Keyframe = {
+    property: ObjectWidth,
+    at: 0.5,
+    value: CurveNumber(200.0),
+    easing: Linear,
+    deleted: None,
+  }
+  let track = {
+    ..@scene.default_track("a", 1000.0),
+    type_: Grow,
+    easing: Linear,
+    keyframes: Some({
+      "a": key,
+      "z": { ..key, value: CurveNumber(300.0), },
+      "zz": { ..key, value: CurveColor("#ffffff"), },
+      "deleted": { ..key, value: CurveNumber(999.0), deleted: Some(true), },
+      "alpha": { ..key, property: ObjectOpacity, value: CurveNumber(0.6), },
+      "reveal": { ..key, property: ObjectReveal, value: CurveNumber(0.7), },
+    }),
+  }
+  let a = { ..@scene.default_state(Rectangle), width: 100.0, opacity: 0.25, }
+  let b = { ..a, width: 200.0, opacity: 0.75, }
+  let curves = @scene.prepare_object_curves(track, a, b, false, true)
+  assert_true(
+    curves.map(fn(curve) { curve.property }) ==
+    [@scene.ObjectOpacity, @scene.ObjectWidth, @scene.ObjectReveal],
+  )
+  for curve in curves {
+    let single = @scene.prepare_object_curve(
+      track,
+      curve.property,
+      a,
+      b,
+      false,
+      true,
+    ).unwrap()
+    for time in [0.0, 250.0, 500.0, 750.0, 1000.0] {
+      assert_true(
+        single.evaluate(time, kernel()) == curve.evaluate(time, kernel()),
+      )
+    }
+  }
+  assert_true(curves[0].evaluate(250.0, kernel()) == @scene.CurveNumber(0.3))
+  assert_true(curves[1].evaluate(250.0, kernel()) == @scene.CurveNumber(150.0))
+  assert_true(curves[1].evaluate(1000.0, kernel()) == @scene.CurveNumber(200.0))
+  assert_true(curves[2].evaluate(500.0, kernel()) == @scene.CurveNumber(0.7))
+  assert_true(
+    @scene.prepare_object_curve(
+      { ..track, type_: Cut, },
+      ObjectWidth,
+      a,
+      b,
+      false,
+      true,
+    )
+    is None,
+  )
+  assert_true(
+    @scene.prepare_object_curves({ ..track, type_: Cut, }, a, b, false, true).is_empty(),
+  )
+}
+
+///|
 test "colour curves use the same prepared colour interpolation as the frame evaluator" {
   let track = {
     ..@scene.default_track("a", 1000.0),
