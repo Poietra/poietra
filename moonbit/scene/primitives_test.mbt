@@ -44,6 +44,20 @@ test "write order retains the saved string representation through typed track ro
 }
 
 ///|
+test "new authored tracks own independent key containers" {
+  let first = @scene.default_track("a", 1000.0)
+  let second = @scene.default_track("b", 1000.0)
+  first.keyframes.unwrap()["point"] = {
+    property: PositionX,
+    at: 0.5,
+    value: CurveNumber(13.0),
+    easing: Linear,
+    deleted: None,
+  }
+  assert_eq(second.keyframes.unwrap().length(), 0)
+}
+
+///|
 test "nested nonuniform rotation retains shear and reparent decomposition preserves all corners" {
   let parent = {
     ..@scene.default_state(Rectangle),
@@ -178,12 +192,26 @@ test "prepared scene shares structure while keeping each visible and retained po
             ..@scene.default_track("parent", 1000.0),
             easing: Linear,
           },
-          "child": { ..@scene.default_track("child", 1000.0), easing: Linear, },
+          "child": {
+            ..@scene.default_track("child", 1000.0),
+            easing: Linear,
+            keyframes: Some({
+              "point": {
+                property: PositionX,
+                at: 0.5,
+                value: CurveNumber(13.0),
+                easing: Linear,
+                deleted: None,
+              },
+            }),
+          },
         },
       },
     },
   }
+  let authored = scene.to_json()
   let prepared = @scene.prepare_scene(scene, kernel())
+  assert_eq(scene.to_json(), authored)
   let earlier = prepared.composition("first", None)
   for time in [0.0, 1000.0, 1250.0, 1500.0, 1750.0, 2000.0, 3000.0] {
     assert_eq(

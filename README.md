@@ -272,6 +272,9 @@ it retains a separate native copy only of object metadata required by public
 frames. It no longer clones or retains a second set of Composition states,
 tracks or audio data. Native object extensions, nulls and stable references
 within one program remain available to JS consumers.
+After compilation, the program retains frame dimensions and the required poses,
+tracks and curves. It releases the source Scene containers and original key maps;
+editing data and deletion tombstones remain untouched in the document.
 One typed `ObjectLayout` also shares layer order and the lazily prepared parent
 graph across all holds/transitions. Composition matrices remain independent;
 reusing structure never reuses evaluated world transforms or serializes them.
@@ -550,196 +553,132 @@ environment, workloads and raw samples. The following results describe specific
 local fixtures. Production CDN delivery, real mobile hardware, WAN collaboration
 and long source-media projects need separate measurement.
 
-### Typed Canvas frame capture — 2026-09-27
+### Rendering and playback — 2026-09-27
 
-Before: `5cf56f1`; after: the working tree on that revision, identified by the
-source and release-artifact hashes in the raw reports. Node **24.13.0**, MoonBit
-**0.10.13+cbb11c36f**, Chromium **153.0.8010.12**, Intel Core Ultra 7 255H,
-32 GB WSL2, affinity **0–15**. Builds, checks and measurements ran separately;
-application sources and generated output were frozen during each browser run.
+These incremental comparisons use Node **24.13.0**, MoonBit
+**0.10.13+cbb11c36f**, Intel Core Ultra 7 255H, 32 GB WSL2 and affinity **0–15**.
+Browser runs use headless Chromium **153.0.8010.12** with SwiftShader. Builds,
+tests and benchmarks run separately, with application sources and generated
+output frozen during browser runs. Raw reports contain source/artifact hashes,
+samples, warmup and exclusions; CPU and SwiftShader timings are not hardware FPS.
+[Earlier per-step explanations](https://github.com/Poietra/poietra/blob/dc881f56c93f75b8d68f452cd2348eb88ce170b4/README.md#performance)
+retain the detailed development sequence.
 
-The [rendering before](benchmarks/2026-09-27-typed-frames/rendering-before.json)
-and [after](benchmarks/2026-09-27-typed-frames/rendering-after.json) runs use
-release MoonBit modules through Vite, a 1280×720 Canvas, one painter warmup and
-30 moving paints per size. The workload still includes its explicit caller-side
-frame clone; the painter's own whole-frame clone has been removed. Values below
-are asynchronous wall time, **mean [p95] in ms**, on SwiftShader, not hardware GPU
-completion or user-visible FPS.
+**Canvas and interaction.** [Rendering before](benchmarks/2026-09-27-typed-frames/rendering-before.json)
+and [after](benchmarks/2026-09-27-typed-frames/rendering-after.json) compare
+`5cf56f1` with the typed-capture working tree recorded by its hashes. The fixture
+uses release MoonBit through Vite, a 1280×720 Canvas, one warmup and 30 moving
+paints per size. It still includes an explicit caller-side frame clone; the
+painter's own whole-frame clone is gone. Asynchronous wall time, mean [p95] ms:
 
-| Objects | Before | After |
+| Circles | Before | After |
 | --- | ---: | ---: |
-| 100 circles | 4.69 [13.20] | 3.48 [10.20] |
-| 500 circles | 9.43 [17.70] | 6.55 [13.30] |
+| 100 | 4.69 [13.20] | 3.48 [10.20] |
+| 500 | 9.43 [17.70] | 6.55 [13.30] |
 
 The production editor [before](benchmarks/2026-09-27-typed-frames/interaction-before.json)
-and [after](benchmarks/2026-09-27-typed-frames/interaction-after.json) runs use
-isolated loopback rooms, one browser, a 1440×900 viewport, one drag warmup and
-three runs of 60 trusted pointer moves. Pointer-event delivery to observed DOM
-mutation, **median [min–max] in ms**, was:
+and [after](benchmarks/2026-09-27-typed-frames/interaction-after.json) use isolated
+loopback rooms, one browser, a 1440×900 viewport, one drag warmup and three runs
+of 60 trusted pointer moves. Event delivery to DOM mutation, median [min–max] ms:
 
-| Objects | Before | After |
+| Circles | Before | After |
 | --- | ---: | ---: |
-| 100 circles | 11.3 [8.4–19.8] | 7.6 [6.8–11.7] |
-| 500 circles | 19.3 [15.4–30.9] | 12.4 [11.3–16.8] |
+| 100 | 11.3 [8.4–19.8] | 7.6 [6.8–11.7] |
+| 500 | 19.3 [15.4–30.9] | 12.4 [11.3–16.8] |
 
-At 500 objects, actual input spacing changed from a 50.0 to a 33.3 ms median;
-these results exclude waiting before event delivery and are not field INP.
-Playback rAF spacing remained **16.7 ms median** at both sizes. Raw event/frame
-samples and adjacent CPU profiles retain the variation and sampler overhead.
-These are one process per condition, with no media or WAN; unchanged benchmark
-stages also varied, so the figures do not establish a general speedup. Allocated
-heap bytes and GC time were not measured. A regression test verifies that the
-painter never deep-clones the frame, ignores unrelated metadata and remains
-isolated from caller mutations after rendering starts.
+At 500 objects, actual input spacing changed from 50.0 to 33.3 ms median.
+Pre-delivery waiting is excluded; this is not field INP. Playback rAF spacing
+stayed 16.7 ms median. Reports retain event/frame samples and adjacent CPU
+profiles. Each condition is one process without media or WAN; unchanged stages
+also varied. Allocated bytes and GC time were not measured.
 
-Validation: `pnpm test` (5 extension/linking checks and 728 Vitest tests),
-`pnpm build` (including public API/type checks), 24 Canvas/primitive/preview
-browser tests and 6 media/export browser tests passed. Those cover preview/SVG
-agreement, transforms/Undo, cancellation, stale publication, shared video
-decoders, WebM/MP4 decoding and audio playback. No production deployment was made.
+**Native SVG conversion.** The [before](benchmarks/2026-09-27-render-view/before.json)
+and [after](benchmarks/2026-09-27-render-view/after.json) start from `fa0c3f6`.
+Run `node scripts/benchmark.mjs --suite render-view --runs 5 --output <file>`.
+Five sequential fresh processes use two warmup and seven measured batches of
+100 frames. This includes native-frame decoding and typed rendering, excluding
+DOM, React, resource loading, media, GPU and encoding. Median [range of process
+medians], ms/view:
 
-### Playback preparation and ownership — 2026-09-27
-
-The [before](benchmarks/2026-09-27-playback-ownership/before.json) and
-[after](benchmarks/2026-09-27-playback-ownership/after.json) reports compare
-`d239856` with the working-tree source/artifact hashes recorded in the latter.
-They use Node **24.13.0**, MoonBit **0.10.13+cbb11c36f** and the same Intel Core
-Ultra 7 255H / 32 GB WSL2 host, affinity **0–15**. Run after building with
-`node apps/studio/scripts/benchmark-playback.mjs --output <report.json>`.
-Each scenario runs in five sequential fresh processes: three warmups, seven
-timed compilations and eight retained programs, with explicit GC outside timing.
-All states and adjacent transitions are present. The caller's Scene stays alive.
-
-| Objects / Compositions | Prepare before → after, ms | Retained JS heap before → after, MB |
-| --- | ---: | ---: |
-| 100 / 2 | 1.014 → 0.606 | 0.339 → 0.215 |
-| 500 / 2 | 3.717 → 2.175 | 1.678 → 1.072 |
-| 500 / 12 | 24.828 → 12.012 | 11.464 → 7.093 |
-
-Time is the median of process medians; retained heap is the median incremental
-`heapUsed` per program (decimal MB). At 500 / 12, preparation process medians
-ranged **24.516–25.458 → 11.705–12.330 ms**; heap ranged
-**11.462–11.464 → 7.092–7.094 MB**. These measure CPU setup and retained JS heap,
-excluding transient allocations, native/WASM memory, media and browser rendering.
-They do not establish a frame-rate improvement. `pnpm test` (729 tests and five
-extension/linking checks) and `pnpm typecheck` passed, including ownership tests
-for nested inputs and preserved public object metadata.
-
-A subsequent [layout before](benchmarks/2026-09-27-shared-scene-layout/before.json)
-/ [after](benchmarks/2026-09-27-shared-scene-layout/after.json) comparison starts
-from `e072667` and shares object order and parent graphs across Compositions and
-Transitions. The same command, host and sampling method apply; the additional
-parented fixture has groups of ten objects, with nine children per root.
-
-| 500 objects / 12 Compositions | Prepare before → after, ms | Retained JS heap before → after, MB |
-| --- | ---: | ---: |
-| No parents | 12.327 → 11.428 | 7.094 → 7.094 |
-| With parents | 19.651 → 12.827 | 8.040 → 7.591 |
-
-For the parented fixture, preparation process medians ranged
-**19.250–20.553 → 12.376–13.385 ms**; retained heap ranged
-**8.039–8.041 → 7.591–7.592 MB**. These remain setup/heap measurements, not FPS.
-The compiled and direct evaluators agree across holds, transitions, hidden
-parents and retained deleted poses on both JS and WASM. Full validation includes
-729 Vitest tests, five extension/linking checks, 52 JS and 49 WASM MoonBit tests,
-the headless API/MCP suite, public API/type checks and a production build.
-Browser validation passed 33 Canvas/primitive/playback/preview tests and 14
-media/export tests, including independent MP4/WebM decoding.
-
-Removing intermediate base-pose copies was measured separately from `bde6294`:
-[evaluation before](benchmarks/2026-09-27-evaluated-pose/evaluation-before.json)
-/ [after](benchmarks/2026-09-27-evaluated-pose/evaluation-after.json) and
-[primitives before](benchmarks/2026-09-27-evaluated-pose/primitives-before.json)
-/ [after](benchmarks/2026-09-27-evaluated-pose/primitives-after.json).
-Run `node scripts/benchmark.mjs --suite evaluation --runs 5 --output <file>`
-and repeat with `--suite primitives`. The same Node/compiler/host applies.
-Each suite uses five sequential fresh processes and seven timed batches of 240
-frames per scenario; evaluation has one warmup batch, primitives has two.
-Numbers include the public JS frame conversion and exclude rendering/encoding.
-
-| 500-object CPU evaluation | Before, ms/frame | After, ms/frame |
-| --- | ---: | ---: |
-| Preset easing | 0.1247 [0.1184–0.1289] | 0.1058 [0.1031–0.1114] |
-| Custom easing | 0.2058 [0.1995–0.2092] | 0.1817 [0.1715–0.1947] |
-| Hierarchy + 6 points/object | 0.6158 [0.6085–0.6469] | 0.6136 [0.5950–0.6261] |
-
-Values are median [min–max] of process medians. The parented/keyframed case
-shows no clear gain; removing copies does not guarantee a useful overall speedup.
-Allocated bytes, GC time and browser FPS were not measured for this change.
-731 Vitest tests, the JS/WASM domain tests, 19 headless checks and 17 property
-timing/media/export browser tests passed.
-
-The next [indexed-hierarchy run](benchmarks/2026-09-27-indexed-hierarchy/primitives-after.json)
-uses the same `primitives` workload and five-process method, comparing against
-the preceding [pose result](benchmarks/2026-09-27-evaluated-pose/primitives-after.json)
-(`f3a3e43` source). Resolving parent indices during preparation removes two
-per-frame ID maps and the intermediate visible-object array.
-
-| 500-object CPU evaluation | Before, ms/frame | After, ms/frame |
-| --- | ---: | ---: |
-| Flat | 0.0945 [0.0889–0.1034] | 0.0960 [0.0916–0.1035] |
-| Hierarchy | 0.5328 [0.5125–0.5386] | 0.4579 [0.4538–0.4665] |
-| Hierarchy + 6 points/object | 0.6136 [0.5950–0.6261] | 0.5140 [0.5136–0.5265] |
-
-Flat evaluation is unchanged within variation. The extra index preparation has
-a cost: the hierarchy-only setup median was **1.277 → 1.384 ms**; six-point setup
-was **3.586 → 3.571 ms**. No browser FPS or allocation-byte improvement is claimed.
-Validation passed 731 Vitest tests, five extension/linking checks, 53 JS and 50
-WASM MoonBit tests, 19 headless checks and a production build. A new backend
-test covers cyclic links, hidden/missing ancestors and paint order explicitly.
-21 primitive/project-playback/media/export browser tests also passed.
-
-Partitioning keys once was then measured against that indexed-hierarchy result
-(`2b23d42`), using the same five-process `primitives` workload:
-[curve preparation result](benchmarks/2026-09-27-curve-preparation/primitives-after.json).
-For 500 objects with hierarchy and six points each, preparation was
-**3.571 [3.421–3.766] → 2.114 [2.060–2.238] ms**, median [min–max] of process
-medians. Per-frame evaluation remained **0.514 → 0.512 ms**. At 100 objects,
-preparation medians were 0.699 → 0.442 ms, with an after range of 0.415–0.955 ms;
-the raw report retains that slower process. Single-property inspector preparation
-was narrowed structurally but not timed separately. Validation includes 731
-Vitest tests, five extension/linking checks, 54 JS and 51 WASM MoonBit tests,
-19 headless checks, public API/type checks and 11 primitive/export browser tests.
-
-### Native SVG view conversion — 2026-09-27
-
-The [before](benchmarks/2026-09-27-render-view/before.json) and
-[after](benchmarks/2026-09-27-render-view/after.json) compare `fa0c3f6` with the
-recorded working-tree hashes, using the same Node/compiler/host described above.
-Run `node scripts/benchmark.mjs --suite render-view --runs 5 --output <file>`:
-five sequential fresh processes, two warmup and seven measured batches of 100
-frames per scenario. This includes native-frame decoding and typed rendering,
-but excludes DOM, React, resources, media, GPU work and encoding.
-
-| 500-object CPU conversion | Before, ms/view | After, ms/view |
+| 500 objects | Before | After |
 | --- | ---: | ---: |
 | Circles | 0.522 [0.510–0.536] | 0.302 [0.287–0.313] |
 | Mixed shapes + Glow | 0.805 [0.790–0.813] | 0.586 [0.548–0.592] |
 
-Values are median [min–max] of process medians. The unchanged SVG markup path
-was 0.521 → 0.521 ms for circles and 0.779 → 0.758 ms for mixed shapes, within
-variation. This is a conversion result, not a browser frame-rate measurement.
-Validation passed 732 Vitest tests, five extension/linking checks, public API/type
-checks, a production build and 24 Canvas/primitive/preview browser checks,
-including pixel agreement between retained SVG and serialized export SVG.
+The unchanged SVG markup control was 0.521 → 0.521 ms for circles and
+0.779 → 0.758 ms for mixed shapes, within variation. Retaining the React element
+tree subsequently eliminated SVG-tree construction during cursor updates and
+supports frozen renderer records. Its production [before](benchmarks/2026-09-27-stage-props/interaction-before.json)
+/ [after](benchmarks/2026-09-27-stage-props/interaction-after.json) start from
+`9d1e67d`'s application source and use the drag/playback method above: 500-object
+DOM latency was 12.0 [10.8–18.1] → 11.7 [10.9–25.2] ms, with rAF medians still
+16.7 ms. No clear drag/playback speedup was established. A native props-factory
+[trial and patch](benchmarks/2026-09-27-stage-props/exploratory/) was rejected
+because its 12.3 ms median did not improve on the 12.0 ms baseline.
 
-The subsequent stage change retains the React element tree as well as the SVG
-view. Browser tests count zero SVG-tree constructions during cursor updates,
-while geometry changes still invalidate it. All 15 preview tests also run with
-frozen renderer records, guarding against React's development props mutations.
-The production [before](benchmarks/2026-09-27-stage-props/interaction-before.json)
-/ [after](benchmarks/2026-09-27-stage-props/interaction-after.json) use the earlier
-drag/playback method, starting from `9d1e67d`'s application source. Pointer-to-DOM
-medians were **7.3 → 7.4 ms** at 100 objects and **12.0 → 11.7 ms** at 500; the
-latter ranges were **10.8–18.1 → 10.9–25.2 ms**. Playback rAF medians stayed
-16.7 ms. This run establishes no clear drag/playback speedup; the verified gain
-is avoiding repeated SVG construction for an unchanged presentation.
+**Preparation and retained ownership.** Run
+`node apps/studio/scripts/benchmark-playback.mjs --output <file>` after building.
+Each scenario uses five sequential fresh processes, three compile warmups,
+seven timed compilations with GC outside timing, and eight retained programs.
+The caller's Scene stays alive. Time is the median of process medians; heap is
+incremental retained JS `heapUsed` per program, in decimal MB. Native/WASM memory,
+transient allocation, media decoding and rendering are excluded.
 
-A preceding attempt to replace each SVG group's Map with a native props factory
-was rejected: its 500-object median was 12.3 ms, versus 12.0 ms before, with no
-clear gain. Its [raw trial and patch](benchmarks/2026-09-27-stage-props/exploratory/)
-remain reproducible against `9d1e67d`. The accepted change passed 732 Vitest tests,
-five extension/linking checks, public API/type checks and a production build.
+| Earlier incremental change | 500-object fixture | Prepare, ms | Retained MB |
+| --- | --- | ---: | ---: |
+| [Remove duplicate native Scene](benchmarks/2026-09-27-playback-ownership/) (`d239856` baseline) | 12 Compositions | 24.828 → 12.012 | 11.464 → 7.093 |
+| [Share order and parent graph](benchmarks/2026-09-27-shared-scene-layout/) (`e072667` baseline) | 12 Compositions, parents | 19.651 → 12.827 | 8.040 → 7.591 |
+
+The latest [before](benchmarks/2026-09-27-compiled-ownership/final-before.json)
+/ [after](benchmarks/2026-09-27-compiled-ownership/final-after.json) start from
+`5888fae`. Compiled programs retain frame dimensions and compiled curves, releasing
+source Scene containers and authored key maps after preparation. Missing tracks
+avoid allocating an editing key container. Parent fixtures use groups of ten
+objects with nine children per root; keys are six intermediate x values per track.
+
+| 500 objects / 12 Compositions | Prepare, ms | Retained MB |
+| --- | ---: | ---: |
+| Explicit tracks, no parents or keys | 11.530 → 11.941 | 7.092 → 4.972 |
+| Explicit tracks, parents, no keys | 13.475 → 14.720 | 7.604 → 5.484 |
+| Explicit tracks, parents, six keys | 25.896 → 28.981 | 23.311 → 15.118 |
+| Inherited tracks, parents | 11.832 → 11.797 | 7.118 → 5.484 |
+
+This trades some preparation work for lower retained memory. In the six-key
+case, process medians ranged 25.490–26.678 → 28.101–29.153 ms; heap ranged
+23.308–23.313 → 15.117–15.118 MB. At 100 objects / two Compositions, preparation
+was 0.595 → 0.756 ms and heap 0.221 → 0.168 MB. Earlier trials and repetitions
+are retained in the same directory. Authored keys and retained deleted poses
+remain intact; evaluation frames stay independent across seeks.
+
+**CPU evaluation and curve compilation.** Run
+`node scripts/benchmark.mjs --suite evaluation --runs 5 --output <file>` or
+`--suite primitives`. Both use five sequential fresh processes and seven batches
+of 240 frames per scenario; evaluation has one warmup batch, primitives has two.
+Public JS frame conversion is included; rendering and encoding are excluded.
+The following are separate incremental comparisons, median [range of process
+medians], in milliseconds:
+
+| Change / fixture at 500 objects | Before | After |
+| --- | ---: | ---: |
+| [Resolve base pose once](benchmarks/2026-09-27-evaluated-pose/), preset easing (`bde6294`) | 0.1247 [0.1184–0.1289] / frame | 0.1058 [0.1031–0.1114] / frame |
+| [Indexed hierarchy](benchmarks/2026-09-27-indexed-hierarchy/), parents + six keys (`f3a3e43`) | 0.6136 [0.5950–0.6261] / frame | 0.5140 [0.5136–0.5265] / frame |
+| [Group authored keys once](benchmarks/2026-09-27-curve-preparation/), parents + six keys (`2b23d42`) | 3.571 [3.421–3.766] to prepare | 2.114 [2.060–2.238] to prepare |
+
+Indexed hierarchy added setup work in its hierarchy-only fixture
+(1.277 → 1.384 ms). Grouping keys left frame time at 0.514 → 0.512 ms.
+The latest ownership [control](benchmarks/2026-09-27-compiled-ownership/primitives-before.json)
+/ [result](benchmarks/2026-09-27-compiled-ownership/primitives-final.json) also
+showed no clear per-frame change: flat 0.0980 → 0.0983 ms; parents + six keys
+0.5363 [0.5099–0.5440] → 0.5283 [0.5164–0.5314] ms.
+
+Validation of the latest ownership change passed 733 Vitest tests, five
+extension/linking checks, 56 JS and 53 WASM MoonBit tests, 19 headless checks,
+108 public API contracts, a production build and 26 playback/primitive/media/export
+browser checks. Those include independent MP4/WebM decoding, exact Scene/frame
+boundaries, retained poses, cancellation, audio and original key preservation.
+[Full CI on `5888fae`](https://github.com/Poietra/poietra/actions/runs/36274403548)
+also passed the broader collaborative editing and real Worker restart suites.
+No production deployment was made for these changes.
 
 ### Same-room collaboration — 2026-09-22
 

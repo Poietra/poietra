@@ -1,0 +1,117 @@
+--- a/moonbit/scene/playback.mbt
++++ b/moonbit/scene/playback.mbt
+@@ -1,7 +1,9 @@
+ ///|
+ /// The playback program owns a typed snapshot; clocks and presence are not part of it.
+ pub struct PreparedScene {
+-  scene : Scene
++  priv width : Double
++  priv height : Double
++  priv background : String
+   priv schedule : Array[ScheduledSegment]
+   holds : Map[String, Array[RenderObject]]
+   changes : Map[String, PreparedTransition]
+@@ -108,7 +110,32 @@
+       },
+     })
+   }
+-  { scene, schedule, holds, changes, starts, kernel, monotone, }
++  {
++    width: scene.width,
++    height: scene.height,
++    background: scene.background,
++    schedule,
++    holds,
++    changes,
++    starts,
++    kernel,
++    monotone,
++  }
++}
++
++///|
++// Compiled poses/tracks retain everything needed for evaluation. Keeping the
++// source Scene as a frame header also kept every source map and unused asset.
++fn PreparedScene::frame(
++  self : PreparedScene,
++  objects : Array[RenderObject],
++) -> Frame {
++  {
++    width: self.width,
++    height: self.height,
++    background: self.background,
++    objects,
++  }
+ }
+ 
+ ///|
+@@ -182,9 +209,7 @@
+ 
+ ///|
+ pub fn PreparedScene::evaluate(self : PreparedScene, time : Double) -> Frame {
+-  guard self.segment_index(time) is Some(index) else {
+-    return frame(self.scene, [])
+-  }
++  guard self.segment_index(time) is Some(index) else { return self.frame([]) }
+   let selected = self.schedule[index]
+   let objects = match selected.program {
+     Hold(objects) => evaluate_hold(objects, time, true)
+@@ -196,7 +221,7 @@
+         self.kernel,
+       )
+   }
+-  frame(self.scene, objects)
++  self.frame(objects)
+ }
+ 
+ ///|
+@@ -206,10 +231,7 @@
+   time : Double?,
+ ) -> Frame {
+   let time = time.unwrap_or(self.starts.get(id).unwrap_or(0.0))
+-  frame(
+-    self.scene,
+-    evaluate_hold(self.holds.get(id).unwrap_or([]), time, false),
+-  )
++  self.frame(evaluate_hold(self.holds.get(id).unwrap_or([]), time, false))
+ }
+ 
+ ///|
+@@ -226,5 +248,5 @@
+     None => []
+     Some(program) => evaluate_transition(program, time, scene_time, self.kernel)
+   }
+-  frame(self.scene, objects)
+-}
++  self.frame(objects)
++}
+--- a/moonbit/scene/evaluate.mbt
++++ b/moonbit/scene/evaluate.mbt
+@@ -299,11 +299,17 @@
+       object.id,
+       transition.duration,
+     )
++    let curves = prepare_object_curves(track, a, b, a_visible, b_visible)
+     items.push({
+       object,
+       a,
+       b,
+-      track,
++      // Curves own their compiled segments. Do not retain the authored key map
++      // (including tombstones and superseded points) through the playback track.
++      track: match track.keyframes {
++        None => track
++        Some(_) => { ..track, keyframes: None, }
++      },
+       presence: if !a_visible && !b_visible {
+         Hidden
+       } else if !a_visible {
+@@ -316,7 +322,7 @@
+       animation: track.type_,
+       fill: prepare_color(a.fill, b.fill),
+       stroke: prepare_color(a.stroke, b.stroke),
+-      curves: prepare_object_curves(track, a, b, a_visible, b_visible),
++      curves,
+     })
+   }
+   PreparedTransition::{

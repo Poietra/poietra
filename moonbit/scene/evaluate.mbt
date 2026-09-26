@@ -294,16 +294,21 @@ fn prepare_layout_transition(
       (None, Some(b)) => (b, b)
       _ => continue
     }
-    let track = resolve_track(
-      transition.tracks.get(object.id),
-      object.id,
-      transition.duration,
-    )
+    let track = match transition.tracks.get(object.id) {
+      None => default_track(object.id, transition.duration, keyframes=None)
+      Some(track) => resolve_track(Some(track), object.id, transition.duration)
+    }
+    let curves = prepare_object_curves(track, a, b, a_visible, b_visible)
     items.push({
       object,
       a,
       b,
-      track,
+      // Curves own their compiled segments. Do not retain the authored key map
+      // (including tombstones and superseded points) through the playback track.
+      track: match track.keyframes {
+        None => track
+        Some(_) => { ..track, keyframes: None, }
+      },
       presence: if !a_visible && !b_visible {
         Hidden
       } else if !a_visible {
@@ -316,7 +321,7 @@ fn prepare_layout_transition(
       animation: track.type_,
       fill: prepare_color(a.fill, b.fill),
       stroke: prepare_color(a.stroke, b.stroke),
-      curves: prepare_object_curves(track, a, b, a_visible, b_visible),
+      curves,
     })
   }
   PreparedTransition::{

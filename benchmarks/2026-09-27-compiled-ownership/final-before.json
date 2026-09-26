@@ -1,0 +1,699 @@
+{
+  "measuredAt": "2026-09-26T22:03:44.190Z",
+  "environment": {
+    "applicationRevision": "5888fae02dbb0e326aa9645bafcb98a0ddedfe48",
+    "trackedModifications": [
+      "apps/studio/scripts/benchmark-playback.mjs",
+      "moonbit/scene/primitives_test.mbt"
+    ],
+    "applicationSourcesSha256": "ee71ca0921aecde1c417f2d7c36874dd8a1376bb59c4d68f90bba35a87a1ebdc",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.74,
+      0.67,
+      0.64
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "b8a534c75fd8bd24409aa605d4103d4153722b7f4adec30a4e5be931e7609e28",
+    "boundarySha256": "1b424b4ccb101dbdf8008995143fb550a6c5bc30653134e9de7bd7f9f71965d6",
+    "clientRuntimeSha256": "6942a9dea709e683b05d2b2c7db4e4884a85e19014def5e8a3662eafd6efe4a2",
+    "viteManifestSha256": "fa1e24801c9514e41a12747e027dacc715538ddd982f72960922f752abbd3993"
+  },
+  "method": "Sequential fresh Node processes; three compile warmups, seven timed compilations (GC outside timing), then eight retained programs with explicit GC. Heap delta excludes the caller input, WASM/native memory, and transient allocations. CPU setup only, not browser FPS.",
+  "results": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "parents": false,
+      "keyframesPerTrack": 0,
+      "explicitTracks": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 0.5949159999999978,
+        "min": 0.5827110000000033,
+        "max": 0.6655389999999954
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 220992,
+        "min": 220156,
+        "max": 222447
+      },
+      "samples": [
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            0.7550860000000057,
+            0.8385210000000001,
+            0.5930680000000024,
+            0.6238250000000107,
+            0.5496219999999994,
+            0.5769449999999949,
+            0.5402079999999927
+          ],
+          "retainedBytes": 220399,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            0.6900260000000031,
+            0.8374639999999971,
+            0.6267190000000085,
+            0.567898999999997,
+            0.5517459999999943,
+            0.7856190000000112,
+            0.5599899999999991
+          ],
+          "retainedBytes": 222447,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            0.7974389999999971,
+            0.8622159999999894,
+            0.5871120000000047,
+            0.5949159999999978,
+            0.562618999999998,
+            0.6227459999999923,
+            0.5345630000000057
+          ],
+          "retainedBytes": 222433,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            0.8698080000000061,
+            0.6960770000000025,
+            0.5827089999999941,
+            0.5692590000000024,
+            0.5640659999999968,
+            0.5827110000000033,
+            0.5854009999999903
+          ],
+          "retainedBytes": 220156,
+          "checksum": 270
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            0.6655389999999954,
+            0.8087129999999974,
+            0.6721409999999963,
+            0.5662569999999931,
+            0.5552009999999967,
+            0.6970949999999903,
+            0.5307249999999897
+          ],
+          "retainedBytes": 220992,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 2,
+      "parents": false,
+      "keyframesPerTrack": 0,
+      "explicitTracks": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 2.0320940000000007,
+        "min": 2.0180519999999973,
+        "max": 2.076740000000001
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 1068643,
+        "min": 1067865,
+        "max": 1069660
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            1.7073800000000006,
+            1.9624009999999998,
+            2.178179,
+            2.0320940000000007,
+            2.010348999999991,
+            2.0335290000000015,
+            2.0480710000000073
+          ],
+          "retainedBytes": 1069660,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            2.3417110000000037,
+            2.553944999999999,
+            2.060772,
+            1.9509619999999899,
+            2.0723150000000032,
+            2.0504199999999884,
+            1.913449
+          ],
+          "retainedBytes": 1068080,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            1.6944909999999993,
+            2.0606830000000116,
+            2.295462999999998,
+            1.9362420000000071,
+            2.0254479999999973,
+            2.0276859999999886,
+            1.9703099999999978
+          ],
+          "retainedBytes": 1068643,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            1.669470000000004,
+            1.9262100000000117,
+            2.0338840000000005,
+            2.0015279999999933,
+            2.33182699999999,
+            2.1163250000000033,
+            2.0180519999999973
+          ],
+          "retainedBytes": 1067865,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 2,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            2.2031459999999896,
+            2.01039200000001,
+            2.1804440000000085,
+            2.076740000000001,
+            1.987187999999989,
+            2.1454729999999955,
+            1.9370839999999987
+          ],
+          "retainedBytes": 1068889,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": false,
+      "keyframesPerTrack": 0,
+      "explicitTracks": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 11.530226999999996,
+        "min": 11.121679999999998,
+        "max": 11.776437999999985
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7092431,
+        "min": 7091190,
+        "max": 7094175
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            14.018544999999989,
+            13.031924000000004,
+            11.822771999999986,
+            11.082427000000024,
+            11.776437999999985,
+            11.276389000000023,
+            11.517428999999993
+          ],
+          "retainedBytes": 7094175,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            13.173298999999986,
+            12.767009999999999,
+            10.81599700000001,
+            10.588413000000003,
+            10.850280999999995,
+            11.472921999999983,
+            11.434425000000005
+          ],
+          "retainedBytes": 7091190,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            14.062975999999992,
+            13.05085600000001,
+            11.115913000000006,
+            11.027366999999998,
+            11.121679999999998,
+            10.93751499999999,
+            11.611806000000001
+          ],
+          "retainedBytes": 7091849,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            13.904078999999996,
+            13.345690999999988,
+            11.219982000000016,
+            11.373939999999976,
+            11.77012000000002,
+            11.797541999999993,
+            11.337061999999975
+          ],
+          "retainedBytes": 7092431,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": false,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            13.55502899999999,
+            13.094178999999997,
+            11.530226999999996,
+            10.863141999999982,
+            12.657104000000004,
+            11.179508999999996,
+            10.936398999999994
+          ],
+          "retainedBytes": 7092884,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": true,
+      "keyframesPerTrack": 0,
+      "explicitTracks": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 13.474543000000011,
+        "min": 13.211092000000008,
+        "max": 13.824332999999996
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7603911,
+        "min": 7602195,
+        "max": 7605090
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            15.65992,
+            13.108177000000012,
+            13.511429000000021,
+            12.787925000000001,
+            13.461348000000015,
+            13.087209000000001,
+            13.211092000000008
+          ],
+          "retainedBytes": 7603875,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            15.161757999999992,
+            13.220677999999992,
+            12.977392000000009,
+            12.909136999999987,
+            14.209893000000022,
+            13.52660800000001,
+            13.295832000000019
+          ],
+          "retainedBytes": 7602195,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            15.288413999999989,
+            13.77288200000001,
+            13.609859,
+            13.918968000000007,
+            14.180159000000003,
+            13.538699999999977,
+            13.478679
+          ],
+          "retainedBytes": 7603911,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            19.452045,
+            13.818534999999997,
+            13.824332999999996,
+            13.315943000000004,
+            14.505859999999984,
+            13.40115400000002,
+            14.078974000000017
+          ],
+          "retainedBytes": 7605090,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": true,
+          "prepareMs": [
+            15.457636000000008,
+            13.240836999999999,
+            13.493064000000004,
+            12.92300499999999,
+            13.474543000000011,
+            13.161059999999964,
+            13.731693000000007
+          ],
+          "retainedBytes": 7604463,
+          "checksum": 270
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": true,
+      "keyframesPerTrack": 6,
+      "explicitTracks": true,
+      "prepareMs": {
+        "n": 5,
+        "median": 25.89567199999999,
+        "min": 25.489627999999982,
+        "max": 26.678068999999994
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 23310788,
+        "min": 23307745,
+        "max": 23312791
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 6,
+          "explicitTracks": true,
+          "prepareMs": [
+            28.211401999999993,
+            31.219357000000002,
+            25.192755999999974,
+            27.992237999999986,
+            25.057982000000038,
+            25.655745999999965,
+            26.539345000000026
+          ],
+          "retainedBytes": 23311580,
+          "checksum": 720
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 6,
+          "explicitTracks": true,
+          "prepareMs": [
+            28.364090000000004,
+            31.962327999999957,
+            25.456713000000036,
+            27.522963000000004,
+            24.25129899999996,
+            25.701951000000008,
+            25.74330500000002
+          ],
+          "retainedBytes": 23312791,
+          "checksum": 720
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 6,
+          "explicitTracks": true,
+          "prepareMs": [
+            27.43892600000001,
+            30.79146400000002,
+            26.25552700000003,
+            25.247588000000007,
+            25.435876999999948,
+            25.89567199999999,
+            24.153391999999997
+          ],
+          "retainedBytes": 23309303,
+          "checksum": 720
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 6,
+          "explicitTracks": true,
+          "prepareMs": [
+            27.44950800000001,
+            32.54751700000003,
+            24.200090999999986,
+            25.903795000000002,
+            24.013555999999994,
+            24.65006299999999,
+            25.489627999999982
+          ],
+          "retainedBytes": 23310788,
+          "checksum": 720
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 6,
+          "explicitTracks": true,
+          "prepareMs": [
+            27.30625299999997,
+            31.19627700000001,
+            25.33223700000002,
+            27.147913999999957,
+            25.076678000000015,
+            25.627837,
+            26.678068999999994
+          ],
+          "retainedBytes": 23307745,
+          "checksum": 720
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "parents": true,
+      "keyframesPerTrack": 0,
+      "explicitTracks": false,
+      "prepareMs": {
+        "n": 5,
+        "median": 11.831941999999998,
+        "min": 11.748365999999976,
+        "max": 12.236297000000008
+      },
+      "retainedBytes": {
+        "n": 5,
+        "median": 7118289,
+        "min": 7117293,
+        "max": 7119678
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": false,
+          "prepareMs": [
+            12.57064699999998,
+            12.532524999999993,
+            11.14716199999998,
+            11.746186999999992,
+            12.615352999999999,
+            11.784841,
+            11.724722999999983
+          ],
+          "retainedBytes": 7117876,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": false,
+          "prepareMs": [
+            11.471818999999982,
+            12.043414000000013,
+            11.833261000000022,
+            12.315193999999991,
+            12.300004999999999,
+            12.198460000000011,
+            11.55632700000001
+          ],
+          "retainedBytes": 7117293,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": false,
+          "prepareMs": [
+            13.664242999999999,
+            12.346178000000009,
+            12.361694,
+            11.761455000000012,
+            12.236297000000008,
+            11.615036999999973,
+            11.706822999999986
+          ],
+          "retainedBytes": 7119678,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": false,
+          "prepareMs": [
+            11.603991000000008,
+            12.155428999999998,
+            11.316113000000001,
+            11.579192000000006,
+            11.831941999999998,
+            12.704826999999995,
+            12.233030999999983
+          ],
+          "retainedBytes": 7119140,
+          "checksum": 270
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "parents": true,
+          "keyframesPerTrack": 0,
+          "explicitTracks": false,
+          "prepareMs": [
+            11.537450999999976,
+            12.008372999999978,
+            13.473399,
+            11.819324000000023,
+            11.748365999999976,
+            11.371184999999997,
+            11.438439000000017
+          ],
+          "retainedBytes": 7118289,
+          "checksum": 270
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-09-26T22:03:55.695Z"
+}

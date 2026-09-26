@@ -25,7 +25,11 @@ pub fn minimum(a : Double, b : Double) -> Double {
 }
 
 ///|
-pub fn default_track(object_id : String, duration : Double) -> Track {
+pub fn default_track(
+  object_id : String,
+  duration : Double,
+  keyframes? : Map[String, Keyframe]? = Some(Map([])),
+) -> Track {
   {
     implicit: None,
     objectId: object_id,
@@ -46,7 +50,7 @@ pub fn default_track(object_id : String, duration : Double) -> Track {
     cornerRadiusTiming: None,
     pathTiming: None,
     revealTiming: None,
-    keyframes: Some(Map([])),
+    keyframes,
   }
 }
 

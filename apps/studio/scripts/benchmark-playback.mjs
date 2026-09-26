@@ -11,10 +11,10 @@ const { values } = parseArgs({ options: {
   runs: { type: 'string', default: '5' },
   sample: { type: 'string' },
 } });
-const scenarios = [[100, 2, false], [500, 2, false], [500, 12, false], [500, 12, true]];
+const scenarios = [[100, 2, false, 0, true], [500, 2, false, 0, true], [500, 12, false, 0, true], [500, 12, true, 0, true], [500, 12, true, 6, true], [500, 12, true, 0, false]];
 if (values.sample !== undefined) {
   if (!global.gc) throw new Error('The sample process needs --expose-gc');
-  const [objects, compositions, parents] = scenarios[Number(values.sample)];
+  const [objects, compositions, parents, keyframesPerTrack, explicitTracks] = scenarios[Number(values.sample)];
   const { makeDemoProject } = await import('../shared/demo.js');
   const { defaultTrack } = await import('../shared/model.js');
   const { compileScene } = await import('../src/engine/evaluate.js');
@@ -42,7 +42,11 @@ if (values.sample !== undefined) {
     if (index) {
       const transitionId = `transition-${index}`;
       scene.transitions[transitionId] = { id: transitionId, fromId: `composition-${index - 1}`, toId: id, duration: 1000,
-        tracks: Object.fromEntries(Object.keys(scene.objects).map(objectId => [objectId, defaultTrack(objectId, { duration: 1000 })])),
+        tracks: explicitTracks ? Object.fromEntries(Object.keys(scene.objects).map((objectId, order) => [objectId, defaultTrack(objectId, { duration: 1000,
+          keyframes: Object.fromEntries(Array.from({ length: keyframesPerTrack }, (_, point) => [`point-${point}`, {
+            property: 'x', at: (point + 1) / (keyframesPerTrack + 1), value: order * 2 + index * 30 + point * 4, easing: 'easeInOut',
+          }])),
+        })])) : {},
       };
     }
   }
@@ -65,7 +69,7 @@ if (values.sample !== undefined) {
   global.gc();
   const retainedBytes = (process.memoryUsage().heapUsed - before) / programs.length;
   for (const program of programs) checksum += program.evaluate(1500).objects[0].state.x;
-  console.log(JSON.stringify({ objects, compositions, parents, prepareMs, retainedBytes, checksum }));
+  console.log(JSON.stringify({ objects, compositions, parents, keyframesPerTrack, explicitTracks, prepareMs, retainedBytes, checksum }));
 } else {
   const runs = Number(values.runs);
   if (!Number.isInteger(runs) || runs < 1 || runs > 9) throw new Error('--runs must be 1..9');
@@ -76,11 +80,13 @@ if (values.sample !== undefined) {
   for (let scenario = 0; scenario < scenarios.length; scenario++) {
     const samples = [];
     for (let run = 0; run < runs; run++) {
-      const [objects, compositions, parents] = scenarios[scenario];
-      console.error(`playback ${objects} objects / ${compositions} compositions / parents=${parents}: process ${run + 1}/${runs}`);
+      const [objects, compositions, parents, keyframesPerTrack, explicitTracks] = scenarios[scenario];
+      console.error(`playback ${objects} objects / ${compositions} compositions / parents=${parents} / keys=${keyframesPerTrack} / explicit=${explicitTracks}: process ${run + 1}/${runs}`);
       samples.push(JSON.parse(execFileSync(process.execPath, ['--expose-gc', fileURLToPath(import.meta.url), '--sample', String(scenario)], { encoding: 'utf8', timeout: 120000 })));
     }
     report.results.push({ objects: scenarios[scenario][0], compositions: scenarios[scenario][1], parents: scenarios[scenario][2],
+      keyframesPerTrack: scenarios[scenario][3],
+      explicitTracks: scenarios[scenario][4],
       prepareMs: stats(samples.map(sample => stats(sample.prepareMs).median)),
       retainedBytes: stats(samples.map(sample => sample.retainedBytes)), samples,
     });
@@ -89,6 +95,6 @@ if (values.sample !== undefined) {
   const output = resolve(values.output);
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
-  console.table(report.results.map(({ objects, compositions, parents, prepareMs, retainedBytes }) => ({ objects, compositions, parents, prepareMs: prepareMs.median, retainedBytes: retainedBytes.median })));
+  console.table(report.results.map(({ objects, compositions, parents, keyframesPerTrack, explicitTracks, prepareMs, retainedBytes }) => ({ objects, compositions, parents, keyframesPerTrack, explicitTracks, prepareMs: prepareMs.median, retainedBytes: retainedBytes.median })));
   console.error(`Saved ${output}`);
 }
