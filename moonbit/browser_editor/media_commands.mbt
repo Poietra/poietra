@@ -109,13 +109,12 @@ pub fn set_audio_track(
   patch : @core.Any,
   separate : Bool,
 ) -> Unit {
-  let tracks = current_scene(store, scene_id)._get("audioTracks")
+  let scene = current_scene(store, scene_id)
+  let tracks = scene._get("audioTracks")
   if @core.is_nullish(tracks) || !truthy(tracks._get(id)) {
     return
   }
-  try
-    @boundary.read_audio_track(merge(tracks._get(id), patch)) |> ignore
-  catch {
+  @boundary.validate_audio_track_edit(scene, id, patch) catch {
     error => @core.throw_(native_error(error))
   }
   edit(

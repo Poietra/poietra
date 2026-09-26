@@ -356,11 +356,14 @@ pub fn decode_Transition(value : @core.Any) -> @scene.Transition {
 }
 
 ///|
-pub fn decode_AudioTrack(value : @core.Any) -> @scene.AudioTrack {
+pub fn decode_AudioTrack(
+  value : @core.Any,
+  asset_decoder? : (@core.Any) -> @scene.MediaAsset = decode_MediaAsset,
+) -> @scene.AudioTrack {
   {
     id: value._get("id").cast(),
     name: value._get("name").cast(),
-    asset: decode_MediaAsset(value._get("asset")),
+    asset: asset_decoder(value._get("asset")),
     volume: value._get("volume").cast(),
     muted: value._get("muted").cast(),
     start: value._get("start").cast(),

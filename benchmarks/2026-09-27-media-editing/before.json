@@ -1,0 +1,722 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-26T23:21:06.477Z",
+  "environment": {
+    "applicationRevision": "1455c59bf81a34c6506cb86f1bf2e32c65645935",
+    "trackedModifications": [
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "269c41887115e8b3036f885a75e3250ab627aa86eab830c6b816625c79134e6f",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.09,
+      0.12,
+      0.3
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "8628b7a05aeda976cad5b54d69c405f5346fe81d77a9e137495f4e04cbc1d7e5",
+    "boundarySha256": "5e62d5630a8e42525238b71ce2126dfa43823e238ed4bb6bd37e6273599f7e68",
+    "clientRuntimeSha256": "284d298f4f47f9697cc65b3cd36ebd502881a675d8b957709b544ddbda9ff167",
+    "viteManifestSha256": "a6effd57577c60adf1fa09586faf6169bf31963c72d9129c687d877909c463d8"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "media-editing": {
+      "summary": [
+        {
+          "sourceBytes": 0,
+          "input": "immutable snapshot",
+          "iterations": 500,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.030904420000000016,
+            "min": 0.030378747999999973,
+            "max": 0.031187400000000025
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 2.2308770000000067,
+            "min": 2.0420159999999896,
+            "max": 3.3274399999999957
+          }
+        },
+        {
+          "sourceBytes": 0,
+          "input": "mutable caller",
+          "iterations": 500,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.008204893999999968,
+            "min": 0.007938235999999961,
+            "max": 0.00834366799999998
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 0.14925100000004932,
+            "min": 0.12682899999998654,
+            "max": 0.2617740000000026
+          }
+        },
+        {
+          "sourceBytes": 65536,
+          "input": "immutable snapshot",
+          "iterations": 20,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.5035384999999991,
+            "min": 0.48346795000000214,
+            "max": 0.556868449999999
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 2.3946869999999763,
+            "min": 2.0179800000000228,
+            "max": 2.6963100000000395
+          }
+        },
+        {
+          "sourceBytes": 65536,
+          "input": "mutable caller",
+          "iterations": 20,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.5189798499999995,
+            "min": 0.5172795500000007,
+            "max": 0.551821750000002
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 0.5901160000000232,
+            "min": 0.5588970000000018,
+            "max": 0.6586389999999938
+          }
+        },
+        {
+          "sourceBytes": 1048576,
+          "input": "immutable snapshot",
+          "iterations": 20,
+          "msPerOperation": {
+            "n": 5,
+            "median": 8.478784450000001,
+            "min": 7.557759000000004,
+            "max": 8.598695199999998
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 9.066127000000051,
+            "min": 8.792794999999956,
+            "max": 10.445349999999962
+          }
+        },
+        {
+          "sourceBytes": 1048576,
+          "input": "mutable caller",
+          "iterations": 20,
+          "msPerOperation": {
+            "n": 5,
+            "median": 7.585526449999998,
+            "min": 7.384567549999997,
+            "max": 8.419145200000003
+          },
+          "coldMs": {
+            "n": 5,
+            "median": 9.056126999999833,
+            "min": 8.719702999999981,
+            "max": 9.320934999999963
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Audio volume command, validation and leaf publication; immutable variant includes real Yjs, selective Undo and snapshot reads. Mutable control applies leaves to a caller-owned record. 160 waveform values. Embedded sizes are base64 characters, not decoded audio bytes. No browser, decoder, network or audio output.",
+          "iterations": "One separately reported first edit; two warmup + seven measured batches, 500 edits for room references and 20 for embedded sources",
+          "results": [
+            {
+              "sourceBytes": 0,
+              "input": "immutable snapshot",
+              "iterations": 500,
+              "coldMs": 2.2263109999999955,
+              "msPerOperation": 0.030378747999999973,
+              "samples": {
+                "msPerOperation": [
+                  0.029971521999999994,
+                  0.02864440400000001,
+                  0.03233608400000003,
+                  0.03210017399999998,
+                  0.030256602000000042,
+                  0.03120150799999999,
+                  0.030378747999999973
+                ]
+              }
+            },
+            {
+              "sourceBytes": 0,
+              "input": "mutable caller",
+              "iterations": 500,
+              "coldMs": 0.2617740000000026,
+              "msPerOperation": 0.00834366799999998,
+              "samples": {
+                "msPerOperation": [
+                  0.008392897999999946,
+                  0.00826527800000008,
+                  0.008358098000000041,
+                  0.008241691999999943,
+                  0.00834366799999998,
+                  0.007972594000000072,
+                  0.00865290600000003
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 2.580566000000033,
+              "msPerOperation": 0.49153399999999864,
+              "samples": {
+                "msPerOperation": [
+                  0.5519148000000001,
+                  0.4883138500000001,
+                  0.49153399999999864,
+                  0.49275375,
+                  0.4731795999999974,
+                  0.5182260500000012,
+                  0.47008354999999824
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 0.6586389999999938,
+              "msPerOperation": 0.5172795500000007,
+              "samples": {
+                "msPerOperation": [
+                  0.5130179999999995,
+                  0.5167157000000003,
+                  0.5172795500000007,
+                  0.5399547999999982,
+                  0.5129752999999994,
+                  0.5270702499999999,
+                  0.5377059000000003
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 9.091227000000003,
+              "msPerOperation": 8.391705400000001,
+              "samples": {
+                "msPerOperation": [
+                  8.231206549999996,
+                  8.392664800000006,
+                  8.312634050000009,
+                  8.237018449999994,
+                  8.391705400000001,
+                  8.54527905,
+                  8.664147249999996
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 8.719702999999981,
+              "msPerOperation": 7.585526449999998,
+              "samples": {
+                "msPerOperation": [
+                  8.633205399999998,
+                  7.821542900000009,
+                  7.508700649999992,
+                  7.585526449999998,
+                  7.286247049999997,
+                  7.634526649999998,
+                  7.460301800000002
+                ]
+              }
+            }
+          ],
+          "checksum": 9726
+        },
+        {
+          "scope": "Audio volume command, validation and leaf publication; immutable variant includes real Yjs, selective Undo and snapshot reads. Mutable control applies leaves to a caller-owned record. 160 waveform values. Embedded sizes are base64 characters, not decoded audio bytes. No browser, decoder, network or audio output.",
+          "iterations": "One separately reported first edit; two warmup + seven measured batches, 500 edits for room references and 20 for embedded sources",
+          "results": [
+            {
+              "sourceBytes": 0,
+              "input": "immutable snapshot",
+              "iterations": 500,
+              "coldMs": 2.0420159999999896,
+              "msPerOperation": 0.030904420000000016,
+              "samples": {
+                "msPerOperation": [
+                  0.030028526,
+                  0.03151666,
+                  0.033304963999999986,
+                  0.03282256999999998,
+                  0.030904420000000016,
+                  0.03032104799999996,
+                  0.029928297999999926
+                ]
+              }
+            },
+            {
+              "sourceBytes": 0,
+              "input": "mutable caller",
+              "iterations": 500,
+              "coldMs": 0.14925100000004932,
+              "msPerOperation": 0.008085374000000001,
+              "samples": {
+                "msPerOperation": [
+                  0.008085374000000001,
+                  0.008167961999999989,
+                  0.007932398000000035,
+                  0.008168468000000075,
+                  0.00781972799999994,
+                  0.007948594000000071,
+                  0.008163580000000024
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 2.6963100000000395,
+              "msPerOperation": 0.556868449999999,
+              "samples": {
+                "msPerOperation": [
+                  0.5480016000000006,
+                  0.5576823499999989,
+                  0.6779020500000001,
+                  0.4735014000000007,
+                  0.6330269499999985,
+                  0.4689291999999995,
+                  0.556868449999999
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 0.5588970000000018,
+              "msPerOperation": 0.5175571500000018,
+              "samples": {
+                "msPerOperation": [
+                  0.5333444499999984,
+                  0.5142516999999998,
+                  0.5152755000000013,
+                  0.5085723999999999,
+                  0.5175571500000018,
+                  0.5270607000000013,
+                  0.5749088
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 10.445349999999962,
+              "msPerOperation": 7.557759000000004,
+              "samples": {
+                "msPerOperation": [
+                  7.557759000000004,
+                  7.677754550000003,
+                  7.397870850000004,
+                  7.592578700000002,
+                  7.408935650000001,
+                  7.669543199999998,
+                  7.511995799999999
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 9.320934999999963,
+              "msPerOperation": 8.419145200000003,
+              "samples": {
+                "msPerOperation": [
+                  8.596436149999999,
+                  8.512233700000001,
+                  8.543972950000011,
+                  8.419145200000003,
+                  7.941177100000004,
+                  7.400540299999989,
+                  7.484100149999994
+                ]
+              }
+            }
+          ],
+          "checksum": 9726
+        },
+        {
+          "scope": "Audio volume command, validation and leaf publication; immutable variant includes real Yjs, selective Undo and snapshot reads. Mutable control applies leaves to a caller-owned record. 160 waveform values. Embedded sizes are base64 characters, not decoded audio bytes. No browser, decoder, network or audio output.",
+          "iterations": "One separately reported first edit; two warmup + seven measured batches, 500 edits for room references and 20 for embedded sources",
+          "results": [
+            {
+              "sourceBytes": 0,
+              "input": "immutable snapshot",
+              "iterations": 500,
+              "coldMs": 2.2308770000000067,
+              "msPerOperation": 0.031187400000000025,
+              "samples": {
+                "msPerOperation": [
+                  0.029939767999999957,
+                  0.030178451999999995,
+                  0.03275426000000004,
+                  0.029940595999999972,
+                  0.03497076400000003,
+                  0.03126089200000001,
+                  0.031187400000000025
+                ]
+              }
+            },
+            {
+              "sourceBytes": 0,
+              "input": "mutable caller",
+              "iterations": 500,
+              "coldMs": 0.12682899999998654,
+              "msPerOperation": 0.007938235999999961,
+              "samples": {
+                "msPerOperation": [
+                  0.008161285999999905,
+                  0.007967126000000007,
+                  0.007911292000000004,
+                  0.008655922000000033,
+                  0.007905110000000036,
+                  0.007938235999999961,
+                  0.007893069999999966
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 2.0179800000000228,
+              "msPerOperation": 0.5035384999999991,
+              "samples": {
+                "msPerOperation": [
+                  0.6537274499999995,
+                  0.48853849999999854,
+                  0.5035384999999991,
+                  0.48699794999999996,
+                  0.6006841000000008,
+                  0.5128641499999986,
+                  0.48500410000000044
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 0.5641029999999887,
+              "msPerOperation": 0.5189798499999995,
+              "samples": {
+                "msPerOperation": [
+                  0.5292709500000001,
+                  0.5175578999999999,
+                  0.5189798499999995,
+                  0.5161135000000001,
+                  0.5589796500000006,
+                  0.5095594500000005,
+                  0.5417925000000026
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 9.066127000000051,
+              "msPerOperation": 8.598695199999998,
+              "samples": {
+                "msPerOperation": [
+                  8.434200200000003,
+                  8.426973500000008,
+                  8.667945450000001,
+                  8.598695199999998,
+                  8.666301299999997,
+                  8.48149279999999,
+                  8.976935550000007
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 9.141271999999844,
+              "msPerOperation": 7.9383192000000005,
+              "samples": {
+                "msPerOperation": [
+                  8.51874284999999,
+                  8.44574665,
+                  7.725910900000008,
+                  7.615097000000015,
+                  7.9383192000000005,
+                  8.040808250000008,
+                  7.851650600000016
+                ]
+              }
+            }
+          ],
+          "checksum": 9726
+        },
+        {
+          "scope": "Audio volume command, validation and leaf publication; immutable variant includes real Yjs, selective Undo and snapshot reads. Mutable control applies leaves to a caller-owned record. 160 waveform values. Embedded sizes are base64 characters, not decoded audio bytes. No browser, decoder, network or audio output.",
+          "iterations": "One separately reported first edit; two warmup + seven measured batches, 500 edits for room references and 20 for embedded sources",
+          "results": [
+            {
+              "sourceBytes": 0,
+              "input": "immutable snapshot",
+              "iterations": 500,
+              "coldMs": 3.3274399999999957,
+              "msPerOperation": 0.03091118399999999,
+              "samples": {
+                "msPerOperation": [
+                  0.03072535799999997,
+                  0.028900764000000037,
+                  0.031485375999999975,
+                  0.03091118399999999,
+                  0.03108525400000002,
+                  0.030494190000000004,
+                  0.03481731999999999
+                ]
+              }
+            },
+            {
+              "sourceBytes": 0,
+              "input": "mutable caller",
+              "iterations": 500,
+              "coldMs": 0.14815199999998185,
+              "msPerOperation": 0.008278320000000007,
+              "samples": {
+                "msPerOperation": [
+                  0.00835876799999994,
+                  0.008140637999999967,
+                  0.008269528000000036,
+                  0.008645386000000031,
+                  0.008672978000000057,
+                  0.008278320000000007,
+                  0.008019360000000007
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 2.249453000000017,
+              "msPerOperation": 0.5081071000000008,
+              "samples": {
+                "msPerOperation": [
+                  0.5537140999999991,
+                  0.4909953999999999,
+                  0.5081071000000008,
+                  0.5366150500000003,
+                  0.7108633499999997,
+                  0.5061838500000022,
+                  0.4834508999999997
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 0.5902969999999641,
+              "msPerOperation": 0.551821750000002,
+              "samples": {
+                "msPerOperation": [
+                  0.551821750000002,
+                  0.522307600000002,
+                  0.6702061500000014,
+                  0.6919182499999976,
+                  0.5365983500000027,
+                  0.5584323499999982,
+                  0.4585014000000001
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 8.90099500000008,
+              "msPerOperation": 8.521138299999995,
+              "samples": {
+                "msPerOperation": [
+                  8.521138299999995,
+                  8.365437250000003,
+                  8.448433449999992,
+                  8.57297565,
+                  9.167250249999995,
+                  8.541873699999996,
+                  8.450758749999988
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 9.056126999999833,
+              "msPerOperation": 7.5000171499999855,
+              "samples": {
+                "msPerOperation": [
+                  7.698532799999998,
+                  7.461611249999987,
+                  7.556442749999997,
+                  7.365745700000002,
+                  7.79448195,
+                  7.5000171499999855,
+                  7.380212300000016
+                ]
+              }
+            }
+          ],
+          "checksum": 9726
+        },
+        {
+          "scope": "Audio volume command, validation and leaf publication; immutable variant includes real Yjs, selective Undo and snapshot reads. Mutable control applies leaves to a caller-owned record. 160 waveform values. Embedded sizes are base64 characters, not decoded audio bytes. No browser, decoder, network or audio output.",
+          "iterations": "One separately reported first edit; two warmup + seven measured batches, 500 edits for room references and 20 for embedded sources",
+          "results": [
+            {
+              "sourceBytes": 0,
+              "input": "immutable snapshot",
+              "iterations": 500,
+              "coldMs": 2.485590000000002,
+              "msPerOperation": 0.03065579600000001,
+              "samples": {
+                "msPerOperation": [
+                  0.03065579600000001,
+                  0.030194529999999987,
+                  0.03157883199999998,
+                  0.03063623000000001,
+                  0.030378008000000022,
+                  0.03212055400000003,
+                  0.032140070000000034
+                ]
+              }
+            },
+            {
+              "sourceBytes": 0,
+              "input": "mutable caller",
+              "iterations": 500,
+              "coldMs": 0.2362009999999941,
+              "msPerOperation": 0.008204893999999968,
+              "samples": {
+                "msPerOperation": [
+                  0.008691212000000064,
+                  0.008204893999999968,
+                  0.008786159999999996,
+                  0.00818048399999998,
+                  0.008353372000000036,
+                  0.00790522199999998,
+                  0.008027540000000045
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 2.3946869999999763,
+              "msPerOperation": 0.48346795000000214,
+              "samples": {
+                "msPerOperation": [
+                  0.56339045,
+                  0.4795907999999997,
+                  0.5693061999999998,
+                  0.48346795000000214,
+                  0.49608989999999836,
+                  0.4770431000000002,
+                  0.47154619999999736
+                ]
+              }
+            },
+            {
+              "sourceBytes": 65536,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 0.5901160000000232,
+              "msPerOperation": 0.53753715,
+              "samples": {
+                "msPerOperation": [
+                  0.5384118499999999,
+                  0.5911810499999973,
+                  0.53753715,
+                  0.5293983499999996,
+                  0.621971000000002,
+                  0.5178658000000013,
+                  0.4984703499999995
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "immutable snapshot",
+              "iterations": 20,
+              "coldMs": 8.792794999999956,
+              "msPerOperation": 8.478784450000001,
+              "samples": {
+                "msPerOperation": [
+                  8.444783300000006,
+                  8.654805199999998,
+                  8.795475550000003,
+                  8.420269200000007,
+                  8.478784450000001,
+                  8.499850100000003,
+                  8.459078900000009
+                ]
+              }
+            },
+            {
+              "sourceBytes": 1048576,
+              "input": "mutable caller",
+              "iterations": 20,
+              "coldMs": 9.010231000000203,
+              "msPerOperation": 7.384567549999997,
+              "samples": {
+                "msPerOperation": [
+                  8.00587865,
+                  7.475698949999992,
+                  7.384567549999997,
+                  7.309882949999997,
+                  7.33467885,
+                  7.370820400000002,
+                  7.463659999999981
+                ]
+              }
+            }
+          ],
+          "checksum": 9726
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-26T23:21:23.932Z",
+  "loadAverageAfter": [
+    0.35,
+    0.18,
+    0.32
+  ]
+}

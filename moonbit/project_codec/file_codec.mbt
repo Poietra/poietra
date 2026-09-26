@@ -153,7 +153,8 @@ fn parse_file_field(
     Playback => parse_file_field(value, playback_file_field)
     Audio => {
       let parsed = parse_file_field(value, audio_file_field)
-      if !@assets.valid_audio(decode_AudioTrack(parsed)) {
+      // Media was validated by the nested schema. Do not scan its source again.
+      if !@assets.valid_audio_fields(decode_AudioTrack(parsed)) {
         raise InvalidFileField
       }
       parsed
@@ -229,16 +230,22 @@ let playback_file_field : FileField = Record({
 })
 
 ///|
-let audio_file_field : FileField = Record({
+let audio_value_fields : Map[String, FileField] = {
   "id": Identifier,
   "name": Text(200),
-  "asset": Media,
   "volume": Numeric(0.0, 1.0, false),
   "muted": Boolean,
   "start": media_time,
   "offset": media_time,
   "duration": media_time,
-})
+}
+
+///|
+let audio_file_field : FileField = {
+  let fields = audio_value_fields.copy()
+  fields.set("asset", Media)
+  Record(fields)
+}
 
 ///|
 let object_file_field : FileField = Record({
@@ -403,7 +410,11 @@ pub fn read_image_asset(value : @core.Any) -> @scene.ImageAsset raise {
 
 ///|
 pub fn read_media_asset(value : @core.Any) -> @scene.MediaAsset raise {
-  decode_MediaAsset(parse_file_field(value, Media))
+  let asset = decode_MediaAsset(parse_file_field(value, media_file_field))
+  if !@assets.valid_media(asset) {
+    raise InvalidFileField
+  }
+  asset
 }
 
 ///|
@@ -412,6 +423,17 @@ pub fn read_media_playback(value : @core.Any) -> @scene.MediaPlayback raise {
 }
 
 ///|
-pub fn read_audio_track(value : @core.Any) -> @scene.AudioTrack raise {
-  decode_AudioTrack(parse_file_field(value, Audio))
+/// A specialized reader can reuse a previously validated immutable media leaf.
+/// The reader owns that provenance check; ordinary inputs validate afresh.
+pub fn read_audio_track(
+  value : @core.Any,
+  media_reader? : (@core.Any) -> @scene.MediaAsset raise = read_media_asset,
+) -> @scene.AudioTrack raise {
+  let parsed = parse_file_field(value, Record(audio_value_fields))
+  let asset = media_reader(value._get("asset"))
+  let track = decode_AudioTrack(parsed, asset_decoder=fn(_) { asset })
+  if !@assets.valid_audio_fields(track) {
+    raise InvalidFileField
+  }
+  track
 }

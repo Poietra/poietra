@@ -37,7 +37,10 @@ wire_enums = {
 
 # Immutable snapshot readers may share decoded leaves. Keep that ownership
 # policy outside this representation-only codec; ordinary callers decode afresh.
-leaf_decoders = {'Composition': {'ObjectState': 'state_decoder'}}
+leaf_decoders = {
+    'Composition': {'ObjectState': 'state_decoder'},
+    'AudioTrack': {'MediaAsset': 'asset_decoder'},
+}
 
 def decode(kind, value, overrides=None):
     overrides = overrides or {}

@@ -289,6 +289,12 @@ typed leaf decoder; it does not decide ownership or cache caller-owned inputs.
 State maps remain private to each decode, and public frames receive fresh native
 state/path records. Old snapshots, nested writes and accessor-based inputs keep
 their respective value semantics.
+Audio edits likewise reuse a validated typed media leaf from the current immutable
+Scene. Clip values and source bounds are checked on every command. Changed media,
+caller-owned patches and in-transaction inputs validate afresh; a shallow freeze
+does not establish ownership. The weak cache retains neither documents nor extra
+source bytes. The portable codec shares the same field schema and validates media
+once before checking clip values, instead of rescanning it inside the audio record.
 The layout resolves parent and paint indices once. Composition and transition
 evaluation share one traversal over current pose arrays; neither rebuilds an
 ID-keyed world-matrix map. Authored paint order, hidden ancestors and missing
@@ -417,10 +423,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 308 | 61,536 |
+| MoonBit application | 309 | 61,597 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 151 | 17,407 |
+| TypeScript tests, fixtures and test configurations | 152 | 17,526 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -492,6 +498,13 @@ failure, MP4/WebM decoding, audio, cancellation and both WebGL/SVG draft paths.
 Draft tests verify a single display copy, identical pixels, preserved context
 state and expiry on reuse/cancellation/disposal. This local selection is narrower
 than complete CI.
+
+The audio-validation change passed 755 Vitest checks, five extension/linking
+checks, 58 JS and 56 WASM MoonBit checks (including `assets`), 19 headless checks,
+public contracts and the production build. Its 21 browser checks cover shared
+audio edits, trim/volume/mute/Undo, portable media files, playback and independent
+MP4/WebM audio/video decoding. New command regressions cover changed source leaves,
+mutable/frozen-accessor inputs, invalid replacement assets and nested transactions.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -788,6 +801,27 @@ inherited tracks. Retained playback heap stayed around 5.485 MB without points
 and 15.115 MB with points. Editing-view [heap before](benchmarks/2026-09-27-indexed-compositions/heap-before.json)
 / [after](benchmarks/2026-09-27-indexed-compositions/heap-after.json) was
 0.273 → 0.280 MB at 500 objects; after 100 edits, 0.326 → 0.334 MB.
+
+**Audio editing.** The [before](benchmarks/2026-09-27-media-editing/before.json)
+/ [after](benchmarks/2026-09-27-media-editing/after.json) start from `1455c59`.
+Five fresh Node processes run two warmup and seven measured batches of volume
+edits, including real Yjs, selective Undo and immutable snapshot reads. Each
+source has 160 waveform values. Batches contain 500 edits for room references or
+20 for embedded sources. Embedded sizes below count base64 characters; these
+fixtures do not decode audio. Process medians, median [min–max] ms per edit:
+
+| Source | Before | After |
+| --- | ---: | ---: |
+| Room asset URL | 0.0309 [0.0304–0.0312] | 0.0239 [0.0226–0.0244] |
+| Embedded 64 KiB | 0.5035 [0.4835–0.5569] | 0.0202 [0.0197–0.0239] |
+| Embedded 1 MiB | 8.4788 [7.5578–8.5987] | 0.0199 [0.0189–0.0321] |
+
+The first edit still validates the source: its 1 MiB median was 9.07 → 6.32 ms,
+including cold command/JIT effects. A mutable-input control validates every time;
+removing duplicate source validation reduced its 1 MiB median from 7.59 to 4.31 ms.
+Normal browser imports upload embedded bytes to a room asset URL, so the large
+embedded-case reduction is not representative of ordinary browser drag latency.
+DOM, audio playback, networking and allocated bytes were not measured here.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

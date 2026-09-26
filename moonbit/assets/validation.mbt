@@ -77,9 +77,15 @@ pub fn valid_playback(value : @scene.MediaPlayback) -> Bool {
 
 ///|
 pub fn valid_audio(track : @scene.AudioTrack) -> Bool {
+  valid_media(track.asset) && valid_audio_fields(track)
+}
+
+///|
+/// Validate clip values against an already validated source. Source validation
+/// belongs to asset capture; repeated timing/volume edits do not change it.
+pub fn valid_audio_fields(track : @scene.AudioTrack) -> Bool {
   document_id(track.id) &&
   track.name.length() <= 200 &&
-  valid_media(track.asset) &&
   track.asset.hasAudio &&
   bounded_number(track.volume, 0.0, 1.0) &&
   valid_playback({
