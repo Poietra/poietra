@@ -19,3 +19,17 @@ test "Scene selection keeps zero holds at the end while project cuts skip them" 
   assert_eq(@scene.project_segment_at([(0.0, 0.0), (0.0, 0.0)], 0.0), Some(0))
   assert_eq(@scene.project_segment_at([], 0.0), None)
 }
+
+///|
+test "media endpoints extend playback independently of visual chronology" {
+  let data : @scene.TimelineData = {
+    order: ["first", "last"],
+    holds: { "first": 10.0, "last": 20.0 },
+    links: [{ id: "move", from_id: "first", to_id: "last", duration: 5.0, }],
+  }
+  assert_eq(@scene.timeline_segments(data).length(), 3)
+  assert_eq(@scene.timeline_duration(data, []), 35.0)
+  assert_eq(@scene.timeline_duration(data, [5.0, 40.0]), 40.0)
+  assert_eq(@scene.timeline_duration(data, [0.0, -1.0]), 35.0)
+  assert_true(@scene.timeline_duration(data, [0.0 / 0.0]).is_nan())
+}

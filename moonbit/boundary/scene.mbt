@@ -76,7 +76,7 @@ pub fn composition_frame(
 ) -> @core.Any {
   let composition = decode_composition_snapshot(value)
   let time : Double = if @core.is_undefined(time) {
-    @scene.timeline_segments(decode_timeline(input))
+    read_scene_segments(input)
     .iter()
     .find_first(fn(segment) {
       segment.kind == @scene.CompositionSegment && segment.id == composition.id
@@ -150,7 +150,7 @@ extern "js" fn make_segment(
 
 ///|
 pub fn scene_duration(input : @core.Any) -> Double {
-  @scene.timeline_duration(decode_timeline(input))
+  @scene.timeline_duration(decode_timeline(input), read_media_ends(input))
 }
 
 ///|

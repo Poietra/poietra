@@ -339,6 +339,11 @@ segment records. Scene selection shares one pure boundary rule, retaining a fina
 zero-duration hold; project cuts separately skip empty Scenes. The public
 `PlaybackPanel` adapter preserves its native props while the studio uses typed
 selection internally. This is a structural change; no speedup is claimed for it.
+Visual chronology contains only holds, links and their order. Media endpoints are
+a separate input to duration calculation, so segment queries and playback schedule
+preparation do not traverse objects or audio. Duration queries still consider all
+Composition visibility, including retained ones, and reuse the Composition-ID list
+across video objects within that call. No caller-owned Scene is cached.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -457,10 +462,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,760 |
+| MoonBit application | 310 | 61,785 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 157 | 17,981 |
+| TypeScript tests, fixtures and test configurations | 158 | 18,032 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -555,6 +560,11 @@ public-panel rendering check, five extension/linking checks, 60 MoonBit JS and
 57 standard WASM checks, the production build and public contracts. Its 40 selected
 browser checks cover timeline gestures, peer edits, zero durations, exact boundaries,
 Scene/transition edit targets, media, export and subscription isolation.
+The metadata-projection follow-up passed 780 Vitest checks, five extension/linking
+checks, 61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public
+contracts and the production build. Projection regressions enforce required-field
+reads, fresh mutable inputs, retained-Composition video visibility and invalid-number
+propagation; 24 browser checks covering timeline, media and project export passed.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -989,6 +999,18 @@ timing. Capture-listener-to-DOM medians improved from 9.1 [9.0–9.1] to
 40.5 ms respectively, with no improvement claimed. Delivered pointer spacing was
 33.3–33.4 ms and playback rAF spacing 16.7 ms. These are local SwiftShader results
 with CPU profiling enabled, not physical paint latency or field INP.
+
+**Timeline projection.** The [before/after reports](benchmarks/2026-09-27-timeline-projection/)
+compare `da3e54d` with the identified build. Five fresh Node processes each use two
+warmup and seven measured batches of 1,000 public calls. At 500 objects, two
+Compositions and no media, segment generation was 0.01409 [0.01368–0.01493] →
+0.00033 [0.00031–0.00050] ms. With twelve Compositions, fifty videos visible only
+in the final Composition, and one audio track, it was 0.05633 [0.05395–0.05684] →
+0.00202 [0.00196–0.00207] ms. Duration queries still inspect media; in that latter
+case they were 0.05406 [0.05334–0.05460] → 0.05218 [0.05107–0.05430] ms, with
+overlapping variation. The reports also include 100-object and media-free controls.
+These are metadata-query timings on stable caller-owned inputs without caching,
+frame evaluation, Yjs, browser work or decoding; no user-visible speedup is inferred.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

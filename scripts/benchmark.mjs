@@ -7,7 +7,7 @@ import { environment, root, stats } from '../apps/studio/scripts/benchmark-envir
 
 const { values } = parseArgs({ options: { output: { type: 'string', default: 'test-results/benchmarks/cpu.json' }, runs: { type: 'string', default: '3' }, suite: { type: 'string' }, help: { type: 'boolean' } } });
 if (values.help) {
-  console.log('Usage: pnpm bench [--runs 1..9] [--suite evaluation|snapshots|proposals|editing|timing|track|creation|primitives|render-view|media-editing|export-preparation|asset-validation|svg-escaping] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
+  console.log('Usage: pnpm bench [--runs 1..9] [--suite evaluation|snapshots|proposals|editing|timing|track|creation|primitives|render-view|media-editing|export-preparation|asset-validation|svg-escaping|timeline] [--output JSON_PATH]\nBuild first. Runs CPU benchmarks sequentially in fresh Node processes; no browser/server needed.');
   process.exit(0);
 }
 const count = Number(values.runs);
@@ -26,6 +26,7 @@ const suites = [
   ['export-preparation', 'benchmark-export-preparation.mjs', ['msPerPreparation']],
   ['asset-validation', 'benchmark-asset-validation.mjs', ['msPerOperation']],
   ['svg-escaping', 'benchmark-svg-escaping.mjs', ['msPerOperation']],
+  ['timeline', 'benchmark-timeline.mjs', ['msPerOperation']],
 ];
 if (values.suite && !suites.some(([name]) => name === values.suite)) throw new Error('Unknown --suite');
 const output = resolve(values.output);

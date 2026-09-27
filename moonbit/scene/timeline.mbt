@@ -78,7 +78,7 @@ pub fn scene_segments(scene : Scene) -> Array[Segment] {
 
 ///|
 pub fn scene_duration(scene : Scene) -> Double {
-  timeline_duration(scene_timeline(scene))
+  timeline_duration(scene_timeline(scene), scene_media_ends(scene))
 }
 
 ///|

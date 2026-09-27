@@ -1,0 +1,1808 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-27T00:38:30.538Z",
+  "environment": {
+    "applicationRevision": "da3e54d016fa6f85d966db024c8ed6ec628bf4b5",
+    "trackedModifications": [
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "4f2b4f94d0366e1f43a8bf22dca081c3a6a7da05d5fb8dca31c3793a6153d700",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.17,
+      1.35,
+      1
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "21054e22cb83d925796a8872cf9f4e378d994d3fefe477d21a122039dbc8d129",
+    "boundarySha256": "c7e7790e7b0034c6e719658a8033fd66246303f56b26169f11d78a75fa5b57ce",
+    "clientRuntimeSha256": "a3b7cec8cb4fa6f558c19974b8941c83a5ef8b76284f9913baf3947c4e6ba8cd",
+    "viteManifestSha256": "c12b1b12a3101ed922604ca40ce1b9aca56488a037888b8aed8cd3d35f6ff961"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "timeline": {
+      "summary": [
+        {
+          "operation": "segments",
+          "objects": 100,
+          "compositions": 2,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.0031034699999999945,
+            "min": 0.003017985000000003,
+            "max": 0.0031910099999999985
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 100,
+          "compositions": 2,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.002937764999999999,
+            "min": 0.002817604000000003,
+            "max": 0.0030127629999999925
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 100,
+          "compositions": 2,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.0033113930000000097,
+            "min": 0.003193702999999999,
+            "max": 0.0035371180000000066
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 100,
+          "compositions": 2,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.00319914,
+            "min": 0.003157061999999996,
+            "max": 0.0033599129999999774
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 100,
+          "compositions": 12,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.004322035999999997,
+            "min": 0.004280334000000011,
+            "max": 0.004485640000000018
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 100,
+          "compositions": 12,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.004048298999999986,
+            "min": 0.003946731,
+            "max": 0.004065350000000024
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 100,
+          "compositions": 12,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.007743575999999962,
+            "min": 0.00766812299999998,
+            "max": 0.007840190000000007
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 100,
+          "compositions": 12,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.007618286000000012,
+            "min": 0.00755225200000001,
+            "max": 0.007891413999999998
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 500,
+          "compositions": 2,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.014091655000000003,
+            "min": 0.013678090999999995,
+            "max": 0.014926443000000006
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 500,
+          "compositions": 2,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.014409244999999942,
+            "min": 0.013574705999999992,
+            "max": 0.01572390799999994
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 500,
+          "compositions": 2,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.020284400000000005,
+            "min": 0.019350834999999962,
+            "max": 0.021077466999999957
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 500,
+          "compositions": 2,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.02039999399999999,
+            "min": 0.01875991799999997,
+            "max": 0.02202877000000001
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 500,
+          "compositions": 12,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.017834683000000042,
+            "min": 0.016603850000000194,
+            "max": 0.018794970999999806
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 500,
+          "compositions": 12,
+          "media": false,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.01785674700000004,
+            "min": 0.01776022899999998,
+            "max": 0.018529414000000088
+          }
+        },
+        {
+          "operation": "segments",
+          "objects": 500,
+          "compositions": 12,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.05633309099999997,
+            "min": 0.05395422500000018,
+            "max": 0.0568425659999998
+          }
+        },
+        {
+          "operation": "duration",
+          "objects": 500,
+          "compositions": 12,
+          "media": true,
+          "iterations": 1000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.05405921099999978,
+            "min": 0.0533421000000003,
+            "max": 0.0546023839999998
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Public Scene timeline segments and duration. Media cases have one video per ten objects visible only in the final Composition, plus an independent audio track. Sources are room references. Reads are repeated against a stable ordinary caller-owned Scene, without a cache. No frame evaluation, Yjs, UI, browser, media decoding or I/O.",
+          "iterations": "Two warmup + seven measured batches of 1000 calls in each fresh process",
+          "results": [
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0031034699999999945,
+              "samples": {
+                "msPerOperation": [
+                  0.003475088999999997,
+                  0.003520450000000004,
+                  0.003054515000000002,
+                  0.0031034699999999945,
+                  0.003199922999999998,
+                  0.002849905,
+                  0.002917358
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.003010146000000006,
+              "samples": {
+                "msPerOperation": [
+                  0.0031930429999999887,
+                  0.003353760000000008,
+                  0.0035591050000000025,
+                  0.002812320999999997,
+                  0.0027916390000000037,
+                  0.0028574820000000045,
+                  0.003010146000000006
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0035371180000000066,
+              "samples": {
+                "msPerOperation": [
+                  0.003580122000000003,
+                  0.0035371180000000066,
+                  0.0034013360000000005,
+                  0.003173935999999998,
+                  0.0032871809999999897,
+                  0.005966439999999991,
+                  0.0036306530000000093
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0033599129999999774,
+              "samples": {
+                "msPerOperation": [
+                  0.003837615000000028,
+                  0.0033599129999999774,
+                  0.0031068879999999978,
+                  0.0032564150000000043,
+                  0.0032074730000000214,
+                  0.003775643000000002,
+                  0.003474505999999991
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004280334000000011,
+              "samples": {
+                "msPerOperation": [
+                  0.0046684139999999845,
+                  0.004280334000000011,
+                  0.004456837000000007,
+                  0.004235439999999983,
+                  0.004609780000000001,
+                  0.003980862999999999,
+                  0.004275786000000011
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0039939359999999905,
+              "samples": {
+                "msPerOperation": [
+                  0.004044904000000003,
+                  0.003974520000000013,
+                  0.003968017000000003,
+                  0.0051761009999999885,
+                  0.003950614999999999,
+                  0.004006990000000002,
+                  0.0039939359999999905
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007840190000000007,
+              "samples": {
+                "msPerOperation": [
+                  0.007798974999999984,
+                  0.007827359999999998,
+                  0.007736955000000023,
+                  0.007855614000000002,
+                  0.007950733000000014,
+                  0.00794413400000002,
+                  0.007840190000000007
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007661648000000014,
+              "samples": {
+                "msPerOperation": [
+                  0.007832600999999955,
+                  0.007565725999999984,
+                  0.007664468,
+                  0.0076458749999999895,
+                  0.00748136199999999,
+                  0.009115377000000023,
+                  0.007661648000000014
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014091655000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.013800219000000027,
+                  0.013840359999999975,
+                  0.015756918999999984,
+                  0.014190967999999998,
+                  0.015416181999999992,
+                  0.013509131999999965,
+                  0.014091655000000003
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.01572390799999994,
+              "samples": {
+                "msPerOperation": [
+                  0.015774410999999985,
+                  0.01572390799999994,
+                  0.013907465000000003,
+                  0.013781024999999999,
+                  0.02001302899999996,
+                  0.015176627000000054,
+                  0.015971272999999998
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.021077466999999957,
+              "samples": {
+                "msPerOperation": [
+                  0.021077466999999957,
+                  0.01894672400000002,
+                  0.02234963899999991,
+                  0.024321992999999906,
+                  0.019755235999999968,
+                  0.023968550999999935,
+                  0.020464202999999997
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.020401357000000075,
+              "samples": {
+                "msPerOperation": [
+                  0.019582689000000073,
+                  0.02205798800000002,
+                  0.020741557000000056,
+                  0.018447620999999914,
+                  0.018658988000000022,
+                  0.02160291899999993,
+                  0.020401357000000075
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.018794970999999806,
+              "samples": {
+                "msPerOperation": [
+                  0.02200247000000013,
+                  0.017775867999999945,
+                  0.017159636000000093,
+                  0.020518027000000074,
+                  0.018794970999999806,
+                  0.017228906999999936,
+                  0.02033234700000003
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.018234404999999926,
+              "samples": {
+                "msPerOperation": [
+                  0.01860303799999997,
+                  0.017080646999999997,
+                  0.017683408999999983,
+                  0.018234404999999926,
+                  0.019433440000000017,
+                  0.019161771999999928,
+                  0.01655319899999995
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0568425659999998,
+              "samples": {
+                "msPerOperation": [
+                  0.062419017999999826,
+                  0.06260515899999995,
+                  0.053133145999999895,
+                  0.05415752299999985,
+                  0.05464489400000002,
+                  0.05719550000000004,
+                  0.0568425659999998
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0546023839999998,
+              "samples": {
+                "msPerOperation": [
+                  0.053256358999999975,
+                  0.05289645699999983,
+                  0.05396578099999988,
+                  0.056785992999999965,
+                  0.058375879000000165,
+                  0.0546023839999998,
+                  0.05623382700000002
+                ]
+              }
+            }
+          ],
+          "checksum": 1566936000
+        },
+        {
+          "scope": "Public Scene timeline segments and duration. Media cases have one video per ten objects visible only in the final Composition, plus an independent audio track. Sources are room references. Reads are repeated against a stable ordinary caller-owned Scene, without a cache. No frame evaluation, Yjs, UI, browser, media decoding or I/O.",
+          "iterations": "Two warmup + seven measured batches of 1000 calls in each fresh process",
+          "results": [
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.003017985000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.002787513000000004,
+                  0.0030209329999999995,
+                  0.003043513000000004,
+                  0.003058911000000002,
+                  0.003017985000000003,
+                  0.002907530999999999,
+                  0.0027004209999999984
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.002817604000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.0032996650000000046,
+                  0.002778813999999997,
+                  0.002805133000000012,
+                  0.002817604000000003,
+                  0.0028853480000000076,
+                  0.002789479,
+                  0.002962795999999997
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0033391110000000027,
+              "samples": {
+                "msPerOperation": [
+                  0.003615358999999998,
+                  0.0033391110000000027,
+                  0.003309707000000003,
+                  0.003431635,
+                  0.0031417319999999904,
+                  0.0032062659999999993,
+                  0.0033748840000000085
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0031720479999999894,
+              "samples": {
+                "msPerOperation": [
+                  0.003204469000000003,
+                  0.0032179379999999896,
+                  0.0031618839999999863,
+                  0.0033071660000000237,
+                  0.0030921510000000013,
+                  0.0031720479999999894,
+                  0.003120572999999979
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004438000000000017,
+              "samples": {
+                "msPerOperation": [
+                  0.004438000000000017,
+                  0.006201552000000021,
+                  0.004316872000000018,
+                  0.0046783040000000255,
+                  0.004232784000000009,
+                  0.004727409999999992,
+                  0.004405899000000005
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004065195000000017,
+              "samples": {
+                "msPerOperation": [
+                  0.004010110999999995,
+                  0.004645107999999993,
+                  0.004023514000000006,
+                  0.004078799000000004,
+                  0.004065195000000017,
+                  0.004066090000000002,
+                  0.003943803000000003
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0077848919999999565,
+              "samples": {
+                "msPerOperation": [
+                  0.008255448999999998,
+                  0.009169365999999969,
+                  0.0076883760000000054,
+                  0.0077848919999999565,
+                  0.007791349999999966,
+                  0.007588495000000023,
+                  0.007513097000000016
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.00755225200000001,
+              "samples": {
+                "msPerOperation": [
+                  0.00755225200000001,
+                  0.007603210999999987,
+                  0.0075484500000000026,
+                  0.008003773999999965,
+                  0.007468735000000038,
+                  0.0076768109999999865,
+                  0.007388619000000006
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014209372999999971,
+              "samples": {
+                "msPerOperation": [
+                  0.014209372999999971,
+                  0.013540894999999978,
+                  0.015497147999999981,
+                  0.017889422000000023,
+                  0.014443288999999993,
+                  0.013228001000000007,
+                  0.013666275999999982
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.013574705999999992,
+              "samples": {
+                "msPerOperation": [
+                  0.015200110000000109,
+                  0.01399182600000006,
+                  0.013456510999999978,
+                  0.013603188999999929,
+                  0.013574705999999992,
+                  0.013402017999999998,
+                  0.013079502000000048
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.019350834999999962,
+              "samples": {
+                "msPerOperation": [
+                  0.01833038600000009,
+                  0.017968081999999982,
+                  0.019686031000000073,
+                  0.019350834999999962,
+                  0.021573685999999953,
+                  0.018975792999999953,
+                  0.022192184999999996
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.02000150199999996,
+              "samples": {
+                "msPerOperation": [
+                  0.021158149999999976,
+                  0.021067207000000053,
+                  0.0207470669999999,
+                  0.019511638999999945,
+                  0.019995996999999988,
+                  0.019948072000000025,
+                  0.02000150199999996
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.016603850000000194,
+              "samples": {
+                "msPerOperation": [
+                  0.017275210999999898,
+                  0.016603850000000194,
+                  0.0166884799999998,
+                  0.018320013000000017,
+                  0.01648147599999993,
+                  0.016276982999999974,
+                  0.015602743000000146
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.01785674700000004,
+              "samples": {
+                "msPerOperation": [
+                  0.01721364399999993,
+                  0.018466914999999973,
+                  0.01785674700000004,
+                  0.016585142000000132,
+                  0.01685426000000007,
+                  0.018467151000000057,
+                  0.019414891000000125
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.05633309099999997,
+              "samples": {
+                "msPerOperation": [
+                  0.06101722299999983,
+                  0.05722487799999999,
+                  0.05178388299999983,
+                  0.052464726000000156,
+                  0.05814992000000006,
+                  0.052319995999999945,
+                  0.05633309099999997
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0533421000000003,
+              "samples": {
+                "msPerOperation": [
+                  0.05623993900000005,
+                  0.054242768000000066,
+                  0.05322254699999985,
+                  0.05310297199999968,
+                  0.0533421000000003,
+                  0.053728757000000314,
+                  0.05329011799999989
+                ]
+              }
+            }
+          ],
+          "checksum": 1566936000
+        },
+        {
+          "scope": "Public Scene timeline segments and duration. Media cases have one video per ten objects visible only in the final Composition, plus an independent audio track. Sources are room references. Reads are repeated against a stable ordinary caller-owned Scene, without a cache. No frame evaluation, Yjs, UI, browser, media decoding or I/O.",
+          "iterations": "Two warmup + seven measured batches of 1000 calls in each fresh process",
+          "results": [
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.003058655999999999,
+              "samples": {
+                "msPerOperation": [
+                  0.003058655999999999,
+                  0.0029959699999999997,
+                  0.0031631200000000062,
+                  0.0031061240000000013,
+                  0.003196536000000002,
+                  0.003022379000000001,
+                  0.0029119289999999937
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0029310029999999898,
+              "samples": {
+                "msPerOperation": [
+                  0.003401093000000003,
+                  0.004601391000000007,
+                  0.0028602180000000033,
+                  0.0028220049999999903,
+                  0.004585743000000008,
+                  0.002843608000000003,
+                  0.0029310029999999898
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.003193702999999999,
+              "samples": {
+                "msPerOperation": [
+                  0.0029411129999999874,
+                  0.0034169529999999925,
+                  0.0033994160000000023,
+                  0.0030774799999999944,
+                  0.0032005280000000054,
+                  0.003193702999999999,
+                  0.003179552000000001
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.00319914,
+              "samples": {
+                "msPerOperation": [
+                  0.003711942999999991,
+                  0.003510558000000003,
+                  0.003193731000000014,
+                  0.00319914,
+                  0.0034454269999999953,
+                  0.003137720999999999,
+                  0.003090774999999979
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004485640000000018,
+              "samples": {
+                "msPerOperation": [
+                  0.004519998999999985,
+                  0.004485640000000018,
+                  0.004596286000000021,
+                  0.004628349000000014,
+                  0.004369515000000007,
+                  0.0042425369999999985,
+                  0.004290720000000021
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004048298999999986,
+              "samples": {
+                "msPerOperation": [
+                  0.004048298999999986,
+                  0.004050409000000002,
+                  0.004610378999999994,
+                  0.004004344000000003,
+                  0.0041177900000000135,
+                  0.003997568000000001,
+                  0.004012275999999986
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007710311999999987,
+              "samples": {
+                "msPerOperation": [
+                  0.013261022999999966,
+                  0.0076054320000000075,
+                  0.007710311999999987,
+                  0.008205904000000033,
+                  0.007831306999999982,
+                  0.007657887000000017,
+                  0.007666709000000026
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007561826999999994,
+              "samples": {
+                "msPerOperation": [
+                  0.007385903000000042,
+                  0.007519979999999976,
+                  0.007561826999999994,
+                  0.007840570000000014,
+                  0.007490000000000009,
+                  0.007772958000000017,
+                  0.007609951999999964
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.013678090999999995,
+              "samples": {
+                "msPerOperation": [
+                  0.013678090999999995,
+                  0.013511050000000012,
+                  0.013364555999999993,
+                  0.01406216900000004,
+                  0.01310193300000003,
+                  0.016734365999999966,
+                  0.01629096500000003
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014091758000000027,
+              "samples": {
+                "msPerOperation": [
+                  0.01375181699999996,
+                  0.014910630999999966,
+                  0.014399896000000013,
+                  0.01410004600000002,
+                  0.013554349000000002,
+                  0.014091758000000027,
+                  0.013703207999999904
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.019497535999999968,
+              "samples": {
+                "msPerOperation": [
+                  0.019872275999999942,
+                  0.01847800600000005,
+                  0.019986351000000013,
+                  0.01813072199999999,
+                  0.01943008700000007,
+                  0.021184543000000076,
+                  0.019497535999999968
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.02202877000000001,
+              "samples": {
+                "msPerOperation": [
+                  0.025632479999999985,
+                  0.02065827999999999,
+                  0.02202877000000001,
+                  0.023473893999999974,
+                  0.019105973999999946,
+                  0.02045762000000002,
+                  0.02257766300000003
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.018272809000000053,
+              "samples": {
+                "msPerOperation": [
+                  0.018272809000000053,
+                  0.019913058999999976,
+                  0.019932648999999854,
+                  0.02029323599999998,
+                  0.01759314900000004,
+                  0.017205124000000068,
+                  0.017945830000000114
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.018529414000000088,
+              "samples": {
+                "msPerOperation": [
+                  0.01751788599999986,
+                  0.018529414000000088,
+                  0.020338072000000013,
+                  0.01974001899999985,
+                  0.01669658900000013,
+                  0.018951692999999978,
+                  0.017411420000000136
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.056531353999999964,
+              "samples": {
+                "msPerOperation": [
+                  0.05832140800000002,
+                  0.05558906999999999,
+                  0.054073053999999954,
+                  0.056531353999999964,
+                  0.054838256,
+                  0.05670031600000016,
+                  0.056669998999999964
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.05405921099999978,
+              "samples": {
+                "msPerOperation": [
+                  0.0627527349999998,
+                  0.053482081000000105,
+                  0.05405921099999978,
+                  0.0535262459999999,
+                  0.05382414599999993,
+                  0.05520528999999988,
+                  0.05437892800000009
+                ]
+              }
+            }
+          ],
+          "checksum": 1566936000
+        },
+        {
+          "scope": "Public Scene timeline segments and duration. Media cases have one video per ten objects visible only in the final Composition, plus an independent audio track. Sources are room references. Reads are repeated against a stable ordinary caller-owned Scene, without a cache. No frame evaluation, Yjs, UI, browser, media decoding or I/O.",
+          "iterations": "Two warmup + seven measured batches of 1000 calls in each fresh process",
+          "results": [
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0031910099999999985,
+              "samples": {
+                "msPerOperation": [
+                  0.0031910099999999985,
+                  0.0032967690000000045,
+                  0.0032385129999999976,
+                  0.0032210910000000014,
+                  0.0029480649999999997,
+                  0.0031900410000000007,
+                  0.003102919
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0030127629999999925,
+              "samples": {
+                "msPerOperation": [
+                  0.003135869999999997,
+                  0.0028904310000000067,
+                  0.003149806999999996,
+                  0.0030127629999999925,
+                  0.0029176420000000007,
+                  0.0028898499999999955,
+                  0.0031101969999999994
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0033113930000000097,
+              "samples": {
+                "msPerOperation": [
+                  0.0029821499999999903,
+                  0.0053708019999999974,
+                  0.003533003000000008,
+                  0.003276984999999996,
+                  0.0031561279999999955,
+                  0.003486734999999996,
+                  0.0033113930000000097
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.003157061999999996,
+              "samples": {
+                "msPerOperation": [
+                  0.0032041750000000205,
+                  0.003491416000000015,
+                  0.003125237999999996,
+                  0.003066273999999993,
+                  0.003157061999999996,
+                  0.004247026000000005,
+                  0.003111311999999998
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004322035999999997,
+              "samples": {
+                "msPerOperation": [
+                  0.004652507000000014,
+                  0.004217295000000007,
+                  0.004322035999999997,
+                  0.004539222999999992,
+                  0.00403239099999999,
+                  0.00460548,
+                  0.004087342000000007
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.003946731,
+              "samples": {
+                "msPerOperation": [
+                  0.003957643999999988,
+                  0.004002268000000015,
+                  0.0039413869999999915,
+                  0.004063465000000008,
+                  0.003946731,
+                  0.003813279999999992,
+                  0.003881764000000004
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007743575999999962,
+              "samples": {
+                "msPerOperation": [
+                  0.008315958999999993,
+                  0.0074520200000000045,
+                  0.007713343000000009,
+                  0.007743575999999962,
+                  0.007823969000000033,
+                  0.008014813000000004,
+                  0.007546151000000009
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007618286000000012,
+              "samples": {
+                "msPerOperation": [
+                  0.010113103000000024,
+                  0.0076254309999999915,
+                  0.007616636000000028,
+                  0.00729525799999999,
+                  0.007594756999999959,
+                  0.008618268,
+                  0.007618286000000012
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014926443000000006,
+              "samples": {
+                "msPerOperation": [
+                  0.014296244999999999,
+                  0.014926443000000006,
+                  0.016867415999999993,
+                  0.014595021000000031,
+                  0.014178507999999965,
+                  0.015212702000000036,
+                  0.016081019999999967
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014524608000000057,
+              "samples": {
+                "msPerOperation": [
+                  0.014863257999999973,
+                  0.014710966999999983,
+                  0.014524608000000057,
+                  0.014386828000000037,
+                  0.013957225999999991,
+                  0.014411794999999984,
+                  0.014703616000000011
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.020284400000000005,
+              "samples": {
+                "msPerOperation": [
+                  0.021677853000000028,
+                  0.020284400000000005,
+                  0.019993221999999946,
+                  0.022328030000000013,
+                  0.01897962199999995,
+                  0.021967927999999914,
+                  0.019384468999999967
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.02039999399999999,
+              "samples": {
+                "msPerOperation": [
+                  0.020403914999999984,
+                  0.01950372200000004,
+                  0.02039999399999999,
+                  0.02286361999999997,
+                  0.020099136000000045,
+                  0.01964928500000008,
+                  0.020481153999999946
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.01765524900000014,
+              "samples": {
+                "msPerOperation": [
+                  0.01718264400000021,
+                  0.017253921999999876,
+                  0.01974113299999999,
+                  0.01765524900000014,
+                  0.018186371000000007,
+                  0.017179292000000033,
+                  0.019405258000000005
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.017814684999999827,
+              "samples": {
+                "msPerOperation": [
+                  0.017369837999999846,
+                  0.018650243000000045,
+                  0.016967105000000173,
+                  0.01757136199999991,
+                  0.018686911000000007,
+                  0.017814684999999827,
+                  0.01942462499999988
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.05395422500000018,
+              "samples": {
+                "msPerOperation": [
+                  0.05501851099999999,
+                  0.05395422500000018,
+                  0.052575595999999905,
+                  0.05546711000000005,
+                  0.05364276799999993,
+                  0.05684159,
+                  0.05302828799999997
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.05348184600000013,
+              "samples": {
+                "msPerOperation": [
+                  0.05343573900000001,
+                  0.05172388799999999,
+                  0.05348184600000013,
+                  0.056231316000000336,
+                  0.05253847900000028,
+                  0.05420168100000001,
+                  0.05620674000000008
+                ]
+              }
+            }
+          ],
+          "checksum": 1566936000
+        },
+        {
+          "scope": "Public Scene timeline segments and duration. Media cases have one video per ten objects visible only in the final Composition, plus an independent audio track. Sources are room references. Reads are repeated against a stable ordinary caller-owned Scene, without a cache. No frame evaluation, Yjs, UI, browser, media decoding or I/O.",
+          "iterations": "Two warmup + seven measured batches of 1000 calls in each fresh process",
+          "results": [
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.0031568170000000036,
+              "samples": {
+                "msPerOperation": [
+                  0.003040171999999998,
+                  0.003257269000000001,
+                  0.0031568170000000036,
+                  0.0034755970000000004,
+                  0.0031617820000000023,
+                  0.002929509000000003,
+                  0.0029139430000000035
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.002937764999999999,
+              "samples": {
+                "msPerOperation": [
+                  0.0029528760000000036,
+                  0.0029398300000000005,
+                  0.0030511949999999927,
+                  0.0029079000000000123,
+                  0.0029120949999999935,
+                  0.002937764999999999,
+                  0.002867964999999998
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.0032733249999999997,
+              "samples": {
+                "msPerOperation": [
+                  0.002732439999999997,
+                  0.00413862499999999,
+                  0.003777181999999996,
+                  0.0031131290000000005,
+                  0.0032733249999999997,
+                  0.0032329489999999906,
+                  0.003298476000000008
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.003241897000000023,
+              "samples": {
+                "msPerOperation": [
+                  0.0033667589999999874,
+                  0.0033948919999999987,
+                  0.0032643200000000263,
+                  0.0031861159999999984,
+                  0.003241897000000023,
+                  0.0032250099999999973,
+                  0.003193554000000006
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004289596000000017,
+              "samples": {
+                "msPerOperation": [
+                  0.004468337999999988,
+                  0.004133033999999981,
+                  0.004289596000000017,
+                  0.004417518999999998,
+                  0.004098479999999995,
+                  0.004207457000000005,
+                  0.005554362999999995
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.004065350000000024,
+              "samples": {
+                "msPerOperation": [
+                  0.004010311000000002,
+                  0.004238066000000004,
+                  0.004430616999999984,
+                  0.003934546999999981,
+                  0.004076189999999997,
+                  0.0040227489999999765,
+                  0.004065350000000024
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.00766812299999998,
+              "samples": {
+                "msPerOperation": [
+                  0.00998097199999998,
+                  0.007529668999999956,
+                  0.007492238999999984,
+                  0.007559331999999984,
+                  0.00917983700000002,
+                  0.008749148999999989,
+                  0.00766812299999998
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 100,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.007891413999999998,
+              "samples": {
+                "msPerOperation": [
+                  0.007773954000000003,
+                  0.007891413999999998,
+                  0.007637428999999998,
+                  0.00827498700000001,
+                  0.008338546000000007,
+                  0.007915458,
+                  0.007444991000000016
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.013814535999999976,
+              "samples": {
+                "msPerOperation": [
+                  0.014378378999999995,
+                  0.013870345000000043,
+                  0.014442430000000001,
+                  0.013814535999999976,
+                  0.013722959000000003,
+                  0.01367326700000001,
+                  0.013704323999999985
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.014409244999999942,
+              "samples": {
+                "msPerOperation": [
+                  0.014060005000000047,
+                  0.01427562899999998,
+                  0.014069921000000022,
+                  0.01454021899999998,
+                  0.014453906999999959,
+                  0.014409244999999942,
+                  0.014850082999999927
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.02068347700000004,
+              "samples": {
+                "msPerOperation": [
+                  0.02068347700000004,
+                  0.01881423799999993,
+                  0.022550702000000002,
+                  0.019207775999999968,
+                  0.019622462999999927,
+                  0.02119491400000004,
+                  0.021162109999999984
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 2,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.01875991799999997,
+              "samples": {
+                "msPerOperation": [
+                  0.020007747999999992,
+                  0.01875991799999997,
+                  0.01891170999999997,
+                  0.018217543000000093,
+                  0.018010899999999993,
+                  0.01850047500000005,
+                  0.018933632999999984
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.017834683000000042,
+              "samples": {
+                "msPerOperation": [
+                  0.018900977999999895,
+                  0.017800809999999955,
+                  0.021324109000000136,
+                  0.01751959799999986,
+                  0.017834683000000042,
+                  0.018372683999999934,
+                  0.017523009000000003
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": false,
+              "iterations": 1000,
+              "msPerOperation": 0.01776022899999998,
+              "samples": {
+                "msPerOperation": [
+                  0.017406386999999995,
+                  0.018288043000000018,
+                  0.016830586999999925,
+                  0.018354683000000024,
+                  0.01776022899999998,
+                  0.025236569000000146,
+                  0.01686054000000013
+                ]
+              }
+            },
+            {
+              "operation": "segments",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.054187945000000126,
+              "samples": {
+                "msPerOperation": [
+                  0.051862211000000116,
+                  0.0525637499999998,
+                  0.06110092099999997,
+                  0.05913564599999995,
+                  0.054187945000000126,
+                  0.05466816999999992,
+                  0.05392286799999988
+                ]
+              }
+            },
+            {
+              "operation": "duration",
+              "objects": 500,
+              "compositions": 12,
+              "media": true,
+              "iterations": 1000,
+              "msPerOperation": 0.05443158299999982,
+              "samples": {
+                "msPerOperation": [
+                  0.05376353700000004,
+                  0.05443158299999982,
+                  0.05222502200000008,
+                  0.055515810999999755,
+                  0.05337552800000003,
+                  0.05444205099999999,
+                  0.054719260000000304
+                ]
+              }
+            }
+          ],
+          "checksum": 1566936000
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-27T00:38:42.414Z",
+  "loadAverageAfter": [
+    1.13,
+    1.34,
+    1
+  ]
+}

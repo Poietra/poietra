@@ -21,7 +21,21 @@ fn decode_timeline(value : @core.Any) -> @scene.TimelineData {
       duration: link._get("duration").cast(),
     })
   }
+  {
+    order: @project_codec.decode_array(value._get("compositionOrder"), fn(v) {
+      v.cast()
+    }),
+    holds,
+    links,
+  }
+}
+
+///|
+/// Duration alone needs audio endpoints and video visibility, never payloads.
+fn read_media_ends(value : @core.Any) -> Array[Double] {
   let media_ends : Array[Double] = []
+  let compositions = value._get("compositions")
+  let mut composition_ids : Array[String]? = None
   let audio = value._get("audioTracks")
   if !@core.is_nullish(audio) {
     for id in @core.object_keys(audio) {
@@ -34,12 +48,22 @@ fn decode_timeline(value : @core.Any) -> @scene.TimelineData {
   let objects = value._get("objects")
   for id in @core.object_keys(objects) {
     let object = objects._get(id)
-    let playback = object._get("playback")
-    if !strict_equal(object._get("kind"), @core.any("video")) ||
-      !truthy(playback) {
+    if !strict_equal(object._get("kind"), @core.any("video")) {
       continue
     }
-    for cid in @core.object_keys(compositions) {
+    let playback = object._get("playback")
+    if !truthy(playback) {
+      continue
+    }
+    let ids = match composition_ids {
+      Some(ids) => ids
+      None => {
+        let ids = @core.object_keys(compositions)
+        composition_ids = Some(ids)
+        ids
+      }
+    }
+    for cid in ids {
       let state = compositions
         ._get(cid)
         ._get("states")
@@ -52,14 +76,7 @@ fn decode_timeline(value : @core.Any) -> @scene.TimelineData {
       }
     }
   }
-  {
-    order: @project_codec.decode_array(value._get("compositionOrder"), fn(v) {
-      v.cast()
-    }),
-    holds,
-    links,
-    media_ends,
-  }
+  media_ends
 }
 
 ///|
@@ -81,7 +98,7 @@ pub fn project_segments(project : @core.Any) -> FixedArray[@core.Any] {
     if !truthy(scene) {
       continue
     }
-    let duration = @scene.timeline_duration(decode_timeline(scene))
+    let duration = scene_duration(scene)
     result.push(make_project_segment(scene, start, duration))
     start += duration
   }

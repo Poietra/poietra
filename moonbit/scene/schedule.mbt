@@ -1,5 +1,5 @@
 ///|
-/// Timeline queries need structure and media endpoints, not payloads or geometry.
+/// Visual chronology depends only on Composition holds and Transition links.
 pub(all) struct TimelineLink {
   id : String
   from_id : String
@@ -12,7 +12,6 @@ pub(all) struct TimelineData {
   order : Array[String]
   holds : Map[String, Double]
   links : Array[TimelineLink]
-  media_ends : Array[Double]
 }
 
 ///|
@@ -45,11 +44,14 @@ pub fn timeline_segments(data : TimelineData) -> Array[Segment] {
 }
 
 ///|
-pub fn timeline_duration(data : TimelineData) -> Double {
+pub fn timeline_duration(
+  data : TimelineData,
+  media_ends : Array[Double],
+) -> Double {
   let mut result = timeline_segments(data).fold(init=0.0, fn(total, segment) {
     total + segment.duration
   })
-  for end in data.media_ends {
+  for end in media_ends {
     result = maximum(result, end)
   }
   result
@@ -108,6 +110,12 @@ pub fn scene_timeline(scene : Scene) -> TimelineData {
       }
     })
     .collect()
+  { order: scene.compositionOrder, holds, links, }
+}
+
+///|
+/// Media may extend playback without adding a visual segment.
+pub fn scene_media_ends(scene : Scene) -> Array[Double] {
   let media_ends = []
   if scene.audioTracks is Some(tracks) {
     for track in tracks.values() {
@@ -125,5 +133,5 @@ pub fn scene_timeline(scene : Scene) -> TimelineData {
       media_ends.push(playback.start + playback.duration)
     }
   }
-  { order: scene.compositionOrder, holds, links, media_ends, }
+  media_ends
 }
