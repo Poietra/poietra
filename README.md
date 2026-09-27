@@ -63,8 +63,8 @@ pnpm render:api   # local HTTP API
 # pnpm render:mcp # local stdio MCP server
 ```
 
-See the [headless guide](apps/render/README.md) for supported media, limits and
-HTTP/MCP contracts, or the [developer quickstart](https://poietra.com/developers/).
+See the [API quickstart](https://poietra.com/developers/) for codecs, limits and
+HTTP/MCP contracts, or [preview the docs for this checkout](docs/development.md#api-documentation).
 The renderer is self-hosted; poietra.com does not provide a hosted render endpoint.
 
 ## How it is built
@@ -76,11 +76,9 @@ of [poietra-hackathon](https://github.com/Poietra/poietra-hackathon).
 
 | Read more | Contents |
 | --- | --- |
-| [Architecture](docs/architecture.md) | Package map, document/Undo contracts, rendering and ownership |
-| [Development](docs/development.md) | Commands, extension steps, test suites and deployment record |
+| [Development](docs/development.md) | Architecture, commands, extension steps, checks and deployment record |
 | [Measurements](benchmarks/README.md) | Performance results, conditions, raw evidence and reproduction |
 | [Studio guide — 日本語](apps/studio/README.md) | Editing, configuration, deployment procedures and troubleshooting |
-| [Headless guide](apps/render/README.md) | File rendering, API/MCP, supported codecs and limits |
 
 ## Add a feature
 
@@ -99,7 +97,7 @@ pnpm build      # production build
 ```
 
 [CI](.github/workflows/check.yml) also runs MoonBit JS/WASM, browser, headless and
-real persistence/restart checks. See [test commands and verified scope](docs/development.md#checks)
+real persistence/restart checks. See [test commands and scope](docs/development.md#checks)
 for choosing the suites relevant to a change.
 
 ## Performance

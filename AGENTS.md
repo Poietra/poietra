@@ -2,8 +2,9 @@
 
 Applies to this entire repository. Product behavior is specified in
 [apps/studio/AGENTS.md](apps/studio/AGENTS.md). [README.md](README.md) is the
-project entry point; detailed architecture and development instructions live in
-[docs/](docs/), and measurement records in [benchmarks/README.md](benchmarks/README.md).
+project entry point; architecture and development instructions live in the
+[development guide](docs/development.md), and measurements in
+[benchmarks/README.md](benchmarks/README.md).
 
 ## Scope and provenance
 
@@ -134,7 +135,7 @@ project entry point; detailed architecture and development instructions live in
   cancellation and late-frame suppression, with a document-independent retry
   after preparation failure. Context wrappers still observe document changes.
 - Inspect upstream source, license, compatibility and tests before adopting a
-  dependency. Keep concise adoption decisions in the architecture guide.
+  dependency. Keep concise adoption decisions in the development guide.
 - 2026-09-21: The founder requested file-to-result API/MCP without Chromium or
   FFmpeg. The Node headless host reuses MoonBit parsing, prepared evaluation,
   SVG/equations and audio mixing; native adapters own standalone WASM codecs and
@@ -184,17 +185,14 @@ project entry point; detailed architecture and development instructions live in
   do not present CPU microbenchmarks or SwiftShader timings as user-visible FPS.
 - Use representative regression, backend-conformance and browser checks for changed behavior.
   Distinguish tests with mocked provider HTTP from live OAuth/OpenAI verification.
-- 2026-09-27: The founder requested a shorter README after technical detail and
-  measurement records grew it to 1,251 lines. Keep the root README to the product
-  overview, quickstart and links. Use `docs/architecture.md` for internal contracts,
-  `docs/development.md` for extension steps, checks and release records,
-  `benchmarks/README.md` for measured results and reproduction, and
-  `apps/render/README.md` for headless API/MCP details. Keep Japanese usage,
-  configuration and operations in the studio guide. Update the relevant guide
-  instead of appending implementation narratives or result tables to the root.
-  Link between guides instead of duplicating counts and release records. Keep raw
-  evidence, link older explanations at a fixed Git revision and date verification
-  records. Historical application text stays historical; avoid new ADRs/research
-  logs unless needed.
+- 2026-09-28: The founder requested fewer, simpler documents after splitting the
+  README left too much repeated material. Keep the root README as the entry point,
+  `docs/development.md` for architecture and development, the studio guide for
+  Japanese usage/operations, and `benchmarks/README.md` as a reproduction/evidence
+  index. API instructions come from `developer_site`, not additional READMEs.
+  Keep each fact in one place; avoid per-change narratives and stale counts.
+  Preserve raw evidence and link older explanations at a fixed Git revision.
+  Date verification records; keep historical application text historical.
+  Do not add ADRs/research logs unless needed.
 - Date decisions and state the problem they resolve. Do not label untested behavior
   verified, or describe a local build/dry-run as a production deployment.
