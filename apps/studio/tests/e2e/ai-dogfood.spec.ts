@@ -169,10 +169,12 @@ test('switching Scenes aborts pending work and keeps completed histories separat
   await send(page, '最初のSceneの未完了依頼'); await expect.poll(() => requests.length).toBe(2);
   await page.getByRole('button', { name: 'Scene を追加', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Scene 2', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('alert')).toContainText('Scene を切り替えたため');
   await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0);
   await expect(log(page).getByText('Scene応答1', { exact: true })).toBeVisible();
   await send(page, '別Sceneの条件'); await answered(page, 'Scene応答3');
   expect(requests[2].sceneId).not.toBe('scene-1'); expect(requests[2].history).toEqual([]);
+  expect(requests[2].selectedIds).toEqual([]);
   await fulfill(oldScenePending, reply('前Sceneの遅い応答')).catch(() => {});
   await page.getByRole('tab', { name: 'Scene 1', exact: true }).click();
   await expect(log(page).getByText('Scene応答1', { exact: true })).toBeVisible();
@@ -181,28 +183,4 @@ test('switching Scenes aborts pending work and keeps completed histories separat
   await send(page, 'このSceneの条件で続けて'); await answered(page, 'Scene応答4');
   expect(requests[3].sceneId).toBe('scene-1');
   expect(requests[3].history).toEqual([{ role: 'user', content: '最初のSceneの条件' }, { role: 'assistant', content: 'Scene応答1' }]);
-});
-
-test('history retains recent complete turns within entry, total-content and per-message limits', async ({ page }) => {
-  test.setTimeout(60000); await open(page); const requests: Request[] = [], responses: string[] = [];
-  await page.route('**/api/ai/propose', route => {
-    const index = requests.push(route.request().postDataJSON()) - 1;
-    const content = index < 14 ? `短い応答${index}` : `長い応答${index}:` + 'a'.repeat(2990);
-    responses.push(content); return fulfill(route, reply(content));
-  });
-  for (let index = 0; index < 19; index++) {
-    await send(page, index < 14 ? `短い依頼${index}` : `長い依頼${index}:` + 'b'.repeat(2990));
-    await expect.poll(() => responses.length).toBe(index + 1); await answered(page, responses[index]);
-  }
-  expect(requests[13].history).toHaveLength(24);
-  expect(requests[13].history.some(turn => turn.content === '短い依頼0')).toBe(false);
-  for (const request of requests) {
-    expect(request.history.length).toBeLessThanOrEqual(24);
-    expect(request.history.reduce((sum, turn) => sum + turn.content.length, 0)).toBeLessThanOrEqual(24000);
-    expect(request.history.every(turn => turn.content.length <= 3000)).toBe(true);
-    expect(request.history.at(-1)?.role ?? 'assistant').toBe('assistant');
-    expect(request.history.filter(turn => turn.role === 'user').length).toBe(request.history.filter(turn => turn.role === 'assistant').length);
-  }
-  expect(requests.at(-1)!.history.length).toBeLessThan(24);
-  expect(requests.at(-1)!.history.at(-1)?.content).toBe(responses[17]);
 });

@@ -140,15 +140,3 @@ for (const format of ['mp4', 'webm'] as const) {
     await page.locator('body').screenshot({ path: testInfo.outputPath(`canvas-and-decoded-${format}.png`) });
   });
 }
-
-test('records warmed 1280x720 rendering timings for sixteen moving objects', async ({ page }, testInfo) => {
-  for (const withWrite of [true, false]) {
-    const report = await page.evaluate(withWrite => window.effectsFixture.benchmark(withWrite), withWrite);
-    expect(report.backend).toBe('webgl2');
-    expect(report.count).toBe(16);
-    expect(report.timings).toHaveLength(report.frames);
-    expect(report.timings.every(time => Number.isFinite(time) && time >= 0)).toBe(true);
-    expect(report.meanMs).toBeGreaterThan(0);
-    await saveReport(testInfo, withWrite ? 'effects-benchmark' : 'effects-benchmark-move-rotate', report);
-  }
-});

@@ -44,6 +44,37 @@ it('sends completed current-scene conversation with speaker names and proposal s
   expect(chatHistory(messages, 'scene-1', 'alice')).toEqual([{ role: 'user', content: '最初の条件' }, { role: 'user', content: 'Bob: 地面は600です' }, { role: 'assistant', content: '提案です', proposalStatus: 'discarded' }]);
 });
 
+it('builds a bounded recent history without changing the retained conversation', () => {
+  const messages: ChatMessage[] = [];
+  for (let index = 0; index < 19; index++) {
+    const history = chatHistory(messages, 'scene-1', 'alice');
+    if (index === 13) {
+      expect(history).toHaveLength(24);
+      expect(history[0]).toEqual({ role: 'user', content: '依頼1' });
+    }
+    if (index === 18) {
+      // Four complete pairs exactly fill the content budget; older entries stop here.
+      expect(history).toEqual(messages.slice(-8).map(({ role, content }) => ({
+        role, content: content.replace(/^@codex /, '').slice(0, 3000),
+      })));
+      expect(history.reduce((sum, entry) => sum + entry.content.length, 0)).toBe(24000);
+    }
+    expect(history.length).toBeLessThanOrEqual(24);
+    expect(history.every(entry => entry.content.length <= 3000)).toBe(true);
+    expect(history.reduce((sum, entry) => sum + entry.content.length, 0)).toBeLessThanOrEqual(24000);
+    const content = index < 14 ? `依頼${index}` : `長い依頼${index}:` + 'b'.repeat(3100);
+    const response = index < 14 ? `応答${index}` : `長い応答${index}:` + 'a'.repeat(3100);
+    messages.push(
+      { ...message(`user-${index}`, `@codex ${content}`), mentionsCodex: true },
+      { ...message(`assistant-${index}`, response), role: 'assistant' },
+    );
+  }
+  const before = structuredClone(messages);
+  const history = chatHistory(messages, 'scene-1', 'alice');
+  expect(history.at(-1)).toEqual({ role: 'assistant', content: messages.at(-1)!.content.slice(0, 3000) });
+  expect(messages).toEqual(before);
+});
+
 it('bounds retained messages and ignores malformed synchronized entries', () => {
   const doc = new Y.Doc(), chat = new RoomChat(doc);
   for (let i = 0; i <= CHAT_MAX_MESSAGES; i++) chat.append(message(String(i)));

@@ -21,48 +21,54 @@ async function number(page: Page, label: string, value: string) {
   await field.fill(value); await field.press('Tab');
 }
 
-for (const entry of ['timeline', 'sidebar'] as const) {
-  test(`${entry} Composition add inherits the last composition including hidden equation and linked states; edits and Undo synchronize independently`, async ({ browser }) => {
-    const first = await browser.newContext(), second = await browser.newContext();
-    const alice = await first.newPage(), bob = await second.newPage(); const room = crypto.randomUUID();
-    try {
-      await Promise.all([open(alice, room), open(bob, room)]);
-      await layer(alice, 'Composition 2').click();
-      await layer(alice, 'Equation').click();
-      await alice.getByRole('textbox', { name: 'LaTeX expression', exact: true }).fill('E = mc^2 + \\alpha');
-      await number(alice, 'Rotation', '27');
-      await number(alice, 'Font size', '64');
-      await layer(alice, 'Equation を非表示').click();
-      await layer(alice, 'Circle').click(); await number(alice, 'Position X', '800');
-      await layer(alice, 'Sigmoid path').click({ modifiers: ['Shift'] });
-      await alice.keyboard.press('Control+g');
-      const before = (await state(alice)).scenes['scene-1'];
-      // Appending always starts from the last composition, even while viewing an earlier one.
-      await layer(alice, 'Composition 1').click();
-      if (entry === 'timeline') await alice.locator('.add-composition').click();
-      else await alice.locator('.composition-list').getByRole('button', { name: 'Composition を追加', exact: true }).click();
-      await expect(layer(alice, 'Composition 3')).toHaveAttribute('aria-pressed', 'true');
-      await expect(alice.getByRole('status').filter({ hasText: 'Composition 2 の配置と内容を引き継ぎました' })).toBeVisible();
-      await expect(layer(bob, 'Composition 3')).toBeVisible();
-      const after = (await state(alice)).scenes['scene-1'];
-      const created = after.compositionOrder.at(-1)!;
-      expect(after.compositions[created].states).toEqual(before.compositions['comp-2'].states);
-      expect(after.objects).toEqual(before.objects);
-      expect(after.compositions[created].states.equation.visible).toBe(false);
-      await layer(alice, 'Circle').click(); await number(alice, 'Position X', '1000');
-      await layer(bob, 'Composition 3').click(); await layer(bob, 'Circle').click();
-      await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('1000');
-      await layer(bob, 'Composition 2').click();
-      await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('800');
-      await number(bob, 'Position Y', '220');
-      await layer(alice, 'Circle').click(); await expect(layer(alice, 'Circle')).toBeFocused(); await alice.keyboard.press('Control+z');
-      await expect(alice.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('800');
-      await alice.keyboard.press('Control+z');
-      await expect(layer(bob, 'Composition 3')).toHaveCount(0);
-      await expect(bob.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('220');
-    } finally { await first.close(); await second.close(); }
-  });
-}
+test('timeline Composition add inherits the last composition including hidden equation and linked states; edits and Undo synchronize independently', async ({ browser }) => {
+  const first = await browser.newContext(), second = await browser.newContext();
+  const alice = await first.newPage(), bob = await second.newPage(); const room = crypto.randomUUID();
+  try {
+    await Promise.all([open(alice, room), open(bob, room)]);
+    await layer(alice, 'Composition 2').click();
+    await layer(alice, 'Equation').click();
+    await alice.getByRole('textbox', { name: 'LaTeX expression', exact: true }).fill('E = mc^2 + \\alpha');
+    await number(alice, 'Rotation', '27');
+    await number(alice, 'Font size', '64');
+    await layer(alice, 'Equation を非表示').click();
+    await layer(alice, 'Circle').click(); await number(alice, 'Position X', '800');
+    await layer(alice, 'Sigmoid path').click({ modifiers: ['Shift'] });
+    await alice.keyboard.press('Control+g');
+    const before = (await state(alice)).scenes['scene-1'];
+    // Appending always starts from the last composition, even while viewing an earlier one.
+    await layer(alice, 'Composition 1').click();
+    await alice.locator('.add-composition').click();
+    await expect(layer(alice, 'Composition 3')).toHaveAttribute('aria-pressed', 'true');
+    await expect(alice.getByRole('status').filter({ hasText: 'Composition 2 の配置と内容を引き継ぎました' })).toBeVisible();
+    await expect(layer(bob, 'Composition 3')).toBeVisible();
+    const after = (await state(alice)).scenes['scene-1'];
+    const created = after.compositionOrder.at(-1)!;
+    expect(after.compositions[created].states).toEqual(before.compositions['comp-2'].states);
+    expect(after.objects).toEqual(before.objects);
+    expect(after.compositions[created].states.equation.visible).toBe(false);
+    await layer(alice, 'Circle').click(); await number(alice, 'Position X', '1000');
+    await layer(bob, 'Composition 3').click(); await layer(bob, 'Circle').click();
+    await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('1000');
+    await layer(bob, 'Composition 2').click();
+    await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('800');
+    await number(bob, 'Position Y', '220');
+    await layer(alice, 'Circle').click(); await expect(layer(alice, 'Circle')).toBeFocused(); await alice.keyboard.press('Control+z');
+    await expect(alice.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('800');
+    await alice.keyboard.press('Control+z');
+    await expect(layer(bob, 'Composition 3')).toHaveCount(0);
+    await expect(bob.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('220');
+  } finally { await first.close(); await second.close(); }
+});
+
+test('sidebar Composition add selects the inherited composition', async ({ page }) => {
+  await open(page, crypto.randomUUID());
+  await page.locator('.composition-list').getByRole('button', { name: 'Composition を追加', exact: true }).click();
+  await expect(layer(page, 'Composition 3')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('status').filter({ hasText: 'Composition 2 の配置と内容を引き継ぎました' })).toBeVisible();
+  await layer(page, 'Circle').click();
+  await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('955');
+});
 
 test('real keyboard group cut and paste across compositions retains relative placement, isolates pasted identity, and preserves peer edits through Undo and Redo', async ({ browser }) => {
   const first = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });

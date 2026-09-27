@@ -2,7 +2,9 @@ import { defineConfig } from '@playwright/test';
 import effects from './effects.config';
 const port = Number(process.env.WRITE_TEST_PORT ?? 5177);
 export default defineConfig({
-  ...effects, testMatch: ['effects-write.spec.ts', 'effects-svg-profile.spec.ts', 'effects-shape-text.spec.ts'], timeout: 180_000,
+  ...effects, testMatch: process.env.RUN_WRITE_BENCHMARK ? ['effects-write-benchmark.spec.ts']
+    : process.env.RUN_SVG_PROFILE ? ['effects-svg-profile.spec.ts']
+    : ['effects-write.spec.ts', 'effects-shape-text.spec.ts'], timeout: 180_000,
   outputDir: process.env.WRITE_RESULTS_DIR ?? '../../test-results/effects-write',
   use: { ...effects.use, baseURL: `http://127.0.0.1:${port}`, trace: 'off' },
   webServer: {

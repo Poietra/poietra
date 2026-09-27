@@ -83,23 +83,6 @@ test('canceling then requesting again ignores the first response and keeps the n
   await expect(page.getByRole('button', { name: '停止', exact: true })).toHaveCount(0);
 });
 
-test('changing the scene cancels the pending response and later requests use the new scene', async ({ page }) => {
-  await open(page); await assistant(page); let first!: Route; const requests: Array<{ sceneId: string; selectedIds: string[] }> = [];
-  await page.route('**/api/ai/propose', route => {
-    requests.push(route.request().postDataJSON());
-    if (requests.length === 1) first = route;
-    else return fulfill(route, { id: crypto.randomUUID(), message: '新しい Scene の応答', count: 0, changes: [] });
-  });
-  await send(page); await expect.poll(() => requests.length).toBe(1);
-  await page.getByRole('button', { name: 'Scene を追加', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Scene を切り替えたため');
-  await send(page, '新しい場面を考えて');
-  await expect(page.getByText('新しい Scene の応答', { exact: true })).toBeVisible();
-  expect(requests[1].sceneId).not.toBe('scene-1'); expect(requests[1].selectedIds).toEqual([]);
-  await fulfill(first, positionProposal(640, 245, '前の Scene の応答')).catch(() => {});
-  await expect(page.getByText('前の Scene の応答', { exact: true })).toHaveCount(0);
-});
-
 test('an API failure can be retried, with no fake edit and no lost draft', async ({ page }) => {
   await open(page); await assistant(page); let first!: Route; let count = 0;
   await page.route('**/api/ai/propose', route => {

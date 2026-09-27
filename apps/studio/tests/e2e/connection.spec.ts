@@ -19,6 +19,7 @@ async function editor(browser: Browser, room: string) {
 }
 
 test('an open socket without initial sync never shows Live and keyboard retry recovers the loading screen', async ({ page }) => {
+  await page.clock.install();
   let connections = 0;
   await page.routeWebSocket('**/sync/**', socket => {
     if (++connections === 1) socket.onMessage(() => {}); // Open, but never return sync step 2.
@@ -27,6 +28,7 @@ test('an open socket without initial sync never shows Live and keyboard retry re
   await page.goto(`/?room=${crypto.randomUUID()}`);
   await expect(page.getByText('Syncing', { exact: true })).toBeVisible();
   await expect(page.getByText('Live', { exact: true })).toHaveCount(0);
+  await page.clock.runFor(10000);
   await expect(page.getByText('サーバーに接続しましたが、同期が完了していません。再接続してください。', { exact: true })).toBeVisible({ timeout: 12000 });
   const retry = page.getByRole('button', { name: '再接続', exact: true });
   await retry.focus(); await retry.press('Enter');

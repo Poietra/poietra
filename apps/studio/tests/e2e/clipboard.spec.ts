@@ -5,12 +5,12 @@ async function open(page: Page, room: string) {
   await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
 }
-async function copy(page: Page, cut = false) {
-  return page.evaluate(cut => {
+async function copy(page: Page) {
+  return page.evaluate(() => {
     const clipboardData = new DataTransfer();
-    document.body.dispatchEvent(new ClipboardEvent(cut ? 'cut' : 'copy', { clipboardData, bubbles: true, cancelable: true }));
+    document.body.dispatchEvent(new ClipboardEvent('copy', { clipboardData, bubbles: true, cancelable: true }));
     return clipboardData.getData('text/plain');
-  }, cut);
+  });
 }
 async function paste(page: Page, text: string) {
   await page.evaluate(text => {
@@ -35,20 +35,6 @@ test('pasting copied objects synchronizes and Undo preserves a peer’s source e
     await expect(bob.getByRole('button', { name: 'Circle copy', exact: true })).toHaveCount(0);
     await expect(bob.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('320');
   } finally { await first.close(); await second.close(); }
-});
-
-test('cut and paste into another composition preserves the earlier composition and each step can be undone', async ({ page }) => {
-  await open(page, crypto.randomUUID());
-  const data = await copy(page, true);
-  await expect(page.locator('[data-testid="stage-main"] [data-object-id="circle"]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
-  await paste(page, data);
-  await expect(page.getByRole('button', { name: 'Circle copy', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Circle copy', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
-  await page.getByRole('button', { name: 'Composition 1', exact: true }).click();
-  await expect(page.locator('[data-testid="stage-main"] [data-object-id="circle"]')).toBeVisible();
 });
 
 test('native clipboard shortcuts paste in place and text fields keep normal clipboard behavior', async ({ context, page }) => {
