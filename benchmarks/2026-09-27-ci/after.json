@@ -1,0 +1,750 @@
+{
+  "id": 36308337905,
+  "head_sha": "a26550d5c844f37b97f7ceb869b7afd606025ab4",
+  "html_url": "https://github.com/Poietra/poietra/actions/runs/36308337905",
+  "created_at": "2026-09-27T09:06:56Z",
+  "run_started_at": "2026-09-27T09:06:56Z",
+  "updated_at": "2026-09-27T09:11:25Z",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "media",
+      "runner_name": "GitHub Actions 1000011829",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:09:34Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:06:59Z",
+          "completed_at": "2026-09-27T09:07:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:24Z"
+        },
+        {
+          "name": "Run pnpm build:moonbit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:24Z",
+          "completed_at": "2026-09-27T09:07:34Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:34Z",
+          "completed_at": "2026-09-27T09:07:55Z"
+        },
+        {
+          "name": "Install independent video verification tools",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:07:55Z",
+          "completed_at": "2026-09-27T09:08:05Z"
+        },
+        {
+          "name": "Check media import, project playback and independently decoded downloads",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:08:05Z",
+          "completed_at": "2026-09-27T09:08:49Z"
+        },
+        {
+          "name": "Check MP4/WebM rendering of hierarchy and value curves",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-09-27T09:08:49Z",
+          "completed_at": "2026-09-27T09:09:15Z"
+        },
+        {
+          "name": "Check media decoding, stereo mixing and browser audio playback",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-09-27T09:09:15Z",
+          "completed_at": "2026-09-27T09:09:31Z"
+        },
+        {
+          "name": "Preserve media timings and failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-09-27T09:09:31Z",
+          "completed_at": "2026-09-27T09:09:32Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-09-27T09:09:32Z",
+          "completed_at": "2026-09-27T09:09:32Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-09-27T09:09:32Z",
+          "completed_at": "2026-09-27T09:09:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-09-27T09:09:32Z",
+          "completed_at": "2026-09-27T09:09:33Z"
+        }
+      ]
+    },
+    {
+      "name": "core",
+      "runner_name": "GitHub Actions 1000011830",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:08:34Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:01Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:01Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:25Z"
+        },
+        {
+          "name": "Check generated adapters and MoonBit types",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:25Z",
+          "completed_at": "2026-09-27T09:07:32Z"
+        },
+        {
+          "name": "Run pnpm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:32Z",
+          "completed_at": "2026-09-27T09:08:08Z"
+        },
+        {
+          "name": "Check headless API and MCP without browser or FFmpeg",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:08:08Z",
+          "completed_at": "2026-09-27T09:08:19Z"
+        },
+        {
+          "name": "Check generated public bindings",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:08:19Z",
+          "completed_at": "2026-09-27T09:08:19Z"
+        },
+        {
+          "name": "Run node scripts/moon.mjs test --target js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-09-27T09:08:19Z",
+          "completed_at": "2026-09-27T09:08:29Z"
+        },
+        {
+          "name": "Run node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-09-27T09:08:29Z",
+          "completed_at": "2026-09-27T09:08:31Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-09-27T09:08:31Z",
+          "completed_at": "2026-09-27T09:08:31Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-09-27T09:08:31Z",
+          "completed_at": "2026-09-27T09:08:31Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-09-27T09:08:31Z",
+          "completed_at": "2026-09-27T09:08:31Z"
+        }
+      ]
+    },
+    {
+      "name": "browser (4)",
+      "runner_name": "GitHub Actions 1000011832",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:11:19Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:24Z"
+        },
+        {
+          "name": "Run pnpm build:moonbit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:24Z",
+          "completed_at": "2026-09-27T09:07:34Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:34Z",
+          "completed_at": "2026-09-27T09:07:55Z"
+        },
+        {
+          "name": "Check editor and browser component contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:07:55Z",
+          "completed_at": "2026-09-27T09:11:16Z"
+        },
+        {
+          "name": "Preserve timings and browser failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:11:16Z",
+          "completed_at": "2026-09-27T09:11:17Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-09-27T09:11:17Z",
+          "completed_at": "2026-09-27T09:11:17Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-09-27T09:11:17Z",
+          "completed_at": "2026-09-27T09:11:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-09-27T09:11:18Z",
+          "completed_at": "2026-09-27T09:11:18Z"
+        }
+      ]
+    },
+    {
+      "name": "production",
+      "runner_name": "GitHub Actions 1000011833",
+      "started_at": "2026-09-27T09:07:00Z",
+      "completed_at": "2026-09-27T09:09:40Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:01Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:03Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:03Z",
+          "completed_at": "2026-09-27T09:07:27Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio build:web",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:27Z",
+          "completed_at": "2026-09-27T09:07:44Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:44Z",
+          "completed_at": "2026-09-27T09:08:08Z"
+        },
+        {
+          "name": "Check prerendered pages, hydration and project creation in production",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:08:08Z",
+          "completed_at": "2026-09-27T09:08:47Z"
+        },
+        {
+          "name": "Check real Worker startup, hibernation and restart recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:08:47Z",
+          "completed_at": "2026-09-27T09:09:11Z"
+        },
+        {
+          "name": "Check local media persistence and R2 migration/failure recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-09-27T09:09:11Z",
+          "completed_at": "2026-09-27T09:09:24Z"
+        },
+        {
+          "name": "Check account isolation, callback races and TTL across Worker restarts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-09-27T09:09:24Z",
+          "completed_at": "2026-09-27T09:09:35Z"
+        },
+        {
+          "name": "Preserve production timings and runtime failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-09-27T09:09:35Z",
+          "completed_at": "2026-09-27T09:09:37Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-09-27T09:09:37Z",
+          "completed_at": "2026-09-27T09:09:37Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-09-27T09:09:37Z",
+          "completed_at": "2026-09-27T09:09:37Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-09-27T09:09:37Z",
+          "completed_at": "2026-09-27T09:09:37Z"
+        }
+      ]
+    },
+    {
+      "name": "browser (2)",
+      "runner_name": "GitHub Actions 1000011831",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:10:38Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:01Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:23Z"
+        },
+        {
+          "name": "Run pnpm build:moonbit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:23Z",
+          "completed_at": "2026-09-27T09:07:33Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:33Z",
+          "completed_at": "2026-09-27T09:07:58Z"
+        },
+        {
+          "name": "Check editor and browser component contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:07:58Z",
+          "completed_at": "2026-09-27T09:10:35Z"
+        },
+        {
+          "name": "Preserve timings and browser failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:10:35Z",
+          "completed_at": "2026-09-27T09:10:36Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-09-27T09:10:36Z",
+          "completed_at": "2026-09-27T09:10:36Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-09-27T09:10:36Z",
+          "completed_at": "2026-09-27T09:10:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-09-27T09:10:36Z",
+          "completed_at": "2026-09-27T09:10:36Z"
+        }
+      ]
+    },
+    {
+      "name": "browser (1)",
+      "runner_name": "GitHub Actions 1000011834",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:10:56Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:00Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:25Z"
+        },
+        {
+          "name": "Run pnpm build:moonbit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:25Z",
+          "completed_at": "2026-09-27T09:07:35Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:35Z",
+          "completed_at": "2026-09-27T09:07:57Z"
+        },
+        {
+          "name": "Check editor and browser component contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:07:57Z",
+          "completed_at": "2026-09-27T09:10:53Z"
+        },
+        {
+          "name": "Preserve timings and browser failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:10:53Z",
+          "completed_at": "2026-09-27T09:10:54Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-09-27T09:10:54Z",
+          "completed_at": "2026-09-27T09:10:54Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-09-27T09:10:54Z",
+          "completed_at": "2026-09-27T09:10:55Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-09-27T09:10:55Z",
+          "completed_at": "2026-09-27T09:10:55Z"
+        }
+      ]
+    },
+    {
+      "name": "browser (3)",
+      "runner_name": "GitHub Actions 1000011835",
+      "started_at": "2026-09-27T09:06:59Z",
+      "completed_at": "2026-09-27T09:10:36Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:07:01Z",
+          "completed_at": "2026-09-27T09:07:02Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:07:02Z",
+          "completed_at": "2026-09-27T09:07:04Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:07:04Z",
+          "completed_at": "2026-09-27T09:07:29Z"
+        },
+        {
+          "name": "Run pnpm build:moonbit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-09-27T09:07:29Z",
+          "completed_at": "2026-09-27T09:07:38Z"
+        },
+        {
+          "name": "Run pnpm --dir apps/studio exec playwright install --with-deps chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-09-27T09:07:38Z",
+          "completed_at": "2026-09-27T09:08:08Z"
+        },
+        {
+          "name": "Check editor and browser component contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-09-27T09:08:08Z",
+          "completed_at": "2026-09-27T09:10:33Z"
+        },
+        {
+          "name": "Preserve timings and browser failure evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-09-27T09:10:33Z",
+          "completed_at": "2026-09-27T09:10:34Z"
+        },
+        {
+          "name": "Post Run ./.github/actions/setup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-09-27T09:10:34Z",
+          "completed_at": "2026-09-27T09:10:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-09-27T09:10:34Z",
+          "completed_at": "2026-09-27T09:10:34Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-09-27T09:10:34Z",
+          "completed_at": "2026-09-27T09:10:34Z"
+        }
+      ]
+    },
+    {
+      "name": "check",
+      "runner_name": "GitHub Actions 1000011836",
+      "started_at": "2026-09-27T09:11:22Z",
+      "completed_at": "2026-09-27T09:11:25Z",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-09-27T09:11:23Z",
+          "completed_at": "2026-09-27T09:11:23Z"
+        },
+        {
+          "name": "Require every test suite to succeed",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-09-27T09:11:23Z",
+          "completed_at": "2026-09-27T09:11:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-09-27T09:11:23Z",
+          "completed_at": "2026-09-27T09:11:23Z"
+        }
+      ]
+    }
+  ],
+  "context": {
+    "runner": "ubuntu-latest GitHub-hosted",
+    "node": "24.13.0",
+    "pnpm": "10.23.0",
+    "playwright": "1.63.0",
+    "browser_workers": 2,
+    "browser_shards": 4,
+    "application_revision": "db4865f",
+    "ci_browser_cases": 248,
+    "selection": "196 editor/component + 8 media editor + 10 export + 6 media audio + 28 site",
+    "note": "One successful workflow run; not a controlled CPU benchmark. Setup, queueing and uploads are included in wall time. Media cases run sequentially with one worker; no retries.",
+    "moonbit": "0.10.13+cbb11c36f",
+    "browser": "Chrome Headless Shell 153.0.8010.12 (Playwright v1243)",
+    "runner_image": "ubuntu-24.04 20260920.314.1",
+    "hardware": "GitHub-hosted VM; CPU affinity not pinned; hosts may differ",
+    "samples": 1,
+    "warmup": "No dedicated warmup; pnpm cache restored in both runs",
+    "exclusions": "No workload steps excluded; no application performance/FPS claim"
+  }
+}

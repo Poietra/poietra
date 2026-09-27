@@ -259,6 +259,13 @@
     "application_revision": "db4865f",
     "ci_browser_cases": 233,
     "selection": "189 editor/project-playback + 10 export + 6 media + 28 site",
-    "note": "One successful workflow run; not a controlled CPU benchmark. Setup, queueing and uploads are included in wall time."
+    "note": "One successful workflow run; not a controlled CPU benchmark. Setup, queueing and uploads are included in wall time.",
+    "moonbit": "0.10.13+cbb11c36f",
+    "browser": "Chrome Headless Shell 153.0.8010.12 (Playwright v1243)",
+    "runner_image": "ubuntu-24.04 20260920.314.1",
+    "hardware": "GitHub-hosted VM; CPU affinity not pinned; hosts may differ",
+    "samples": 1,
+    "warmup": "No dedicated warmup; pnpm cache restored in both runs",
+    "exclusions": "No workload steps excluded; no application performance/FPS claim"
   }
 }

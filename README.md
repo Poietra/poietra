@@ -587,19 +587,16 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `db4865f` passed local validation on **2026-09-27**:
-817 Vitest checks, 66 MoonBit JS checks, 63 WASM checks, 207 main browser checks,
-ten export checks, six media checks and 28 production page checks. Generated
-bindings, warning-free MoonBit types, public TypeScript contracts, five
-extension/linking checks, 20 headless API/MCP checks and the production build also
-passed. Browser checks used isolated Node storage; production page checks used
-the built application with an explicitly started production-mode Node host.
-These are local results, not a production deployment.
+Test layout revision `a26550d` passed the complete
+[CI run 36308337905](https://github.com/Poietra/poietra/actions/runs/36308337905)
+on **2026-09-27**: 818 Vitest checks, 66 MoonBit JS checks, 63 WASM checks,
+five extension/linking checks, 20 headless API/MCP checks and 248 browser cases.
+Generated bindings, warning-free MoonBit types, public TypeScript contracts,
+the production build and real Node/workerd persistence, collaboration and account
+restart checks passed. This verifies the application at `db4865f` with revised
+tests/CI; it is not a production deployment.
 
-The preceding clipping revision `cb08b4b` passed the complete
-[CI run 36304463514](https://github.com/Poietra/poietra/actions/runs/36304463514),
-including real Worker storage, collaboration and account restart checks.
-Those are the pre-audit counts. The test design review on **2026-09-27** found
+The test design review on **2026-09-27** found
 18 cases selected locally but omitted by CI's command-line filename list. Browser
 configs now share [suites.ts](apps/studio/tests/e2e/suites.ts); `pnpm check:test-suites`
 rejects missing, duplicate and unclassified specs, including nested files.
@@ -631,6 +628,25 @@ do not masquerade as correctness checks. No new retry policy hides failures.
 Every CI browser job retains JSON case durations and failure traces for seven
 days. The final `check` job retains the existing required-check name and fails
 if any suite fails, is cancelled or is unexpectedly skipped.
+
+The successful run above completed in **4m29s**, compared with **12m17s** for
+[the preceding serial run](https://github.com/Poietra/poietra/actions/runs/36306079950)
+at `4e2e07b`: 63.5% less elapsed time. The tradeoff is more runner time:
+
+| CI measurement | Serial | Split |
+| --- | ---: | ---: |
+| Workflow creation to completion, including setup and queueing | 12m17s | 4m29s |
+| Sum of job durations (not billing-rounded minutes) | 12m13s | 22m26s |
+| Browser cases included in CI | 233 | 248 |
+
+This is one successful sample per layout, with the same application, pinned
+MoonBit/Node/Playwright and Ubuntu runner image. Restored pnpm caches were used;
+no dedicated warmup or CPU affinity was applied. GitHub hosts and load can differ,
+and the split includes 18 previously omitted cases while consolidating three
+browser cases. It measures CI latency, not application speed or per-test CPU
+savings. Raw job/step timestamps and environment details are retained in
+[before.json](benchmarks/2026-09-27-ci/before.json) and
+[after.json](benchmarks/2026-09-27-ci/after.json).
 
 Regressions cover independent parsing, reserved/escaped keys in ignored subtrees,
 strict easing, borrowed inputs, raster identity/cancellation and preview/export
