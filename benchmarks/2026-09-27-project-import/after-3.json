@@ -1,0 +1,172 @@
+{
+  "measuredAt": "2026-09-27T01:59:41.744Z",
+  "environment": {
+    "applicationRevision": "fad7e6927682db7976c6cbb32c238e7092233821",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "600bd3e752abb1953c8bb5afbf7bcb0d593e43605d16ddc08ccd633839b29806",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.21,
+      0.89,
+      0.63
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "9ef0e0a51dbb3b3d95d0b60d862e29e09ad7b3ea67c1db10056b33286ef13b60",
+    "boundarySha256": "6148617114ba6730cb1c625c382bb8c22c4cd768b3d1a9504429a716a3fac58c",
+    "clientRuntimeSha256": "6c4d708d09841b5a7a6436928f22bc885931d6e9c67e5204b02bfdc06368ce18",
+    "viteManifestSha256": "3d35ada4dd886e97cb97940bbd6e57895cf857ca42e07891e7f55fb3c7f0d463"
+  },
+  "browser": "153.0.8010.12",
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "harnessSha256": "871de5463a670ed4d2e1714875540c2d9d64e571701cb5df4c4918c7036a3a80",
+  "scope": "Production editor, one warmup then three measured file openings per case in one browser context. Capture-phase file change starts timing; destination Live status, all object nodes and visible Canvas plus two rAF opportunities end it. Includes file reading, validation, lazy services, snapshots, Yjs serialization, local durable room acknowledgment, navigation and initial rendering. Fixture creation is outside timing. No assets, decoders, WAN or physical GPU completion. Pagehide marks the pre-navigation portion; source-page rAF intervals are diagnostic only. Every sample verifies final Composition geometry after timing.",
+  "results": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "jsonBytes": 62424,
+      "updateMessageBytes": 96830,
+      "inputSha256": "a228c720ac6aed958ab78ee351db2f8ab6f0551e0a216df3cbea99aabb981cb8",
+      "readyMs": {
+        "n": 3,
+        "median": 234.699951171875,
+        "min": 231.7998046875,
+        "max": 264.000244140625
+      },
+      "beforeNavigationMs": {
+        "n": 3,
+        "median": 45.5,
+        "min": 45.39990234375,
+        "max": 46.60009765625
+      },
+      "samples": [
+        {
+          "start": 1790474374376.6,
+          "intervals": [
+            16.600000000000023,
+            16.69999999999999
+          ],
+          "beforeNavigationMs": 45.5,
+          "readyMs": 231.7998046875
+        },
+        {
+          "start": 1790474375027.9,
+          "intervals": [
+            16.69999999999999,
+            16.700000000000045
+          ],
+          "beforeNavigationMs": 46.60009765625,
+          "readyMs": 264.000244140625
+        },
+        {
+          "start": 1790474375706.9001,
+          "intervals": [
+            16.700000000000045,
+            16.599999999999966
+          ],
+          "beforeNavigationMs": 45.39990234375,
+          "readyMs": 234.699951171875
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 6,
+      "jsonBytes": 841352,
+      "updateMessageBytes": 1367402,
+      "inputSha256": "da56bb6d489ba93cb2db2e3d7d977ba08d10045104e5f3da2f8ccbc48ffbc86c",
+      "readyMs": {
+        "n": 3,
+        "median": 804.89990234375,
+        "min": 771.300048828125,
+        "max": 875.599853515625
+      },
+      "beforeNavigationMs": {
+        "n": 3,
+        "median": 347.10009765625,
+        "min": 338.199951171875,
+        "max": 350.39990234375
+      },
+      "samples": [
+        {
+          "start": 1790474377966.3,
+          "intervals": [
+            33.30000000000001,
+            16.69999999999999,
+            16.600000000000023,
+            16.69999999999999,
+            16.69999999999999,
+            50,
+            16.600000000000023,
+            16.700000000000045,
+            16.59999999999991,
+            16.800000000000068,
+            16.600000000000023,
+            16.59999999999991,
+            66.80000000000007,
+            16.600000000000023,
+            16.699999999999932,
+            16.600000000000023,
+            16.700000000000045
+          ],
+          "beforeNavigationMs": 350.39990234375,
+          "readyMs": 875.599853515625
+        },
+        {
+          "start": 1790474379403.8,
+          "intervals": [
+            33.299999999999955,
+            16.700000000000045,
+            16.69999999999999,
+            16.599999999999966,
+            16.80000000000001,
+            49.900000000000034,
+            16.599999999999966,
+            16.69999999999999,
+            16.700000000000045,
+            16.699999999999932,
+            16.600000000000023,
+            16.700000000000045,
+            16.699999999999932,
+            49.90000000000009,
+            16.699999999999932,
+            16.700000000000045,
+            16.699999999999932,
+            16.600000000000023
+          ],
+          "beforeNavigationMs": 347.10009765625,
+          "readyMs": 804.89990234375
+        },
+        {
+          "start": 1790474380787,
+          "intervals": [
+            33.39999999999998,
+            16.600000000000023,
+            33.30000000000001,
+            16.69999999999999,
+            50,
+            16.599999999999966,
+            16.700000000000045,
+            16.699999999999932,
+            16.600000000000023,
+            16.700000000000045,
+            16.699999999999932,
+            66.70000000000005,
+            16.700000000000045,
+            16.59999999999991,
+            16.700000000000045
+          ],
+          "beforeNavigationMs": 338.199951171875,
+          "readyMs": 771.300048828125
+        }
+      ]
+    }
+  ]
+}

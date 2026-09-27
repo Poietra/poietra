@@ -1066,6 +1066,29 @@ The largest JSON-only control was 33.480 [32.924–34.394] →
 33.555 [32.512–34.340] ms. Limits, schemas, reference checks and input content
 are unchanged; no peak-memory or browser-interaction claim is made.
 
+**Production file opening.** The [browser reports and codec source manifest](benchmarks/2026-09-27-project-import/)
+compare both parsing improvements with the three codec files from `db01142`,
+on the same `fad7e69` Node host with bounded writes and durable ordered replies.
+Each of three fresh Chromium processes performs one warmup and three measured
+openings per case, with frozen production artifacts and isolated loopback storage.
+The same JSON fixtures include legacy track initialization. Timing runs from file
+input change through navigation, destination Live status, object nodes and visible
+Canvas, plus two animation-frame opportunities; geometry is verified afterwards.
+
+| File / observed interval | Before, ms | After, ms |
+| --- | ---: | ---: |
+| 100 objects × 2 Compositions, ready | 234 [233–235] | 235 [233–235] |
+| 500 × 6, ready | 872 [841–889] | 839 [805–874] |
+| 500 × 6, before navigation | 376 [353–385] | 353 [347–376] |
+
+These are medians and ranges of process medians; the ranges overlap, so an
+end-to-end import speedup is not established. The interval includes Yjs conversion,
+server migration/persistence, navigation, rendering and test-observer scheduling.
+Yjs random IDs vary binary packet lengths; the portable inputs are byte-identical.
+It excludes WAN, media and physical GPU completion. The
+[measurement script](apps/studio/scripts/measure-project-import.mjs) accepts
+`POIETRA_PERF_URL` and `POIETRA_PERF_OUTPUT`; use an isolated production Node host.
+
 **Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
 compare `893cbfa` with an experimental typed, quantized cubic representation.
 Three fresh Chromium processes per shape/revision use the preview-publication

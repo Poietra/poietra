@@ -1,0 +1,124 @@
+{
+  "applicationRevision": "fad7e6927682db7976c6cbb32c238e7092233821",
+  "baselineCodecRevision": "db01142",
+  "baselineOverrides": [
+    {
+      "path": "moonbit/project_codec/file_codec.mbt",
+      "beforeSha256": "7289156a11681b189923c7f45e684df165e90bd4f233ae0d6843b093e1d04021",
+      "afterSha256": "d0340a1b38f5664747746bc31f8217aff2b5e4574b09d3b0e44b3c2387a6ce04"
+    },
+    {
+      "path": "moonbit/project_codec/host.mbt",
+      "beforeSha256": "5e507b5462082ce0273c854afa77f0314fe3579ff22afbc7e6130413b417f4fe",
+      "afterSha256": "cc858bdc2f245dd905807a4f1648d49af2d879ad752b3e8dc91769becb761685"
+    },
+    {
+      "path": "moonbit/project_codec/project_file.mbt",
+      "beforeSha256": "6f2ad18b7b787dae7b1547de268ece6933fe18b4b9bb7b22020d81f7bd44a847",
+      "afterSha256": "14f760c70b532194c9d366fae1d2ac155c21b4654dc7b3ff23c21e0180a8472a"
+    }
+  ],
+  "summary": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "metric": "readyMs",
+      "before": {
+        "median": 234,
+        "min": 233.499755859375,
+        "max": 234.699951171875,
+        "processMedians": [
+          234.699951171875,
+          234,
+          233.499755859375
+        ]
+      },
+      "after": {
+        "median": 234.699951171875,
+        "min": 233.300048828125,
+        "max": 235.099853515625,
+        "processMedians": [
+          233.300048828125,
+          235.099853515625,
+          234.699951171875
+        ]
+      }
+    },
+    {
+      "objects": 100,
+      "compositions": 2,
+      "metric": "beforeNavigationMs",
+      "before": {
+        "median": 47,
+        "min": 43.60009765625,
+        "max": 49.900146484375,
+        "processMedians": [
+          49.900146484375,
+          47,
+          43.60009765625
+        ]
+      },
+      "after": {
+        "median": 45.7001953125,
+        "min": 45.5,
+        "max": 46.400146484375,
+        "processMedians": [
+          45.7001953125,
+          46.400146484375,
+          45.5
+        ]
+      }
+    },
+    {
+      "objects": 500,
+      "compositions": 6,
+      "metric": "readyMs",
+      "before": {
+        "median": 871.7998046875,
+        "min": 841.300048828125,
+        "max": 889.300048828125,
+        "processMedians": [
+          889.300048828125,
+          841.300048828125,
+          871.7998046875
+        ]
+      },
+      "after": {
+        "median": 839.099853515625,
+        "min": 804.89990234375,
+        "max": 873.699951171875,
+        "processMedians": [
+          873.699951171875,
+          839.099853515625,
+          804.89990234375
+        ]
+      }
+    },
+    {
+      "objects": 500,
+      "compositions": 6,
+      "metric": "beforeNavigationMs",
+      "before": {
+        "median": 375.599853515625,
+        "min": 353.39990234375,
+        "max": 384.599853515625,
+        "processMedians": [
+          384.599853515625,
+          353.39990234375,
+          375.599853515625
+        ]
+      },
+      "after": {
+        "median": 353,
+        "min": 347.10009765625,
+        "max": 375.7998046875,
+        "processMedians": [
+          375.7998046875,
+          353,
+          347.10009765625
+        ]
+      }
+    }
+  ],
+  "interpretation": "Process-median ranges overlap. No established browser import speedup; same JSON fixtures and fixed Node persistence/outbox on both sides. Before restores three codec files from db01142; after uses fad7e69. Yjs random client IDs naturally vary binary packet sizes. Preflight packet lengths are checks on separately staged documents, not exact timed packet lengths."
+}
