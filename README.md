@@ -2,10 +2,10 @@
 
 **Make motion together, with friends and AI.**
 
-Poietra is a collaborative motion editor in the browser. Arrange shapes, text,
-equations, images and video; animate their properties; mix audio; and export MP4
-or WebM. Friends and the AI assistant edit the same structured objects, so
-positions, colors and timings remain editable.
+Poietra is a collaborative motion editor built with MoonBit, running in the
+browser. Arrange shapes, text, equations, images and video; animate their
+properties; mix audio; and export MP4 or WebM. Friends and the AI assistant edit
+the same structured objects, so positions, colors and timings remain editable.
 
 [Open Poietra](https://poietra.com) · [日本語の使い方](apps/studio/README.md) ·
 [API / MCP](https://poietra.com/developers/) · [Issues](https://github.com/Poietra/poietra/issues)
@@ -71,8 +71,7 @@ The renderer is self-hosted; poietra.com does not provide a hosted render endpoi
 
 Application logic lives in [MoonBit packages](moonbit/), with a WebAssembly motion
 kernel and JavaScript adapters for browsers, Node and Cloudflare. TypeScript is
-used for public declarations and build/test tooling. This is the MoonBit rewrite
-of [poietra-hackathon](https://github.com/Poietra/poietra-hackathon).
+used for public declarations and build/test tooling.
 
 | Read more | Contents |
 | --- | --- |

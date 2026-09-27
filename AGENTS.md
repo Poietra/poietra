@@ -22,7 +22,7 @@ project entry point; architecture and development instructions live in the
   use Git history or the hackathon repository when historical code is needed.
 - The separate private `poietra-design-archive` was not imported. Do not copy
   its documents or history into this public repository.
-- 2026-09-20: The founder authorized deploying the MoonBit rewrite to
+- 2026-09-20: The founder authorized deploying Poietra to
   `https://poietra.com`. Use the explicit `production` Wrangler environment to
   update the existing `poietra-hackathon` Worker in Yumaboda's account. Preserve
   its Durable Object namespaces/classes, migration tags, `poietra-assets-prod`
@@ -190,6 +190,8 @@ project entry point; architecture and development instructions live in the
   `docs/development.md` for architecture and development, the studio guide for
   Japanese usage/operations, and `benchmarks/README.md` as a reproduction/evidence
   index. API instructions come from `developer_site`, not additional READMEs.
+  Present Poietra as a collaborative motion editor built with MoonBit; keep
+  migration history in provenance records rather than product descriptions.
   Keep each fact in one place; avoid per-change narratives and stale counts.
   Preserve raw evidence and link older explanations at a fixed Git revision.
   Date verification records; keep historical application text historical.

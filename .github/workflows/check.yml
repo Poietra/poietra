@@ -1,4 +1,4 @@
-name: Check MoonBit rewrite
+name: Check Poietra
 
 on:
   push:
