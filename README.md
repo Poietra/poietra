@@ -502,7 +502,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 311 | 62,133 |
+| MoonBit application | 311 | 62,134 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
 | TypeScript tests, fixtures and test configurations | 159 | 18,538 |
@@ -522,6 +522,9 @@ still merge native patches before validation, and some UI/host orchestration use
 reused. Further work is to move domain decisions into typed plans, narrow those
 subscriptions and reduce the still-large editor entry. Zero executable TS is an
 inventory result, not completion of these changes.
+[Headless inspection](moonbit/headless_render/entry.mbt) still compiles playback
+before returning metadata. A future metadata-only path must preserve validation,
+issue ordering and limits; it has not been implemented or benchmarked here.
 
 ## Add a feature
 
@@ -560,35 +563,30 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `c52ca3d` passed the complete
-[CI run 36285624232](https://github.com/Poietra/poietra/actions/runs/36285624232)
-on **2026-09-27**: 795 Vitest checks, 61 MoonBit JS checks, 58 WASM checks,
-182 main browser checks, ten export checks, six media checks and 28 production
+Application revision `0ef67ab` passed the complete
+[CI run 36287891334](https://github.com/Poietra/poietra/actions/runs/36287891334)
+on **2026-09-27**: 808 Vitest checks, 63 MoonBit JS checks, 60 WASM checks,
+184 main browser checks, ten export checks, six media checks and 28 production
 page checks. Generated bindings, warning-free MoonBit types, public TypeScript
 contracts, five extension/linking checks, 19 headless API/MCP checks and the
 production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The transport/headless follow-up passed 808 Vitest checks, five extension/linking
-checks, 63 MoonBit JS and 60 standard WASM checks, 19 headless checks, public
-contracts and a production build locally on **2026-09-27**. New deterministic
-regressions exercise a large write followed by its ordered reply, bounded stalled
-peers, failed sends, late callbacks, save-before-reply ordering (including missing
-Yjs dependencies), and actual filesystem failures before broadcast/reply. Five project browser cases (including
-500-object/six-Composition imports with and without legacy track initialization)
-and four connection cases passed against the production build. Pure JS/WASM tests
-also preserve retained/hidden text resources, first ordered Scene dimensions and
-independent resource lists when a prepared timeline is reused.
-A real Node process is killed immediately after an ordered reply, then restarted
-from the same isolated directory. Both ordinary and unresolved-dependency updates
-survive. The same two regressions fail against the pre-fix `1548c6c` Node host;
-no graceful close/dispose or checkpoint delay is allowed before the kill.
-The full CI above also covers owned file
-normalization, reserved/escaped keys in ignored subtrees, strict easing, independent
-parses, borrowed inputs, raster identity/cancellation and preview/export agreement.
-The earlier playback-test timeout was resolved by selecting the edit time explicitly
-after checking actual paused pixels; the complete replacement CI passed.
+Regressions cover independent parsing, reserved/escaped keys in ignored subtrees,
+strict easing, borrowed inputs, raster identity/cancellation and preview/export
+agreement. Pure JS/WASM cases preserve retained/hidden text resources, first
+ordered Scene dimensions and independent lists when a timeline is reused.
+Browser cases include 500-object/six-Composition imports with and without legacy
+track initialization, reload and reconnect.
+
+The Node transport tests exercise bounded stalled peers, failed sends, late
+callbacks, saved ordered replies (including unresolved Yjs dependencies), malformed
+vectors and actual filesystem failures before broadcast/reply. A real Node process
+is killed immediately after an ordered reply and restarted from the same isolated
+directory: ordinary and unresolved-dependency updates both survive. Those two
+regressions fail against the pre-fix `1548c6c` host; no graceful close/dispose or
+checkpoint delay is allowed before the kill.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -680,476 +678,173 @@ environment, workloads and raw samples. The following results describe specific
 local fixtures. Production CDN delivery, real mobile hardware, WAN collaboration
 and long source-media projects need separate measurement.
 
-### Rendering and playback — 2026-09-27
+<a id="rendering-and-playback--2026-09-27"></a>
 
-These incremental comparisons use Node **24.13.0**, MoonBit
-**0.10.13+cbb11c36f**, Intel Core Ultra 7 255H, 32 GB WSL2 and affinity **0–15**.
-Browser runs use headless Chromium **153.0.8010.12** with SwiftShader. Builds,
-tests and benchmarks run separately, with application sources and generated
-output frozen during browser runs. Raw reports contain source/artifact hashes,
-samples, warmup and exclusions; CPU and SwiftShader timings are not hardware FPS.
-[Earlier per-step explanations](https://github.com/Poietra/poietra/blob/dc881f56c93f75b8d68f452cd2348eb88ce170b4/README.md#performance)
-retain the detailed development sequence.
+### Rendering, import and retained memory — 2026-09-27
 
-**Canvas and interaction.** [Rendering before](benchmarks/2026-09-27-typed-frames/rendering-before.json)
-and [after](benchmarks/2026-09-27-typed-frames/rendering-after.json) compare
-`5cf56f1` with the typed-capture working tree recorded by its hashes. The fixture
-uses release MoonBit through Vite, a 1280×720 Canvas, one warmup and 30 moving
-paints per size. It still includes an explicit caller-side frame clone; the
-painter's own whole-frame clone is gone. Asynchronous wall time, mean [p95] ms:
+These are **incremental comparisons at different source revisions**, not one
+cumulative speedup. Node **24.13.0**, MoonBit **0.10.13+cbb11c36f**, Intel Core
+Ultra 7 255H, 32 GB WSL2, CPU affinity **0–15**; browser runs use Chromium
+**153.0.8010.12** and SwiftShader. Workloads run sequentially with frozen
+application sources/artifacts. Raw reports identify builds, inputs, warmup,
+samples and exclusions. CPU work and SwiftShader publication do not measure
+hardware FPS, field INP, WAN latency or complete encoding time.
 
-| Circles | Before | After |
+The tables retain representative results and material tradeoffs. The
+[complete per-change measurements and methods](https://github.com/Poietra/poietra/blob/0ef67abbcf445aad72b7a26cfd67af1f742b2cfe/README.md#rendering-and-playback--2026-09-27)
+preserve smaller workloads, controls, batch sizes and the development sequence.
+All raw evidence remains in [benchmarks/](benchmarks/).
+
+**Production browser behavior.** Values are milliseconds. Brackets are the range
+of process medians, except the initial circle-drag row, which reports one
+process's event median and min–max. These measure different intervals; do not
+compare rows as equivalent frame times.
+
+| 500-object workload / observed interval | Before | After | Evidence |
+| --- | ---: | ---: | --- |
+| Circle drag, input delivery → DOM mutation | 19.3 [15.4–30.9] | 12.4 [11.3–16.8] | [Typed frame capture](benchmarks/2026-09-27-typed-frames/) |
+| Project preview, browser tasks per Canvas publication | 13.931 [13.913–13.999] | 6.496 [6.443–6.688] | [One active rendering path](benchmarks/2026-09-27-project-preview/) |
+| Editor playback, browser tasks per Canvas publication | 11.871 [11.814–11.893] | 8.125 [8.090–8.158] | [Retained hit geometry](benchmarks/2026-09-27-playback-hit-surface/) |
+| Static project hold, total browser tasks per 3.5-second pass | 1,343 [1,340–1,348] | 787 [782–789] | [Static frame reuse](benchmarks/2026-09-27-project-holds/) |
+| Prepared image drag, input delivery → DOM mutation | 13.7 [13.6–13.7] | 12.2 [12.1–12.2] | [Span-based SVG escaping](benchmarks/2026-09-27-svg-image-drag/) |
+| File opening, six Compositions, input change → destination ready | 872 [841–889] | 839 [805–874] | [Production import](benchmarks/2026-09-27-project-import/) |
+
+Preview/hold/playback cases each use three fresh processes, one warmup and three
+3.5-second measured passes per size, a 1440×900 viewport and isolated loopback
+production storage. Preview eliminated 27 million hidden SVG characters per pass;
+editor playback reduced about 108,000 SVG mutations to 500 when pausing. Static
+holds make no display copies after the initial frame; transitions and visible
+video remain dynamic. Publication/rAF medians stayed around **16.7 ms**: these
+results show less work, not higher display FPS.
+
+Drag cases use one warmup and three 60-move drags; the image case repeats this in
+three fresh processes after preparing the same 104,443-byte PNG. Its two-rAF
+presentation-opportunity median was **40.1 → 40.5 ms**, with no improvement.
+Circle-drag input spacing changed from 50.0 to 33.3 ms; pre-delivery waiting is
+excluded. Neither result measures physical paint completion or field INP.
+
+Import uses three fresh processes, one warmup and three measured file openings
+per case. It compares the three codec files from `db01142` with the new codec,
+on the same `fad7e69` Node host with bounded writes and saved ordered replies.
+Input JSON is identical; random Yjs IDs vary binary packet sizes. Timing includes
+file reading, validation, Yjs conversion, legacy migration, persistence, navigation,
+Live status, object nodes, visible Canvas and two animation-frame opportunities.
+Final Composition geometry is checked after timing. Pre-navigation time was
+376 [353–385] → 353 [347–376] ms; 100-object/two-Composition readiness was
+234 [233–235] → 235 [233–235] ms. **Ranges overlap: an end-to-end import speedup
+is not established.** Test-observer scheduling is included; WAN and media are not.
+
+**CPU operations.** Values below are milliseconds per operation, median [range
+of process medians], from five fresh Node processes. Each report records its
+specific warmup and batch size; these exclude browser work, media decoding and
+encoding. Editing includes Yjs, selective Undo and immutable snapshot reads;
+public evaluation/rendering includes native record conversion.
+
+| Change / representative workload | Before | After |
 | --- | ---: | ---: |
-| 100 | 4.69 [13.20] | 3.48 [10.20] |
-| 500 | 9.43 [17.70] | 6.55 [13.30] |
+| [Native SVG view](benchmarks/2026-09-27-render-view/), 500 circles | 0.522 [0.510–0.536] | 0.302 [0.287–0.313] |
+| [Indexed hierarchy](benchmarks/2026-09-27-indexed-hierarchy/), 500 objects, parents + six keys/frame | 0.6136 [0.5950–0.6261] | 0.5140 [0.5136–0.5265] |
+| [Authored curve preparation](benchmarks/2026-09-27-curve-preparation/), same parent/key fixture | 3.571 [3.421–3.766] | 2.114 [2.060–2.238] |
+| [Editing layout reuse](benchmarks/2026-09-27-shared-state-view/), 500-object parent edit + frame | 1.363 [1.330–1.394] | 0.979 [0.966–1.002] |
+| [Immutable pose reuse](benchmarks/2026-09-27-immutable-poses/), 500-object flat edit + frame | 0.606 [0.578–0.636] | 0.517 [0.502–0.547] |
+| [Indexed Composition](benchmarks/2026-09-27-indexed-compositions/), 500-object parent edit + frame | 0.924 [0.918–0.929] | 0.868 [0.852–0.923] |
+| [Audio source validation reuse](benchmarks/2026-09-27-media-editing/), steady volume edit, embedded 1 MiB | 8.4788 [7.5578–8.5987] | 0.0199 [0.0189–0.0321] |
+| [Export capture](benchmarks/2026-09-27-export-capture/), one Scene, 500 objects × 12 Compositions | 21.512 [21.359–21.903] | 13.267 [12.429–13.853] |
+| [Repeated asset validation](benchmarks/2026-09-27-asset-validation/), parse 16 references to one 1 MiB image | 76.71 [76.20–79.60] | 21.61 [20.64–22.87] |
+| [SVG span escaping](benchmarks/2026-09-27-svg-escaping/), one embedded 1 MiB image | 20.150 [19.644–20.576] | 1.931 [1.922–2.003] |
+| [Timeline projection](benchmarks/2026-09-27-timeline-projection/), 500 objects × 12 Compositions, 50 videos | 0.05633 [0.05395–0.05684] | 0.00202 [0.00196–0.00207] |
+| [Owned normalization](benchmarks/2026-09-27-project-parsing/), parse 500 objects × 12 Compositions | 51.642 [49.782–54.362] | 40.193 [38.564–41.523] |
+| [Iterative reserved-key guard](benchmarks/2026-09-27-json-key-scan/), same 500 × 12 parse | 40.193 [38.564–41.523] | 15.173 [14.582–15.675] |
+| [Owned normalization](benchmarks/2026-09-27-project-parsing/), parse 500 × 100 | 458.777 [450.752–478.909] | 345.026 [340.642–356.969] |
+| [Iterative reserved-key guard](benchmarks/2026-09-27-json-key-scan/), same 500 × 100 parse | 345.026 [340.642–356.969] | 127.734 [126.214–132.062] |
 
-The production editor [before](benchmarks/2026-09-27-typed-frames/interaction-before.json)
-and [after](benchmarks/2026-09-27-typed-frames/interaction-after.json) use isolated
-loopback rooms, one browser, a 1440×900 viewport, one drag warmup and three runs
-of 60 trusted pointer moves. Event delivery to DOM mutation, median [min–max] ms:
+Limits and controls matter:
 
-| Circles | Before | After |
+- Immutable pose reuse costs about **0.16 MB** extra retained JS heap per
+  500-object document. Indexed Composition evaluation of uncached mutable inputs
+  changed **0.906 → 0.930 ms**. These CPU changes did not establish faster dragging.
+- Normal browser media uses room URLs: the audio row's 1 MiB counts Base64
+  characters, not decoded audio. A room-URL volume edit was **0.0309 → 0.0239 ms**;
+  the first embedded edit still validates the source.
+- Export capture stops at the missing-WebCodecs check after capture/preparation;
+  snapshots fell from two to one. It excludes actual export/encoding duration.
+- Repeated-asset parsing still creates independent output records. SVG escaping
+  retains XML control/surrogate rules; its replacement-heavy control did not improve.
+- Timeline generation is a metadata query; duration still inspects visible media
+  and its **0.05406 → 0.05218 ms** ranges overlap. No frame evaluation is timed.
+- Parsing uses two warmup and seven measured batches, three parses per batch
+  except one at 100 Compositions. The largest JSON is 13,343,340 UTF-8 bytes;
+  final JSON-only control **33.480 → 33.555 ms** did not improve. Full validation,
+  unknown-subtree reserved keys and independent results remain intact. The
+  [CPU profile](benchmarks/2026-09-27-json-key-scan/before.cpuprofile.gz) identified
+  the old per-value reviver cost; parsing gains alone do not establish UI latency.
+
+**Prepared ownership and memory.** Playback preparation uses five fresh processes,
+three compile warmups, seven timed compilations with GC outside timing, and eight
+retained programs while the caller's Scene stays alive. Values are medians;
+playback heap is decimal MB per program. These are separate incremental changes.
+
+| Change / 500 objects × 12 Compositions | Prepare before → after, ms | Retained before → after, MB |
 | --- | ---: | ---: |
-| 100 | 11.3 [8.4–19.8] | 7.6 [6.8–11.7] |
-| 500 | 19.3 [15.4–30.9] | 12.4 [11.3–16.8] |
+| [Remove duplicate native Scene](benchmarks/2026-09-27-playback-ownership/) | 24.828 → 12.012 | 11.464 → 7.093 |
+| [Share order and parent graph](benchmarks/2026-09-27-shared-scene-layout/), parents | 19.651 → 12.827 | 8.040 → 7.591 |
+| [Release source containers](benchmarks/2026-09-27-compiled-ownership/), explicit tracks | 11.530 → 11.941 | 7.092 → 4.972 |
+| [Release source/key containers](benchmarks/2026-09-27-compiled-ownership/), parents + six keys | 25.896 → 28.981 | 23.311 → 15.118 |
 
-At 500 objects, actual input spacing changed from 50.0 to 33.3 ms median.
-Pre-delivery waiting is excluded; this is not field INP. Playback rAF spacing
-stayed 16.7 ms median. Reports retain event/frame samples and adjacent CPU
-profiles. Each condition is one process without media or WAN; unchanged stages
-also varied. Allocated bytes and GC time were not measured.
+The last row trades more setup work for less retained memory: process medians
+25.490–26.678 → 28.101–29.153 ms; heap 23.308–23.313 → 15.117–15.118 MB.
+Authored keys and retained deleted poses remain intact, with independent evaluated
+frames. Native/WASM memory, transient allocation and media decoding are excluded.
 
-**Preview publication.** The [same-build comparison](benchmarks/2026-09-27-preview-drafts/)
-uses the draft working tree based on `51e72d2`, identified by source/artifact
-hashes. Five fresh browser processes each compare the target and draft paths
-on the same painter at 1280×720: two warmup and seven measured batches of 15
-moving frames per mode, alternating order. Pose updates, rAF waits and final
-pixel readback are outside timing; paint and publication are included. The
-constructor canvas remains allocated in both modes to isolate copying. Process
-mean wall times, median [min–max] ms:
+The separate [headless retained-ownership comparison](benchmarks/2026-09-27-headless-ownership/)
+starts from `e521995`. Each of five fresh processes completes two warmup renders,
+then prepares three jobs sequentially and pauses them at the native resource port.
+The input string is already allocated; GC-retained JS heap is divided by three.
+Values are median [process range], in **MiB per job**, not the playback MB above.
 
-| Circles | Two copies through target | Direct draft copy |
+| Headless timeline | Before, MiB | After, MiB |
 | --- | ---: | ---: |
-| 100 | 3.110 [3.103–3.191] | 2.549 [2.465–2.597] |
-| 500 | 4.737 [4.648–4.923] | 4.132 [4.060–4.190] |
-
-Every comparison checked full pixel equality after timing. These are SwiftShader
-async wall times, not GPU completion or visible FPS. The production editor's
-separate parented drag [before](benchmarks/2026-09-27-parent-interaction/before.json)
-/ [after](benchmarks/2026-09-27-parent-interaction/after.json) has one root and
-499 children, with world geometry matching the flat fixture. Under the same
-pointer protocol above, 500-object DOM latency was **13.5 [12.1–18.1] →
-13.2 [11.3–20.2] ms**; delivered input and playback rAF medians stayed 33.3 and
-16.7 ms. This single-process comparison does not establish an interaction gain.
-
-**Native SVG conversion.** The [before](benchmarks/2026-09-27-render-view/before.json)
-and [after](benchmarks/2026-09-27-render-view/after.json) start from `fa0c3f6`.
-Run `node scripts/benchmark.mjs --suite render-view --runs 5 --output <file>`.
-Five sequential fresh processes use two warmup and seven measured batches of
-100 frames. This includes native-frame decoding and typed rendering, excluding
-DOM, React, resource loading, media, GPU and encoding. Median [range of process
-medians], ms/view:
-
-| 500 objects | Before | After |
-| --- | ---: | ---: |
-| Circles | 0.522 [0.510–0.536] | 0.302 [0.287–0.313] |
-| Mixed shapes + Glow | 0.805 [0.790–0.813] | 0.586 [0.548–0.592] |
-
-The unchanged SVG markup control was 0.521 → 0.521 ms for circles and
-0.779 → 0.758 ms for mixed shapes, within variation. Retaining the React element
-tree subsequently eliminated SVG-tree construction during cursor updates and
-supports frozen renderer records. Its production [before](benchmarks/2026-09-27-stage-props/interaction-before.json)
-/ [after](benchmarks/2026-09-27-stage-props/interaction-after.json) start from
-`9d1e67d`'s application source and use the drag/playback method above: 500-object
-DOM latency was 12.0 [10.8–18.1] → 11.7 [10.9–25.2] ms, with rAF medians still
-16.7 ms. No clear drag/playback speedup was established. A native props-factory
-[trial and patch](benchmarks/2026-09-27-stage-props/exploratory/) was rejected
-because its 12.3 ms median did not improve on the 12.0 ms baseline.
-
-**Preparation and retained ownership.** Run
-`node apps/studio/scripts/benchmark-playback.mjs --output <file>` after building.
-Each scenario uses five sequential fresh processes, three compile warmups,
-seven timed compilations with GC outside timing, and eight retained programs.
-The caller's Scene stays alive. Time is the median of process medians; heap is
-incremental retained JS `heapUsed` per program, in decimal MB. Native/WASM memory,
-transient allocation, media decoding and rendering are excluded.
-
-| Earlier incremental change | 500-object fixture | Prepare, ms | Retained MB |
-| --- | --- | ---: | ---: |
-| [Remove duplicate native Scene](benchmarks/2026-09-27-playback-ownership/) (`d239856` baseline) | 12 Compositions | 24.828 → 12.012 | 11.464 → 7.093 |
-| [Share order and parent graph](benchmarks/2026-09-27-shared-scene-layout/) (`e072667` baseline) | 12 Compositions, parents | 19.651 → 12.827 | 8.040 → 7.591 |
-
-The latest [before](benchmarks/2026-09-27-compiled-ownership/final-before.json)
-/ [after](benchmarks/2026-09-27-compiled-ownership/final-after.json) start from
-`5888fae`. Compiled programs retain frame dimensions and compiled curves, releasing
-source Scene containers and authored key maps after preparation. Missing tracks
-avoid allocating an editing key container. Parent fixtures use groups of ten
-objects with nine children per root; keys are six intermediate x values per track.
-
-| 500 objects / 12 Compositions | Prepare, ms | Retained MB |
-| --- | ---: | ---: |
-| Explicit tracks, no parents or keys | 11.530 → 11.941 | 7.092 → 4.972 |
-| Explicit tracks, parents, no keys | 13.475 → 14.720 | 7.604 → 5.484 |
-| Explicit tracks, parents, six keys | 25.896 → 28.981 | 23.311 → 15.118 |
-| Inherited tracks, parents | 11.832 → 11.797 | 7.118 → 5.484 |
-
-This trades some preparation work for lower retained memory. In the six-key
-case, process medians ranged 25.490–26.678 → 28.101–29.153 ms; heap ranged
-23.308–23.313 → 15.117–15.118 MB. At 100 objects / two Compositions, preparation
-was 0.595 → 0.756 ms and heap 0.221 → 0.168 MB. Earlier trials and repetitions
-are retained in the same directory. Authored keys and retained deleted poses
-remain intact; evaluation frames stay independent across seeks.
-
-**CPU evaluation and curve compilation.** Run
-`node scripts/benchmark.mjs --suite evaluation --runs 5 --output <file>` or
-`--suite primitives`. Both use five sequential fresh processes and seven batches
-of 240 frames per scenario; evaluation has one warmup batch, primitives has two.
-Public JS frame conversion is included; rendering and encoding are excluded.
-The following are separate incremental comparisons, median [range of process
-medians], in milliseconds:
-
-| Change / fixture at 500 objects | Before | After |
-| --- | ---: | ---: |
-| [Resolve base pose once](benchmarks/2026-09-27-evaluated-pose/), preset easing (`bde6294`) | 0.1247 [0.1184–0.1289] / frame | 0.1058 [0.1031–0.1114] / frame |
-| [Indexed hierarchy](benchmarks/2026-09-27-indexed-hierarchy/), parents + six keys (`f3a3e43`) | 0.6136 [0.5950–0.6261] / frame | 0.5140 [0.5136–0.5265] / frame |
-| [Group authored keys once](benchmarks/2026-09-27-curve-preparation/), parents + six keys (`2b23d42`) | 3.571 [3.421–3.766] to prepare | 2.114 [2.060–2.238] to prepare |
-
-Indexed hierarchy added setup work in its hierarchy-only fixture
-(1.277 → 1.384 ms). Grouping keys left frame time at 0.514 → 0.512 ms.
-The latest ownership [control](benchmarks/2026-09-27-compiled-ownership/primitives-before.json)
-/ [result](benchmarks/2026-09-27-compiled-ownership/primitives-final.json) also
-showed no clear per-frame change: flat 0.0980 → 0.0983 ms; parents + six keys
-0.5363 [0.5099–0.5440] → 0.5283 [0.5164–0.5314] ms.
-
-**Editing layout reuse.** The [CPU before](benchmarks/2026-09-27-shared-state-view/primitives-before.json)
-/ [after](benchmarks/2026-09-27-shared-state-view/primitives-after.json) start from
-`88ea863`. Five fresh processes use two warmup and seven measured batches of
-100 parent coordinate edits, including Yjs, selective Undo, immutable snapshots
-and current Composition frame conversion. At 500 objects, edit + frame time was
-1.363 [1.330–1.394] → 0.979 [0.966–1.002] ms; with six points per object it was
-1.354 [1.330–1.423] → 0.977 [0.961–1.007] ms. Playback evaluation remained within
-variation. The separate snapshot-only [before](benchmarks/2026-09-27-shared-state-view/snapshots-before.json)
-/ [after](benchmarks/2026-09-27-shared-state-view/snapshots-after.json), with three
-Scenes and five Compositions each, showed no clear registration penalty at 500
-objects: 0.176 [0.162–0.185] → 0.169 [0.159–0.175] ms per edit/read.
-The production drag [before](benchmarks/2026-09-27-shared-state-view/interaction-before.json)
-/ [after](benchmarks/2026-09-27-shared-state-view/interaction-after.json) showed
-no clear change: 500-circle DOM latency 11.8 [10.5–19.1] → 11.9 [10.6–25.4] ms,
-with rAF medians still 16.7 ms. These are the same local browser conditions above,
-not a demonstrated user-visible drag speedup. Retained view heap is measured in
-the following comparison; transient allocation has not been measured.
-
-**Immutable pose reuse.** Starting from `e7d14fa`, the same CPU harness now also
-measures editing without parents. Its [before](benchmarks/2026-09-27-immutable-poses/primitives-before.json)
-/ [after](benchmarks/2026-09-27-immutable-poses/primitives-after.json) use five
-fresh processes and the edit/frame method above. At 500 objects, edit + frame
-time was 0.606 [0.578–0.636] → 0.517 [0.502–0.547] ms without parents and
-0.971 [0.958–1.030] → 0.919 [0.881–0.922] ms with parents. Snapshot-only
-[before](benchmarks/2026-09-27-immutable-poses/snapshots-before.json) /
-[after](benchmarks/2026-09-27-immutable-poses/snapshots-after.json) medians were
-0.172 → 0.180 ms, with overlapping process ranges. Preparation and playback
-controls showed no clear regression.
-
-Run `node apps/studio/scripts/benchmark-edit-heap.mjs --output <file>` for the
-[heap before](benchmarks/2026-09-27-immutable-poses/heap-before.json) /
-[after](benchmarks/2026-09-27-immutable-poses/heap-after.json). Each of five fresh
-processes warms three disposable documents, then retains eight documents and
-renders one Composition. At 500 objects, GC-retained view heap per document grew
-from 0.116 [0.093–0.118] to 0.273 [0.244–0.276] MB. After 100 parent edits it was
-0.167 → 0.327 MB above the original native snapshots; that delta also includes
-Yjs/snapshot bookkeeping. The CPU reduction costs roughly 0.16 MB of additional
-retained typed poses in this fixture. Native/WASM memory, transient allocations,
-DOM, media and Undo history are excluded from this heap measurement.
-
-The production [drag result](benchmarks/2026-09-27-immutable-poses/interaction-after.json)
-was 11.6 [10.3–27.0] ms at 500 circles, compared with the preceding layout build's
-11.9 [10.6–25.4] ms; rAF medians stayed 16.7 ms. This single-process comparison
-does not establish a user-visible drag/playback speedup.
-
-**Indexed Composition evaluation.** Starting from `aa93bec`, still frames share
-the indexed parent traversal already used by transitions. The [CPU before](benchmarks/2026-09-27-indexed-compositions/primitives-before.json)
-/ [after](benchmarks/2026-09-27-indexed-compositions/primitives-after.json) use
-the same five-process method and additionally measure 100 mutable-input
-Composition frames per batch. At 500 objects with parents, edit + frame time was
-0.924 [0.918–0.929] → 0.868 [0.852–0.923] ms. Uncached mutable-input evaluation
-cost slightly more: 0.906 [0.905–0.915] → 0.930 [0.920–0.985] ms, since each call
-prepares its own indices. Flat and prepared-transition controls stayed within
-variation; no new browser latency improvement is claimed for this change.
-
-The twelve-Composition playback [before](benchmarks/2026-09-27-indexed-compositions/playback-before.json)
-/ [after](benchmarks/2026-09-27-indexed-compositions/playback-after.json) use the
-GC-separated preparation method above. With 500 objects and parents, preparation
-was 13.944 [13.842–14.561] → 12.942 [12.425–13.242] ms for explicit tracks,
-28.101 → 26.638 ms with six authored points per track, and 11.399 → 9.827 ms for
-inherited tracks. Retained playback heap stayed around 5.485 MB without points
-and 15.115 MB with points. Editing-view [heap before](benchmarks/2026-09-27-indexed-compositions/heap-before.json)
-/ [after](benchmarks/2026-09-27-indexed-compositions/heap-after.json) was
-0.273 → 0.280 MB at 500 objects; after 100 edits, 0.326 → 0.334 MB.
-
-**Audio editing.** The [before](benchmarks/2026-09-27-media-editing/before.json)
-/ [after](benchmarks/2026-09-27-media-editing/after.json) start from `1455c59`.
-Five fresh Node processes run two warmup and seven measured batches of volume
-edits, including real Yjs, selective Undo and immutable snapshot reads. Each
-source has 160 waveform values. Batches contain 500 edits for room references or
-20 for embedded sources. Embedded sizes below count base64 characters; these
-fixtures do not decode audio. Process medians, median [min–max] ms per edit:
-
-| Source | Before | After |
-| --- | ---: | ---: |
-| Room asset URL | 0.0309 [0.0304–0.0312] | 0.0239 [0.0226–0.0244] |
-| Embedded 64 KiB | 0.5035 [0.4835–0.5569] | 0.0202 [0.0197–0.0239] |
-| Embedded 1 MiB | 8.4788 [7.5578–8.5987] | 0.0199 [0.0189–0.0321] |
-
-The first edit still validates the source: its 1 MiB median was 9.07 → 6.32 ms,
-including cold command/JIT effects. A mutable-input control validates every time;
-removing duplicate source validation reduced its 1 MiB median from 7.59 to 4.31 ms.
-Normal browser imports upload embedded bytes to a room asset URL, so the large
-embedded-case reduction is not representative of ordinary browser drag latency.
-DOM, audio playback, networking and allocated bytes were not measured here.
-
-**Export capture.** The [before](benchmarks/2026-09-27-export-capture/before.json)
-/ [after](benchmarks/2026-09-27-export-capture/after.json) start from `c1d24d8`.
-Five fresh Node processes run two warmup and seven measured batches of five
-public export calls, with 500 circles per Scene and the real WASM kernel. The
-fixture deliberately stops at the missing-WebCodecs check, after capture and
-compiled timeline preparation. Process medians, median [min–max] ms:
-
-| Scenes | Compositions per Scene | Before | After |
-| ---: | ---: | ---: | ---: |
-| 1 | 2 | 4.321 [4.276–4.479] | 2.747 [2.561–2.926] |
-| 2 | 2 | 8.134 [7.797–8.446] | 5.169 [4.807–5.309] |
-| 1 | 12 | 21.512 [21.359–21.903] | 13.267 [12.429–13.853] |
-| 2 | 12 | 40.390 [40.158–44.958] | 27.280 [24.548–28.217] |
-
-Full source snapshots fell from two to one per public call. Compiled playback
-still copies native object metadata separately; the reports distinguish these
-copies. These CPU measurements exclude the dialog, async codec loading, painting,
-encoding, media and I/O; they do not measure complete export duration or heap use.
-The dialog separately captures its input for custom-exporter compatibility, but
-no longer also copies the first Scene of an already captured project.
-
-**Project preview.** The [raw before/after reports](benchmarks/2026-09-27-project-preview/)
-compare `cc615e0` with the identified working-tree build. Three fresh Chromium
-processes per version each run one warmup and three measured 3.5-second transition
-passes per size, through the production loopback server at 1440×900 with
-SwiftShader. CDP browser-task and script durations include instrumented playback
-and play/pause handling. Process medians, median [min–max] ms per Canvas publication:
-
-| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
-| ---: | ---: | ---: | ---: | ---: |
-| 100 | 5.182 [5.130–5.185] | 3.768 [3.719–3.776] | 1.333 [1.315–1.346] | 0.650 [0.642–0.671] |
-| 500 | 13.931 [13.913–13.999] | 6.496 [6.443–6.688] | 5.212 [4.994–5.259] | 1.039 [0.951–1.058] |
-
-For 500 objects, each measured pass previously replaced hidden SVG markup
-213–217 times, writing 27.46–27.98 million characters. Both counts are now zero.
-Canvas publication and rAF medians remain about 16.7 ms. These measurements show
-less browser work, not increased display FPS; they exclude media, hardware GPU,
-WAN and input latency. Separate browser checks exercise actual video in both paths.
-
-**Static project holds.** The [raw hold reports](benchmarks/2026-09-27-project-holds/)
-start from `6d0141b`, using the same browser/server setup and three fresh processes
-per version. Each size has one warmup and three 3.5-second measured passes within
-a five-second hold. The clock must advance past three seconds. Process medians,
-median [min–max] total ms per pass:
-
-| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
-| ---: | ---: | ---: | ---: | ---: |
-| 100 | 773 [762–776] | 558 [552–560] | 125 [125–129] | 80 [78–87] |
-| 500 | 1,343 [1,340–1,348] | 787 [782–789] | 192 [188–197] | 93 [92–94] |
-
-After the initial frame, display copies during each pass fell from 212–213 to
-zero. The retained image stays visible while transport controls and audio keep
-their clocks. These measurements exclude media and describe static holds only;
-transitions and any hold containing visible video still evaluate changing frames.
-
-**Editor hit surface.** The [raw Scene-playback reports](benchmarks/2026-09-27-playback-hit-surface/)
-start from `cb3ff77`. The same three-process setup measures three 3.5-second moving
-passes after one warmup, now in the editor, including SVG mutation observation.
-Process medians, median [min–max] ms per Canvas publication:
-
-| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
-| ---: | ---: | ---: | ---: | ---: |
-| 100 | 5.250 [5.186–5.302] | 4.395 [4.337–4.528] | 1.697 [1.684–1.700] | 1.292 [1.287–1.385] |
-| 500 | 11.871 [11.814–11.893] | 8.125 [8.090–8.158] | 3.838 [3.770–3.851] | 1.937 [1.924–1.940] |
-
-For 500 objects, SVG DOM mutations fell from 107,500–108,500 per pass to 500 when
-pausing. Canvas publication and rAF medians remain about 16.7 ms. This measures
-reduced work during active playback; interactive dragging still updates hit geometry.
-It excludes media, hardware GPU, WAN and input latency and does not establish FPS.
-
-**Repeated portable assets.** The [before](benchmarks/2026-09-27-asset-validation/before.json)
-/ [after](benchmarks/2026-09-27-asset-validation/after.json) compare `b33c4e3` with
-the identified build. Five fresh Node processes each use two warmup and seven
-measured batches of three public calls. The table uses 16 references to one source
-containing 1 MiB of Base64 characters, about 16 MiB of input JSON. Process medians,
-median [min–max] ms per operation:
-
-| Asset | Portable file parsing before | After | Save preparation before | After |
-| --- | ---: | ---: | ---: | ---: |
-| Image | 76.71 [76.20–79.60] | 21.61 [20.64–22.87] | 102.32 [101.78–103.91] | 46.01 [45.92–46.90] |
-| Audio | 77.17 [76.51–78.58] | 21.96 [21.09–22.18] | 96.66 [96.39–98.54] | 40.52 [39.58–42.35] |
-
-The reports also include room URLs, a single 1 MiB source, and 16 distinct 64 KiB
-sources. Those controls show no large improvement; for example, room-audio save
-preparation was 0.557 [0.514–0.576] → 0.592 [0.507–0.693] ms. Native string-key
-hashing/comparison remains included. Parsing includes validation and independent
-output records; saving includes its snapshot and size serialization. Payloads
-exercise syntax checks, not decoding; room I/O is stubbed and no browser, codec,
-network, file download or peak-memory measurement is included.
-
-**SVG string assembly.** The [CPU before/after reports](benchmarks/2026-09-27-svg-escaping/)
-compare `410419c` with the identified build. Five fresh Node processes each use
-two warmup and seven measured batches; iteration counts vary by workload and are
-recorded. Process medians, median [min–max] ms per operation:
-
-| Workload | Before | After |
-| --- | ---: | ---: |
-| Escape 1 MiB of Base64 source characters | 21.119 [20.858–22.393] | 1.687 [1.676–1.693] |
-| Serialize one image with that source | 20.150 [19.644–20.576] | 1.931 [1.922–2.003] |
-| Serialize 16 images, each with 64 KiB source characters | 21.105 [20.735–21.383] | 1.955 [1.858–2.024] |
-| Escape 15,000 code units with frequent replacements | 0.118 [0.116–0.126] | 0.115 [0.113–0.120] |
-
-These cases measure escaping and public SVG conversion, without image decoding,
-DOM, GPU or peak-memory measurement. The replacement-heavy control has no clear
-gain. All inputs retain the same XML character rules.
-
-The separate [production image-drag reports](benchmarks/2026-09-27-svg-image-drag/)
-use three fresh Chromium processes, each with one warmup and three 60-move drags.
-One selected image replaces a circle; all other objects remain circles. The same
-256×256 PNG (104,443 encoded bytes, hash in reports) is uploaded and prepared before
-timing. Capture-listener-to-DOM medians improved from 9.1 [9.0–9.1] to
-7.7 [7.5–7.8] ms at 100 objects and 13.7 [13.6–13.7] to 12.2 [12.1–12.2] ms at
-500. Two-rAF presentation-opportunity medians were 37.7 → 37.6 ms and 40.1 →
-40.5 ms respectively, with no improvement claimed. Delivered pointer spacing was
-33.3–33.4 ms and playback rAF spacing 16.7 ms. These are local SwiftShader results
-with CPU profiling enabled, not physical paint latency or field INP.
-
-**Timeline projection.** The [before/after reports](benchmarks/2026-09-27-timeline-projection/)
-compare `da3e54d` with the identified build. Five fresh Node processes each use two
-warmup and seven measured batches of 1,000 public calls. At 500 objects, two
-Compositions and no media, segment generation was 0.01409 [0.01368–0.01493] →
-0.00033 [0.00031–0.00050] ms. With twelve Compositions, fifty videos visible only
-in the final Composition, and one audio track, it was 0.05633 [0.05395–0.05684] →
-0.00202 [0.00196–0.00207] ms. Duration queries still inspect media; in that latter
-case they were 0.05406 [0.05334–0.05460] → 0.05218 [0.05107–0.05430] ms, with
-overlapping variation. The reports also include 100-object and media-free controls.
-These are metadata-query timings on stable caller-owned inputs without caching,
-frame evaluation, Yjs, browser work or decoding; no user-visible speedup is inferred.
-
-**Owned portable normalization.** The [before/after reports](benchmarks/2026-09-27-project-parsing/)
-compare the artifacts committed as `db01142` (before metadata records the preceding
-HEAD plus that uncommitted raster change) with the identified parsing build.
-Five fresh Node processes each use two warmup and seven measured batches, three
-operations per batch except one at 100 Compositions. One Scene contains ordinary
-circle poses, room-free data and Japanese/emoji text. Fixture creation, stringify
-and equality assertions are outside timing; each full parse starts from its string.
-
-| File / public operation | Before, ms | After, ms |
-| --- | ---: | ---: |
-| 100 objects × 2 Compositions, portable parse | 2.113 [2.017–2.293] | 1.509 [1.468–1.528] |
-| 500 × 12, portable parse | 51.642 [49.782–54.362] | 40.193 [38.564–41.523] |
-| 500 × 12 with unknown fields, portable parse | 59.210 [58.043–62.034] | 50.873 [49.917–52.148] |
-| 500 × 100, portable parse | 458.777 [450.752–478.909] | 345.026 [340.642–356.969] |
-| 500 × 100, headless inspection | 503.395 [482.327–505.398] | 384.432 [376.480–393.840] |
-
-The largest input is 13,343,340 UTF-8 bytes. Its JSON-only control was
-32.934 [32.465–35.605] → 33.480 [32.924–34.394] ms; that control does no schema or
-reference validation. Both compared versions retain full validation and the
-reserved-key reviver.
-Headless inspection also prepares its timeline, without pixels, codecs or I/O.
-These are CPU timings, not file-picker latency or peak-memory measurements.
-
-**Reserved-key traversal.** A [CPU profile and follow-up reports](benchmarks/2026-09-27-json-key-scan/)
-identified JSON parsing with a reviver as the largest sampled cost. The iterative
-MoonBit guard uses the same full tree and checks decoded keys before any field
-can be discarded. Compared with the preceding owned-normalization after-runs,
-using the same five-process workload and batch counts:
-
-| File / public operation | Before, ms | After, ms |
-| --- | ---: | ---: |
-| 100 objects × 2 Compositions, portable parse | 1.509 [1.468–1.528] | 0.651 [0.621–0.703] |
-| 500 × 12, portable parse | 40.193 [38.564–41.523] | 15.173 [14.582–15.675] |
-| 500 × 12 with unknown fields, portable parse | 50.873 [49.917–52.148] | 21.247 [20.964–21.641] |
-| 500 × 100, portable parse | 345.026 [340.642–356.969] | 127.734 [126.214–132.062] |
-| 500 × 100, headless inspection | 384.432 [376.480–393.840] | 170.242 [168.390–172.467] |
-
-The largest JSON-only control was 33.480 [32.924–34.394] →
-33.555 [32.512–34.340] ms. Limits, schemas, reference checks and input content
-are unchanged; no peak-memory or browser-interaction claim is made.
-
-**Production file opening.** The [browser reports and codec source manifest](benchmarks/2026-09-27-project-import/)
-compare both parsing improvements with the three codec files from `db01142`,
-on the same `fad7e69` Node host with bounded writes and durable ordered replies.
-Each of three fresh Chromium processes performs one warmup and three measured
-openings per case, with frozen production artifacts and isolated loopback storage.
-The same JSON fixtures include legacy track initialization. Timing runs from file
-input change through navigation, destination Live status, object nodes and visible
-Canvas, plus two animation-frame opportunities; geometry is verified afterwards.
-
-| File / observed interval | Before, ms | After, ms |
-| --- | ---: | ---: |
-| 100 objects × 2 Compositions, ready | 234 [233–235] | 235 [233–235] |
-| 500 × 6, ready | 872 [841–889] | 839 [805–874] |
-| 500 × 6, before navigation | 376 [353–385] | 353 [347–376] |
-
-These are medians and ranges of process medians; the ranges overlap, so an
-end-to-end import speedup is not established. The interval includes Yjs conversion,
-server migration/persistence, navigation, rendering and test-observer scheduling.
-Yjs random IDs vary binary packet lengths; the portable inputs are byte-identical.
-It excludes WAN, media and physical GPU completion. The
-[measurement script](apps/studio/scripts/measure-project-import.mjs) accepts
-`POIETRA_PERF_URL` and `POIETRA_PERF_OUTPUT`; use an isolated production Node host.
-
-**Headless retained ownership.** The [five-process heap reports](benchmarks/2026-09-27-headless-ownership/)
-compare `e521995` with the identified build that releases source Scenes after
-preparing playback and resource values. Per process, two renders warm up the code;
-three jobs then prepare sequentially and pause at the native resource port. Values
-below are per-job JS heap deltas after forced GC, with the input string already
-allocated. Every released job completes SVG rendering with identical output bytes.
-
-| Objects × Compositions | Before, MiB | After, MiB |
-| --- | ---: | ---: |
-| 500 × 12 | 5.138 [5.134–5.144] | 4.576 [4.576–4.578] |
+| 500 objects × 12 Compositions | 5.138 [5.134–5.144] | 4.576 [4.576–4.578] |
 | 500 × 60 | 25.754 [25.740–25.762] | 23.128 [23.122–23.137] |
+| 500 × 12, including 50 text objects | 5.447 [5.437–5.454] | 4.892 [4.886–4.899] |
 
-Preparation (parse/compile/resource-port arrival) was 31.132 [28.657–32.421] →
-30.663 [30.361–31.864] ms for 12 Compositions and 97.469 [96.768–99.750] →
-94.639 [93.323–96.261] ms for 60. The 100-object/two-Composition heap control
-was 0.200 [0.159–0.228] → 0.173 [0.168–0.204] MiB, with overlapping variation.
-This measures retained typed timelines and suspended orchestration, not peak RSS,
-input strings, native/WASM buffers, fonts, codecs or real resource preparation.
-Run `node scripts/benchmark-headless-heap.mjs --output <report.json>` after building.
+Every released job completes SVG rendering with identical output bytes. Preparation
+(parse/compile/resource-port arrival) was 31.132 [28.657–32.421] →
+30.663 [30.361–31.864] ms at 12 Compositions and 97.469 [96.768–99.750] →
+94.639 [93.323–96.261] ms at 60. The 100-object/two-Composition heap ranges overlap.
+The text follow-up uses 600 distinct strings and deterministic mock metrics,
+with the same baseline headless artifact verified by hash. Its preparation time
+was 32.821 [30.476–33.375] → 32.670 [29.404–33.616] ms: no speedup established.
+This measures retained timelines and suspended orchestration, excluding peak RSS,
+input strings, native/WASM buffers, fonts, codecs and real resource preparation.
 
-**Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
-compare `893cbfa` with an experimental typed, quantized cubic representation.
-Three fresh Chromium processes per shape/revision use the preview-publication
-method above: two warmup and seven measured batches of fifteen frames, on Vite
-with release MoonBit output. Process mean draft-publication times at 500 curves
-were 4.295 [4.254–4.518] → 4.272 [4.138–4.272] ms; the unchanged circle control
-was 4.269 [4.177–4.355] → 4.120 [4.043–4.246] ms. The curve improvement was not
-distinguishable from run variation. The extra geometry variant was reverted;
-the shared quantization contract and cache invalidation probes remain. Publication
-pixels matched in every run, but these asynchronous SwiftShader timings do not
-measure physical GPU completion or editor responsiveness.
+**Canvas publication and inconclusive experiments.** These measurements use
+release MoonBit through Vite, a 1280×720 Canvas and SwiftShader; asynchronous
+paint/publication time is distinct from editor input latency or GPU completion.
 
-**Raster pending ownership.** The [reports](benchmarks/2026-09-27-raster-tickets/)
-compare `35db79f` with hit-only ticket removal using the same three-process
-preview-publication method. At 500 half-opacity circles, draft publication was
-4.227 [4.171–4.313] → 4.206 [4.129–4.385] ms; the opaque direct-paint control was
-4.086 [3.978–4.177] → 4.196 [4.083–4.214] ms. No speedup is established. The small
-ownership simplification is retained, with matching pixels in every run.
-MoonBit already completes a cache hit synchronously through its async lowering;
-this removes unnecessary ticket/Map work, not a Promise or microtask per object.
-The following [typed-raster reports](benchmarks/2026-09-27-typed-raster/) reuse
-those half-opacity after-runs as the baseline, comparing the same source/build
-with lazy public conversion. At 500 objects, 4.206 [4.129–4.385] →
-4.266 [4.239–4.319] ms overlaps. This is a typed-boundary improvement with
-matching publication pixels; no frame-time improvement is claimed.
+| Change / 500 circles | Before, ms | After, ms | Method / interpretation |
+| --- | ---: | ---: | --- |
+| [Typed frame capture](benchmarks/2026-09-27-typed-frames/) | 9.43 [17.70 p95] | 6.55 [13.30 p95] | One warmup, 30 paints; mean [p95]; caller clone remains |
+| [Direct draft publication](benchmarks/2026-09-27-preview-drafts/) | 4.737 [4.648–4.923] | 4.132 [4.060–4.190] | Five fresh processes; alternate modes, two warmup/seven 15-frame batches; constructor canvas retained in both |
+| [Cache-hit ticket ownership](benchmarks/2026-09-27-raster-tickets/), half opacity | 4.227 [4.171–4.313] | 4.206 [4.129–4.385] | Three-process publication comparison; no speedup established |
+| [Typed raster bounds](benchmarks/2026-09-27-typed-raster/), half opacity | 4.206 [4.129–4.385] | 4.266 [4.239–4.319] | Same publication method; no speedup established |
 
-The [current checks](#checks) include mutable public inputs, nested and
-observer-queued transactions, exception recovery, metadata changes, video timing,
-remote updates, Undo/Redo and mutable frame outputs. No production deployment
-was made for these changes.
+Publication comparisons check full pixel equality outside timing. Cache hits
+already finish synchronously in MoonBit's async lowering; the ticket change does
+not remove a Promise/microtask per object. Layout/pose caches, retained React
+SVG elements and the draft path did not establish faster editor dragging.
+A [native props-factory trial](benchmarks/2026-09-27-stage-props/exploratory/)
+was rejected (**12.0 → 12.3 ms** drag median). The
+[typed cubic experiment](benchmarks/2026-09-27-cubic-geometry/), also rejected,
+changed publication **4.295 → 4.272 ms** while its unchanged circle control moved
+**4.269 → 4.120 ms**; the proposed patch and raw variation remain available.
+
+[Current checks](#checks) cover mutable public inputs, queued/nested observers,
+metadata invalidation, cancellation, video timing, peer edits, Undo/Redo and
+preview/export agreement. See [reproduction commands](#reproduce-the-measurements),
+[production import harness](apps/studio/scripts/measure-project-import.mjs) and
+[headless heap harness](scripts/benchmark-headless-heap.mjs). No production
+deployment was made for these changes.
 
 ### Same-room collaboration — 2026-09-22
 

@@ -1,5 +1,6 @@
 ///|
-/// Only already accepted updates enter this queue. Durable hosts persist first.
+/// Only accepted updates enter this queue. Hosts must persist before publishing
+/// from the send callback; this queue does not own storage.
 /// Documents merge losslessly; ephemeral presence keeps the newest clock per ID.
 /// Short one-shot timers allow the room to hibernate again when traffic stops.
 pub struct Fanout {
