@@ -505,7 +505,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 | MoonBit application | 311 | 62,133 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,464 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,538 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -570,7 +570,7 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The transport/headless follow-up passed 806 Vitest checks, five extension/linking
+The transport/headless follow-up passed 808 Vitest checks, five extension/linking
 checks, 63 MoonBit JS and 60 standard WASM checks, 19 headless checks, public
 contracts and a production build locally on **2026-09-27**. New deterministic
 regressions exercise a large write followed by its ordered reply, bounded stalled
@@ -580,6 +580,10 @@ Yjs dependencies), and actual filesystem failures before broadcast/reply. Five p
 and four connection cases passed against the production build. Pure JS/WASM tests
 also preserve retained/hidden text resources, first ordered Scene dimensions and
 independent resource lists when a prepared timeline is reused.
+A real Node process is killed immediately after an ordered reply, then restarted
+from the same isolated directory. Both ordinary and unresolved-dependency updates
+survive. The same two regressions fail against the pre-fix `1548c6c` Node host;
+no graceful close/dispose or checkpoint delay is allowed before the kill.
 The full CI above also covers owned file
 normalization, reserved/escaped keys in ignored subtrees, strict easing, independent
 parses, borrowed inputs, raster identity/cancellation and preview/export agreement.

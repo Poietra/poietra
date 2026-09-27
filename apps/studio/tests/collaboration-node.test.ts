@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import { EventEmitter, once } from 'node:events';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
@@ -331,4 +332,77 @@ test('a new room cannot acknowledge its initial document when the first save fai
     if (target) expect(target.dispose()).toBe(true);
     errors.mockRestore();
   }
+});
+
+async function startRoomProcess(id: string) {
+  const child = spawn(process.execPath, ['--input-type=module', '--eval', `
+    import { Room } from ${JSON.stringify(new URL('../server/collaboration.js', import.meta.url).href)};
+    import { WebSocketServer } from 'ws';
+    const room = new Room(${JSON.stringify(id)});
+    const server = new WebSocketServer({ port: 0 });
+    server.on('connection', socket => room.connect(socket));
+    server.on('listening', () => process.send({ port: server.address().port }));
+  `], { cwd: new URL('../', import.meta.url), env: { ...process.env, POIETRA_DATA_DIR: directory }, stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+  let stderr = ''; child.stderr!.on('data', chunk => { stderr = (stderr + chunk).slice(-4096); });
+  const stop = async () => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited;
+  };
+  try {
+    const [message] = await Promise.race([
+      once(child, 'message', { signal: AbortSignal.timeout(5000) }),
+      once(child, 'exit').then(() => { throw new Error(`Room process exited before listening: ${stderr}`); }),
+    ]);
+    return { port: (message as { port: number }).port, stop };
+  } catch (error) { await stop(); throw error; }
+}
+
+async function connectProtocolPeer(port: number) {
+  const socket = new WebSocket(`ws://127.0.0.1:${port}`), doc = new Y.Doc(), replies = new EventEmitter();
+  const ready = once(replies, 'sync', { signal: AbortSignal.timeout(5000) });
+  socket.on('message', data => {
+    const decoder = decoding.createDecoder(new Uint8Array(data as Buffer));
+    if (decoding.readVarUint(decoder) !== 0) return;
+    const response = encoding.createEncoder(); encoding.writeVarUint(response, 0);
+    const kind = sync.readSyncMessage(decoder, response, doc, null);
+    if (encoding.length(response) > 1) socket.send(encoding.toUint8Array(response));
+    if (kind === sync.messageYjsSyncStep2) replies.emit('sync');
+  });
+  socket.on('error', error => replies.emit('error', error));
+  socket.once('open', () => socket.send(syncPacket(encoder => sync.writeSyncStep1(encoder, doc))));
+  try { await ready; }
+  catch (error) { socket.terminate(); doc.destroy(); throw error; }
+  return {
+    doc,
+    update: (update: Uint8Array) => socket.send(syncPacket(encoder => sync.writeUpdate(encoder, update))),
+    acknowledge: async () => {
+      const acknowledged = once(replies, 'sync', { signal: AbortSignal.timeout(5000) });
+      socket.send(syncPacket(encoder => sync.writeSyncStep1(encoder, doc))); await acknowledged;
+    },
+    dispose: () => { socket.terminate(); doc.destroy(); },
+  };
+}
+
+test.each(['ordinary', 'missing dependency'] as const)('an acknowledged %s update survives a real process kill and restart', async kind => {
+  const id = `process-restart-${kind.replace(' ', '-')}`;
+  let serverProcess = await startRoomProcess(id), peer: Awaited<ReturnType<typeof connectProtocolPeer>> | undefined;
+  try {
+    peer = await connectProtocolPeer(serverProcess.port);
+    const updates: Uint8Array[] = [];
+    peer.doc.on('update', update => updates.push(update));
+    const parent = new Y.Map(); peer.doc.getMap('project').set('restart-parent', parent);
+    parent.set('value', 'acknowledged before process kill');
+    expect(updates).toHaveLength(2);
+    const parentUpdate = updates[0];
+    peer.update(kind === 'ordinary' ? Y.mergeUpdates(updates) : updates[1]);
+    await peer.acknowledge();
+    // No close handler, dispose, checkpoint delay or graceful shutdown can save it.
+    await serverProcess.stop(); peer.dispose(); peer = undefined;
+    serverProcess = await startRoomProcess(id); peer = await connectProtocolPeer(serverProcess.port);
+    if (kind === 'missing dependency') {
+      expect(peer.doc.getMap('project').has('restart-parent')).toBe(false);
+      peer.update(parentUpdate); await peer.acknowledge();
+    }
+    expect((peer.doc.getMap('project').get('restart-parent') as Y.Map<string> | undefined)?.get('value')).toBe('acknowledged before process kill');
+  } finally { peer?.dispose(); await serverProcess.stop(); }
 });
