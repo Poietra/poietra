@@ -5,8 +5,8 @@ import { report } from './report';
 
 // This suite decodes actual downloads with FFmpeg; ordinary editor shards do not.
 export default defineConfig({
-  ...editor, testDir: '.', testMatch: suites.projectPlayback,
+  ...editor, testDir: '.', testMatch: suites.mediaEditor,
   workers: 1, fullyParallel: false,
-  outputDir: '../../test-results/project-playback', reporter: report('project-playback'),
+  outputDir: '../../test-results/media-editor', reporter: report('media-editor'),
   webServer: editor.webServer ? { ...editor.webServer, cwd: '../..' } : undefined,
 });

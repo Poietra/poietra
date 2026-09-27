@@ -44,8 +44,9 @@ export const suites = {
     'export-dialog.spec.ts',
     'project-preview.spec.ts',
   ],
-  projectPlayback: [
+  mediaEditor: [
     'project-playback.spec.ts',
+    'media-files.spec.ts',
   ],
   export: [
     'export.spec.ts',

@@ -608,8 +608,8 @@ rejects missing, duplicate and unclassified specs, including nested files.
 | Boundary being checked | Execution |
 | --- | --- |
 | Pure plans, parsing, history budgets, Yjs leaf semantics and host contracts | Vitest, MoonBit JS/WASM, extension/linking and headless tests in `core` |
-| Real editor gestures, peer edits, offline/Undo and browser lifecycle contracts | `test:e2e`: 199 cases across four CI shards, two workers each |
-| Project playback/download, encoded MP4/WebM and browser audio | `test:project-playback`, `test:export`, `test:media`: 5 + 10 + 6 cases, sequential in `media` |
+| Real editor gestures, peer edits, offline/Undo and browser lifecycle contracts | `test:e2e`: 196 cases across four CI shards, two workers each |
+| Media import, project playback/download, encoded MP4/WebM and browser audio | `test:media-editor`, `test:export`, `test:media`: 8 + 10 + 6 cases, sequential in `media` |
 | Built public pages and real persistence/restart behavior | `test:site`: 28 cases, then Node/workerd integration checks in `production` |
 | Extended WebGL/Canvas/Write pixel matrices | Opt-in `effects.config.ts`, `effects-write.config.ts`, `glow.config.ts`; retained outside PR CI |
 | Rendering timings and SVG source profiles | Separate opt-in measurement specs; run alone on an otherwise idle machine |
@@ -709,7 +709,7 @@ pnpm build
 cd apps/studio
 pnpm exec playwright install chromium
 pnpm test:e2e
-pnpm test:project-playback
+pnpm test:media-editor
 pnpm test:export
 pnpm test:media
 pnpm test:site

@@ -1,11 +1,6 @@
+import { open, observer, field } from './media-helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import WebSocket from 'ws';
-import { readProject } from '../../shared/document';
 import { parseProjectFile } from '../../shared/project-file';
 
 function wave(name = 'Tone.wav') {
@@ -14,14 +9,6 @@ function wave(name = 'Tone.wav') {
   for (let i = 0; i < samples; i++) bytes.writeInt16LE(Math.round(Math.sin(i * 440 * Math.PI * 2 / 16000) * 14000), 44 + i * 2);
   return { name, mimeType: 'audio/wav', buffer: bytes };
 }
-async function open(page: Page, room = crypto.randomUUID()) { await page.goto(`/?room=${room}`); await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 }); return room; }
-async function observer(page: Page, room: string) {
-  const endpoint = new URL(page.url()); endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
-  const doc = new Y.Doc(), provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
-  await new Promise<void>(resolve => provider.on('sync', value => { if (value) resolve(); }));
-  return { project: () => readProject(doc)!, close: () => { provider.destroy(); doc.destroy(); } };
-}
-async function field(page: Page, name: string, value: string) { const input = page.getByRole('spinbutton', { name, exact: true }); await input.fill(value); await input.press('Tab'); }
 async function uploadWave(page: Page) { await page.getByLabel('音声・動画ファイル', { exact: true }).setInputFiles(wave()); await expect(page.getByTestId('audio-track')).toHaveCount(1); }
 
 async function pasteMixedAssets(page: Page, broken = false) {
@@ -119,46 +106,4 @@ test('invalid and cancelled imports provide local feedback without adding tracks
   await page.getByRole('button', { name: '中止', exact: true }).click();
   await expect(page.getByTestId('audio-track')).toHaveCount(0);
   await expect(page.locator('.toast')).toContainText('中止');
-});
-
-test('MP4 import creates a visible video object and a separate soundtrack', async ({ page }, info) => {
-  const file = info.outputPath('Clip.mp4');
-  await promisify(execFile)('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=10:duration=2', '-f', 'lavfi', '-i', 'sine=frequency=660:sample_rate=48000:duration=2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', file]);
-  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  const room = await open(page), watch = await observer(page, room);
-  try {
-    await page.getByLabel('音声・動画ファイル', { exact: true }).setInputFiles(file);
-    await expect(page.getByTestId('video-track')).toHaveCount(1, { timeout: 15_000 }); await expect(page.getByTestId('audio-track')).toHaveCount(1);
-    const scene = watch.project().scenes['scene-1'], video = Object.values(scene.objects).find(object => object.kind === 'video')!;
-    expect(video.media).toMatchObject({ width: 160, height: 90, hasAudio: true });
-    expect(Object.values(scene.audioTracks!)[0].asset.src).toBe(video.media!.src);
-    const surface = page.locator('.stage-surface').first();
-    const hit = surface.locator(`[data-object-id="${video.id}"] rect`);
-    await expect(hit).toBeVisible();
-    await expect.poll(() => surface.evaluate((element, id) => {
-      const canvas = element.querySelector('canvas.scene-canvas') as HTMLCanvasElement;
-      if (!canvas || getComputedStyle(canvas).visibility !== 'visible') return 0;
-      const hit = element.querySelector(`[data-object-id="${id}"]`)!.getBoundingClientRect();
-      const bounds = canvas.getBoundingClientRect(), ctx = canvas.getContext('2d')!;
-      const colors = new Set<string>();
-      for (const x of [.2, .4, .6, .8]) for (const y of [.2, .4, .6, .8]) {
-        const pixel = ctx.getImageData((hit.left - bounds.left + hit.width * x) * canvas.width / bounds.width,
-          (hit.top - bounds.top + hit.height * y) * canvas.height / bounds.height, 1, 1).data;
-        colors.add([...pixel].map(value => Math.round(value / 32)).join(','));
-      }
-      return colors.size;
-    }, video.id)).toBeGreaterThan(4);
-    // Deselect, then select the visible video through its transparent hit region.
-    await page.keyboard.press('Escape');
-    await hit.click();
-    await expect(page.getByRole('textbox', { name: 'Object name', exact: true })).toHaveValue('Clip');
-    await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: '動画クリップ Clip', exact: true }).click();
-    await field(page, '素材のトリム開始', '500'); await field(page, '素材の再生時間', '1000');
-    await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
-    await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: '一時停止', exact: true }).click();
-    expect(errors).toEqual([]);
-    await page.screenshot({ path: info.outputPath('video-audio-tracks.png'), fullPage: true });
-  } finally { watch.close(); }
 });
