@@ -1,5 +1,5 @@
 import { textCacheResources, abortTextPreparation } from './effects-text-cache';
-import { compareTextFallbacks, compareSmallTextCutout, compareShapeTextSequence, compareShapeTextEdits } from './effects-shape-text-regression';
+import { cubicCacheIdentity, compareTextFallbacks, compareSmallTextCutout, compareShapeTextSequence, compareShapeTextEdits } from './effects-shape-text-regression';
 import { sceneDuration, sceneSegments, type Scene } from '../../../shared/model';
 import { makeCalculusProject } from '../../../shared/templates';
 import { evaluateScene } from '../../../src/engine/evaluate';
@@ -61,7 +61,7 @@ async function measure(scene: Scene, warmupTimes: number[], times: number[]) {
   } finally { painter.dispose(); }
 }
 
-const fixture = { textFallbacks: compareTextFallbacks, smallTextCutout: compareSmallTextCutout, textCacheResources, abortTextPreparation, shapeSequence: compareShapeTextSequence, shapeEdits: compareShapeTextEdits,
+const fixture = { cubicCacheIdentity, textFallbacks: compareTextFallbacks, smallTextCutout: compareSmallTextCutout, textCacheResources, abortTextPreparation, shapeSequence: compareShapeTextSequence, shapeEdits: compareShapeTextEdits,
   sequence: compareWriteSequence,
   edits: compareWriteEdits,
   lifecycle: writeCacheLifecycle,

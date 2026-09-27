@@ -470,7 +470,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 | MoonBit application | 310 | 61,804 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 158 | 18,048 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,096 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -574,6 +574,9 @@ The typed Project-span follow-up passed 781 Vitest checks, five extension/linkin
 checks, public contracts, the production build and 20 browser checks for project
 preview, actual MP4/WebM output and export-dialog ownership/cancellation. Native
 timing records remain independent while preserving their input Scene references.
+Additional public cubic-coordinate and native-path cache regressions pass against
+the existing renderer, including sub-precision changes, appearance changes and
+same-ID geometry replacement. They accompany the rejected experiment below.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -1020,6 +1023,18 @@ case they were 0.05406 [0.05334–0.05460] → 0.05218 [0.05107–0.05430] ms, w
 overlapping variation. The reports also include 100-object and media-free controls.
 These are metadata-query timings on stable caller-owned inputs without caching,
 frame evaluation, Yjs, browser work or decoding; no user-visible speedup is inferred.
+
+**Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
+compare `893cbfa` with an experimental typed, quantized cubic representation.
+Three fresh Chromium processes per shape/revision use the preview-publication
+method above: two warmup and seven measured batches of fifteen frames, on Vite
+with release MoonBit output. Process mean draft-publication times at 500 curves
+were 4.295 [4.254–4.518] → 4.272 [4.138–4.272] ms; the unchanged circle control
+was 4.269 [4.177–4.355] → 4.120 [4.043–4.246] ms. The curve improvement was not
+distinguishable from run variation. The extra geometry variant was reverted;
+the shared quantization contract and cache invalidation probes remain. Publication
+pixels matched in every run, but these asynchronous SwiftShader timings do not
+measure physical GPU completion or editor responsiveness.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

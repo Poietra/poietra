@@ -1,0 +1,184 @@
+diff --git a/moonbit/boundary/render.mbt b/moonbit/boundary/render.mbt
+index 5870152..3f1ae92 100644
+--- a/moonbit/boundary/render.mbt
++++ b/moonbit/boundary/render.mbt
+@@ -404,6 +404,7 @@ pub fn encode_shape(shape : @render.Shape?) -> @core.Any {
+     Some(Rectangle(width, height, radius)) =>
+       shape_rectangle_value(width, height, radius)
+     Some(Path(path)) => path_value(path)
++    Some(Cubic(geometry)) => path_value(geometry.path())
+     Some(Arrow(geometry)) =>
+       arrow_value(
+         "arrow",
+diff --git a/moonbit/render/frame.mbt b/moonbit/render/frame.mbt
+index 7da96c3..325ebc3 100644
+--- a/moonbit/render/frame.mbt
++++ b/moonbit/render/frame.mbt
+@@ -54,6 +54,8 @@ fn shape_markup(
+     Some(Rectangle(width, height, radius)) =>
+       "<rect x=\"\{number(-width / 2.0)}\" y=\"\{number(-height / 2.0)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
+     Some(Path(path)) => "<path d=\"\{path}\" fill=\"none\"\{draw}/>"
++    Some(Cubic(geometry)) =>
++      "<path d=\"\{geometry.path()}\" fill=\"none\"\{draw}/>"
+     Some(Arrow(geometry) | NumberLine(geometry)) => {
+       let ticks = StringBuilder()
+       if item.kind == @scene.NumberLine {
+diff --git a/moonbit/render/geometry.mbt b/moonbit/render/geometry.mbt
+index 10dd528..271afd0 100644
+--- a/moonbit/render/geometry.mbt
++++ b/moonbit/render/geometry.mbt
+@@ -3,10 +3,28 @@ pub(all) enum Shape {
+   Ellipse(Double, Double)
+   Rectangle(Double, Double, Double)
+   Path(String)
++  Cubic(CubicGeometry)
+   Arrow(ArrowGeometry)
+   NumberLine(ArrowGeometry)
+ } derive(Eq)
+ 
++///|
++/// Quantized once, exactly as SVG numbers. Private coordinates prevent an
++/// unnormalized shape from entering the cache or being quantized a second time.
++pub struct CubicGeometry {
++  priv c1x : Double
++  priv c1y : Double
++  priv c2x : Double
++  priv c2y : Double
++  priv x : Double
++  priv y : Double
++} derive(Eq)
++
++///|
++pub fn CubicGeometry::path(self : CubicGeometry) -> String {
++  "M0 0 C\{self.c1x.to_string()} \{self.c1y.to_string()} \{self.c2x.to_string()} \{self.c2y.to_string()} \{self.x.to_string()} \{self.y.to_string()}"
++}
++
+ ///|
+ pub(all) struct ArrowGeometry {
+   length : Double
+@@ -37,9 +55,14 @@ pub fn shape_geometry(
+       )
+     Path =>
+       Some(
+-        Path(
+-          "M0 0 C\{number(state.path.c1.x)} \{number(state.path.c1.y)} \{number(state.path.c2.x)} \{number(state.path.c2.y)} \{number(width)} \{number(height)}",
+-        ),
++        Cubic({
++          c1x: quantized(state.path.c1.x),
++          c1y: quantized(state.path.c1.y),
++          c2x: quantized(state.path.c2.x),
++          c2y: quantized(state.path.c2.y),
++          x: quantized(width),
++          y: quantized(height),
++        }),
+       )
+     Arrow | NumberLine => {
+       let length = @math.hypot(width, height)
+diff --git a/moonbit/render/outline.mbt b/moonbit/render/outline.mbt
+index 8a6953e..7d316d1 100644
+--- a/moonbit/render/outline.mbt
++++ b/moonbit/render/outline.mbt
+@@ -39,6 +39,7 @@ pub fn outline_source(shape : Shape) -> OutlineSource {
+       )
+     }
+     Path(path) => Measured(path)
++    Cubic(geometry) => Measured(geometry.path())
+     Arrow(geometry) | NumberLine(geometry) =>
+       Shaft("M0 0 H\{number(geometry.length)}", geometry.length)
+   }
+diff --git a/moonbit/render/svg.mbt b/moonbit/render/svg.mbt
+index 5c6b3f7..1b052e5 100644
+--- a/moonbit/render/svg.mbt
++++ b/moonbit/render/svg.mbt
+@@ -13,13 +13,18 @@ pub fn unit(value : Double) -> Double {
+ }
+ 
+ ///|
+-pub fn number(value : Double) -> String {
++fn quantized(value : Double) -> Double {
+   let safe = finite(value)
+-  (if safe.abs() < 1.0e15 {
++  if safe.abs() < 1.0e15 {
+     (safe * 1000000.0).round() / 1000000.0
+   } else {
+     safe
+-  }).to_string()
++  }
++}
++
++///|
++pub fn number(value : Double) -> String {
++  quantized(value).to_string()
+ }
+ 
+ ///|
+diff --git a/moonbit/render/geometry_test.mbt b/moonbit/render/geometry_test.mbt
+new file mode 100644
+index 0000000..5c4693d
+--- /dev/null
++++ b/moonbit/render/geometry_test.mbt
+@@ -0,0 +1,64 @@
++///|
++test "typed cubics serialize the original SVG quantization exactly" {
++  let base = @scene.default_state(@scene.Path)
++  for
++    value in [
++      0.0,
++      -0.0,
++      0.0000001,
++      -0.0000005,
++      1.23456789,
++      -1.23456789,
++      99999999999999.98,
++      999999999999999.9,
++      1.0e15,
++      1.0e300,
++      0.0 / 0.0,
++      1.0 / 0.0,
++      -1.0 / 0.0,
++    ] {
++    let state = {
++      ..base,
++      width: value,
++      height: -value,
++      path: { c1: { x: value, y: -value, }, c2: { x: -value, y: value, }, },
++    }
++    match shape_geometry(@scene.Path, state) {
++      Some(Cubic(geometry)) => {
++        let expected = "M0 0 C\{number(value)} \{number(-value)} \{number(-value)} \{number(value)} \{number(value)} \{number(-value)}"
++        assert_eq(geometry.path(), expected)
++        match outline_source(Cubic(geometry)) {
++          Measured(source) => assert_eq(source, expected)
++          _ => assert_true(false)
++        }
++      }
++      _ => assert_true(false)
++    }
++  }
++}
++
++///|
++test "cubic cache identity follows displayed coordinates and ignores appearance" {
++  let base = @scene.default_state(@scene.Path)
++  let first = shape_geometry(@scene.Path, { ..base, width: 20.0000001, })
++  assert_true(
++    first ==
++    shape_geometry(@scene.Path, {
++      ..base,
++      width: 20.0000002,
++      x: 100.0,
++      rotation: 45.0,
++      fill: "red",
++    }),
++  )
++  assert_true(
++    first != shape_geometry(@scene.Path, { ..base, width: 20.000001, }),
++  )
++  assert_true(
++    first !=
++    shape_geometry(@scene.Path, {
++      ..base,
++      path: { ..base.path, c1: { ..base.path.c1, x: base.path.c1.x + 1.0, }, },
++    }),
++  )
++}

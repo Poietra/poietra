@@ -40,6 +40,35 @@ function makeFrame(scene: Scene, progress: number, order: Order): Frame {
   }] };
 }
 
+export async function cubicCacheIdentity() {
+  const scene = makeScene('path'); await prepareScene(scene);
+  const target = canvas(WIDTH, HEIGHT), painter = await createFramePainter(target);
+  const frame = makeFrame(scene, 1, 'together'), state = frame.objects[0].state;
+  const OriginalPath = window.Path2D;
+  let paths = 0;
+  window.Path2D = new Proxy(OriginalPath, { construct(target, args) {
+    if (typeof args[0] === 'string' && args[0].startsWith('M0 0 C')) paths++;
+    return Reflect.construct(target, args);
+  } });
+  try {
+    state.width = 260.0000001;
+    await painter.render(frame); const initial = paths;
+    state.x += 10; state.rotation = 15; state.stroke = '#123456'; frame.objects[0].writeProgress = .5;
+    await painter.render(frame); const appearance = paths;
+    state.width = 260.0000002;
+    await painter.render(frame); const sameCoordinates = paths;
+    state.width = 260.000001;
+    await painter.render(frame); const dimensions = paths;
+    state.path.c1.x += 1;
+    await painter.render(frame); const controlPoint = paths;
+    frame.objects[0].object.kind = 'circle';
+    await painter.render(frame);
+    frame.objects[0].object.kind = 'path';
+    await painter.render(frame); const changedKind = paths;
+    return { backend: painter.backend, initial, appearance, sameCoordinates, dimensions, controlPoint, changedKind };
+  } finally { window.Path2D = OriginalPath; painter.dispose(); }
+}
+
 async function compareFrame(frame: Frame, target: HTMLCanvasElement, reference: HTMLCanvasElement, freshTarget: HTMLCanvasElement) {
   const actual = pixels(target);
   const expected = await svgPixels(frame, reference);

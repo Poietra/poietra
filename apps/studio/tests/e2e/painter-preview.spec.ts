@@ -375,3 +375,11 @@ test('a Canvas failure during playback immediately restores a moving SVG fallbac
   await page.getByRole('slider', { name: '再生位置', exact: true }).fill('2500');
   await expect(circle(page)).toHaveAttribute('transform', 'translate(955 190) rotate(0)');
 });
+
+test('cubic native paths reuse quantized geometry and replace changed controls or kinds', async ({ page }) => {
+  await page.goto('/tests/e2e/fixtures/effects-write.html');
+  await page.waitForFunction(() => Boolean(window.effectsWriteFixture));
+  expect(await page.evaluate(() => window.effectsWriteFixture.cubicCacheIdentity())).toEqual({
+    backend: 'webgl2', initial: 1, appearance: 1, sameCoordinates: 1, dimensions: 2, controlPoint: 3, changedKind: 4,
+  });
+});
