@@ -139,16 +139,16 @@ fn transformed_object(
 fn draw_layer(
   context : @canvas.CanvasRenderingContext2D,
   item : @render.Drawable,
-  layer : @core.Any,
+  layer : RasterLayer,
 ) -> Unit {
-  let bounds = layer._get("sceneBounds")
+  let bounds = layer.bounds
   transformed_object(context, item, fn() {
     context.drawImageScaled(
-      layer._get("canvas"),
-      bounds._get("x").cast(),
-      bounds._get("y").cast(),
-      bounds._get("width").cast(),
-      bounds._get("height").cast(),
+      layer.canvas,
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
     )
   })
 }
@@ -240,9 +240,7 @@ async fn paint_layers(
       video=videos.bind(fn(v) { v.get(item.id) }),
     )
     image_check_abort(signal)
-    if @core.is_nullish(layer) || glow_lost(glow) {
-      return false
-    }
+    guard layer is Some(layer) && !glow_lost(glow) else { return false }
     @core.throwable(fn() { draw_layer(context, item, layer) })
   }
   !glow_lost(glow)

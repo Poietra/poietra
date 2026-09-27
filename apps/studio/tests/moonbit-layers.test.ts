@@ -43,10 +43,28 @@ describe('MoonBit layer ownership and cache invalidation', () => {
     const first = cache.get(original, 1, glow, new AbortController().signal);
     images[0].onload!();
     const layer = await first;
+    expect(Object.keys(layer).sort()).toEqual(['canvas', 'sceneBounds']);
+    expect(Object.keys(layer.sceneBounds).sort()).toEqual(['height', 'width', 'x', 'y']);
+    expect(Object.values(layer.sceneBounds).every(Number.isFinite)).toBe(true);
     const stringify = vi.spyOn(JSON, 'stringify');
     const result = await cache.get({ ...original, state: { ...original.state, x: 400, y: 200, opacity: .4, rotation: 33 } }, 1, glow, new AbortController().signal);
     expect(result).toBe(layer);
     expect(stringify).not.toHaveBeenCalled();
+    expect(images).toHaveLength(1);
+    cache.clear();
+    expect(layer.canvas.width).toBe(0);
+  });
+
+  it('returns native null for an unsupported raster without evicting a reusable layer', async () => {
+    const cache = moon.createLayerCache(resources), original = item();
+    const first = cache.get(original, 1, glow, new AbortController().signal);
+    images[0].onload!();
+    const layer = await first;
+    for (const scale of [0, -1, NaN, Infinity, 100000]) {
+      expect(await cache.get(original, scale, glow, new AbortController().signal)).toBeNull();
+      expect(layer.canvas.width).toBeGreaterThan(0);
+    }
+    expect(await cache.get(original, 1, glow, new AbortController().signal)).toBe(layer);
     expect(images).toHaveLength(1);
     cache.clear();
     expect(layer.canvas.width).toBe(0);

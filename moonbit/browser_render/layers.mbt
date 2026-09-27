@@ -28,10 +28,40 @@ priv struct PreparedText {
 }
 
 ///|
+priv struct RasterLayer {
+  canvas : @core.Any
+  bounds : @render.Bounds
+  mut native : @core.Any?
+}
+
+///|
+// Public JS callers retain the same cached record. Internal painting borrows the
+// typed layer and never constructs or decodes this compatibility view.
+fn RasterLayer::as_native(self : RasterLayer) -> @core.Any {
+  if self.native is Some(value) {
+    return value
+  }
+  let bounds = self.bounds
+  let value = @core.from_entries([
+    ("canvas", self.canvas),
+    (
+      "sceneBounds",
+      @core.from_entries([
+        ("x", @core.any(bounds.x)),
+        ("y", @core.any(bounds.y)),
+        ("width", @core.any(bounds.width)),
+        ("height", @core.any(bounds.height)),
+      ]),
+    ),
+  ])
+  self.native = Some(value)
+  value
+}
+
+///|
 priv struct CachedRaster {
   identity : RasterIdentity
-  canvas : @core.Any
-  result : @core.Any
+  layer : RasterLayer
   bytes : Double
   equation : PreparedEquation?
   shape : ShapeDrawing?
@@ -75,7 +105,7 @@ fn RasterCache::remove(self : RasterCache, id : String) -> Unit {
   if self.entries.get(id) is Some(entry) {
     self.entries.remove(id)
     self.bytes -= entry.bytes
-    release_canvas(entry.canvas)
+    release_canvas(entry.layer.canvas)
     release_masks(entry.text)
   }
 }
@@ -87,7 +117,7 @@ fn RasterCache::clear(self : RasterCache) -> Unit {
   }
   self.pending.clear()
   for _, entry in self.entries {
-    release_canvas(entry.canvas)
+    release_canvas(entry.layer.canvas)
     release_masks(entry.text)
   }
   self.entries.clear()
@@ -436,7 +466,7 @@ async fn RasterCache::get(
   glow : @core.Any,
   signal : @core.Any,
   video? : @browser_media.VideoSurface? = None,
-) -> @core.Any {
+) -> RasterLayer? {
   image_check_abort(signal)
   let drawable = input.drawable
   let enlargement = match drawable.world {
@@ -470,7 +500,7 @@ async fn RasterCache::get(
   if previous is Some(previous) && previous.identity == identity {
     self.entries.remove(id)
     self.entries[id] = previous
-    return previous.result
+    return Some(previous.layer)
   }
   // A hit still supersedes older work, but owns no asynchronous preparation.
   // Allocate a ticket only when this request may need to suspend.
@@ -484,7 +514,7 @@ async fn RasterCache::get(
     @render.object_bounds(identity.item, self.resources)
   })
   guard @render.raster_plan(bounds, scale, identity.glow) is Some(plan) else {
-    return @core.null()
+    return None
   }
   let item = identity.item
   let equation = equation_for(
@@ -500,7 +530,7 @@ async fn RasterCache::get(
     .unwrap_or(0.0) +
     shape.map(fn(s) { (s.key.length() * 2).to_double() }).unwrap_or(0.0)
   if plan.bytes + geometry_bytes > @render.raster_cache_bytes {
-    return @core.null()
+    return None
   }
   let mut text : PreparedText? = None
   let mut stored = false
@@ -529,32 +559,20 @@ async fn RasterCache::get(
     geometry_bytes +
     text.bind(fn(t) { t.masks }).map(fn(m) { m.drawing.bytes }).unwrap_or(0.0)
   if bytes > @render.raster_cache_bytes {
-    return @core.null()
+    return None
   }
   guard rasterize_layer(
       self, plan, identity, item, equation, shape, text, video, glow, signal,
     )
     is Some(canvas) else {
-    return @core.null()
+    return None
   }
   errdefer release_canvas(canvas)
   raster_ticket(signal, ticket)
-  let bounds = plan.bounds
-  let result = @core.from_entries([
-    ("canvas", canvas),
-    (
-      "sceneBounds",
-      @core.from_entries([
-        ("x", @core.any(bounds.x)),
-        ("y", @core.any(bounds.y)),
-        ("width", @core.any(bounds.width)),
-        ("height", @core.any(bounds.height)),
-      ]),
-    ),
-  ])
-  self.store(id, { identity, canvas, result, bytes, equation, shape, text, })
+  let layer : RasterLayer = { canvas, bounds: plan.bounds, native: None, }
+  self.store(id, { identity, layer, bytes, equation, shape, text, })
   stored = true
-  result
+  Some(layer)
 }
 
 ///|
@@ -589,7 +607,10 @@ pub fn create_layer_cache(resources : @core.Any) -> @core.Any {
       ) {
         @core.from_async(async fn() {
           let captured = @core.throwable(fn() { capture_layer(item) })
-          cache.get(captured, scale, glow, signal)
+          match cache.get(captured, scale, glow, signal) {
+            Some(layer) => layer.as_native()
+            None => @core.null()
+          }
         })
         |> host_errors
       }),

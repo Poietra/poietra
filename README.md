@@ -363,7 +363,10 @@ owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
 Raster cache hits still invalidate older pending replacements, but create no
 preparation ticket of their own. Tickets belong only to cache misses; already
-aborted requests leave live preparation untouched.
+aborted requests leave live preparation untouched. Completed layers keep typed
+bounds and an explicit optional result through compositing. Only a public
+`createLayerCache` caller materializes the compatible JS record, once per layer;
+internal painting never encodes and rereads those bounds.
 The public SVG view uses fixed native records and a single output array; it does
 not allocate intermediate key/value tuples or expose MoonBit record layout.
 The stage memoizes the corresponding React element tree with that view, so
@@ -470,10 +473,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,807 |
+| MoonBit application | 310 | 61,826 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,130 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,148 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -581,6 +584,10 @@ The raster-ticket follow-up passed 784 Vitest checks, five extension/linking
 checks, the production build/contracts and all 22 painter browser checks. New
 races cover cached hits superseding pending replacement and already-aborted hits
 preserving live replacement.
+The typed raster-result follow-up passed 785 Vitest checks, five extension/linking
+checks, build/contracts, all 22 painter browser checks and ten cache/mask checks.
+Public record identity, native `null`, stale frames, cancellation and text-atlas
+leases remain covered.
 Additional public cubic-coordinate and native-path cache regressions pass against
 the existing renderer, including sub-precision changes, appearance changes and
 same-ID geometry replacement. They accompany the rejected experiment below.
@@ -1051,6 +1058,11 @@ preview-publication method. At 500 half-opacity circles, draft publication was
 ownership simplification is retained, with matching pixels in every run.
 MoonBit already completes a cache hit synchronously through its async lowering;
 this removes unnecessary ticket/Map work, not a Promise or microtask per object.
+The following [typed-raster reports](benchmarks/2026-09-27-typed-raster/) reuse
+those half-opacity after-runs as the baseline, comparing the same source/build
+with lazy public conversion. At 500 objects, 4.206 [4.129–4.385] →
+4.266 [4.239–4.319] ms overlaps. This is a typed-boundary improvement with
+matching publication pixels; no frame-time improvement is claimed.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,
