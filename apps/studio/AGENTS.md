@@ -2,8 +2,9 @@
 
 Updated 2026-09-20. Applies to `apps/studio`; also follow the
 [root rules](../../AGENTS.md). The current implementation, setup, checks and
-measurements are in the [root README](../../README.md) and
-[studio guide](README.md). Earlier Rust/TypeScript implementation decisions are
+measurements are linked from the [root README](../../README.md), with technical
+detail in the [development guide](../../docs/development.md) and Japanese usage
+in the [studio guide](README.md). Earlier Rust/TypeScript implementation decisions are
 history in Git, not instructions to reintroduce that architecture.
 
 ## Product intent

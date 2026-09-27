@@ -11,8 +11,8 @@ AI に頼んだ編集も、同じオブジェクトの位置・色・時間と�
 [制限](#現在の制限) · [開発・構成](../../README.md)
 
 このガイドは **2026-09-21** にアプリ実装 `8b3370a` と照合しました。
-MoonBit 版の本番配置・確認済み範囲は[公開状態の記録](../../README.md#deployment-and-limits)、
-言語別の実装量と残る改善点は[ソース構成](../../README.md#what-the-remaining-typescript-represents)を参照してください。
+MoonBit 版の本番配置・確認済み範囲は[公開状態の記録](../../docs/development.md#deployment-and-limits)、
+言語別の実装量と残る改善点は[ソース構成](../../docs/architecture.md#what-the-remaining-typescript-represents)を参照してください。
 
 ## 制作を始める
 
@@ -277,8 +277,8 @@ MCP の `resources/list`・`resources/read` から、`poietra://docs/openapi`、
 
 描画器が異なるため、ブラウザとの画素単位の一致は保証していません。
 音量・ミュート・トリミングと音ずれは独立した WASM デコーダーでも検証しています。
-実行手順・検証範囲・計測条件は [Checks](../../README.md#checks) と
-[ヘッドレス出力の計測](../../README.md#headless-export--2026-09-21)に記録しています。
+実行手順・検証範囲・計測条件は [Checks](../../docs/development.md#checks) と
+[ヘッドレス出力の計測](../../benchmarks/README.md#headless-export--2026-09-21)に記録しています。
 
 ## アカウントと共有
 
@@ -384,7 +384,7 @@ Node はローカルファイル、Worker は SQLite Durable Objects と非公�
 `poietra-assets-prod` バケット、認証・AI の秘密情報を維持する構成です。
 
 **`pnpm run deploy` はビルドと dry-run のみで、本番を更新しません。**
-実際の反映は、[必要な検証](../../README.md#checks)を済ませたソースから次の順に行います。
+実際の反映は、[必要な検証](../../docs/development.md#checks)を済ませたソースから次の順に行います。
 以下はすべて **`apps/studio`** で実行します。
 
 ```sh
@@ -411,7 +411,7 @@ pnpm deploy:production NEW_VERSION_ID@100 --yes
 ```
 
 公開後は専用の検証ルームで、英日ページ、JS/WASM、既存データと素材、共同編集・Undo、
-再生・シーク、動画の保存・復号を確認します。最後の[公開版と確認結果](../../README.md#deployment-and-limits)はルート README に記録しています。
+再生・シーク、動画の保存・復号を確認します。最後の[公開版と確認結果](../../docs/development.md#deployment-and-limits)は開発ガイドに記録しています。
 
 復帰が必要な場合は、記録した互換性のある ID を `PREVIOUS_VERSION_ID` に指定します。
 
@@ -458,8 +458,8 @@ Node で確認する場合はこの指定を外し、そのホストの URL を�
 
 ## 検証と性能
 
-[Checks](../../README.md#checks) に確認済みのリビジョン・範囲と実行コマンド、
-[Performance](../../README.md#performance) に計測条件・生データ・再現手順をまとめています。
+[Checks](../../docs/development.md#checks) に確認済みのリビジョン・範囲と実行コマンド、
+[Performance](../../benchmarks/README.md) に計測条件・生データ・再現手順をまとめています。
 最新の起動・配信量の比較と、過去の書き出し・描画・編集処理の計測は、対象リビジョンを分けて掲載しています。
 ローカルの CPU 計測やソフトウェア GPU の結果は、本番・実機での fps や通信時間を表しません。
 
@@ -474,10 +474,10 @@ Node で確認する場合はこの指定を外し、そのホストの URL を�
 500 人の通常一覧を使う検証では、同じ内容を 10 パケットから 6 パケットに削減しました。
 1 分間に約 3 万回の編集を全員が受け取り、最終状態の一致と切断 0 件を確認しました。
 500 人時は遅延にばらつきが残ります。500 人全員の高頻度ドラッグや長時間・WAN
-環境の保証とは区別し、[負荷・遅延・再現手順](../../README.md#same-room-collaboration--2026-09-22)
+環境の保証とは区別し、[負荷・遅延・再現手順](../../benchmarks/README.md#same-room-collaboration--2026-09-22)
 を参照してください。再接続時は旧ソケットを閉じ、接続枠を直ちに解放します。
 
-[機能の追加手順](../../README.md#add-a-feature)はルート README に集約しています。
+[機能の追加手順](../../docs/development.md#add-a-feature)は開発ガイドにまとめています。
 編集の意味や保持すべき挙動は [AGENTS.md](AGENTS.md) を参照してください。
 実行用 TS/TSX はなくなりましたが、JavaScript ライブラリへの依存や一部の `Any` を使う境界処理は残っています。
 
