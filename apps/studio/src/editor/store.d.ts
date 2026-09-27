@@ -91,6 +91,8 @@ export declare class EditorStore {
     setVideoPlayback(sceneId: string, id: string, patch: Partial<MediaPlayback>, separate?: boolean): undefined;
     addScene(): string;
     addComposition(sceneId: string): string;
+    /** Append a portable single-Scene motion with new identities, as one Undo action. */
+    insertMotion(sceneId: string, project: Project): { compositionId: string; ids: string[] };
     setComposition(sceneId: string, id: string, patch: Partial<Pick<Composition, 'name' | 'duration'>>): undefined;
     setTransitionDuration(sceneId: string, id: string, duration: number): undefined;
     setKeyframe(sceneId: string, transitionId: string, objectId: string, id: string, patch: Partial<Keyframe> | null, separate?: boolean): undefined;

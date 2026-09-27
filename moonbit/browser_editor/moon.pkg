@@ -20,6 +20,7 @@ options(
         "add_media:addMedia",
         "add_object:addObject",
         "add_scene:addScene",
+        "insert_motion:insertMotion",
         "apply_proposal:applyProposal",
         "begin_gesture:beginGesture",
         "create_store:createStore",

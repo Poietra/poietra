@@ -1,4 +1,11 @@
 .projects-dialog { max-height: min(90dvh, 860px); overflow-y: auto; }
+.motion-library { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+.motion-library h3, .motion-library h4 { font-size: 13px; font-weight: 500; margin: 0 0 10px; }
+.motion-library h4 { margin-top: 18px; }
+.motion-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 12px 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.motion-field input { width: 100%; min-height: 34px; padding: 6px 8px; color: #cdccd8; background: var(--color-field); border: 1px solid var(--line); border-radius: 5px; font: inherit; }
+.motion-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.motion-parameters { max-height: 240px; overflow-y: auto; padding: 3px; margin-bottom: 12px; }
 .project-account { padding: 4px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
 .project-account h3, .saved-projects h3 { margin: 0; font-size: 13px; font-weight: 500; }
 .account-hint { color: var(--muted); font-size: 11px; line-height: 1.8; margin: 8px 0 0; }

@@ -196,6 +196,20 @@ fn studio_dialogs(
         "roomId": input._get("store")._get("roomId"),
         "synced": snapshot._get("synced"),
         "services": input._get("services"),
+        "scene": doc.scene,
+        "store": input._get("store"),
+        "selectedIds": @core.any(FixedArray::from_array(state.objects[:])),
+        "onMotionInserted": @core.any(fn(result : @core.Any) {
+          controller.select(
+            CompositionSelection(result._get("compositionId").cast()),
+          )
+          let ids : FixedArray[String] = result._get("ids").cast()
+          controller.update({
+            ..controller.state,
+            project_open: false,
+            objects: ids.iter().to_array(),
+          })
+        }),
       },
       [],
     ),

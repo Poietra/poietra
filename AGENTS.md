@@ -36,6 +36,12 @@ and measurements belong in [README.md](README.md).
   not alter the rectangular clip. Share evaluated world clip geometry across
   browser and headless renderers, keeping it out of documents and local raster
   caches. Clipping uses monotonic, non-Undo format v3 upgrades; retain v1/v2 reads.
+  Reusable motions use portable single-Scene files, hidden ancestor dependencies,
+  text/color substitution and fresh identities. Append at the visual timeline end
+  in one Undo transaction; preserve existing poses, video trim, peer edits and
+  cancellation. Exclude standalone audio tracks. Initialize all new automatic
+  tracks/keyframe containers before publication to avoid server initialization
+  being mistaken for peer edits during selective Undo.
 
 - 2026-09-20: The founder approved Scene-wide parent links, with local position,
   rotation, scale and anchor per Composition. Reparent/detach preserves geometry

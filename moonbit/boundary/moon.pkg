@@ -26,6 +26,7 @@ options(
         "make_blank_scene:makeBlankScene",
         "parse_project_file:parseProjectFile",
         "copy_objects:copyObjects",
+        "capture_motion:captureMotion",
         "serialize_objects:serializeObjects",
         "parse_objects:parseObjects",
         "paste_object_changes:pasteObjectChanges",

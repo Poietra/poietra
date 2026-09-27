@@ -200,6 +200,22 @@ The same evaluated geometry feeds SVG, Canvas/GPU painting and headless export;
 local raster caches exclude world clips. This feature upgrades files to version 3
 outside editing Undo. Versions 1 and 2 remain readable; old clients must reload.
 
+Reusable motions (2026-09-27) use the ordinary portable single-Scene project
+format, so the same parser, schema and renderers apply. Pure `editor` plans
+capture selected subtrees and hidden ancestor dependencies, substitute text and
+colors (including intermediate color keys), and append independent objects,
+Compositions and transitions. New identities prevent linked edits to the source;
+existing objects hold their final pose during the appended motion. Video starts
+are shifted by the destination's visual timeline duration. Coordinates remain in
+Scene units; insertion does not resize the target or rescale the motion. Separate
+audio tracks are excluded. Browser asset embedding/rehosting is cancellable and
+publication revalidates current capacity, resolves all shared parents and encodes
+detached values before a single Undo transaction. New transitions include every
+automatic track/keyframe container so server initialization does not look like a
+peer edit. Shared creations actually edited by a peer remain protected by Undo.
+The Projects dialog exposes file-based reuse; a hosted template catalog and live
+linked instances are not part of this feature.
+
 Yjs stores changes at individual fields. Readers receive immutable, structurally
 shared snapshots; writers invalidate touched branches before observers run.
 Structural deletion and keyframe deletion retain CRDT records. Selective Undo

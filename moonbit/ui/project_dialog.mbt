@@ -170,6 +170,24 @@ pub fn project_dialog(input : @core.Any) -> @react.Element {
             )
           }
       }
+      if truthy(input._get("scene")) && truthy(input._get("store")) {
+        content.push(
+          component(
+            motion_library,
+            {
+              "key": @core.any("motion-library"),
+              "open": @core.any(open),
+              "busy": @core.any(busy),
+              "scene": input._get("scene"),
+              "store": input._get("store"),
+              "selectedIds": input._get("selectedIds"),
+              "services": services,
+              "onInserted": input._get("onMotionInserted"),
+            },
+            [],
+          ),
+        )
+      }
       content.push(
         h(
           "div",

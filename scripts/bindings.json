@@ -330,5 +330,11 @@
       "module": "../../../../_build/js/release/build/boundary/boundary.js",
       "name": "compileScene"
     }
+  },
+  "shared/motion-template.js": {
+    "captureMotion": {
+      "module": "../../../_build/js/release/build/boundary/boundary.js",
+      "name": "captureMotion"
+    }
   }
 }

@@ -89,6 +89,11 @@ fn decode_file(text : String) -> (@core.Any, @scene.Project) raise {
         "このファイルは対応する Poietra プロジェクト形式ではありません。",
       )
   }
+  (parsed, decode_normalized_project(parsed))
+}
+
+///|
+fn decode_normalized_project(parsed : @core.Any) -> @scene.Project raise {
   let project : @scene.Project = {
     version: parsed._get("version").cast(),
     name: parsed._get("name").cast(),
@@ -100,7 +105,13 @@ fn decode_file(text : String) -> (@core.Any, @scene.Project) raise {
       "シーン、オブジェクト、アニメーションの参照や時間が正しくありません。",
     )
   }
-  (parsed, project)
+  project
+}
+
+///|
+/// Native callers borrow their input; normalization must never mutate it.
+pub fn read_project(value : @core.Any) -> @scene.Project raise {
+  decode_normalized_project(parse_file_field(value, project_file_field))
 }
 
 ///|

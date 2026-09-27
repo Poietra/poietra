@@ -48,6 +48,7 @@ export class EditorStore {
     setVideoPlayback(sceneId, id, patch, separate = true) { return commands.setVideoPlayback(this, sceneId, id, patch, separate); }
     addScene() { return commands.addScene(this); }
     addComposition(sceneId) { return commands.addComposition(this, sceneId); }
+    insertMotion(sceneId, project) { return commands.insertMotion(this, sceneId, project); }
     setComposition(sceneId, id, patch) { return commands.setComposition(this, sceneId, id, patch); }
     setTransitionDuration(sceneId, id, duration) { return commands.setTransitionDuration(this, sceneId, id, duration); }
     setKeyframe(sceneId, transitionId, objectId, id, patch, separate = true) { return commands.setKeyframe(this, sceneId, transitionId, objectId, id, patch, separate); }

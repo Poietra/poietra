@@ -30,6 +30,25 @@ pub fn add_scene(store : @core.Any) -> String {
 }
 
 ///|
+pub fn insert_motion(
+  store : @core.Any,
+  scene_id : String,
+  project : @core.Any,
+) -> @core.Any {
+  let prepared = @boundary.prepare_motion_insertion(
+    store._get("doc"),
+    scene_id,
+    project,
+    host(store),
+  )
+  captured_transaction(store, prepared.publish)
+  record([
+    ("compositionId", @core.any(prepared.composition)),
+    ("ids", @core.any(prepared.objects)),
+  ])
+}
+
+///|
 pub fn add_composition(store : @core.Any, scene_id : String) -> String {
   let prepared = @boundary.prepare_composition_append(
     store._get("doc"),
