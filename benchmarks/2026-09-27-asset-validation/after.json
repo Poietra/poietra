@@ -1,0 +1,2007 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-27T00:23:28.283Z",
+  "environment": {
+    "applicationRevision": "b33c4e37d8eed97765d05b244b97f6988b6f73d4",
+    "trackedModifications": [
+      "moonbit/assets/source.mbt",
+      "moonbit/assets/validation.mbt",
+      "moonbit/boundary/moon.pkg",
+      "moonbit/browser_projects/assets.mbt",
+      "moonbit/browser_projects/moon.pkg",
+      "moonbit/project_codec/file_codec.mbt",
+      "moonbit/project_codec/moon.pkg",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "5932105257badb67e2bec2fbd046d2e0befda66554f5fa9ef04114d46a1328b8",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.44,
+      0.99,
+      0.76
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "ed3fb92c7cda018a6335f6816fd3ff1a020e327b2a332f9a508a079c278505d8",
+    "boundarySha256": "70375625a334c3257416feb069da3afe3b1d5c55d02b558758b8c451141a5327",
+    "clientRuntimeSha256": "66919ca9c797944dd322ff6a3206bc128d94050e134a604b9f0111508e78392e",
+    "viteManifestSha256": "72103ce45762584cb6d86497354363e26093671f6816465462ec1b23470ca277"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "asset-validation": {
+      "summary": [
+        {
+          "kind": "image",
+          "sourceCharacters": 0,
+          "references": 32,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 28857,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.9257276666666646,
+            "min": 0.876361333333333,
+            "max": 1.0094956666666661
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 0,
+          "references": 32,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 28857,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.24005566666666311,
+            "min": 0.22858500000000012,
+            "max": 0.27190066666666723
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 1048576,
+          "references": 1,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 1052120,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.0445113333333325,
+            "min": 4.873030666666675,
+            "max": 5.454178000000003
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 1048576,
+          "references": 1,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 1052120,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.698718333333336,
+            "min": 5.477242333333341,
+            "max": 5.8816786666666685
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 1048576,
+          "references": 16,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 16791545,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 21.609077333333328,
+            "min": 20.639037333333324,
+            "max": 22.870675333333338
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 1048576,
+          "references": 16,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 16791545,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 46.01340766666681,
+            "min": 45.91880799999998,
+            "max": 46.895088000000065
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 65536,
+          "references": 16,
+          "unique": true,
+          "operation": "parse",
+          "jsonBytes": 1062905,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.203803333333326,
+            "min": 4.716222000000016,
+            "max": 5.4258599999999815
+          }
+        },
+        {
+          "kind": "image",
+          "sourceCharacters": 65536,
+          "references": 16,
+          "unique": true,
+          "operation": "portable",
+          "jsonBytes": 1062905,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.019577333333321,
+            "min": 4.97439800000014,
+            "max": 5.241973666666733
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 0,
+          "references": 32,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 33100,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.9589003333332282,
+            "min": 1.5345143333333908,
+            "max": 2.0508233333333314
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 0,
+          "references": 32,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 33100,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.5921110000000832,
+            "min": 0.5069906666667521,
+            "max": 0.6934340000001006
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 1048576,
+          "references": 1,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 1052254,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 4.769873333333332,
+            "min": 4.739209333333292,
+            "max": 4.893268333333405
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 1048576,
+          "references": 1,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 1052254,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.335499333333398,
+            "min": 5.275368999999955,
+            "max": 6.551755000000109
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 1048576,
+          "references": 16,
+          "unique": false,
+          "operation": "parse",
+          "jsonBytes": 16793692,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 21.956514333333264,
+            "min": 21.086176666666688,
+            "max": 22.183242666666654
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 1048576,
+          "references": 16,
+          "unique": false,
+          "operation": "portable",
+          "jsonBytes": 16793692,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 40.52294333333308,
+            "min": 39.58341733333327,
+            "max": 42.35364400000011
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 65536,
+          "references": 16,
+          "unique": true,
+          "operation": "parse",
+          "jsonBytes": 1065052,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 4.755164666666739,
+            "min": 4.610252666666686,
+            "max": 4.997854333333332
+          }
+        },
+        {
+          "kind": "audio",
+          "sourceCharacters": 65536,
+          "references": 16,
+          "unique": true,
+          "operation": "portable",
+          "jsonBytes": 1065052,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.186922000000171,
+            "min": 5.098371000000043,
+            "max": 5.386910000000171
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "Public portable-file parsing and portableProject capture, size checks, metadata validation and source deduplication. Embedded sizes are base64 characters; payloads exercise validation, not decoding. Room URL I/O is stubbed to one tiny Blob per unique source. No browser, codec, disk or network; JSON.stringify for parse input is outside timing, portableProject internal stringify/copy is included.",
+          "iterations": "One assertion call, two warmup + seven measured batches of three operations per case.",
+          "results": [
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 1.0094956666666661,
+              "samples": {
+                "msPerOperation": [
+                  1.0094956666666661,
+                  1.0301346666666664,
+                  1.0394380000000016,
+                  1.1408346666666656,
+                  0.787230000000001,
+                  0.9210016666666642,
+                  0.8621206666666646
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.27190066666666723,
+              "samples": {
+                "msPerOperation": [
+                  0.3057063333333332,
+                  0.27190066666666723,
+                  0.3641546666666689,
+                  0.2475263333333307,
+                  0.21573899999999924,
+                  0.2083030000000008,
+                  0.35148799999999863
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.454178000000003,
+              "samples": {
+                "msPerOperation": [
+                  4.785542333333335,
+                  5.2874769999999955,
+                  4.759204333333334,
+                  5.7363726666666635,
+                  5.454178000000003,
+                  5.63356566666666,
+                  5.989646666666668
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.478915666666675,
+              "samples": {
+                "msPerOperation": [
+                  5.364261666666664,
+                  5.763599666666664,
+                  5.383567666666674,
+                  5.478915666666675,
+                  5.74986366666667,
+                  5.194486666666667,
+                  6.817828999999999
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 21.976519999999976,
+              "samples": {
+                "msPerOperation": [
+                  24.483780999999983,
+                  24.040792666666675,
+                  20.47166633333332,
+                  21.602270999999973,
+                  21.04989066666667,
+                  21.976519999999976,
+                  22.68277066666667
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 46.895088000000065,
+              "samples": {
+                "msPerOperation": [
+                  49.40618566666664,
+                  51.46681633333333,
+                  47.36008300000003,
+                  45.02917033333332,
+                  46.895088000000065,
+                  45.9105473333334,
+                  46.19437966666677
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.4258599999999815,
+              "samples": {
+                "msPerOperation": [
+                  5.169251333333402,
+                  5.177165666666649,
+                  5.6591803333334,
+                  5.735353000000032,
+                  6.627941333333335,
+                  5.059244000000035,
+                  5.4258599999999815
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 4.97439800000014,
+              "samples": {
+                "msPerOperation": [
+                  5.428159333333345,
+                  4.97439800000014,
+                  5.058431666666668,
+                  4.862366333333436,
+                  4.973516333333312,
+                  5.427701333333213,
+                  4.920612333333338
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 2.0508233333333314,
+              "samples": {
+                "msPerOperation": [
+                  2.0508233333333314,
+                  2.074343333333369,
+                  2.2997213333333093,
+                  2.37300033333319,
+                  1.4944076666667268,
+                  1.6889123333333675,
+                  1.49077566666665
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 0.5377696666666149,
+              "samples": {
+                "msPerOperation": [
+                  0.5431666666666691,
+                  0.5176123333332422,
+                  0.5459670000000187,
+                  0.6451303333333271,
+                  0.4742016666667344,
+                  0.4637670000000374,
+                  0.5377696666666149
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 4.769318666666702,
+              "samples": {
+                "msPerOperation": [
+                  4.6980236666666615,
+                  4.66537299999997,
+                  4.844410333333296,
+                  4.8295640000001185,
+                  4.769318666666702,
+                  5.495789666666648,
+                  4.645267333333322
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 6.551755000000109,
+              "samples": {
+                "msPerOperation": [
+                  6.6395413333334545,
+                  6.544181333333351,
+                  6.979907000000064,
+                  7.335300666666626,
+                  6.4551689999999935,
+                  6.551755000000109,
+                  6.488706666666682
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 22.166615000000093,
+              "samples": {
+                "msPerOperation": [
+                  22.78342966666666,
+                  23.70468833333325,
+                  21.41116200000003,
+                  22.166615000000093,
+                  27.36054700000007,
+                  21.639044666666752,
+                  20.699697000000015
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 42.35364400000011,
+              "samples": {
+                "msPerOperation": [
+                  43.092589666666754,
+                  42.35364400000011,
+                  42.87202699999974,
+                  42.15083199999996,
+                  42.093777000000046,
+                  42.724734333333494,
+                  42.228673666666815
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 4.610252666666686,
+              "samples": {
+                "msPerOperation": [
+                  4.6911906666667464,
+                  4.513373000000077,
+                  4.610252666666686,
+                  4.4760203333335085,
+                  4.522927666666571,
+                  4.667048333333393,
+                  5.783346333333308
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 5.098371000000043,
+              "samples": {
+                "msPerOperation": [
+                  5.1528176666667305,
+                  5.281677999999981,
+                  5.098371000000043,
+                  5.054102666666647,
+                  5.052117333333324,
+                  5.284968999999971,
+                  5.074564666666447
+                ]
+              }
+            }
+          ],
+          "checksum": 448
+        },
+        {
+          "scope": "Public portable-file parsing and portableProject capture, size checks, metadata validation and source deduplication. Embedded sizes are base64 characters; payloads exercise validation, not decoding. Room URL I/O is stubbed to one tiny Blob per unique source. No browser, codec, disk or network; JSON.stringify for parse input is outside timing, portableProject internal stringify/copy is included.",
+          "iterations": "One assertion call, two warmup + seven measured batches of three operations per case.",
+          "results": [
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.9462923333333322,
+              "samples": {
+                "msPerOperation": [
+                  0.9186840000000013,
+                  1.015348333333333,
+                  1.0709413333333349,
+                  1.0966746666666676,
+                  0.760102666666666,
+                  0.9462923333333322,
+                  0.8144523333333353
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.23645299999999736,
+              "samples": {
+                "msPerOperation": [
+                  0.34329233333333303,
+                  0.2653839999999974,
+                  0.35674433333333394,
+                  0.23645299999999736,
+                  0.19695666666666511,
+                  0.19517799999999852,
+                  0.2058130000000015
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.136828666666664,
+              "samples": {
+                "msPerOperation": [
+                  5.680913000000004,
+                  4.921015333333334,
+                  4.618050999999999,
+                  4.964138666666666,
+                  5.271071333333329,
+                  5.136828666666664,
+                  6.008655333333337
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.698718333333336,
+              "samples": {
+                "msPerOperation": [
+                  5.912499333333339,
+                  5.698718333333336,
+                  5.271649000000006,
+                  5.89064133333333,
+                  5.311671333333322,
+                  5.462697333333343,
+                  6.020663666666678
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 21.609077333333328,
+              "samples": {
+                "msPerOperation": [
+                  22.609191333333303,
+                  21.609077333333328,
+                  21.822984333333352,
+                  23.395619333333304,
+                  20.87011099999999,
+                  21.26143300000001,
+                  20.4792103333333
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 46.01340766666681,
+              "samples": {
+                "msPerOperation": [
+                  44.883090666666625,
+                  47.317521999999975,
+                  47.221063333333326,
+                  45.31665966666666,
+                  45.00435666666666,
+                  46.01340766666681,
+                  47.37503799999998
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.15712066666659,
+              "samples": {
+                "msPerOperation": [
+                  5.191006333333462,
+                  5.134043333333314,
+                  5.052716333333289,
+                  5.15712066666659,
+                  5.5902596666666495,
+                  5.134400000000066,
+                  5.291237333333356
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.019577333333321,
+              "samples": {
+                "msPerOperation": [
+                  6.063231333333381,
+                  4.997754666666576,
+                  4.957648333333357,
+                  5.611415666666744,
+                  5.073426333333373,
+                  5.019577333333321,
+                  4.930802333333456
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 1.9589003333332282,
+              "samples": {
+                "msPerOperation": [
+                  1.9813406666667106,
+                  1.9589003333332282,
+                  2.1919323333334737,
+                  2.4149560000000747,
+                  1.4235490000000937,
+                  1.45571866666675,
+                  1.4994986666665682
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 0.5921110000000832,
+              "samples": {
+                "msPerOperation": [
+                  0.65231633333345,
+                  0.5921110000000832,
+                  0.7455093333333025,
+                  0.7646583333333486,
+                  0.4915913333334174,
+                  0.4724076666666406,
+                  0.4554476666665626
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 4.739209333333292,
+              "samples": {
+                "msPerOperation": [
+                  5.230348333333343,
+                  5.80889033333339,
+                  5.136249666666724,
+                  4.626481000000088,
+                  4.739209333333292,
+                  4.716993000000002,
+                  4.73420900000004
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 5.333502999999989,
+              "samples": {
+                "msPerOperation": [
+                  5.317461333333388,
+                  5.30241300000004,
+                  5.333502999999989,
+                  6.386578666666689,
+                  5.807337333333332,
+                  5.092108333333272,
+                  5.73797733333322
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 22.183242666666654,
+              "samples": {
+                "msPerOperation": [
+                  21.33577866666671,
+                  22.234890666666615,
+                  22.183242666666654,
+                  25.40978366666665,
+                  20.91454766666675,
+                  22.035627333333196,
+                  22.36449633333329
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 40.45380033333337,
+              "samples": {
+                "msPerOperation": [
+                  40.40829166666678,
+                  43.03133600000001,
+                  42.15882933333311,
+                  40.117495999999846,
+                  40.45380033333337,
+                  44.34321633333335,
+                  39.00610266666687
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 4.997854333333332,
+              "samples": {
+                "msPerOperation": [
+                  4.997854333333332,
+                  4.503931000000193,
+                  5.148180666666728,
+                  4.563454999999824,
+                  4.519911666666606,
+                  5.176800666666774,
+                  5.524932666666548
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 5.186922000000171,
+              "samples": {
+                "msPerOperation": [
+                  5.5406783333334415,
+                  5.270949333333192,
+                  5.047263000000082,
+                  5.478114000000157,
+                  5.186922000000171,
+                  5.077666000000136,
+                  5.154391666666622
+                ]
+              }
+            }
+          ],
+          "checksum": 448
+        },
+        {
+          "scope": "Public portable-file parsing and portableProject capture, size checks, metadata validation and source deduplication. Embedded sizes are base64 characters; payloads exercise validation, not decoding. Room URL I/O is stubbed to one tiny Blob per unique source. No browser, codec, disk or network; JSON.stringify for parse input is outside timing, portableProject internal stringify/copy is included.",
+          "iterations": "One assertion call, two warmup + seven measured batches of three operations per case.",
+          "results": [
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.9233556666666658,
+              "samples": {
+                "msPerOperation": [
+                  0.9449176666666664,
+                  0.9233556666666658,
+                  1.1650069999999981,
+                  0.9839720000000014,
+                  0.7722756666666678,
+                  0.8944293333333349,
+                  0.8181156666666661
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.22858500000000012,
+              "samples": {
+                "msPerOperation": [
+                  0.29685066666666654,
+                  0.26716999999999774,
+                  0.3757883333333325,
+                  0.22858500000000012,
+                  0.2228126666666649,
+                  0.19372866666666747,
+                  0.20511266666666472
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 4.873030666666675,
+              "samples": {
+                "msPerOperation": [
+                  4.738732666666664,
+                  5.719527999999997,
+                  4.794061000000009,
+                  5.6859249999999975,
+                  4.800623333333334,
+                  4.873030666666675,
+                  5.8540863333333375
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.477242333333341,
+              "samples": {
+                "msPerOperation": [
+                  6.054080666666664,
+                  5.477242333333341,
+                  5.352400000000007,
+                  5.305740666666661,
+                  5.1346283333333345,
+                  5.64453233333334,
+                  5.6789629999999915
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 20.994513333333316,
+              "samples": {
+                "msPerOperation": [
+                  23.13495900000002,
+                  20.705694333333327,
+                  20.17977499999999,
+                  21.357724333333334,
+                  20.22553933333332,
+                  21.768595000000005,
+                  20.994513333333316
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 46.131651,
+              "samples": {
+                "msPerOperation": [
+                  45.82769,
+                  46.444640333333304,
+                  45.05276966666664,
+                  45.818778333333285,
+                  46.45294600000003,
+                  49.28672800000004,
+                  46.131651
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 4.716222000000016,
+              "samples": {
+                "msPerOperation": [
+                  4.682902333333459,
+                  5.22458800000004,
+                  4.64596700000008,
+                  4.841346333333301,
+                  4.689221666666678,
+                  4.899194333333223,
+                  4.716222000000016
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.122553000000001,
+              "samples": {
+                "msPerOperation": [
+                  5.6274693333333135,
+                  4.964149666666799,
+                  4.978196000000025,
+                  5.328972666666687,
+                  5.307718333333317,
+                  5.122553000000001,
+                  4.938476666666702
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 1.966703999999936,
+              "samples": {
+                "msPerOperation": [
+                  1.966703999999936,
+                  2.016223666666671,
+                  2.5347143333333406,
+                  2.842578666666668,
+                  1.453081000000111,
+                  1.5826336666667278,
+                  1.4620740000000296
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 0.6297163333333629,
+              "samples": {
+                "msPerOperation": [
+                  0.5244070000000344,
+                  0.5784239999999651,
+                  0.7294983333332917,
+                  0.6990223333332324,
+                  0.6297163333333629,
+                  0.6841653333332639,
+                  0.44594033333335875
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 4.893268333333405,
+              "samples": {
+                "msPerOperation": [
+                  4.893268333333405,
+                  4.997239999999995,
+                  4.941304333333392,
+                  4.709738333333462,
+                  5.2497506666666895,
+                  4.598770999999942,
+                  4.684065666666659
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 5.275368999999955,
+              "samples": {
+                "msPerOperation": [
+                  5.275368999999955,
+                  5.253267333333345,
+                  5.2374426666666904,
+                  6.117305333333358,
+                  5.404492333333262,
+                  5.66256466666664,
+                  5.199337333333308
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 21.956514333333264,
+              "samples": {
+                "msPerOperation": [
+                  20.992915999999997,
+                  23.141575666666693,
+                  19.908572000000124,
+                  22.0274130000001,
+                  20.941959666666662,
+                  22.59521200000002,
+                  21.956514333333264
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 41.54836966666684,
+              "samples": {
+                "msPerOperation": [
+                  39.17506466666676,
+                  41.54836966666684,
+                  42.60578433333345,
+                  41.36052799999985,
+                  40.176438666666705,
+                  43.83074000000003,
+                  44.8530276666667
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 4.695170333333408,
+              "samples": {
+                "msPerOperation": [
+                  4.695170333333408,
+                  5.083565333333354,
+                  4.570155000000038,
+                  4.504029999999754,
+                  4.434607333333285,
+                  4.980468000000049,
+                  5.1422959999999875
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 5.220830666666795,
+              "samples": {
+                "msPerOperation": [
+                  5.86895599999995,
+                  5.086177999999866,
+                  5.949817666666604,
+                  5.0911159999999045,
+                  5.220830666666795,
+                  5.534232333333421,
+                  5.033132999999907
+                ]
+              }
+            }
+          ],
+          "checksum": 448
+        },
+        {
+          "scope": "Public portable-file parsing and portableProject capture, size checks, metadata validation and source deduplication. Embedded sizes are base64 characters; payloads exercise validation, not decoding. Room URL I/O is stubbed to one tiny Blob per unique source. No browser, codec, disk or network; JSON.stringify for parse input is outside timing, portableProject internal stringify/copy is included.",
+          "iterations": "One assertion call, two warmup + seven measured batches of three operations per case.",
+          "results": [
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.9257276666666646,
+              "samples": {
+                "msPerOperation": [
+                  0.9257276666666646,
+                  0.9996040000000003,
+                  1.0483426666666678,
+                  1.070956,
+                  0.7261123333333307,
+                  0.9215236666666679,
+                  0.8567083333333348
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.24116099999999582,
+              "samples": {
+                "msPerOperation": [
+                  0.31091666666666623,
+                  0.49978766666666746,
+                  0.4266109999999988,
+                  0.24116099999999582,
+                  0.21497000000000335,
+                  0.20240600000000106,
+                  0.21338266666666547
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.0445113333333325,
+              "samples": {
+                "msPerOperation": [
+                  4.829865333333335,
+                  4.964409999999996,
+                  6.102849333333334,
+                  5.0445113333333325,
+                  4.6844980000000005,
+                  5.785010333333332,
+                  6.639312333333332
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.8816786666666685,
+              "samples": {
+                "msPerOperation": [
+                  5.416040333333342,
+                  6.681598333333322,
+                  5.8816786666666685,
+                  6.681706000000001,
+                  5.688877333333323,
+                  6.600649666666659,
+                  5.599831333333327
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 22.870675333333338,
+              "samples": {
+                "msPerOperation": [
+                  25.567179333333343,
+                  23.390396666666636,
+                  20.788665666666663,
+                  22.870675333333338,
+                  23.092724333333347,
+                  22.680508333333325,
+                  22.663940333333358
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 45.91880799999998,
+              "samples": {
+                "msPerOperation": [
+                  45.94254500000003,
+                  45.80869433333336,
+                  45.91880799999998,
+                  46.39350033333327,
+                  45.405019666666625,
+                  47.164505999999925,
+                  45.816879666666715
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.247792666666555,
+              "samples": {
+                "msPerOperation": [
+                  5.059815666666661,
+                  5.417521333333298,
+                  5.247792666666555,
+                  5.264963666666669,
+                  5.042369666666673,
+                  5.091741333333327,
+                  5.480258666666789
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.017008999999992,
+              "samples": {
+                "msPerOperation": [
+                  4.9301219999999075,
+                  5.017008999999992,
+                  4.95325699999997,
+                  5.078861999999996,
+                  5.1362740000001095,
+                  5.037399000000126,
+                  4.923861666666653
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 1.5345143333333908,
+              "samples": {
+                "msPerOperation": [
+                  2.059402000000015,
+                  1.9624483333333653,
+                  2.976269999999962,
+                  1.4974980000000262,
+                  1.5271806666667846,
+                  1.5345143333333908,
+                  1.5303413333334295
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 0.5069906666667521,
+              "samples": {
+                "msPerOperation": [
+                  0.5152873333333142,
+                  0.5117189999999331,
+                  0.513354333333306,
+                  0.5069906666667521,
+                  0.467265333333368,
+                  0.45571733333342007,
+                  0.48533633333333154
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 4.769873333333332,
+              "samples": {
+                "msPerOperation": [
+                  4.633429333333273,
+                  4.73175133333325,
+                  4.801504666666612,
+                  4.785699333333317,
+                  4.769873333333332,
+                  4.7981686666665455,
+                  4.658110666666592
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 5.335499333333398,
+              "samples": {
+                "msPerOperation": [
+                  5.335499333333398,
+                  5.300711333333311,
+                  5.270411333333262,
+                  8.800805333333301,
+                  5.225803666666707,
+                  5.412227666666695,
+                  5.374491333333329
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 21.510750666666656,
+              "samples": {
+                "msPerOperation": [
+                  20.841662333333414,
+                  20.97177633333331,
+                  21.063470333333346,
+                  21.73113000000012,
+                  21.510750666666656,
+                  21.92701599999994,
+                  21.840315999999955
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 40.52294333333308,
+              "samples": {
+                "msPerOperation": [
+                  42.13082433333344,
+                  47.8234613333334,
+                  38.89418533333325,
+                  39.86640633333324,
+                  40.52294333333308,
+                  43.04215766666675,
+                  40.48438933333333
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 4.869350999999976,
+              "samples": {
+                "msPerOperation": [
+                  4.65966633333331,
+                  4.869350999999976,
+                  4.94397533333328,
+                  5.336656333333242,
+                  4.489753333333283,
+                  4.641377666666813,
+                  5.210502666666798
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 5.161165333333277,
+              "samples": {
+                "msPerOperation": [
+                  5.161165333333277,
+                  5.356964666666802,
+                  5.113787666666819,
+                  5.426671000000169,
+                  5.873017666666783,
+                  5.1574790000001185,
+                  5.1192163333334975
+                ]
+              }
+            }
+          ],
+          "checksum": 448
+        },
+        {
+          "scope": "Public portable-file parsing and portableProject capture, size checks, metadata validation and source deduplication. Embedded sizes are base64 characters; payloads exercise validation, not decoding. Room URL I/O is stubbed to one tiny Blob per unique source. No browser, codec, disk or network; JSON.stringify for parse input is outside timing, portableProject internal stringify/copy is included.",
+          "iterations": "One assertion call, two warmup + seven measured batches of three operations per case.",
+          "results": [
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.876361333333333,
+              "samples": {
+                "msPerOperation": [
+                  0.876361333333333,
+                  1.1224636666666683,
+                  1.1089620000000007,
+                  1.0788910000000012,
+                  0.7771653333333338,
+                  0.8612396666666674,
+                  0.839167333333331
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 28857,
+              "iterations": 3,
+              "msPerOperation": 0.24005566666666311,
+              "samples": {
+                "msPerOperation": [
+                  0.37275433333333297,
+                  0.2917363333333327,
+                  0.3327376666666642,
+                  0.24005566666666311,
+                  0.21026633333333203,
+                  0.21233800000000258,
+                  0.20885999999999663
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 4.960608666666663,
+              "samples": {
+                "msPerOperation": [
+                  5.362982333333335,
+                  4.839096666666667,
+                  4.811456333333325,
+                  5.581773666666663,
+                  4.834425999999998,
+                  4.960608666666663,
+                  5.698061000000005
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052120,
+              "iterations": 3,
+              "msPerOperation": 5.737023666666668,
+              "samples": {
+                "msPerOperation": [
+                  5.849201666666677,
+                  5.737023666666668,
+                  5.564627000000011,
+                  6.509031666666677,
+                  5.280122666666671,
+                  6.265744333333335,
+                  5.591389666666676
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 20.639037333333324,
+              "samples": {
+                "msPerOperation": [
+                  20.002616666666693,
+                  20.639037333333324,
+                  20.435534666666666,
+                  20.856706333333324,
+                  20.307698,
+                  21.063596666666665,
+                  20.815847333333334
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16791545,
+              "iterations": 3,
+              "msPerOperation": 45.98085066666673,
+              "samples": {
+                "msPerOperation": [
+                  46.198009000000035,
+                  45.98085066666673,
+                  45.575732000000016,
+                  45.92403733333337,
+                  47.99886399999991,
+                  45.33093466666666,
+                  54.077417333333415
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.203803333333326,
+              "samples": {
+                "msPerOperation": [
+                  5.349516666666659,
+                  5.215018333333319,
+                  5.002076666666653,
+                  5.4971049999999195,
+                  5.07570866666659,
+                  5.203803333333326,
+                  4.900412666666701
+                ]
+              }
+            },
+            {
+              "kind": "image",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1062905,
+              "iterations": 3,
+              "msPerOperation": 5.241973666666733,
+              "samples": {
+                "msPerOperation": [
+                  5.750092999999954,
+                  5.055180333333435,
+                  5.392627333333318,
+                  5.120037666666576,
+                  5.241973666666733,
+                  5.223142666666566,
+                  5.54034633333337
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 1.9579233333333832,
+              "samples": {
+                "msPerOperation": [
+                  2.0938933333333503,
+                  1.9636416666667174,
+                  1.9579233333333832,
+                  2.2163103333333916,
+                  1.4300906666667288,
+                  1.5368703333333542,
+                  1.5713030000000192
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 0,
+              "references": 32,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 33100,
+              "iterations": 3,
+              "msPerOperation": 0.6934340000001006,
+              "samples": {
+                "msPerOperation": [
+                  0.8058683333333647,
+                  0.7625833333334716,
+                  0.7313823333332342,
+                  0.6934340000001006,
+                  0.6032880000000963,
+                  0.583168999999998,
+                  0.5402233333332637
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 4.8295100000000275,
+              "samples": {
+                "msPerOperation": [
+                  4.8295100000000275,
+                  4.833939333333395,
+                  4.697963999999956,
+                  4.927362666666643,
+                  4.908991999999974,
+                  4.814835333333273,
+                  4.780524999999973
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 1,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 1052254,
+              "iterations": 3,
+              "msPerOperation": 5.534003666666649,
+              "samples": {
+                "msPerOperation": [
+                  6.101502666666723,
+                  5.318260333333304,
+                  5.303594333333422,
+                  6.26870866666665,
+                  5.7564806666666,
+                  5.534003666666649,
+                  5.415467000000111
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "parse",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 21.086176666666688,
+              "samples": {
+                "msPerOperation": [
+                  22.05733633333345,
+                  20.587052333333304,
+                  20.223357666666743,
+                  21.086176666666688,
+                  21.105658333333242,
+                  21.087249000000003,
+                  21.07109766666675
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 1048576,
+              "references": 16,
+              "unique": false,
+              "operation": "portable",
+              "jsonBytes": 16793692,
+              "iterations": 3,
+              "msPerOperation": 39.58341733333327,
+              "samples": {
+                "msPerOperation": [
+                  41.0502053333333,
+                  39.03736066666655,
+                  39.65322800000013,
+                  39.20304900000004,
+                  39.58341733333327,
+                  42.69031366666665,
+                  39.34582566666662
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "parse",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 4.755164666666739,
+              "samples": {
+                "msPerOperation": [
+                  4.909364333333239,
+                  4.7553333333332075,
+                  4.668942333333082,
+                  4.483297333333515,
+                  4.755164666666739,
+                  4.609472666666686,
+                  7.112438000000111
+                ]
+              }
+            },
+            {
+              "kind": "audio",
+              "sourceCharacters": 65536,
+              "references": 16,
+              "unique": true,
+              "operation": "portable",
+              "jsonBytes": 1065052,
+              "iterations": 3,
+              "msPerOperation": 5.386910000000171,
+              "samples": {
+                "msPerOperation": [
+                  5.318120999999944,
+                  5.149506333333496,
+                  5.399956999999934,
+                  5.396656666666786,
+                  5.386910000000171,
+                  5.592258333333423,
+                  5.039338666666784
+                ]
+              }
+            }
+          ],
+          "checksum": 448
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-27T00:23:54.399Z",
+  "loadAverageAfter": [
+    1.29,
+    0.99,
+    0.77
+  ]
+}

@@ -90,8 +90,17 @@ pub fn valid_source(source : String, kind : AssetKind) -> Bool {
 
 ///|
 pub fn valid_image(source : String, width : Double, height : Double) -> Bool {
+  valid_image_fields(source, width, height) && valid_source(source, Image)
+}
+
+///|
+/// Metadata checks remain per reference when the immutable source was checked.
+pub fn valid_image_fields(
+  source : String,
+  width : Double,
+  height : Double,
+) -> Bool {
   source.length() <= 1398166 &&
-  valid_source(source, Image) &&
   [width, height]
   .iter()
   .all(fn(size) {

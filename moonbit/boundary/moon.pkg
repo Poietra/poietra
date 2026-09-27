@@ -10,37 +10,9 @@ import {
   "poietra/poietra/render",
 }
 
+supported_targets = "js"
+
 options(
-  targets: {
-    "catalog.mbt": [ "js" ],
-    "assets.mbt": [ "js" ],
-    "chat.mbt": [ "js" ],
-    "samples.mbt": [ "js" ],
-    "file_codec.mbt": [ "js" ],
-    "clipboard.mbt": [ "js" ],
-    "object_commands.mbt": [ "js" ],
-    "animation_commands.mbt": [ "js" ],
-    "track_commands.mbt": [ "js" ],
-    "structure_commands.mbt": [ "js" ],
-    "project_file.mbt": [ "js" ],
-    "chat_validation.mbt": [ "js" ],
-    "proposal_targets.mbt": [ "js" ],
-    "render.mbt": [ "js" ],
-    "tex.mbt": [ "js" ],
-    "scene.mbt": [ "js" ],
-    "playback.mbt": [ "js" ],
-    "structure.mbt": [ "js" ],
-    "document.mbt": [ "js" ],
-    "scene_layout.mbt": [ "js" ],
-    "composition_snapshot.mbt": [ "js" ],
-    "audio_snapshot.mbt": [ "js" ],
-    "shared.mbt": [ "js" ],
-    "editing.mbt": [ "js" ],
-    "groups.mbt": [ "js" ],
-    "scene_commands.mbt": [ "js" ],
-    "timeline.mbt": [ "js" ],
-    "geometry.mbt": [ "js" ],
-  },
   link: {
     "js": {
       "exports": [

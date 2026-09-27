@@ -4,6 +4,7 @@ import {
   "poietra/poietra/scene",
   "poietra/poietra/assets",
   "poietra/poietra/boundary",
+  "poietra/poietra/project_codec",
 }
 
 supported_targets = "js"

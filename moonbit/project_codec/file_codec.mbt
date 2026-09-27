@@ -30,6 +30,7 @@ priv suberror InvalidFileField
 fn parse_file_field(
   value : @core.Any,
   field : FileField,
+  validation? : AssetValidation = AssetValidation::new(),
 ) -> @core.Any raise InvalidFileField {
   match field {
     Numeric(minimum, maximum, integer) => {
@@ -77,13 +78,13 @@ fn parse_file_field(
       if @core.is_undefined(value) {
         value
       } else {
-        parse_file_field(value, child)
+        parse_file_field(value, child, validation~)
       }
     Nullable(child) =>
       if @core.is_null(value) {
         value
       } else {
-        parse_file_field(value, child)
+        parse_file_field(value, child, validation~)
       }
     Record(fields) => {
       if !is_record(value) {
@@ -91,7 +92,7 @@ fn parse_file_field(
       }
       let result = @core.new_object()
       for key, child in fields {
-        let item = parse_file_field(value._get(key), child)
+        let item = parse_file_field(value._get(key), child, validation~)
         if !@core.is_undefined(item) {
           put_own(result, key, item)
         }
@@ -107,7 +108,11 @@ fn parse_file_field(
         if !@assets.document_id(key) {
           raise InvalidFileField
         }
-        put_own(result, key, parse_file_field(value._get(key), child))
+        put_own(
+          result,
+          key,
+          parse_file_field(value._get(key), child, validation~),
+        )
       }
       result
     }
@@ -121,7 +126,7 @@ fn parse_file_field(
       }
       @core.any(
         FixedArray::makei(items.length(), fn(i) raise InvalidFileField {
-          parse_file_field(items[i], child)
+          parse_file_field(items[i], child, validation~)
         }),
       )
     }
@@ -136,23 +141,23 @@ fn parse_file_field(
       }
     }
     Image => {
-      let parsed = parse_file_field(value, image_file_field)
+      let parsed = parse_file_field(value, image_file_field, validation~)
       let asset = decode_ImageAsset(parsed)
-      if !@assets.valid_image(asset.src, asset.width, asset.height) {
+      if !validation.image(asset) {
         raise InvalidFileField
       }
       parsed
     }
     Media => {
-      let parsed = parse_file_field(value, media_file_field)
-      if !@assets.valid_media(decode_MediaAsset(parsed)) {
+      let parsed = parse_file_field(value, media_file_field, validation~)
+      if !validation.media(decode_MediaAsset(parsed)) {
         raise InvalidFileField
       }
       parsed
     }
-    Playback => parse_file_field(value, playback_file_field)
+    Playback => parse_file_field(value, playback_file_field, validation~)
     Audio => {
-      let parsed = parse_file_field(value, audio_file_field)
+      let parsed = parse_file_field(value, audio_file_field, validation~)
       // Media was validated by the nested schema. Do not scan its source again.
       if !@assets.valid_audio_fields(decode_AudioTrack(parsed)) {
         raise InvalidFileField
@@ -161,19 +166,19 @@ fn parse_file_field(
     }
     CurveValue =>
       if @core.typeof_(value) == "number" {
-        parse_file_field(value, file_number)
+        parse_file_field(value, file_number, validation~)
       } else {
-        parse_file_field(value, Color)
+        parse_file_field(value, Color, validation~)
       }
     Keyframe => {
-      let parsed = parse_file_field(value, keyframe_file_field)
+      let parsed = parse_file_field(value, keyframe_file_field, validation~)
       if !@scene.valid_keyframe(decode_Keyframe(parsed)) {
         raise InvalidFileField
       }
       parsed
     }
     SceneObject => {
-      let parsed = parse_file_field(value, object_file_field)
+      let parsed = parse_file_field(value, object_file_field, validation~)
       let object = decode_SceneObject(parsed)
       if object.kind == @scene.Image && object.image is None {
         raise InvalidFileField
@@ -404,14 +409,22 @@ pub fn valid_document_id(value : String) -> Bool {
 }
 
 ///|
-pub fn read_image_asset(value : @core.Any) -> @scene.ImageAsset raise {
-  decode_ImageAsset(parse_file_field(value, Image))
+pub fn read_image_asset(
+  value : @core.Any,
+  validation? : AssetValidation = AssetValidation::new(),
+) -> @scene.ImageAsset raise {
+  decode_ImageAsset(parse_file_field(value, Image, validation~))
 }
 
 ///|
-pub fn read_media_asset(value : @core.Any) -> @scene.MediaAsset raise {
-  let asset = decode_MediaAsset(parse_file_field(value, media_file_field))
-  if !@assets.valid_media(asset) {
+pub fn read_media_asset(
+  value : @core.Any,
+  validation? : AssetValidation = AssetValidation::new(),
+) -> @scene.MediaAsset raise {
+  let asset = decode_MediaAsset(
+    parse_file_field(value, media_file_field, validation~),
+  )
+  if !validation.media(asset) {
     raise InvalidFileField
   }
   asset
@@ -427,7 +440,9 @@ pub fn read_media_playback(value : @core.Any) -> @scene.MediaPlayback raise {
 /// The reader owns that provenance check; ordinary inputs validate afresh.
 pub fn read_audio_track(
   value : @core.Any,
-  media_reader? : (@core.Any) -> @scene.MediaAsset raise = read_media_asset,
+  media_reader? : (@core.Any) -> @scene.MediaAsset raise = fn(value) raise {
+    read_media_asset(value)
+  },
 ) -> @scene.AudioTrack raise {
   let parsed = parse_file_field(value, Record(audio_value_fields))
   let asset = media_reader(value._get("asset"))

@@ -34,8 +34,14 @@ pub fn document_color(value : String) -> Bool {
 
 ///|
 pub fn valid_media(asset : @scene.MediaAsset) -> Bool {
+  valid_media_fields(asset) && valid_source(asset.src, Media)
+}
+
+///|
+/// A source check can be shared; dimensions, MIME and timing cannot be inferred
+/// from another record that happens to reference the same bytes.
+pub fn valid_media_fields(asset : @scene.MediaAsset) -> Bool {
   if asset.src.length() > 44739307 ||
-    !valid_source(asset.src, Media) ||
     ![
       "video/mp4", "video/webm", "audio/mpeg", "audio/wav", "audio/ogg", "audio/flac",
       "audio/mp4", "audio/webm",

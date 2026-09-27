@@ -307,6 +307,11 @@ caller-owned patches and in-transaction inputs validate afresh; a shallow freeze
 does not establish ownership. The weak cache retains neither documents nor extra
 source bytes. The portable codec shares the same field schema and validates media
 once before checking clip values, instead of rescanning it inside the audio record.
+Portable parsing and project asset capture use an operation-owned typed
+`AssetValidation` table. A repeated immutable source string shares its format
+check; dimensions, MIME, duration, waveform and clip fields remain independently
+validated. The table is released with the operation and never trusts a mutable
+native record. Conflicting references still fail before asset transfer.
 The layout resolves parent and paint indices once. Composition and transition
 evaluation share one traversal over current pose arrays; neither rebuilds an
 ID-keyed world-matrix map. Authored paint order, hidden ancestors and missing
@@ -442,10 +447,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 309 | 61,666 |
+| MoonBit application | 310 | 61,750 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 154 | 17,869 |
+| TypeScript tests, fixtures and test configurations | 155 | 17,945 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -524,6 +529,12 @@ browser checks. Both legacy and draft painters keep visible Canvas pixels moving
 without rebuilding SVG; pause restores matching positions and live painter failure
 restores an animated SVG. Selection, drag, resize, curves, Glow and resource retry
 remain covered.
+The asset-validation change passed 773 Vitest checks, five extension/linking
+checks, 58 MoonBit JS and 56 WASM checks (including `assets`), 19 headless checks,
+public contracts and the production build. Its 21 browser checks cover portable
+images/audio, cross-room copying, cancellation, atomic failure and real MP4/WebM
+image rendering. New regressions reject changed source tails and invalid metadata
+after a duplicate source, while preserving independent valid waveforms.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -911,6 +922,26 @@ For 500 objects, SVG DOM mutations fell from 107,500–108,500 per pass to 500 w
 pausing. Canvas publication and rAF medians remain about 16.7 ms. This measures
 reduced work during active playback; interactive dragging still updates hit geometry.
 It excludes media, hardware GPU, WAN and input latency and does not establish FPS.
+
+**Repeated portable assets.** The [before](benchmarks/2026-09-27-asset-validation/before.json)
+/ [after](benchmarks/2026-09-27-asset-validation/after.json) compare `b33c4e3` with
+the identified build. Five fresh Node processes each use two warmup and seven
+measured batches of three public calls. The table uses 16 references to one source
+containing 1 MiB of Base64 characters, about 16 MiB of input JSON. Process medians,
+median [min–max] ms per operation:
+
+| Asset | Portable file parsing before | After | Save preparation before | After |
+| --- | ---: | ---: | ---: | ---: |
+| Image | 76.71 [76.20–79.60] | 21.61 [20.64–22.87] | 102.32 [101.78–103.91] | 46.01 [45.92–46.90] |
+| Audio | 77.17 [76.51–78.58] | 21.96 [21.09–22.18] | 96.66 [96.39–98.54] | 40.52 [39.58–42.35] |
+
+The reports also include room URLs, a single 1 MiB source, and 16 distinct 64 KiB
+sources. Those controls show no large improvement; for example, room-audio save
+preparation was 0.557 [0.514–0.576] → 0.592 [0.507–0.693] ms. Native string-key
+hashing/comparison remains included. Parsing includes validation and independent
+output records; saving includes its snapshot and size serialization. Payloads
+exercise syntax checks, not decoding; room I/O is stubbed and no browser, codec,
+network, file download or peak-memory measurement is included.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

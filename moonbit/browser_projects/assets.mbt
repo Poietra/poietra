@@ -54,8 +54,11 @@ fn AssetSlot::source(self : AssetSlot) -> String {
 }
 
 ///|
-fn image_slot(object : @core.Any) -> AssetSlot raise {
-  let image = @boundary.read_image_asset(object._get("image")) catch {
+fn image_slot(
+  object : @core.Any,
+  validation : @project_codec.AssetValidation,
+) -> AssetSlot raise {
+  let image = @project_codec.read_image_asset(object._get("image"), validation~) catch {
     _ =>
       raise ProjectFailure(
         "画像の参照やサイズ情報が正しくありません。",
@@ -65,8 +68,11 @@ fn image_slot(object : @core.Any) -> AssetSlot raise {
 }
 
 ///|
-fn media_slot(asset : @core.Any) -> AssetSlot raise {
-  let decoded = @boundary.read_media_asset(asset) catch {
+fn media_slot(
+  asset : @core.Any,
+  validation : @project_codec.AssetValidation,
+) -> AssetSlot raise {
+  let decoded = @project_codec.read_media_asset(asset, validation~) catch {
     _ =>
       raise ProjectFailure(
         "音声・動画の参照や形式情報が正しくありません。",
@@ -76,14 +82,17 @@ fn media_slot(asset : @core.Any) -> AssetSlot raise {
 }
 
 ///|
-fn object_slots(objects : FixedArray[@core.Any]) -> Array[AssetSlot] raise {
+fn object_slots(
+  objects : FixedArray[@core.Any],
+  validation? : @project_codec.AssetValidation = @project_codec.AssetValidation::new(),
+) -> Array[AssetSlot] raise {
   let slots = []
   for object in objects {
     if !@core.is_nullish(object._get("image")) {
-      slots.push(image_slot(object))
+      slots.push(image_slot(object, validation))
     }
     if !@core.is_nullish(object._get("media")) {
-      slots.push(media_slot(object._get("media")))
+      slots.push(media_slot(object._get("media"), validation))
     }
   }
   slots
@@ -95,6 +104,7 @@ fn project_slots(
   seed_audio : Bool,
 ) -> Array[AssetSlot] raise {
   let slots = []
+  let validation = @project_codec.AssetValidation::new()
   let scenes = project._get("scenes")
   for id in @core.object_keys(scenes) {
     let scene = scenes._get(id)
@@ -102,7 +112,7 @@ fn project_slots(
       ._get("Object")
       ._call("values", [scene._get("objects")])
       .cast()
-    slots.append(object_slots(objects))
+    slots.append(object_slots(objects, validation~))
     let tracks = scene._get("audioTracks")
     if @core.is_nullish(tracks) {
       if seed_audio {
@@ -110,7 +120,7 @@ fn project_slots(
       }
     } else {
       for id in @core.object_keys(tracks) {
-        slots.push(media_slot(tracks._get(id)._get("asset")))
+        slots.push(media_slot(tracks._get(id)._get("asset"), validation))
       }
     }
   }
