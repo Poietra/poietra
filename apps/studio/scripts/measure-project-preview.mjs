@@ -13,6 +13,11 @@ const base = new URL(process.env.POIETRA_PERF_URL || 'http://127.0.0.1:5195');
 if (!['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)) throw new Error('Use an isolated loopback server.');
 const output = process.env.POIETRA_PERF_OUTPUT || 'test-results/project-preview-performance.json';
 const staticHold = process.env.POIETRA_PERF_HOLD === '1';
+const editor = process.env.POIETRA_PERF_EDITOR === '1';
+const frameTestId = editor ? 'stage-main' : 'project-preview-frame';
+const sliderName = editor ? '再生位置' : 'Project preview position';
+const playName = editor ? 'シーンを再生' : 'プロジェクトを再生';
+const pauseName = editor ? '一時停止' : 'プロジェクトの再生を停止';
 const optionalStats = values => values.length ? stats(values) : null;
 const measuredEnvironment = environment(), browser = await chromium.launch({ headless: true }), results = [];
 await mkdir(dirname(output), { recursive: true });
@@ -39,39 +44,44 @@ try {
       await page.goto(new URL(`/?room=${room}`, base).href);
       await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 20000 });
       await expect(page.getByTestId('stage-main').locator('[data-object-id]')).toHaveCount(count);
-      await page.getByRole('button', { name: 'Preview project', exact: true }).click();
-      await expect(page.getByTestId('project-preview-frame').locator('canvas')).toHaveCSS('visibility', 'visible');
+      if (!editor) await page.getByRole('button', { name: 'Preview project', exact: true }).click();
+      await expect(page.getByTestId(frameTestId).locator('canvas')).toHaveCSS('visibility', 'visible');
       const cdp = await context.newCDPSession(page); await cdp.send('Performance.enable');
       const metrics = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(({ name, value }) => [name, value]));
-      await page.evaluate(() => {
+      await page.evaluate(({ frameTestId, editor }) => {
         let current;
+        const root = document.querySelector(`[data-testid="${frameTestId}"]`), selector = editor ? '.scene-svg' : '.project-preview-svg';
+        const observer = new MutationObserver(records => {
+          if (current) current.svgMutations += records.filter(record => (record.target.nodeType === Node.ELEMENT_NODE ? record.target : record.target.parentElement)?.closest(selector)).length;
+        });
+        observer.observe(root, { attributes: true, childList: true, characterData: true, subtree: true });
         const html = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
         Object.defineProperty(Element.prototype, 'innerHTML', { ...html, set(value) {
-          if (current && (this.matches('.project-preview-svg') || this.closest('.project-preview-svg'))) { current.svgWrites++; current.svgCharacters += String(value).length; }
+          if (current && root.contains(this) && this.closest(selector)) { current.svgWrites++; current.svgCharacters += String(value).length; }
           html.set.call(this, value);
         } });
         const draw = CanvasRenderingContext2D.prototype.drawImage;
         CanvasRenderingContext2D.prototype.drawImage = function(...args) {
           const result = draw.apply(this, args);
-          if (current && this.canvas.closest?.('[data-testid="project-preview-frame"]')) current.presented.push(performance.now());
+          if (current && root.contains(this.canvas)) current.presented.push(performance.now());
           return result;
         };
         window.previewBenchmark = {
-          begin() { current = { svgWrites: 0, svgCharacters: 0, presented: [], raf: [] }; const tick = now => { if (current) { current.raf.push(now); requestAnimationFrame(tick); } }; requestAnimationFrame(tick); },
+          begin() { current = { svgWrites: 0, svgCharacters: 0, svgMutations: 0, presented: [], raf: [] }; const tick = now => { if (current) { current.raf.push(now); requestAnimationFrame(tick); } }; requestAnimationFrame(tick); },
           end() { const result = current; current = null; return result; },
         };
-      });
+      }, { frameTestId, editor });
       const samples = [];
       for (let run = -1; run < 3; run++) {
-        await page.getByRole('slider', { name: 'Project preview position', exact: true }).fill(staticHold ? '0' : '1000');
+        await page.getByRole('slider', { name: sliderName, exact: true }).fill(staticHold ? '0' : '1000');
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const before = await metrics();
         await page.evaluate(() => window.previewBenchmark.begin());
-        await page.getByRole('button', { name: 'プロジェクトを再生', exact: true }).click();
+        await page.getByRole('button', { name: playName, exact: true }).click();
         await page.waitForTimeout(3500); // Fixed workload duration, not an assertion wait.
-        await page.getByRole('button', { name: 'プロジェクトの再生を停止', exact: true }).click();
+        await page.getByRole('button', { name: pauseName, exact: true }).click();
         const measured = await page.evaluate(() => window.previewBenchmark.end()), after = await metrics();
-        const position = Number(await page.getByRole('slider', { name: 'Project preview position', exact: true }).inputValue());
+        const position = Number(await page.getByRole('slider', { name: sliderName, exact: true }).inputValue());
         expect(position).toBeGreaterThan(staticHold ? 3000 : 4000);
         expect(position).toBeLessThan(staticHold ? 5000 : 6000);
         const intervals = values => values.slice(1).map((value, index) => value - values[index]);
@@ -84,6 +94,6 @@ try {
       results.push({ objects: count, samples, taskMsPerPass: stats(samples.map(s => s.cpu.TaskDuration)), scriptMsPerPass: stats(samples.map(s => s.cpu.ScriptDuration)), publicationCounts: samples.map(s => s.presented.length), taskMsPerPublication: optionalStats(publications.map(s => s.cpu.TaskDuration / s.presented.length)), scriptMsPerPublication: optionalStats(publications.map(s => s.cpu.ScriptDuration / s.presented.length)), publicationIntervalMs: optionalStats(samples.flatMap(s => s.publicationIntervals)), rafIntervalMs: stats(samples.flatMap(s => s.rafIntervals)), svgWrites: samples.map(s => s.svgWrites), svgCharacters: samples.map(s => s.svgCharacters) });
     } finally { provider.destroy(); doc.destroy(); await context.close(); }
   }
-  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', viewport: { width: 1440, height: 900 }, warmup: `One 3.5-second ${staticHold ? 'hold' : 'transition'} pass per size`, samples: staticHold ? 'Three 3.5-second static passes; seek to 0 ms within a 5000 ms hold before each pass; 500 or 100 circles' : 'Three 3.5-second transition passes; seek to 1000 ms of a 6000 ms Scene before each pass; 500 or 100 moving circles', measurement: 'CDP Performance task/script/layout/style duration deltas, native display drawImage publication times, rAF callbacks and SVG innerHTML writes; hooks and play/pause included', exclusions: 'No video/audio, WAN or hardware GPU; not physical FPS or end-to-end input latency' }, results }, null, 2) + '\n');
+  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { view: editor ? 'Scene playback in editor' : 'Project preview', server: 'Production Node on loopback', viewport: { width: 1440, height: 900 }, warmup: `One 3.5-second ${staticHold ? 'hold' : 'transition'} pass per size`, samples: staticHold ? 'Three 3.5-second static passes; seek to 0 ms within a 5000 ms hold before each pass; 500 or 100 circles' : 'Three 3.5-second transition passes; seek to 1000 ms of a 6000 ms Scene before each pass; 500 or 100 moving circles', measurement: 'CDP Performance task/script/layout/style duration deltas, native display drawImage publication times, rAF callbacks and SVG innerHTML writes; hooks and play/pause included', exclusions: 'No video/audio, WAN or hardware GPU; not physical FPS or end-to-end input latency' }, results }, null, 2) + '\n');
   console.log(JSON.stringify(results.map(({ samples, ...summary }) => summary), null, 2));
 } finally { await browser.close(); }

@@ -276,6 +276,9 @@ converts video to PNG before the painter decodes it. If Canvas fails, preview
 uses the stage's typed preparation state and retained SVG nodes. Legacy renderers
 with only `frameToSvg` remain supported. Cancellation prevents prepared video
 from crossing Scene boundaries or publishing after the preview closes.
+During active Scene playback with a visible Canvas, the editor retains its hidden
+SVG hit surface without updating it. Pause, seek while paused, and Canvas failure
+restore current SVG geometry; selection and editing still use that hit surface.
 As of **2026-09-27**, preparation decodes directly into its owned typed snapshot;
 it retains a separate native copy only of object metadata required by public
 frames. It no longer clones or retains a second set of Composition states,
@@ -439,10 +442,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 309 | 61,659 |
+| MoonBit application | 309 | 61,666 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 154 | 17,824 |
+| TypeScript tests, fixtures and test configurations | 154 | 17,869 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -516,6 +519,11 @@ renderers and cancellation remain covered. This selection is narrower than CI.
 The hold-key follow-up passed the build/contracts and 18 selected browser checks,
 including both rendering paths, clock progression, document/Scene invalidation,
 dynamic video during holds and independent MP4/WebM decoding.
+The editor hit-surface follow-up passed the build/contracts and 32 selected
+browser checks. Both legacy and draft painters keep visible Canvas pixels moving
+without rebuilding SVG; pause restores matching positions and live painter failure
+restores an animated SVG. Selection, drag, resize, curves, Glow and resource retry
+remain covered.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -888,6 +896,21 @@ After the initial frame, display copies during each pass fell from 212–213 to
 zero. The retained image stays visible while transport controls and audio keep
 their clocks. These measurements exclude media and describe static holds only;
 transitions and any hold containing visible video still evaluate changing frames.
+
+**Editor hit surface.** The [raw Scene-playback reports](benchmarks/2026-09-27-playback-hit-surface/)
+start from `cb3ff77`. The same three-process setup measures three 3.5-second moving
+passes after one warmup, now in the editor, including SVG mutation observation.
+Process medians, median [min–max] ms per Canvas publication:
+
+| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 5.250 [5.186–5.302] | 4.395 [4.337–4.528] | 1.697 [1.684–1.700] | 1.292 [1.287–1.385] |
+| 500 | 11.871 [11.814–11.893] | 8.125 [8.090–8.158] | 3.838 [3.770–3.851] | 1.937 [1.924–1.940] |
+
+For 500 objects, SVG DOM mutations fell from 107,500–108,500 per pass to 500 when
+pausing. Canvas publication and rAF medians remain about 16.7 ms. This measures
+reduced work during active playback; interactive dragging still updates hit geometry.
+It excludes media, hardware GPU, WAN and input latency and does not establish FPS.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

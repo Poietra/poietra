@@ -130,6 +130,13 @@ pub fn stage(input : @core.Any) -> @react.Element {
   } else {
     prepared.frame
   }
+  // A hidden hit surface has no consumers during active playback.
+  // Retain its nodes until pause or fallback makes the current geometry useful.
+  let svg_frame = if canvas_visible && playing {
+    @core.undefined()
+  } else {
+    displayed
+  }
   let svg = @react.use_memo(
     fn() {
       let options = host_record({
@@ -143,7 +150,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
       }
       stage_svg(view, canvas_visible, "scene-svg")
     },
-    [displayed, renderer, @core.any(prefix), @core.any(canvas_visible)],
+    [svg_frame, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )
   let selected : FixedArray[String] = editor._get("selectedIds").cast()
   let controller : StageController = {

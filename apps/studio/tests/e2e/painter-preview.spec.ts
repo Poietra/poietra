@@ -330,3 +330,48 @@ test('draft preview discards outdated pixel sizes and restores SVG after a paint
     await expect(circle(page)).toHaveAttribute('transform', 'translate(390 520) rotate(0)');
   } finally { await context.close(); }
 });
+
+for (const draft of [false, true]) test(`playing Canvas retains the inactive hit surface and refreshes it on pause (draft=${draft})`, async ({ page }) => {
+  await open(page, draft);
+  await page.evaluate(() => { window.painterPreview.delay = 0; });
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('1050');
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const node = await circle(page).elementHandle();
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  const progress = await page.evaluate(async () => {
+    for (let i = 0; i < 4; i++) await new Promise(requestAnimationFrame);
+    const probe = window.painterPreview, svg = probe.svgCalls, index = probe.renders.length;
+    const canvas = document.querySelector('[data-testid="stage-main"] canvas') as HTMLCanvasElement;
+    const before = canvas.toDataURL();
+    for (let i = 0; i < 8; i++) await new Promise(requestAnimationFrame);
+    return { svg: probe.svgCalls - svg, positions: probe.renders.slice(index).filter(frame => frame.finished).map(frame => frame.x), pixelsChanged: canvas.toDataURL() !== before };
+  });
+  expect(progress.svg).toBe(0);
+  expect(new Set(progress.positions).size).toBeGreaterThan(1);
+  expect(progress.pixelsChanged).toBe(true);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  const latest = await page.evaluate(() => window.painterPreview.renders.findLast(frame => frame.finished)!.x!);
+  await expect.poll(async () => Number((await circle(page).getAttribute('transform'))!.match(/translate\(([^ ]+)/)![1])).toBeCloseTo(latest, 3);
+  expect(await circle(page).evaluate((current, original) => current === original, node)).toBe(true);
+  await page.getByRole('button', { name: 'この場面を編集', exact: true }).click();
+  await circle(page, 'to').click();
+  await expect(page.locator('[data-testid="stage-to"] .stage-overlay rect')).not.toHaveCount(0);
+});
+
+test('a Canvas failure during playback immediately restores a moving SVG fallback', async ({ page }) => {
+  await open(page, true);
+  await page.evaluate(() => { window.painterPreview.delay = 0; });
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('1050');
+  await expect.poll(() => page.evaluate(() => window.painterPreview.active)).toBe(0);
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  await page.evaluate(() => { window.painterPreview.failNext = true; });
+  await expect(page.locator('[data-testid="stage-main"] .scene-hit-svg')).toHaveCount(0);
+  await expect(page.locator('[data-testid="stage-main"] .scene-canvas')).not.toBeVisible();
+  const before = await circle(page).getAttribute('transform');
+  await expect(circle(page)).not.toHaveAttribute('transform', before!);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('2500');
+  await expect(circle(page)).toHaveAttribute('transform', 'translate(955 190) rotate(0)');
+});
