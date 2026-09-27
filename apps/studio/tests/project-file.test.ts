@@ -46,6 +46,27 @@ describe('project file import', () => {
     const input = { ...makeDemoProject(), extra: JSON.parse(`{"${key}": {"value": 1}}`) };
     expect(() => parseProjectFile(JSON.stringify(input))).toThrow('JSON');
   });
+  it.each([
+    ['__proto__', '\\u005f_proto__'], ['constructor', '\\u0063onstructor'], ['prototype', '\\u0070rototype'],
+  ])('checks decoded %s keys inside ignored nested arrays', (key, escaped) => {
+    const text = JSON.stringify(makeDemoProject());
+    const withExtra = text.slice(0, -1) + `,"extra":[null,1,"safe",[[{"${escaped}":true}]]]}`;
+    expect(() => JSON.parse(withExtra, (name, value) => {
+      if (name === key) throw new Error('Reserved key');
+      return value;
+    })).toThrow('Reserved key');
+    expect(() => parseProjectFile(withExtra)).toThrow('JSON');
+  });
+  it('allows reserved words in values and ignores overwritten JSON subtrees', () => {
+    const expected = makeDemoProject(); expected.name = 'constructor';
+    const text = JSON.stringify(expected);
+    const withExtra = text.slice(0, -1) + ',"extra":{"prototype":1},"extra":["__proto__",{"prototype-value":"constructor"}]}';
+    expect(() => JSON.parse(withExtra, (key, value) => {
+      if (['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error('Reserved key');
+      return value;
+    })).not.toThrow();
+    expect(parseProjectFile(withExtra)).toEqual(expected);
+  });
   it('keeps custom easing strict even when other record fields can be stripped', () => {
     const input = makeDemoProject();
     input.scenes['scene-1'].transitions['transition-1'].tracks.circle.easing = {

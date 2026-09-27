@@ -1,0 +1,189 @@
+{
+  "applicationRevision": "2e0cc741c8959914f20a702593d5330e00473c67",
+  "command": "node --cpu-prof --cpu-prof-name=project-parsing.cpuprofile apps/studio/scripts/benchmark-project-parsing.mjs",
+  "profileIntervalUs": 1000,
+  "note": "Diagnostic CPU sampling across all benchmark operations, including JSON-only controls, input construction and assertions. This is not a latency comparison. Environment and generated artifact hashes match ../2026-09-27-project-parsing/after.json, which records the same application build before it was committed as 2e0cc74. Raw profile is gzip-compressed without filtering.",
+  "durationSampledMs": 13504.005,
+  "selfSamples": [
+    {
+      "function": "_M0MP26mizchi8js__core3Any6__call",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 646,
+      "ms": 3866.482
+    },
+    {
+      "function": "_M0MP26mizchi8js__core3Any6__call",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 738,
+      "ms": 3851.686
+    },
+    {
+      "function": "(garbage collector)",
+      "url": "",
+      "line": 0,
+      "ms": 1277.387
+    },
+    {
+      "function": "_M0FP37poietra7poietra14project__codec26parse__file__field_2einner",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 15423,
+      "ms": 734.364
+    },
+    {
+      "function": "_M0FP37poietra7poietra14project__codec26parse__file__field_2einner",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 17083,
+      "ms": 712.784
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/apps/studio/scripts/benchmark-project-parsing.mjs",
+      "line": 33,
+      "ms": 536.028
+    },
+    {
+      "function": "encodeInto",
+      "url": "node:internal/encoding",
+      "line": 356,
+      "ms": 393.327
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 15175,
+      "ms": 208.539
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 16835,
+      "ms": 199.494
+    },
+    {
+      "function": "_M0MP26mizchi8js__core3Any5__get",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 696,
+      "ms": 118.038
+    },
+    {
+      "function": "_M0MP26mizchi8js__core3Any5__get",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 626,
+      "ms": 105.006
+    },
+    {
+      "function": "structuredClone",
+      "url": "node:internal/worker/js_transferable",
+      "line": 112,
+      "ms": 93.23
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 6716,
+      "ms": 83.936
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/apps/studio/scripts/benchmark-project-parsing.mjs",
+      "line": 1,
+      "ms": 80.298
+    },
+    {
+      "function": "_M0FP37poietra7poietra5scene14prepare__color",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 11809,
+      "ms": 66.5
+    },
+    {
+      "function": "_M0FP26mizchi8js__core17ffi__object__keys",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 874,
+      "ms": 65.738
+    },
+    {
+      "function": "_M0FP37poietra7poietra14project__codec10erase__own",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 1176,
+      "ms": 60.161
+    },
+    {
+      "function": "_M0MPB3Map3getGsRP37poietra7poietra5scene11ObjectStateE",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 6208,
+      "ms": 54.626
+    },
+    {
+      "function": "_M0FP37poietra7poietra14project__codec10erase__own",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 1410,
+      "ms": 54.415
+    },
+    {
+      "function": "_M0FP26mizchi8js__core17ffi__object__keys",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 703,
+      "ms": 52.222
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 17493,
+      "ms": 49.406
+    },
+    {
+      "function": "_M0MPB7JSArray4push",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 215,
+      "ms": 47.453
+    },
+    {
+      "function": "",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 15833,
+      "ms": 41.988
+    },
+    {
+      "function": "_M0FP37poietra7poietra5scene10parse__rgb",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 11326,
+      "ms": 36.856
+    },
+    {
+      "function": "_M0FP26mizchi8js__core12object__keys",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/boundary/boundary.js",
+      "line": 8872,
+      "ms": 36.039
+    },
+    {
+      "function": "_M0MPB3Map15set__with__hashGsRP37poietra7poietra5scene5SceneE",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 5400,
+      "ms": 33.897
+    },
+    {
+      "function": "keyCheck",
+      "url": "node:internal/util/comparisons",
+      "line": 433,
+      "ms": 29.475
+    },
+    {
+      "function": "_M0FP37poietra7poietra5scene27prepare__layout__transition",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 12455,
+      "ms": 28.207
+    },
+    {
+      "function": "_M0FP26mizchi8js__core12object__keys",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 10631,
+      "ms": 26.036
+    },
+    {
+      "function": "_M0MP37poietra7poietra5scene12ObjectLayout8evaluate",
+      "url": "file:///home/hosi/poietra-moonbit/_build/js/release/build/headless_render/headless_render.js",
+      "line": 12732,
+      "ms": 22.779
+    }
+  ]
+}

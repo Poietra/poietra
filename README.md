@@ -315,8 +315,12 @@ native record. Conflicting references still fail before asset transfer.
 Portable-file normalization owns the fresh `JSON.parse` tree and strips unknown
 fields in place, avoiding another tree of native records and arrays. A private
 ownership enum keeps ordinary asset/keyframe readers on the copying path. The
-reserved-key reviver, strict easing validation, typed decoding and reference checks
+reserved-key guard, strict easing validation, typed decoding and reference checks
 remain shared by browser and headless imports; returned files stay independent.
+The guard walks the parsed tree iteratively in MoonBit before normalization,
+including ignored subtrees and decoded Unicode keys. JSON parsing needs no
+per-value callback; string contents and overwritten JSON values retain their
+existing semantics.
 SVG escaping scans UTF-16 once and appends unchanged spans instead of individual
 code units. Unchanged text returns directly, including long embedded image sources;
 XML control filtering, entity escaping and isolated-surrogate replacement still
@@ -478,10 +482,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,898 |
+| MoonBit application | 310 | 61,921 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,189 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,210 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -546,13 +550,15 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The current follow-up passed 791 Vitest checks, five extension/linking checks,
+The current follow-up passed 795 Vitest checks, five extension/linking checks,
 61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public contracts
 and the production build locally on **2026-09-27**. Selected browser checks passed:
 22 painter cases, ten text/geometry cache and cancellation cases, and 24 portable
 file, media, hierarchy and shared-room cases. These selections are narrower than CI.
 New regressions cover owned file normalization, unknown/reserved keys, optional
-nulls, strict easing, independent parses and borrowed frozen assets. Raster tests
+nulls, strict easing, independent parses and borrowed frozen assets. The key guard
+also rejects escaped reserved keys in ignored arrays while permitting reserved
+words as values and honoring overwritten JSON members. Raster tests
 preserve cached native identity, fallback `null`, pending-replacement cancellation
 and leases. Earlier follow-ups also exercised project preview/export, SVG escaping,
 media-aware timelines, subscription isolation, retained hit surfaces and mutable
@@ -1029,9 +1035,28 @@ and equality assertions are outside timing; each full parse starts from its stri
 
 The largest input is 13,343,340 UTF-8 bytes. Its JSON-only control was
 32.934 [32.465–35.605] → 33.480 [32.924–34.394] ms; that control does no schema or
-reference validation. Full parsing retains both, including the reserved-key reviver.
+reference validation. Both compared versions retain full validation and the
+reserved-key reviver.
 Headless inspection also prepares its timeline, without pixels, codecs or I/O.
 These are CPU timings, not file-picker latency or peak-memory measurements.
+
+**Reserved-key traversal.** A [CPU profile and follow-up reports](benchmarks/2026-09-27-json-key-scan/)
+identified JSON parsing with a reviver as the largest sampled cost. The iterative
+MoonBit guard uses the same full tree and checks decoded keys before any field
+can be discarded. Compared with the preceding owned-normalization after-runs,
+using the same five-process workload and batch counts:
+
+| File / public operation | Before, ms | After, ms |
+| --- | ---: | ---: |
+| 100 objects × 2 Compositions, portable parse | 1.509 [1.468–1.528] | 0.651 [0.621–0.703] |
+| 500 × 12, portable parse | 40.193 [38.564–41.523] | 15.173 [14.582–15.675] |
+| 500 × 12 with unknown fields, portable parse | 50.873 [49.917–52.148] | 21.247 [20.964–21.641] |
+| 500 × 100, portable parse | 345.026 [340.642–356.969] | 127.734 [126.214–132.062] |
+| 500 × 100, headless inspection | 384.432 [376.480–393.840] | 170.242 [168.390–172.467] |
+
+The largest JSON-only control was 33.480 [32.924–34.394] →
+33.555 [32.512–34.340] ms. Limits, schemas, reference checks and input content
+are unchanged; no peak-memory or browser-interaction claim is made.
 
 **Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
 compare `893cbfa` with an experimental typed, quantized cubic representation.

@@ -34,31 +34,54 @@ pub fn bounded_utf8_size(text : String, limit : Int) -> Int {
 }
 
 ///|
+fn parse_file_json(text : String) -> @core.Any raise {
+  let value = @core.throwable(fn() {
+    @core.global_this()._get("JSON")._call("parse", [@core.any(text)])
+  })
+  // Visit every parsed key before normalization, including ignored subtrees.
+  // Arrays have only index keys in JSON. Enqueue containers, not scalar leaves,
+  // so the guard needs neither a parser callback per value nor recursive calls.
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_null(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    if is_array(current) {
+      let items : FixedArray[@core.Any] = current.cast()
+      for item in items {
+        if !@core.is_null(item) && @core.typeof_(item) == "object" {
+          pending.push(item)
+        }
+      }
+    } else {
+      for key in @core.object_keys(current) {
+        if key == "__proto__" || key == "constructor" || key == "prototype" {
+          raise InvalidFileField
+        }
+        let item = current._get(key)
+        if !@core.is_null(item) && @core.typeof_(item) == "object" {
+          pending.push(item)
+        }
+      }
+    }
+  }
+  value
+}
+
+///|
 fn decode_file(text : String) -> (@core.Any, @scene.Project) raise {
   if bounded_utf8_size(text, 134217728) > 134217728 {
     raise InvalidProjectFile(
       "プロジェクトファイルは 128 MB 以下にしてください。",
     )
   }
-  let value = @core.throwable(fn() {
-    @core.global_this()
-    ._get("JSON")
-    ._call("parse", [
-      @core.any(text),
-      @core.any(fn(key : String, value : @core.Any) {
-        if key == "__proto__" || key == "constructor" || key == "prototype" {
-          @core.throw_error("Reserved key")
-        }
-        value
-      }),
-    ])
-  }) catch {
+  let value = parse_file_json(text) catch {
     _ =>
       raise InvalidProjectFile(
         "対応する Poietra プロジェクト形式の JSON を読み取れませんでした。.poietra.json ファイルを選択してください。",
       )
   }
-  // JSON.parse produced a private tree and the reviver rejected reserved keys.
+  // JSON.parse produced a private tree and its keys have been checked.
   // Normalize that owned tree in place; ordinary native readers still copy.
   let parsed = parse_file_field(value, project_file_field, ownership=ParsedJson) catch {
     _ =>

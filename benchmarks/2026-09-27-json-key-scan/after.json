@@ -1,0 +1,1450 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-27T01:16:42.644Z",
+  "environment": {
+    "applicationRevision": "2e0cc741c8959914f20a702593d5330e00473c67",
+    "trackedModifications": [
+      "apps/studio/scripts/benchmark-project-parsing.mjs",
+      "apps/studio/tests/project-file.test.ts",
+      "moonbit/project_codec/project_file.mbt"
+    ],
+    "applicationSourcesSha256": "cda21f20ea21a645b865ba25d6b3237086b1224fdf7b2adb72bc7c7d441fa184",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.56,
+      1.02,
+      1.02
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "9ef0e0a51dbb3b3d95d0b60d862e29e09ad7b3ea67c1db10056b33286ef13b60",
+    "boundarySha256": "6148617114ba6730cb1c625c382bb8c22c4cd768b3d1a9504429a716a3fac58c",
+    "clientRuntimeSha256": "6c4d708d09841b5a7a6436928f22bc885931d6e9c67e5204b02bfdc06368ce18",
+    "viteManifestSha256": "3d35ada4dd886e97cb97940bbd6e57895cf857ca42e07891e7f55fb3c7f0d463"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "project-parsing": {
+      "summary": [
+        {
+          "objects": 100,
+          "compositions": 2,
+          "unknownFields": false,
+          "operation": "json",
+          "jsonBytes": 62578,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.1691706666666685,
+            "min": 0.16122833333333375,
+            "max": 0.17411833333333485
+          }
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "unknownFields": false,
+          "operation": "portable",
+          "jsonBytes": 62578,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.6514910000000024,
+            "min": 0.6210533333333359,
+            "max": 0.7032603333333327
+          }
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "unknownFields": false,
+          "operation": "headless-inspect",
+          "jsonBytes": 62578,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.8589616666666681,
+            "min": 0.8418253333333325,
+            "max": 0.8980713333333341
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": false,
+          "operation": "json",
+          "jsonBytes": 1643872,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 4.231648666666672,
+            "min": 4.151921666666671,
+            "max": 4.41731466666666
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": false,
+          "operation": "portable",
+          "jsonBytes": 1643872,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 15.173034333333343,
+            "min": 14.582113333333345,
+            "max": 15.67456900000002
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": false,
+          "operation": "headless-inspect",
+          "jsonBytes": 1643872,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 18.853439666666684,
+            "min": 18.305030666666653,
+            "max": 19.17162666666665
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": true,
+          "operation": "json",
+          "jsonBytes": 1925908,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 5.011108666666662,
+            "min": 4.890338333333375,
+            "max": 5.062782333333341
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": true,
+          "operation": "portable",
+          "jsonBytes": 1925908,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 21.24710799999995,
+            "min": 20.963694000000032,
+            "max": 21.64081433333331
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "unknownFields": true,
+          "operation": "headless-inspect",
+          "jsonBytes": 1925908,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 24.511879666666573,
+            "min": 24.145422666666644,
+            "max": 25.515434666666653
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 100,
+          "unknownFields": false,
+          "operation": "json",
+          "jsonBytes": 13343340,
+          "iterations": 1,
+          "msPerOperation": {
+            "n": 5,
+            "median": 33.554819999999836,
+            "min": 32.511997000000065,
+            "max": 34.34021900000016
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 100,
+          "unknownFields": false,
+          "operation": "portable",
+          "jsonBytes": 13343340,
+          "iterations": 1,
+          "msPerOperation": {
+            "n": 5,
+            "median": 127.73433499999919,
+            "min": 126.21441499999946,
+            "max": 132.0620640000002
+          }
+        },
+        {
+          "objects": 500,
+          "compositions": 100,
+          "unknownFields": false,
+          "operation": "headless-inspect",
+          "jsonBytes": 13343340,
+          "iterations": 1,
+          "msPerOperation": {
+            "n": 5,
+            "median": 170.24237300000004,
+            "min": 168.390488,
+            "max": 172.4669640000002
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "One Scene, shape poses across 2/12/100 Compositions. Full portable parsing includes bounded UTF-8 checking, reserved-key validation, schema normalization and reference validation. Headless inspection additionally prepares the render timeline, without rasterization, codecs or I/O. JSON.parse is a control only and performs no validation. Input creation, stringify and assertions are outside timing. No browser or peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches, with per-case iteration counts; each process constructs identical input.",
+          "results": [
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.1691706666666685,
+              "samples": {
+                "msPerOperation": [
+                  0.13326633333333385,
+                  0.14554500000000084,
+                  0.156422999999999,
+                  0.17739766666666887,
+                  0.17088366666666843,
+                  0.1691706666666685,
+                  0.17058833333333231
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.6483860000000021,
+              "samples": {
+                "msPerOperation": [
+                  0.6483860000000021,
+                  0.7051199999999985,
+                  0.605656000000001,
+                  0.653285999999999,
+                  0.7685519999999997,
+                  0.609590666666667,
+                  0.5750733333333358
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.8589616666666681,
+              "samples": {
+                "msPerOperation": [
+                  1.0372526666666648,
+                  0.8494596666666657,
+                  0.8615263333333351,
+                  0.8325393333333343,
+                  0.8700970000000012,
+                  0.7612360000000015,
+                  0.8589616666666681
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 4.152997999999987,
+              "samples": {
+                "msPerOperation": [
+                  4.596342666666668,
+                  4.071641,
+                  3.9896666666666647,
+                  3.8531186666666692,
+                  4.544903333333328,
+                  4.388846999999998,
+                  4.152997999999987
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 15.173034333333343,
+              "samples": {
+                "msPerOperation": [
+                  15.173034333333343,
+                  19.785024000000003,
+                  17.954741999999992,
+                  14.835713000000018,
+                  14.663176333333316,
+                  15.181675333333336,
+                  14.916402333333357
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 18.359690666666665,
+              "samples": {
+                "msPerOperation": [
+                  18.31102733333334,
+                  18.83734800000002,
+                  17.92683733333335,
+                  18.636785666666697,
+                  18.45933366666668,
+                  17.987073333333303,
+                  18.359690666666665
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "json",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 5.062782333333341,
+              "samples": {
+                "msPerOperation": [
+                  6.090463,
+                  4.864980333333354,
+                  5.61528100000002,
+                  4.740301666666634,
+                  6.381658999999975,
+                  4.996036000000004,
+                  5.062782333333341
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "portable",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 21.61173299999996,
+              "samples": {
+                "msPerOperation": [
+                  20.987768999999997,
+                  22.615853000000016,
+                  21.13862266666668,
+                  22.47814466666667,
+                  21.61173299999996,
+                  22.195125666666627,
+                  21.522050333333407
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "headless-inspect",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 24.849032999999963,
+              "samples": {
+                "msPerOperation": [
+                  23.01220600000003,
+                  24.606051000000054,
+                  24.849032999999963,
+                  25.079289666666682,
+                  24.634502666666624,
+                  25.228184666666646,
+                  25.062690333333194
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 32.511997000000065,
+              "samples": {
+                "msPerOperation": [
+                  32.511997000000065,
+                  36.77133700000013,
+                  32.15298699999994,
+                  31.59847600000012,
+                  35.30116100000032,
+                  37.52520300000015,
+                  31.653033999999934
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 126.21441499999946,
+              "samples": {
+                "msPerOperation": [
+                  123.66297299999997,
+                  129.8477509999998,
+                  122.65163199999961,
+                  127.39063400000032,
+                  124.48905599999944,
+                  131.02725499999997,
+                  126.21441499999946
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 170.24237300000004,
+              "samples": {
+                "msPerOperation": [
+                  175.7483630000006,
+                  171.75180900000032,
+                  178.97632499999963,
+                  170.24237300000004,
+                  162.13390299999992,
+                  163.99061299999994,
+                  163.48476300000038
+                ]
+              }
+            }
+          ],
+          "checksum": 270
+        },
+        {
+          "scope": "One Scene, shape poses across 2/12/100 Compositions. Full portable parsing includes bounded UTF-8 checking, reserved-key validation, schema normalization and reference validation. Headless inspection additionally prepares the render timeline, without rasterization, codecs or I/O. JSON.parse is a control only and performs no validation. Input creation, stringify and assertions are outside timing. No browser or peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches, with per-case iteration counts; each process constructs identical input.",
+          "results": [
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.16122833333333375,
+              "samples": {
+                "msPerOperation": [
+                  0.12445433333333256,
+                  0.12921733333333427,
+                  0.13430266666666787,
+                  0.19198866666666703,
+                  0.16122833333333375,
+                  0.1619853333333315,
+                  0.16962799999999825
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.6514910000000024,
+              "samples": {
+                "msPerOperation": [
+                  0.6514910000000024,
+                  0.9270643333333339,
+                  0.6581553333333355,
+                  0.641791333333335,
+                  0.6655006666666642,
+                  0.5386680000000013,
+                  0.5252786666666651
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.8980713333333341,
+              "samples": {
+                "msPerOperation": [
+                  1.0431686666666689,
+                  1.1086390000000013,
+                  0.9707143333333335,
+                  0.7473913333333352,
+                  0.8980713333333341,
+                  0.7929633333333328,
+                  0.7830900000000014
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 4.2833859999999975,
+              "samples": {
+                "msPerOperation": [
+                  4.174162333333338,
+                  4.031453333333332,
+                  4.2833859999999975,
+                  4.0815443333333405,
+                  4.8357070000000135,
+                  6.166712999999997,
+                  4.480650666666672
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 15.574411666666682,
+              "samples": {
+                "msPerOperation": [
+                  15.574411666666682,
+                  22.11507933333333,
+                  16.518788666666676,
+                  14.873101333333315,
+                  14.249531999999968,
+                  14.529031999999992,
+                  15.627806666666666
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 18.305030666666653,
+              "samples": {
+                "msPerOperation": [
+                  19.357626666666686,
+                  17.556220000000014,
+                  18.305030666666653,
+                  18.158621333333333,
+                  18.998357000000016,
+                  18.24571633333335,
+                  18.432072666666652
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "json",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 4.937807000000021,
+              "samples": {
+                "msPerOperation": [
+                  4.884783333333341,
+                  4.822955666666682,
+                  5.091258000000001,
+                  4.937807000000021,
+                  5.252176999999999,
+                  4.779665333333393,
+                  5.719106000000011
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "portable",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 21.062480666666715,
+              "samples": {
+                "msPerOperation": [
+                  20.410498333333333,
+                  20.861247333333342,
+                  20.788656999999983,
+                  21.062480666666715,
+                  21.18385099999993,
+                  22.2403356666667,
+                  22.25117933333331
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "headless-inspect",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 24.145422666666644,
+              "samples": {
+                "msPerOperation": [
+                  25.160590999999993,
+                  26.076999999999924,
+                  24.00959166666674,
+                  23.78204933333336,
+                  25.70147733333336,
+                  23.943033333333307,
+                  24.145422666666644
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 33.554819999999836,
+              "samples": {
+                "msPerOperation": [
+                  32.041435999999976,
+                  37.79967399999987,
+                  33.554819999999836,
+                  32.248181999999815,
+                  34.52841699999999,
+                  31.81193499999972,
+                  40.5692939999999
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 127.61329699999987,
+              "samples": {
+                "msPerOperation": [
+                  127.61329699999987,
+                  130.9860560000002,
+                  125.13378400000056,
+                  129.17808700000023,
+                  124.61659700000018,
+                  131.52213299999949,
+                  124.64482000000044
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 171.45249599999988,
+              "samples": {
+                "msPerOperation": [
+                  185.955962,
+                  179.28908299999966,
+                  174.80741399999988,
+                  169.41145999999935,
+                  166.5597829999997,
+                  171.45249599999988,
+                  166.41772800000035
+                ]
+              }
+            }
+          ],
+          "checksum": 270
+        },
+        {
+          "scope": "One Scene, shape poses across 2/12/100 Compositions. Full portable parsing includes bounded UTF-8 checking, reserved-key validation, schema normalization and reference validation. Headless inspection additionally prepares the render timeline, without rasterization, codecs or I/O. JSON.parse is a control only and performs no validation. Input creation, stringify and assertions are outside timing. No browser or peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches, with per-case iteration counts; each process constructs identical input.",
+          "results": [
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.17090100000000064,
+              "samples": {
+                "msPerOperation": [
+                  0.14020000000000246,
+                  0.13632633333333408,
+                  0.1567423333333314,
+                  0.17782766666666797,
+                  0.1802480000000012,
+                  0.17090100000000064,
+                  0.17457399999999743
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.7032603333333327,
+              "samples": {
+                "msPerOperation": [
+                  0.7155970000000025,
+                  0.7032603333333327,
+                  0.7162229999999994,
+                  0.5999219999999971,
+                  0.7764526666666663,
+                  0.6425530000000018,
+                  0.5420583333333345
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.8451343333333341,
+              "samples": {
+                "msPerOperation": [
+                  1.0601673333333348,
+                  0.8451343333333341,
+                  0.9605130000000012,
+                  0.905035666666663,
+                  0.7825843333333324,
+                  0.8186279999999991,
+                  0.724274333333336
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 4.41731466666666,
+              "samples": {
+                "msPerOperation": [
+                  4.457128333333334,
+                  3.9740920000000037,
+                  4.41731466666666,
+                  4.414084333333335,
+                  5.1280183333333484,
+                  5.368846666666665,
+                  4.164790999999998
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 14.582113333333345,
+              "samples": {
+                "msPerOperation": [
+                  15.300653999999989,
+                  21.735519666666658,
+                  14.747337666666681,
+                  13.98163866666664,
+                  14.125956000000011,
+                  14.025294666666696,
+                  14.582113333333345
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 19.054373333333313,
+              "samples": {
+                "msPerOperation": [
+                  19.594563333333326,
+                  19.54578033333333,
+                  19.054373333333313,
+                  18.981232000000016,
+                  19.3377926666667,
+                  18.32550066666666,
+                  17.27714933333338
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "json",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 4.890338333333375,
+              "samples": {
+                "msPerOperation": [
+                  4.890338333333375,
+                  4.875354000000016,
+                  4.963981666666693,
+                  5.148554666666693,
+                  5.442512666666668,
+                  4.7351563333333315,
+                  4.778818333333372
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "portable",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 21.64081433333331,
+              "samples": {
+                "msPerOperation": [
+                  21.67496133333331,
+                  21.106581999999964,
+                  21.420716333333377,
+                  22.340730666666634,
+                  21.64081433333331,
+                  21.339185333333337,
+                  23.968282333333416
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "headless-inspect",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 24.42112433333341,
+              "samples": {
+                "msPerOperation": [
+                  24.91950333333337,
+                  24.673497999999956,
+                  24.42112433333341,
+                  26.282217999999983,
+                  24.325998999999985,
+                  23.84648299999996,
+                  24.075692333333336
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 33.610345999999936,
+              "samples": {
+                "msPerOperation": [
+                  33.610345999999936,
+                  38.53406499999983,
+                  33.21686299999965,
+                  33.85261499999979,
+                  33.709142000000156,
+                  32.736749000000145,
+                  32.66990699999997
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 127.73433499999919,
+              "samples": {
+                "msPerOperation": [
+                  126.23648700000012,
+                  135.8387560000001,
+                  127.3846939999994,
+                  132.40442200000052,
+                  127.73433499999919,
+                  130.63077299999986,
+                  124.91616199999953
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 172.4669640000002,
+              "samples": {
+                "msPerOperation": [
+                  180.3249879999994,
+                  172.4669640000002,
+                  181.3582180000003,
+                  164.20443200000045,
+                  170.9110069999997,
+                  174.67484299999978,
+                  163.50828300000012
+                ]
+              }
+            }
+          ],
+          "checksum": 270
+        },
+        {
+          "scope": "One Scene, shape poses across 2/12/100 Compositions. Full portable parsing includes bounded UTF-8 checking, reserved-key validation, schema normalization and reference validation. Headless inspection additionally prepares the render timeline, without rasterization, codecs or I/O. JSON.parse is a control only and performs no validation. Input creation, stringify and assertions are outside timing. No browser or peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches, with per-case iteration counts; each process constructs identical input.",
+          "results": [
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.17411833333333485,
+              "samples": {
+                "msPerOperation": [
+                  0.14160333333333597,
+                  0.14811599999999694,
+                  0.2053909999999964,
+                  0.2305939999999964,
+                  0.17411833333333485,
+                  0.17128433333333723,
+                  0.18428099999999858
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.6588386666666679,
+              "samples": {
+                "msPerOperation": [
+                  0.7603596666666684,
+                  0.6953789999999979,
+                  0.612448333333333,
+                  0.6077776666666684,
+                  0.6614816666666693,
+                  0.6588386666666679,
+                  0.5995136666666667
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.8418253333333325,
+              "samples": {
+                "msPerOperation": [
+                  0.9924606666666685,
+                  0.8418253333333325,
+                  0.8710003333333324,
+                  0.8969656666666642,
+                  0.8019926666666635,
+                  0.7625273333333334,
+                  0.7897296666666686
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 4.151921666666671,
+              "samples": {
+                "msPerOperation": [
+                  4.2811716666666655,
+                  3.9613596666666617,
+                  4.151921666666671,
+                  4.1475226666666645,
+                  4.9744350000000095,
+                  3.886247666666653,
+                  5.533132333333337
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 15.050892333333346,
+              "samples": {
+                "msPerOperation": [
+                  15.050892333333346,
+                  20.265759333333317,
+                  18.064224000000006,
+                  14.97881800000001,
+                  14.755123333333358,
+                  17.709944999999987,
+                  14.918199666666661
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 18.853439666666684,
+              "samples": {
+                "msPerOperation": [
+                  18.988039666666662,
+                  19.391004666666657,
+                  18.853439666666684,
+                  18.80662833333334,
+                  19.42926666666661,
+                  17.90830133333331,
+                  18.578914333333312
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "json",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 5.034637333333346,
+              "samples": {
+                "msPerOperation": [
+                  5.113871333333312,
+                  5.3628233333333055,
+                  4.829030999999986,
+                  5.034637333333346,
+                  5.734611333333305,
+                  4.757652999999967,
+                  4.923961999999999
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "portable",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 21.24710799999995,
+              "samples": {
+                "msPerOperation": [
+                  21.73719666666663,
+                  21.167423333333318,
+                  20.707545666666647,
+                  20.752424666666684,
+                  21.24710799999995,
+                  21.587728000000045,
+                  22.947842333333256
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "headless-inspect",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 25.515434666666653,
+              "samples": {
+                "msPerOperation": [
+                  27.013040333333265,
+                  25.523946999999982,
+                  24.261645999999928,
+                  25.69439533333328,
+                  24.876588333333377,
+                  25.515434666666653,
+                  24.443173666666706
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 32.73393900000019,
+              "samples": {
+                "msPerOperation": [
+                  32.568325999999615,
+                  39.48277099999996,
+                  32.73393900000019,
+                  32.348341999999775,
+                  35.34466800000018,
+                  32.59741499999973,
+                  39.510187999999744
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 130.59464600000047,
+              "samples": {
+                "msPerOperation": [
+                  134.73613000000023,
+                  132.35965799999985,
+                  130.59464600000047,
+                  128.86412699999983,
+                  131.45883099999992,
+                  129.9292459999997,
+                  125.39293100000032
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 168.46557400000074,
+              "samples": {
+                "msPerOperation": [
+                  178.96997200000078,
+                  181.35312899999917,
+                  179.98155899999983,
+                  168.46557400000074,
+                  166.57902300000023,
+                  165.67410800000016,
+                  162.21186699999998
+                ]
+              }
+            }
+          ],
+          "checksum": 270
+        },
+        {
+          "scope": "One Scene, shape poses across 2/12/100 Compositions. Full portable parsing includes bounded UTF-8 checking, reserved-key validation, schema normalization and reference validation. Headless inspection additionally prepares the render timeline, without rasterization, codecs or I/O. JSON.parse is a control only and performs no validation. Input creation, stringify and assertions are outside timing. No browser or peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches, with per-case iteration counts; each process constructs identical input.",
+          "results": [
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.16401499999999913,
+              "samples": {
+                "msPerOperation": [
+                  0.13680566666666513,
+                  0.14212633333333477,
+                  0.15048600000000079,
+                  0.1681276666666657,
+                  0.1666596666666654,
+                  0.17142033333333254,
+                  0.16401499999999913
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.6210533333333359,
+              "samples": {
+                "msPerOperation": [
+                  0.7075123333333314,
+                  0.6645070000000004,
+                  0.5945433333333341,
+                  0.5950930000000009,
+                  0.630883666666667,
+                  0.6210533333333359,
+                  0.5378743333333347
+                ]
+              }
+            },
+            {
+              "objects": 100,
+              "compositions": 2,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 62578,
+              "iterations": 3,
+              "msPerOperation": 0.8836590000000039,
+              "samples": {
+                "msPerOperation": [
+                  1.0216006666666668,
+                  1.0511459999999981,
+                  0.9131473333333323,
+                  0.7933243333333309,
+                  0.8836590000000039,
+                  0.7679163333333369,
+                  0.775597
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 4.231648666666672,
+              "samples": {
+                "msPerOperation": [
+                  5.161628000000007,
+                  4.492238000000005,
+                  4.231648666666672,
+                  3.871701000000011,
+                  5.923301333333332,
+                  3.980410000000006,
+                  4.148700333333333
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 15.67456900000002,
+              "samples": {
+                "msPerOperation": [
+                  15.617464333333336,
+                  19.65789966666669,
+                  19.942546666666697,
+                  15.919204333333331,
+                  15.610503333333327,
+                  15.67456900000002,
+                  15.601871999999995
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 1643872,
+              "iterations": 3,
+              "msPerOperation": 19.17162666666665,
+              "samples": {
+                "msPerOperation": [
+                  18.45650599999999,
+                  19.17162666666665,
+                  20.935871666666646,
+                  19.54410633333335,
+                  19.314193333333304,
+                  18.06882333333336,
+                  18.545645666666662
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "json",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 5.011108666666662,
+              "samples": {
+                "msPerOperation": [
+                  5.632873333333312,
+                  4.754536333333287,
+                  5.619984000000007,
+                  4.793526333333375,
+                  4.93158333333334,
+                  5.011108666666662,
+                  5.993112999999994
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "portable",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 20.963694000000032,
+              "samples": {
+                "msPerOperation": [
+                  21.125177666666634,
+                  21.595853000000034,
+                  20.963694000000032,
+                  20.621959333333354,
+                  20.327477333333338,
+                  21.253092666666664,
+                  20.663372333333275
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 12,
+              "unknownFields": true,
+              "operation": "headless-inspect",
+              "jsonBytes": 1925908,
+              "iterations": 3,
+              "msPerOperation": 24.511879666666573,
+              "samples": {
+                "msPerOperation": [
+                  24.452730666666564,
+                  23.25903166666664,
+                  23.929873666666634,
+                  24.511879666666573,
+                  26.818584999999985,
+                  25.262718999999986,
+                  24.912893666666605
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "json",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 34.34021900000016,
+              "samples": {
+                "msPerOperation": [
+                  33.21308799999997,
+                  38.4661430000001,
+                  34.849097999999685,
+                  32.38945100000001,
+                  34.34021900000016,
+                  36.69921299999987,
+                  32.66857399999981
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "portable",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 132.0620640000002,
+              "samples": {
+                "msPerOperation": [
+                  132.0620640000002,
+                  128.92867999999999,
+                  133.69464500000004,
+                  135.86363099999926,
+                  129.13487499999974,
+                  132.27241400000003,
+                  129.18081699999948
+                ]
+              }
+            },
+            {
+              "objects": 500,
+              "compositions": 100,
+              "unknownFields": false,
+              "operation": "headless-inspect",
+              "jsonBytes": 13343340,
+              "iterations": 1,
+              "msPerOperation": 168.390488,
+              "samples": {
+                "msPerOperation": [
+                  184.29442700000072,
+                  172.27075499999955,
+                  177.8996219999999,
+                  168.390488,
+                  162.98826800000006,
+                  166.4092959999998,
+                  162.0699250000007
+                ]
+              }
+            }
+          ],
+          "checksum": 270
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-27T01:17:14.264Z",
+  "loadAverageAfter": [
+    1.43,
+    1.05,
+    1.03
+  ]
+}
