@@ -7,6 +7,7 @@ pub(all) struct Drawable {
   kind : @scene.ObjectKind
   state : @scene.ObjectState
   world : @scene.Affine?
+  clips : Array[@scene.Clip]?
   progress : Double
   order : WriteOrder
   image : String?
@@ -116,6 +117,7 @@ pub(all) struct SvgObject {
   filter : String?
   definitions : String
   body : String
+  clip_paths : Array[String]
 }
 
 ///|

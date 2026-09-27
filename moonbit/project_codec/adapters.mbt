@@ -243,6 +243,7 @@ pub fn decode_SceneObject(value : @core.Any) -> @scene.SceneObject {
     order: value._get("order").cast(),
     groupId: optional(value._get("groupId"), fn(v) { v.cast() }),
     parentId: optional(value._get("parentId"), fn(v) { v.cast() }),
+    clipChildren: optional(value._get("clipChildren"), fn(v) { v.cast() }),
     locked: value._get("locked").cast(),
     image: optional(value._get("image"), fn(v) { decode_ImageAsset(v) }),
     media: optional(value._get("media"), fn(v) { decode_MediaAsset(v) }),
@@ -394,6 +395,15 @@ pub fn decode_Scene(value : @core.Any) -> @scene.Scene {
       decode_map(v, fn(v) { decode_AudioTrack(v) })
     }),
     deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_Clip(value : @core.Any) -> @scene.Clip {
+  {
+    world: decode_Affine(value._get("world")),
+    width: value._get("width").cast(),
+    height: value._get("height").cast(),
   }
 }
 
@@ -659,6 +669,9 @@ pub fn encode_SceneObject(value : @scene.SceneObject) -> @core.Any {
   if value.parentId is Some(item) {
     put_own(result, "parentId", @core.any(item))
   }
+  if value.clipChildren is Some(item) {
+    put_own(result, "clipChildren", @core.any(item))
+  }
   put_own(result, "locked", @core.any(value.locked))
   if value.image is Some(item) {
     put_own(result, "image", encode_ImageAsset(item))
@@ -807,5 +820,14 @@ pub fn encode_Project(value : @scene.Project) -> @core.Any {
     "scenes",
     encode_map(value.scenes, fn(item) { encode_Scene(item) }),
   )
+  result
+}
+
+///|
+pub fn encode_Clip(value : @scene.Clip) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "world", encode_Affine(value.world))
+  put_own(result, "width", @core.any(value.width))
+  put_own(result, "height", @core.any(value.height))
   result
 }

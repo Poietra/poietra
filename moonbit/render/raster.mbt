@@ -15,6 +15,7 @@ pub fn local_drawable(item : Drawable) -> Drawable {
   {
     ..item,
     world: None,
+    clips: None,
     state: {
       ..item.state,
       x: 0.0,

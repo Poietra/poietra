@@ -19,6 +19,7 @@ fn object(id : String, parent : String?) -> @scene.SceneObject {
   {
     id,
     parentId: parent,
+    clipChildren: None,
     name: id,
     kind: Rectangle,
     order: 0.0,
@@ -28,6 +29,60 @@ fn object(id : String, parent : String?) -> @scene.SceneObject {
     media: None,
     playback: None,
   }
+}
+
+///|
+test "hidden nested clip parents retain animated world geometry on both targets" {
+  let base = @scene.blank_scene("s", "Clipping")
+  let a = @scene.default_state(Rectangle)
+  let states : Map[String, @scene.ObjectState] = {
+    "outer": {
+      ..a,
+      x: 100.0,
+      y: 80.0,
+      width: 80.0,
+      height: 80.0,
+      visible: false,
+    },
+    "inner": {
+      ..a,
+      x: 10.0,
+      y: 0.0,
+      width: 40.0,
+      height: 40.0,
+      visible: false,
+    },
+    "child": { ..a, x: 0.0, y: 0.0, visible: true, },
+  }
+  let from = { ..base.compositions[base.compositionOrder[0]], states, }
+  let end_states = states.copy()
+  end_states["outer"] = { ..states["outer"], x: 120.0, width: 20.0, }
+  let to = { ..from, id: "b", states: end_states, }
+  let scene : @scene.Scene = {
+    ..base,
+    objects: {
+      "outer": { ..object("outer", None), clipChildren: Some(true), },
+      "inner": { ..object("inner", Some("outer")), clipChildren: Some(true), },
+      "child": object("child", Some("inner")),
+    },
+    compositions: Map([(from.id, from), ("b", to)]),
+    compositionOrder: [from.id, "b"],
+    transitions: {
+      "t": @scene.implicit_transition("t", from.id, "b", 800.0, [
+        "outer", "inner", "child",
+      ]),
+    },
+  }
+  let prepared = @scene.prepare_scene(scene, kernel())
+  let start = prepared.composition(from.id, None).objects
+  assert_eq(start.length(), 1)
+  let clips = start[0].clips.unwrap()
+  assert_eq(clips.length(), 2)
+  near(clips[0].world.e, 100.0)
+  near(clips[1].world.e, 110.0)
+  let end = prepared.transition("t", 800.0, None).objects[0].clips.unwrap()
+  near(end[0].width, 20.0)
+  near(end[1].world.e, 130.0)
 }
 
 ///|

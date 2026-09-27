@@ -98,6 +98,7 @@ fn Compiler::prepare(
           locked: false,
           groupId: None,
           parentId: None,
+          clipChildren: None,
           image: creation.image,
           media: None,
           playback: None,

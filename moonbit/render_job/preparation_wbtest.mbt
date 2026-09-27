@@ -8,6 +8,7 @@ fn resource_object(id : String, kind : @scene.ObjectKind) -> @scene.SceneObject 
     groupId: None,
     locked: false,
     parentId: None,
+    clipChildren: None,
     image: None,
     media: None,
     playback: None,

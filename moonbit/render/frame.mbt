@@ -99,6 +99,14 @@ pub fn svg_frame(
     let id = "\{prefix}-\{index}"
     let glow = s.effect == @scene.Glow
     let definitions = StringBuilder()
+    let clip_paths : Array[String] = []
+    for index, clip in item.clips.unwrap_or([]) {
+      let clip_id = "\{id}-clip-\{index}"
+      definitions.write_string(
+        "<defs><clipPath id=\"\{clip_id}\" clipPathUnits=\"userSpaceOnUse\"><rect x=\"\{number(-clip.width / 2.0)}\" y=\"\{number(-clip.height / 2.0)}\" width=\"\{number(clip.width)}\" height=\"\{number(clip.height)}\" transform=\"\{affine_transform(clip.world)}\"/></clipPath></defs>",
+      )
+      clip_paths.push("url(#\{clip_id})")
+    }
     if glow {
       let bounds = object_bounds(item, resources)
       definitions.write_string(
@@ -120,6 +128,7 @@ pub fn svg_frame(
       },
       definitions: definitions.to_string(),
       body: shape_markup(item, id, resources, video_hits),
+      clip_paths,
     })
   }
   {
@@ -164,6 +173,9 @@ pub fn SvgFrame::to_svg(
   }
   for item in self.objects {
     output.write_string(item.definitions)
+    for clip in item.clip_paths {
+      output.write_string("<g clip-path=\"\{clip}\">")
+    }
     output.write_string(
       "<g data-object-id=\"\{escape_xml(item.id)}\" transform=\"\{item.transform}\" opacity=\"\{item.opacity}\" fill=\"\{escape_xml(item.fill)}\" color=\"\{escape_xml(item.color)}\" stroke=\"\{escape_xml(item.stroke)}\" stroke-width=\"\{item.stroke_width}\" stroke-linecap=\"round\" stroke-linejoin=\"round\"",
     )
@@ -171,6 +183,9 @@ pub fn SvgFrame::to_svg(
       output.write_string(" filter=\"\{filter}\"")
     }
     output.write_string(">\{item.body}</g>")
+    for _ in item.clip_paths {
+      output.write_string("</g>")
+    }
   }
   output.write_string("</svg>")
   output.to_string()

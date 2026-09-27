@@ -156,6 +156,7 @@ pub fn import_assets(
           order,
           groupId: None,
           parentId: None,
+          clipChildren: None,
           locked: false,
           image,
           media,

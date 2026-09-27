@@ -128,6 +128,37 @@ fn transform_inspector(input : @core.Any) -> @react.Element {
       }),
     )
   }
+  if @core.equal(object._get("kind"), @core.any("rectangle")) {
+    content.push(
+      h("label", { "className": @core.any("property-timing-note") }, [
+        h(
+          "input",
+          {
+            "type": @core.any("checkbox"),
+            "aria-label": @core.any("Clip children"),
+            "checked": @core.any(truthy(object._get("clipChildren"))),
+            "disabled": @core.any(truthy(object._get("locked"))),
+            "onChange": @core.any(fn(event : @core.Any) {
+              change("setObject", [
+                @core.any(sid),
+                @core.any(id),
+                host_record({
+                  "clipChildren": event._get("target")._get("checked"),
+                }),
+              ])
+            }),
+          },
+          [],
+        ),
+        "子を矩形の枠内に切り抜く",
+      ]),
+    )
+    content.push(
+      h("p", { "className": @core.any("property-timing-note") }, [
+        "子の Parent にこの矩形を指定します。枠を非表示にしても切り抜きは有効です。角丸は切り抜きに影響しません。",
+      ]),
+    )
+  }
   if !error.is_empty() {
     content.push(
       h(

@@ -329,6 +329,7 @@ let object_file_field : FileField = Record({
   "order": file_number,
   "groupId": Nullable(Identifier),
   "parentId": Optional(Nullable(Identifier)),
+  "clipChildren": Optional(Boolean),
   "locked": Boolean,
   "image": Optional(Image),
   "media": Optional(Media),
@@ -414,7 +415,7 @@ fn track_file_fields() -> FileField {
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 2.0, true),
+  "version": Numeric(1.0, 3.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(

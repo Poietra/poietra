@@ -30,6 +30,13 @@ and measurements belong in [README.md](README.md).
 
 ## Implementation
 
+- 2026-09-27: The founder requested reusable motions and rectangle clipping.
+  Rectangle parents opt into Scene-wide `clipChildren`; hidden/transparent
+  parents still clip descendants, nested clips intersect, and corner radius does
+  not alter the rectangular clip. Share evaluated world clip geometry across
+  browser and headless renderers, keeping it out of documents and local raster
+  caches. Clipping uses monotonic, non-Undo format v3 upgrades; retain v1/v2 reads.
+
 - 2026-09-20: The founder approved Scene-wide parent links, with local position,
   rotation, scale and anchor per Composition. Reparent/detach preserves geometry
   in all Compositions, including retained deleted ones; group selection stays

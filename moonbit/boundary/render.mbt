@@ -15,6 +15,9 @@ pub fn decode_drawable(value : @core.Any) -> @render.Drawable {
   })
   {
     id: object._get("id").cast(),
+    clips: @project_codec.optional(value._get("clips"), fn(value) {
+      @project_codec.decode_array(value, @project_codec.decode_Clip)
+    }),
     world: @project_codec.optional(
       value._get("world"),
       @project_codec.decode_Affine,
@@ -225,6 +228,7 @@ pub fn frame_to_svg_view(
       item.stroke_width,
       @core.from_option(item.filter),
       item.definitions + item.body,
+      FixedArray::from_array(item.clip_paths[:]),
     )
   })
   svg_frame_value(
@@ -249,8 +253,9 @@ extern "js" fn svg_object_value(
   stroke_width : String,
   filter : @core.Any,
   body : String,
+  clip_paths : FixedArray[String],
 ) -> @core.Any =
-  #|(id, transform, opacity, fill, color, stroke, strokeWidth, filter, body) => ({id, transform, opacity, fill, color, stroke, strokeWidth, filter, body})
+  #|(id, transform, opacity, fill, color, stroke, strokeWidth, filter, body, clipPaths) => ({id, transform, opacity, fill, color, stroke, strokeWidth, filter, body, ...(clipPaths.length ? {clipPaths} : {})})
 
 ///|
 extern "js" fn svg_frame_value(

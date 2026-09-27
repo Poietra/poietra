@@ -34,6 +34,10 @@ pub fn valid_project_references(project : Project) -> Bool {
       if object.id != id {
         return false
       }
+      if object.clipChildren == Some(true) &&
+        (object.kind != Rectangle || project.version < 3) {
+        return false
+      }
     }
     if scene.audioTracks is Some(tracks) {
       for id, track in tracks {

@@ -261,7 +261,7 @@ for name, fields in structs.items():
             value += ' | null'
         elif name == 'Track' and kind == 'Timing?':
             value += ' | null'
-        if name == 'Project' and field == 'version': value = '1 | 2'
+        if name == 'Project' and field == 'version': value = '1 | 2 | 3'
         types += '  ' + key + ('?' if optional else '') + ': ' + value + ';\n'
     if name == 'RenderObject': types += '  videoFrame?: string; // Portable SVG preparation only; not stored in a project.\n'
     types += '}\n'

@@ -227,6 +227,9 @@ pub fn ObjectLayout::evaluate(
           None => None
         },
         videoTimeMs: video_time(object, time),
+        clips: poses.bind(fn(poses) {
+          poses.clips.bind(fn(clips) { clips[poses.slots[index]] })
+        }),
         writeProgress: 1.0,
         order: Together,
       })
@@ -515,6 +518,7 @@ pub fn evaluate_transition(
       object,
       state,
       world: None,
+      clips: None,
       videoTimeMs: video_time(object, scene_time),
       writeProgress: if animation == Write {
         if !b_visible {
@@ -532,12 +536,16 @@ pub fn evaluate_transition(
     None => objects
     Some(hierarchy) => {
       let matrices = hierarchy.matrices(poses.unwrap())
+      let clips = hierarchy.clippers.map(fn(clippers) {
+        indexed_clips(hierarchy.parents, clippers, poses.unwrap(), matrices)
+      })
       let visible : Array[RenderObject] = []
       for index, item in objects {
         if item.state.visible {
           visible.push({
             ..item,
             world: Some(matrices[hierarchy.slots[index]]),
+            clips: clips.bind(fn(clips) { clips[hierarchy.slots[index]] }),
           })
         }
       }

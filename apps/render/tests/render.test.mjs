@@ -9,6 +9,20 @@ import { normalizePathLengths } from '../runtime-host.mjs';
 const pixel = (png, x, y) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
 const render = (p, options) => renderProjectFile(JSON.stringify(p), options);
 
+test('hidden rectangle clips animated descendants in SVG, PNG and encoded video', async () => {
+  const p = project(); p.version = 3;
+  addObject(p, 'clip', 'rectangle', { x: 0, y: 0, width: 160, height: 360, visible: false });
+  p.scenes.scene.objects.clip.clipChildren = true;
+  p.scenes.scene.objects.box.parentId = 'clip';
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const later = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 60, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(later, 100, 90), [0, 0, 0, 255]);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[90 * video.frames[0].width + 60] > 220);
+  assert.ok(video.frames[12].pixels[90 * video.frames[12].width + 100] < 30);
+});
+
 test('PNG and SVG share hierarchy, intermediate values and independent Scene boundaries', async () => {
   const p = project();
   addObject(p, 'parent', 'rectangle', { x: 20, y: 0, opacity: 0, visible: false });

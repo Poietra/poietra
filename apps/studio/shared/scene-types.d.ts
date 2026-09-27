@@ -65,6 +65,7 @@ export interface SceneObject {
   order: number;
   groupId: string | null;
   parentId?: string | null;
+  clipChildren?: boolean;
   locked: boolean;
   image?: ImageAsset;
   media?: MediaAsset;
@@ -152,7 +153,7 @@ export interface Scene {
   deleted?: boolean;
 }
 export interface Project {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   name: string;
   sceneOrder: string[];
   scenes: Record<string, Scene>;
@@ -170,7 +171,13 @@ export interface RenderObject {
   order: WriteOrder;
   videoTimeMs?: number;
   world?: Affine;
+  clips?: Clip[];
   videoFrame?: string; // Portable SVG preparation only; not stored in a project.
+}
+export interface Clip {
+  world: Affine;
+  width: number;
+  height: number;
 }
 export interface Frame {
   objects: RenderObject[];

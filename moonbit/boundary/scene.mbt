@@ -28,6 +28,13 @@ fn frame_value(frame : @scene.Frame, metadata : @core.Any) -> @core.Any {
     if item.world is Some(world) {
       put_own(result, "world", @project_codec.encode_Affine(world))
     }
+    if item.clips is Some(clips) {
+      put_own(
+        result,
+        "clips",
+        @project_codec.encode_array(clips, @project_codec.encode_Clip),
+      )
+    }
     result
   })
   make_frame(objects, frame.background, frame.width, frame.height)

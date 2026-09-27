@@ -12,6 +12,7 @@ test "the pure plan reads only the edited state and leaves the source unchanged"
         locked: false,
         groupId: None,
         parentId: None,
+        clipChildren: None,
         image: None,
         media: None,
         playback: None,

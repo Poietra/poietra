@@ -74,6 +74,7 @@ pub fn create_object(
       order: order + 1.0,
       groupId: None,
       parentId: None,
+      clipChildren: None,
       locked: false,
       image,
       media: None,

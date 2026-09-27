@@ -21,6 +21,19 @@ pub fn set_object(
   id : String,
   patch : @core.Any,
 ) -> Unit {
+  if @core.object_keys(patch).contains("clipChildren") {
+    let object = current_scene(store, scene)._get("objects")._get(id)
+    if !truthy(object) || truthy(object._get("locked")) {
+      return
+    }
+    if !@core.equal(object._get("kind"), @core.any("rectangle")) ||
+      @core.typeof_(patch._get("clipChildren")) != "boolean" {
+      @core.throw_error(
+        "矩形を選択してクリッピングを変更してください。",
+      )
+      return
+    }
+  }
   if @core.object_keys(patch).contains("parentId") {
     let changes = @boundary.reparent_changes(
       @boundary.get_value(store._get("doc"), ["scenes", scene], host(store)),

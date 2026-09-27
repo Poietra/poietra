@@ -40,7 +40,7 @@ fn svg_object(input : @core.Any) -> @react.Element {
     fn() { host_record({ "__html": input._get("body") }) },
     [input._get("body")],
   )
-  h(
+  let mut element = h(
     "g",
     {
       "data-object-id": input._get("id"),
@@ -57,6 +57,13 @@ fn svg_object(input : @core.Any) -> @react.Element {
     },
     [],
   )
+  if !@core.is_nullish(input._get("clipPaths")) {
+    let clips : FixedArray[String] = input._get("clipPaths").cast()
+    for index = clips.length() - 1; index >= 0; index = index - 1 {
+      element = h("g", { "clipPath": @core.any(clips[index]) }, [element])
+    }
+  }
+  element
 }
 
 ///|

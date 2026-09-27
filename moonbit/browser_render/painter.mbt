@@ -98,6 +98,27 @@ fn transformed_object(
   draw : () -> Unit,
 ) -> Unit {
   saved_canvas(context, fn() {
+    for clip in item.clips.unwrap_or([]) {
+      context.beginPath()
+      let w = @render.finite(clip.width) / 2.0
+      let h = @render.finite(clip.height) / 2.0
+      for
+        index, point in [
+          @scene.Point::{ x: -w, y: -h, },
+          { x: w, y: -h, },
+          { x: w, y: h, },
+          { x: -w, y: h, },
+        ] {
+        let point = clip.world.point(point)
+        if index == 0 {
+          context.moveTo(point.x, point.y)
+        } else {
+          context.lineTo(point.x, point.y)
+        }
+      }
+      context.closePath()
+      context.clip()
+    }
     if item.world is Some(matrix) {
       context
       .as_any()

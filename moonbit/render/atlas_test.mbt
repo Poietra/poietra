@@ -2,6 +2,7 @@
 test "atlas allocation bounds reject non-finite and excessive dimensions before narrowing" {
   let item : Drawable = {
     world: None,
+    clips: None,
     id: "text",
     kind: @scene.Text,
     state: @scene.default_state(@scene.Text),

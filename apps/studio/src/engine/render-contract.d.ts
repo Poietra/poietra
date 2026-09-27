@@ -32,6 +32,8 @@ export interface SvgView {
         strokeWidth: string;
         filter: string | null;
         body: string;
+        /** World-space clipping groups, outermost first. */
+        clipPaths?: string[];
     }>;
 }
 export interface ExportOptions {

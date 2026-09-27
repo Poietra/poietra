@@ -142,18 +142,22 @@ pub fn apply_changes(
   host : @core.Any,
 ) -> Unit {
   let changes : Array[@collaboration.Change[@core.Any]] = []
-  let mut upgrade = false
+  let mut upgrade = 1
   for change in input {
     let value = change._get("value")
     let path = @project_codec.decode_array(change._get("path"), fn(v) {
       v.cast()
     })
-    if path == ["version"] && @core.equal(value, @core.any(2)) {
-      upgrade = true
+    if path == ["version"] &&
+      (@core.equal(value, @core.any(2)) || @core.equal(value, @core.any(3))) {
+      upgrade = upgrade.max(value.cast())
       continue
     }
     if change_requires_v2(path, value) {
-      upgrade = true
+      upgrade = upgrade.max(2)
+    }
+    if change_requires_v3(path, value) {
+      upgrade = 3
     }
     let mutation = if @core.is_undefined(value) {
       @collaboration.Remove
@@ -196,8 +200,8 @@ pub fn apply_changes(
             )
         }
       }
-      if upgrade && !prepared.is_empty() {
-        upgrade_document_format(doc)
+      if upgrade > 1 && !prepared.is_empty() {
+        upgrade_format_to(doc, upgrade)
       }
       transact(
         doc,
@@ -391,15 +395,44 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
 /// Format upgrades are monotonic and excluded from local editing Undo. A peer's
 /// new feature must remain readable after the first author undoes their own edit.
 pub fn upgrade_document_format(doc : @core.Any) -> Unit {
+  upgrade_format_to(doc, 2)
+}
+
+///|
+fn upgrade_format_to(doc : @core.Any, version : Int) -> Unit {
   let root = shared_map(doc)
-  if @core.equal(map_get(root, "version"), @core.any(2)) {
+  let current = map_get(root, "version")
+  if @core.typeof_(current) == "number" && (current.cast() : Int) >= version {
     return
   }
   transact(
     doc,
-    fn() { map_set(root, "version", @core.any(2)) },
+    fn() { map_set(root, "version", @core.any(version)) },
     @core.any("initialize-primitives"),
   )
+}
+
+///|
+fn change_requires_v3(path : Array[String], value : @core.Any) -> Bool {
+  if path.last() == Some("clipChildren") && @core.equal(value, @core.any(true)) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if key == "clipChildren" && @core.equal(child, @core.any(true)) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
 }
 
 ///|

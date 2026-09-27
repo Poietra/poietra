@@ -62,6 +62,7 @@ pub fn example_json() -> String {
     order: 0.0,
     groupId: None,
     parentId: None,
+    clipChildren: None,
     locked: false,
     image: None,
     media: None,

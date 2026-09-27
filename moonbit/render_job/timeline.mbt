@@ -163,6 +163,7 @@ fn Timeline::svg(
           kind: item.object.kind,
           state: item.state,
           world: item.world,
+          clips: item.clips,
           progress: item.writeProgress,
           order: item.order,
           image: item.object.image.map(fn(asset) { asset.src }),

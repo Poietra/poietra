@@ -115,6 +115,7 @@ pub(all) struct SceneObject {
   order : Double
   groupId : String?
   parentId : String?
+  clipChildren : Bool?
   locked : Bool
   image : ImageAsset?
   media : MediaAsset?
@@ -245,7 +246,16 @@ pub(all) struct RenderObject {
   order : WriteOrder
   videoTimeMs : Double?
   world : Affine?
+  clips : Array[Clip]?
 } derive(ToJson)
+
+///|
+/// Evaluated world-space clipping geometry, never serialized document state.
+pub(all) struct Clip {
+  world : Affine
+  width : Double
+  height : Double
+} derive(Eq, ToJson)
 
 ///|
 pub(all) struct Frame {

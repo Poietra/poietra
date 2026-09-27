@@ -7,6 +7,7 @@ test "reparent plans preserve both retained and active poses and keep input immu
     order: 0.0,
     groupId: None,
     parentId: None,
+    clipChildren: None,
     locked: false,
     image: None,
     media: None,

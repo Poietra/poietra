@@ -192,6 +192,14 @@ easing. Reparenting preserves Composition poses; intermediate keys and paths sta
 in parent coordinates and may need adjustment. These features use document
 version 2; version 1 files remain readable.
 
+Rectangle parents can opt into `clipChildren` (2026-09-27). Descendants are
+clipped to the evaluated rectangle in world coordinates; nested clips intersect.
+The frame remains active when hidden or transparent, and clipping does not
+inherit opacity or change paint order. Corner radius does not round the clip.
+The same evaluated geometry feeds SVG, Canvas/GPU painting and headless export;
+local raster caches exclude world clips. This feature upgrades files to version 3
+outside editing Undo. Versions 1 and 2 remain readable; old clients must reload.
+
 Yjs stores changes at individual fields. Readers receive immutable, structurally
 shared snapshots; writers invalidate touched branches before observers run.
 Structural deletion and keyframe deletion retain CRDT records. Selective Undo
@@ -1153,7 +1161,7 @@ canvas cursor throttling, bounded document batching and lifecycle/chat flushing.
 Use the [studio deployment procedure](apps/studio/README.md#実行と配置) for local
 workerd, version upload, activation and rollback. `pnpm --dir apps/studio run deploy`
 only builds a **dry run**. A Worker rollback changes code/assets; it does not
-restore room data. Any rollback must understand version 2 documents and persistent
+restore room data. Any rollback must understand version 3 documents and persistent
 account dismissals.
 
 The [limits table](apps/studio/README.md#現在の制限) covers project structure, media,

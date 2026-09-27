@@ -13,6 +13,7 @@ fn sample_object(
     order: order.to_double(),
     groupId: group,
     parentId: None,
+    clipChildren: None,
     locked: false,
     image: None,
     media: None,
