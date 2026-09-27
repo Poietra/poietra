@@ -101,7 +101,7 @@ fn project_playback(input : @core.Any) -> @react.Element {
     fn() {
       program.map(fn(program) { @boundary.playback_frame(program, scene_time) })
     },
-    [@core.any(program), @core.any(scene_time)],
+    [@core.any(program), playback_clock_key(program, scene_time)],
   )
   let media = use_media_playback(
     scene,

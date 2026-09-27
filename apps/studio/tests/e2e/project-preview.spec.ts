@@ -63,3 +63,47 @@ test('late SVG video preparation cannot cross Scene boundaries and retries after
   await page.evaluate(() => window.projectPreviewProbe.close());
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+for (const mode of ['canvas', 'svg']) test(`${mode} preview holds a static frame while clock, Scene and document updates remain live`, async ({ page }) => {
+  await page.goto(`/tests/e2e/fixtures/project-preview.html?mode=${mode}`);
+  const frame = page.getByTestId('project-preview-frame'), slider = page.getByRole('slider', { name: 'Project preview position', exact: true });
+  if (mode === 'canvas') await expect(frame.locator('canvas')).toHaveCSS('visibility', 'visible');
+  else await expect(frame.locator('[data-object-id="box"]')).toHaveAttribute('fill', '#ff0000');
+  const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const count = () => page.evaluate(() => window.projectPreviewProbe.paints + window.projectPreviewProbe.views);
+  await settle(); const initial = await count();
+  for (const time of [20, 80, 30, 99]) { await slider.fill(String(time)); await expect(slider).toHaveValue(String(time)); await settle(); }
+  expect(await count()).toBe(initial);
+  // A new immutable program invalidates a hold even when its time/key is unchanged.
+  await page.evaluate(() => window.projectPreviewProbe.recolor());
+  await expect.poll(count).toBeGreaterThan(initial);
+  if (mode === 'svg') await expect(frame.locator('[data-object-id="box"]')).toHaveAttribute('fill', '#ffff00');
+  const edited = await count();
+  await slider.fill('500'); await expect.poll(count).toBeGreaterThan(edited);
+  const transition = await count();
+  await slider.fill('600'); await expect.poll(count).toBeGreaterThan(transition);
+  await slider.fill('1000'); await expect(frame).toHaveAttribute('data-scene-id', 'second');
+  if (mode === 'canvas') await expect(frame.locator('canvas')).toHaveCSS('visibility', 'visible');
+  else await expect(frame.locator('[data-object-id="box"]')).toHaveAttribute('fill', '#00ffff');
+  await settle(); const second = await count();
+  await slider.fill('1080'); await settle(); expect(await count()).toBe(second);
+  // Returning to the first Scene cannot reuse the second Scene's same-numbered hold.
+  await slider.fill('0'); await expect(frame).toHaveAttribute('data-scene-id', 'first');
+  await expect.poll(count).toBeGreaterThan(second);
+  if (mode === 'svg') await expect(frame.locator('[data-object-id="box"]')).toHaveAttribute('fill', '#ffff00');
+});
+
+test('video time remains dynamic during an otherwise static project hold', async ({ page }) => {
+  await page.goto('/tests/e2e/fixtures/project-preview.html?mode=svg');
+  await expect(page.locator('[data-object-id="box"]')).toBeVisible();
+  await page.evaluate(() => window.projectPreviewProbe.addVideo());
+  const video = page.locator('[data-object-id="clip"] image');
+  await expect(video).toHaveAttribute('href', /^data:image\/png/);
+  const first = await page.evaluate(() => window.projectPreviewProbe.frames);
+  const slider = page.getByRole('slider', { name: 'Project preview position', exact: true });
+  await slider.fill('50');
+  await expect.poll(() => page.evaluate(() => window.projectPreviewProbe.frames)).toBeGreaterThan(first);
+  const next = await page.evaluate(() => window.projectPreviewProbe.frames);
+  await slider.fill('90');
+  await expect.poll(() => page.evaluate(() => window.projectPreviewProbe.frames)).toBeGreaterThan(next);
+});

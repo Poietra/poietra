@@ -7,6 +7,23 @@ priv struct StudioFrames {
 }
 
 ///|
+// This dependency is valid only with its owning program as another dependency.
+// A string hold key cannot collide with a numeric timestamp; video stays dynamic.
+fn playback_clock_key(
+  program : @boundary.Playback?,
+  time : Double,
+) -> @core.Any {
+  match program {
+    Some(program) =>
+      match @boundary.playback_static_key(program, time) {
+        Some(key) => @core.any("hold-\{key}")
+        None => @core.any(time)
+      }
+    None => @core.any(time)
+  }
+}
+
+///|
 fn use_studio_frames(
   doc : StudioDocument,
   state : StudioState,
@@ -25,13 +42,10 @@ fn use_studio_frames(
     },
     [doc.scene, kernel, @core.any(needs_program)],
   )
-  let clock_key = match program {
-    Some(program) if state.viewing() =>
-      match @boundary.playback_static_key(program, time) {
-        Some(key) => @core.any("hold-\{key}")
-        None => @core.any(time)
-      }
-    _ => @core.any(time)
+  let clock_key = if state.viewing() {
+    playback_clock_key(program, time)
+  } else {
+    @core.any(time)
   }
   let current = @react.use_memo(
     fn() {

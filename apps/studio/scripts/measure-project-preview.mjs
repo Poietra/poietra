@@ -12,6 +12,8 @@ import { environment, stats } from './benchmark-environment.mjs';
 const base = new URL(process.env.POIETRA_PERF_URL || 'http://127.0.0.1:5195');
 if (!['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)) throw new Error('Use an isolated loopback server.');
 const output = process.env.POIETRA_PERF_OUTPUT || 'test-results/project-preview-performance.json';
+const staticHold = process.env.POIETRA_PERF_HOLD === '1';
+const optionalStats = values => values.length ? stats(values) : null;
 const measuredEnvironment = environment(), browser = await chromium.launch({ headless: true }), results = [];
 await mkdir(dirname(output), { recursive: true });
 try {
@@ -25,7 +27,7 @@ try {
         provider.on('sync', ready => { if (ready) { clearTimeout(timer); resolve(); } }); provider.connect();
       });
       const scene = { id: 's', name: 'Scene', width: 1280, height: 720, background: '#08090b', objects: {}, compositionOrder: ['a', 'b'], compositions: {}, transitions: { t: { id: 't', fromId: 'a', toId: 'b', duration: 4000, tracks: {} } }, audioTracks: {} };
-      for (const id of ['a', 'b']) scene.compositions[id] = { id, name: id, duration: 1000, states: {} };
+      for (const id of ['a', 'b']) scene.compositions[id] = { id, name: id, duration: staticHold ? 5000 : 1000, states: {} };
       for (let i = 0; i < count; i++) {
         const id = `o${i}`;
         scene.objects[id] = { id, name: id, kind: 'circle', order: i, locked: false, groupId: null };
@@ -61,7 +63,7 @@ try {
       });
       const samples = [];
       for (let run = -1; run < 3; run++) {
-        await page.getByRole('slider', { name: 'Project preview position', exact: true }).fill('1000');
+        await page.getByRole('slider', { name: 'Project preview position', exact: true }).fill(staticHold ? '0' : '1000');
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const before = await metrics();
         await page.evaluate(() => window.previewBenchmark.begin());
@@ -69,15 +71,19 @@ try {
         await page.waitForTimeout(3500); // Fixed workload duration, not an assertion wait.
         await page.getByRole('button', { name: 'プロジェクトの再生を停止', exact: true }).click();
         const measured = await page.evaluate(() => window.previewBenchmark.end()), after = await metrics();
+        const position = Number(await page.getByRole('slider', { name: 'Project preview position', exact: true }).inputValue());
+        expect(position).toBeGreaterThan(staticHold ? 3000 : 4000);
+        expect(position).toBeLessThan(staticHold ? 5000 : 6000);
         const intervals = values => values.slice(1).map((value, index) => value - values[index]);
         measured.publicationIntervals = intervals(measured.presented); measured.rafIntervals = intervals(measured.raf);
         measured.cpu = Object.fromEntries(['ScriptDuration', 'TaskDuration', 'LayoutDuration', 'RecalcStyleDuration'].map(key => [key, (after[key] - before[key]) * 1000]));
         if (run >= 0) samples.push(measured);
       }
       if (errors.length) throw new Error(errors.join('\n'));
-      results.push({ objects: count, samples, taskMsPerPublication: stats(samples.map(s => s.cpu.TaskDuration / s.presented.length)), scriptMsPerPublication: stats(samples.map(s => s.cpu.ScriptDuration / s.presented.length)), publicationIntervalMs: stats(samples.flatMap(s => s.publicationIntervals)), rafIntervalMs: stats(samples.flatMap(s => s.rafIntervals)), svgWrites: samples.map(s => s.svgWrites), svgCharacters: samples.map(s => s.svgCharacters) });
+      const publications = samples.flatMap(s => s.presented.length ? [s] : []);
+      results.push({ objects: count, samples, taskMsPerPass: stats(samples.map(s => s.cpu.TaskDuration)), scriptMsPerPass: stats(samples.map(s => s.cpu.ScriptDuration)), publicationCounts: samples.map(s => s.presented.length), taskMsPerPublication: optionalStats(publications.map(s => s.cpu.TaskDuration / s.presented.length)), scriptMsPerPublication: optionalStats(publications.map(s => s.cpu.ScriptDuration / s.presented.length)), publicationIntervalMs: optionalStats(samples.flatMap(s => s.publicationIntervals)), rafIntervalMs: stats(samples.flatMap(s => s.rafIntervals)), svgWrites: samples.map(s => s.svgWrites), svgCharacters: samples.map(s => s.svgCharacters) });
     } finally { provider.destroy(); doc.destroy(); await context.close(); }
   }
-  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', viewport: { width: 1440, height: 900 }, warmup: 'One 3.5-second transition pass per size', samples: 'Three 3.5-second transition passes; seek to 1000 ms of a 6000 ms Scene before each pass; 500 or 100 moving circles', measurement: 'CDP Performance task/script/layout/style duration deltas, native display drawImage publication times, rAF callbacks and SVG innerHTML writes; hooks and play/pause included', exclusions: 'No video/audio, WAN or hardware GPU; not physical FPS or end-to-end input latency' }, results }, null, 2) + '\n');
+  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', viewport: { width: 1440, height: 900 }, warmup: `One 3.5-second ${staticHold ? 'hold' : 'transition'} pass per size`, samples: staticHold ? 'Three 3.5-second static passes; seek to 0 ms within a 5000 ms hold before each pass; 500 or 100 circles' : 'Three 3.5-second transition passes; seek to 1000 ms of a 6000 ms Scene before each pass; 500 or 100 moving circles', measurement: 'CDP Performance task/script/layout/style duration deltas, native display drawImage publication times, rAF callbacks and SVG innerHTML writes; hooks and play/pause included', exclusions: 'No video/audio, WAN or hardware GPU; not physical FPS or end-to-end input latency' }, results }, null, 2) + '\n');
   console.log(JSON.stringify(results.map(({ samples, ...summary }) => summary), null, 2));
 } finally { await browser.close(); }

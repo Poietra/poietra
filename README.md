@@ -267,6 +267,9 @@ Playback preparation resolves segments, tracks, hierarchy, layer order and curve
 once; repeated evaluation uses the shared engine for preview and export. Editing
 reads the current Composition. Static holds without visible video can reuse a
 prepared frame while export still encodes every timestamp.
+The editor and project preview share the same hold key. Its owning playback
+program is also a memo dependency, so edits and Scene changes cannot reuse an
+old frame. Holding the visual frame leaves the clock and audio running normally.
 Project preview selects Canvas or SVG fallback before preparing a frame. Canvas
 receives the source frame directly; it neither serializes a hidden SVG nor
 converts video to PNG before the painter decodes it. If Canvas fails, preview
@@ -436,10 +439,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 309 | 61,645 |
+| MoonBit application | 309 | 61,659 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 154 | 17,773 |
+| TypeScript tests, fixtures and test configurations | 154 | 17,824 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -510,6 +513,9 @@ browser checks cover Canvas/SVG fallback, retained nodes, delayed video completi
 Scene changes, preparation failure/retry, panel subscription isolation and actual
 MP4/WebM export. Native video preview performs no PNG conversion; legacy SVG-only
 renderers and cancellation remain covered. This selection is narrower than CI.
+The hold-key follow-up passed the build/contracts and 18 selected browser checks,
+including both rendering paths, clock progression, document/Scene invalidation,
+dynamic video during holds and independent MP4/WebM decoding.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -866,6 +872,22 @@ For 500 objects, each measured pass previously replaced hidden SVG markup
 Canvas publication and rAF medians remain about 16.7 ms. These measurements show
 less browser work, not increased display FPS; they exclude media, hardware GPU,
 WAN and input latency. Separate browser checks exercise actual video in both paths.
+
+**Static project holds.** The [raw hold reports](benchmarks/2026-09-27-project-holds/)
+start from `6d0141b`, using the same browser/server setup and three fresh processes
+per version. Each size has one warmup and three 3.5-second measured passes within
+a five-second hold. The clock must advance past three seconds. Process medians,
+median [min–max] total ms per pass:
+
+| Objects | Browser tasks before | Browser tasks after | Script before | Script after |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 773 [762–776] | 558 [552–560] | 125 [125–129] | 80 [78–87] |
+| 500 | 1,343 [1,340–1,348] | 787 [782–789] | 192 [188–197] | 93 [92–94] |
+
+After the initial frame, display copies during each pass fell from 212–213 to
+zero. The retained image stays visible while transport controls and audio keep
+their clocks. These measurements exclude media and describe static holds only;
+transitions and any hold containing visible video still evaluate changing frames.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

@@ -13,8 +13,8 @@ import type { PainterContract } from '../../../src/engine/painter-contract';
 const mode = new URLSearchParams(location.search).get('mode') || 'canvas';
 const waiting = new Set<() => void>();
 const probe = {
-  svg: 0, views: 0, frames: 0, painters: 0, hold: false, failFrame: false,
-  addVideo() {}, close() {},
+  svg: 0, views: 0, frames: 0, painters: 0, paints: 0, hold: false, failFrame: false,
+  addVideo() {}, recolor() {}, close() {},
   release() { probe.hold = false; for (const next of waiting) next(); waiting.clear(); },
 };
 const measuredRenderer: RendererContract = {
@@ -42,7 +42,9 @@ if (mode === 'legacy') delete measuredRenderer.frameToSvgView;
 const factory: PainterContract['createFramePainter'] | undefined = mode === 'svg' || mode === 'legacy' ? undefined : async canvas => {
   probe.painters++;
   if (mode === 'fail') throw new Error('Simulated unavailable painter');
-  return createFramePainter(canvas);
+  const painter = await createFramePainter(canvas), render = painter.renderDraft!.bind(painter);
+  painter.renderDraft = async (...args) => { probe.paints++; return render(...args); };
+  return painter;
 };
 function scene(id: string, color: string): Scene {
   const value = makeBlankScene(id, id); value.width = 320; value.height = 180;
@@ -62,6 +64,11 @@ window.projectPreviewProbe = probe;
 function Fixture() {
   const [project, setProject] = useState(initial), [open, setOpen] = useState(true);
   probe.close = () => setOpen(false);
+  probe.recolor = () => setProject(previous => {
+    const next = structuredClone(previous), first = next.scenes.first;
+    first.compositions[first.compositionOrder[0]].states.box.fill = '#ffff00';
+    return next;
+  });
   probe.addVideo = () => setProject(previous => {
     const next = structuredClone(previous), first = next.scenes.first;
     first.objects.clip = { id: 'clip', name: 'Clip', kind: 'video', order: 1, locked: false, groupId: null,
