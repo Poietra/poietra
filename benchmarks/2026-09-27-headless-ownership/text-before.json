@@ -1,0 +1,155 @@
+{
+  "measuredAt": "2026-09-27T02:19:11.498Z",
+  "environment": {
+    "applicationRevision": "0ef67abbcf445aad72b7a26cfd67af1f742b2cfe",
+    "trackedModifications": [
+      "README.md",
+      "moonbit/render_job/render.mbt",
+      "moonbit/render_job/timeline.mbt",
+      "scripts/benchmark-headless-heap.mjs"
+    ],
+    "applicationSourcesSha256": "07692b482d7e74168e6faa001f9276e80bc01ccc58fdde3971a0ff280ee136d4",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.09,
+      0.15,
+      0.32
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "9ef0e0a51dbb3b3d95d0b60d862e29e09ad7b3ea67c1db10056b33286ef13b60",
+    "boundarySha256": "6148617114ba6730cb1c625c382bb8c22c4cd768b3d1a9504429a716a3fac58c",
+    "clientRuntimeSha256": "6c4d708d09841b5a7a6436928f22bc885931d6e9c67e5204b02bfdc06368ce18",
+    "viteManifestSha256": "3d35ada4dd886e97cb97940bbd6e57895cf857ca42e07891e7f55fb3c7f0d463"
+  },
+  "harnessSha256": "7e33b6e34fa9f23ca05ee51388ed434f10369be6d67930614f80266733968086",
+  "headlessArtifactSha256": "6ee40f436755e475959b6eab4064c34813f68faf8fa545ffbfd4f77b2c36360b",
+  "method": "Five fresh Node processes per case, sequential. Two completed warmup renders, then three render jobs prepared sequentially and held at the native resource-preparation port. Retained JS heap delta after forced GC divided by three, relative to the already-created input string. Includes typed timelines and suspended orchestration, excludes transient/peak memory, source string, file I/O, fonts/media, native/WASM memory and encoding. Preparation time includes public string parsing, timeline compilation and reaching the resource port, without forced GC inside each timed interval. After measuring, every job completes SVG rendering and verifies object count and identical bytes. Text scenarios use deterministic mock metrics with no font loading. No real native rendering backend is benchmarked.",
+  "results": [
+    {
+      "objects": 500,
+      "compositions": 12,
+      "textEvery": 10,
+      "retainedBytes": {
+        "n": 5,
+        "median": 5711082.666666667,
+        "min": 5701570.666666667,
+        "max": 5719264
+      },
+      "preparationMs": {
+        "n": 5,
+        "median": 32.82122800000002,
+        "min": 30.475668000000013,
+        "max": 33.37520000000001
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "textEvery": 10,
+          "inputBytes": 1671444,
+          "inputSha256": "c9094446fd77bbc9d50ca422b896e604766f4e535fcee69b7d2d52739594a72e",
+          "outputSha256": "3cf71528c543141b65caf6f5caa4ec36b4f987940122ed115195dc668d6188a9",
+          "retainedBytes": 5710941.333333333,
+          "preparationMs": {
+            "n": 3,
+            "median": 32.82122800000002,
+            "min": 25.944659,
+            "max": 35.489334000000014
+          },
+          "rawPreparationMs": [
+            35.489334000000014,
+            32.82122800000002,
+            25.944659
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "textEvery": 10,
+          "inputBytes": 1671444,
+          "inputSha256": "c9094446fd77bbc9d50ca422b896e604766f4e535fcee69b7d2d52739594a72e",
+          "outputSha256": "3cf71528c543141b65caf6f5caa4ec36b4f987940122ed115195dc668d6188a9",
+          "retainedBytes": 5701570.666666667,
+          "preparationMs": {
+            "n": 3,
+            "median": 33.37520000000001,
+            "min": 21.516561999999993,
+            "max": 36.62832599999999
+          },
+          "rawPreparationMs": [
+            36.62832599999999,
+            33.37520000000001,
+            21.516561999999993
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "textEvery": 10,
+          "inputBytes": 1671444,
+          "inputSha256": "c9094446fd77bbc9d50ca422b896e604766f4e535fcee69b7d2d52739594a72e",
+          "outputSha256": "3cf71528c543141b65caf6f5caa4ec36b4f987940122ed115195dc668d6188a9",
+          "retainedBytes": 5711957.333333333,
+          "preparationMs": {
+            "n": 3,
+            "median": 31.90889100000001,
+            "min": 22.931463999999977,
+            "max": 36.34272300000001
+          },
+          "rawPreparationMs": [
+            36.34272300000001,
+            31.90889100000001,
+            22.931463999999977
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "textEvery": 10,
+          "inputBytes": 1671444,
+          "inputSha256": "c9094446fd77bbc9d50ca422b896e604766f4e535fcee69b7d2d52739594a72e",
+          "outputSha256": "3cf71528c543141b65caf6f5caa4ec36b4f987940122ed115195dc668d6188a9",
+          "retainedBytes": 5711082.666666667,
+          "preparationMs": {
+            "n": 3,
+            "median": 33.16341600000001,
+            "min": 21.197158,
+            "max": 36.66328899999999
+          },
+          "rawPreparationMs": [
+            36.66328899999999,
+            33.16341600000001,
+            21.197158
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "textEvery": 10,
+          "inputBytes": 1671444,
+          "inputSha256": "c9094446fd77bbc9d50ca422b896e604766f4e535fcee69b7d2d52739594a72e",
+          "outputSha256": "3cf71528c543141b65caf6f5caa4ec36b4f987940122ed115195dc668d6188a9",
+          "retainedBytes": 5719264,
+          "preparationMs": {
+            "n": 3,
+            "median": 30.475668000000013,
+            "min": 26.62124,
+            "max": 35.085937
+          },
+          "rawPreparationMs": [
+            35.085937,
+            30.475668000000013,
+            26.62124
+          ]
+        }
+      ]
+    }
+  ]
+}
