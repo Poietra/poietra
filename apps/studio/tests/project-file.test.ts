@@ -26,6 +26,33 @@ describe('project file import', () => {
     expect(parsed.scenes['scene-1'].compositions['comp-2'].states.circle.path.c1.x).not.toBe(987);
     expect(project.scenes['scene-1'].compositions['comp-1'].states.circle.path.c1.x).not.toBe(987);
   });
+  it('normalizes every owned record while retaining optional nulls and independent parse results', () => {
+    const expected = makeDemoProject(), scene = expected.scenes['scene-1'];
+    scene.objects.circle.parentId = null;
+    scene.transitions['transition-1'].tracks.circle.positionTiming = null;
+    const input = structuredClone(expected), source = input.scenes['scene-1'];
+    for (const value of [input, source, source.objects.circle, source.compositions['comp-1'],
+      source.compositions['comp-1'].states.circle, source.compositions['comp-1'].states.circle.path,
+      source.compositions['comp-1'].states.circle.path.c1, source.transitions['transition-1'],
+      source.transitions['transition-1'].tracks.circle]) Object.assign(value, { extra: { ignored: ['日本語😀', 1] } });
+    const text = JSON.stringify(input), first = parseProjectFile(text), second = parseProjectFile(text);
+    expect(first).toEqual(expected); expect(second).toEqual(expected);
+    first.sceneOrder.push('another');
+    first.scenes['scene-1'].compositions['comp-1'].states.circle.path.c1.x = 987;
+    expect(second).toEqual(expected);
+    expect(JSON.stringify(input)).toBe(text);
+  });
+  it.each(['__proto__', 'constructor', 'prototype'])('rejects a reserved %s key even inside an unknown subtree', key => {
+    const input = { ...makeDemoProject(), extra: JSON.parse(`{"${key}": {"value": 1}}`) };
+    expect(() => parseProjectFile(JSON.stringify(input))).toThrow('JSON');
+  });
+  it('keeps custom easing strict even when other record fields can be stripped', () => {
+    const input = makeDemoProject();
+    input.scenes['scene-1'].transitions['transition-1'].tracks.circle.easing = {
+      type: 'cubicBezier', x1: .2, y1: 0, x2: .8, y2: 1, extra: true,
+    } as never;
+    expect(() => parseProjectFile(JSON.stringify(input))).toThrow('形式');
+  });
   it('round-trips editable geometry, timing and expressions', () => {
     const project = makeDemoProject();
     expect(parseProjectFile(JSON.stringify(project))).toEqual(project);

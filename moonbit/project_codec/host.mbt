@@ -18,6 +18,10 @@ extern "js" fn put_own(
   #|(value, key, item) => { Object.defineProperty(value, key, {value: item, writable: true, enumerable: true, configurable: true}); }
 
 ///|
+extern "js" fn erase_own(value : @core.Any, key : String) -> Unit =
+  #|(value, key) => { delete value[key]; }
+
+///|
 extern "js" fn make_timing(
   start : @core.Any,
   duration : @core.Any,

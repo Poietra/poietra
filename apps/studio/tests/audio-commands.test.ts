@@ -117,3 +117,14 @@ it('does not infer trust for a replacement asset supplied by a native patch', ()
     expect(store.scene('scene-1').audioTracks!.audio.asset.src).toBe(audio().asset.src);
   } finally { close(); }
 });
+
+it('validates borrowed frozen assets without stripping caller-owned extension fields', () => {
+  const track = Object.assign(audio(), { extra: 'track extension' });
+  Object.assign(track.asset, { extra: { retained: true } });
+  Object.freeze(track.asset.waveform); Object.freeze(track.asset); Object.freeze(track);
+  const before = JSON.stringify(track), edit = vi.fn();
+  const store = { scene: () => ({ audioTracks: { audio: track } }), edit };
+  setAudioTrack(store, 'scene-1', 'audio', { volume: .6 }, true);
+  expect(edit).toHaveBeenCalledOnce();
+  expect(JSON.stringify(track)).toBe(before);
+});

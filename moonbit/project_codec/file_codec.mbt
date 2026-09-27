@@ -1,6 +1,6 @@
 ///|
-/// A bounded decoder for the portable format. The schema constructs fresh
-/// records and strips unknown fields before domain reference validation.
+/// A bounded decoder for the portable format. The schema strips unknown fields
+/// before domain reference validation; caller-owned records are copied.
 priv enum FileField {
   Numeric(Double, Double, Bool)
   Text(Int)
@@ -27,10 +27,17 @@ priv enum FileField {
 priv suberror InvalidFileField
 
 ///|
+priv enum FileInputOwnership {
+  Borrowed
+  ParsedJson
+}
+
+///|
 fn parse_file_field(
   value : @core.Any,
   field : FileField,
   validation? : AssetValidation = AssetValidation::new(),
+  ownership? : FileInputOwnership = Borrowed,
 ) -> @core.Any raise InvalidFileField {
   match field {
     Numeric(minimum, maximum, integer) => {
@@ -78,23 +85,39 @@ fn parse_file_field(
       if @core.is_undefined(value) {
         value
       } else {
-        parse_file_field(value, child, validation~)
+        parse_file_field(value, child, validation~, ownership~)
       }
     Nullable(child) =>
       if @core.is_null(value) {
         value
       } else {
-        parse_file_field(value, child, validation~)
+        parse_file_field(value, child, validation~, ownership~)
       }
     Record(fields) => {
       if !is_record(value) {
         raise InvalidFileField
       }
-      let result = @core.new_object()
+      let result = if ownership is ParsedJson {
+        value
+      } else {
+        @core.new_object()
+      }
       for key, child in fields {
-        let item = parse_file_field(value._get(key), child, validation~)
-        if !@core.is_undefined(item) {
+        let item = parse_file_field(
+          value._get(key),
+          child,
+          validation~,
+          ownership~,
+        )
+        if ownership is Borrowed && !@core.is_undefined(item) {
           put_own(result, key, item)
+        }
+      }
+      if ownership is ParsedJson {
+        for key in @core.object_keys(value) {
+          if !fields.contains(key) {
+            erase_own(value, key)
+          }
         }
       }
       result
@@ -103,16 +126,24 @@ fn parse_file_field(
       if !is_record(value) {
         raise InvalidFileField
       }
-      let result = @core.new_object()
+      let result = if ownership is ParsedJson {
+        value
+      } else {
+        @core.new_object()
+      }
       for key in @core.object_keys(value) {
         if !@assets.document_id(key) {
           raise InvalidFileField
         }
-        put_own(
-          result,
-          key,
-          parse_file_field(value._get(key), child, validation~),
+        let item = parse_file_field(
+          value._get(key),
+          child,
+          validation~,
+          ownership~,
         )
+        if ownership is Borrowed {
+          put_own(result, key, item)
+        }
       }
       result
     }
@@ -124,24 +155,38 @@ fn parse_file_field(
       if items.length() < minimum || items.length() > maximum {
         raise InvalidFileField
       }
-      @core.any(
-        FixedArray::makei(items.length(), fn(i) raise InvalidFileField {
-          parse_file_field(items[i], child, validation~)
-        }),
-      )
+      match ownership {
+        ParsedJson => {
+          for item in items {
+            parse_file_field(item, child, validation~, ownership~) |> ignore
+          }
+          value
+        }
+        Borrowed =>
+          @core.any(
+            FixedArray::makei(items.length(), fn(i) raise InvalidFileField {
+              parse_file_field(items[i], child, validation~, ownership~)
+            }),
+          )
+      }
     }
     Easing => {
       if !is_valid_easing(value) {
         raise InvalidFileField
       }
-      if @core.typeof_(value) == "string" {
+      if @core.typeof_(value) == "string" || ownership is ParsedJson {
         value
       } else {
         merge_values(@core.new_object(), value)
       }
     }
     Image => {
-      let parsed = parse_file_field(value, image_file_field, validation~)
+      let parsed = parse_file_field(
+        value,
+        image_file_field,
+        validation~,
+        ownership~,
+      )
       let asset = decode_ImageAsset(parsed)
       if !validation.image(asset) {
         raise InvalidFileField
@@ -149,15 +194,26 @@ fn parse_file_field(
       parsed
     }
     Media => {
-      let parsed = parse_file_field(value, media_file_field, validation~)
+      let parsed = parse_file_field(
+        value,
+        media_file_field,
+        validation~,
+        ownership~,
+      )
       if !validation.media(decode_MediaAsset(parsed)) {
         raise InvalidFileField
       }
       parsed
     }
-    Playback => parse_file_field(value, playback_file_field, validation~)
+    Playback =>
+      parse_file_field(value, playback_file_field, validation~, ownership~)
     Audio => {
-      let parsed = parse_file_field(value, audio_file_field, validation~)
+      let parsed = parse_file_field(
+        value,
+        audio_file_field,
+        validation~,
+        ownership~,
+      )
       // Media was validated by the nested schema. Do not scan its source again.
       if !@assets.valid_audio_fields(decode_AudioTrack(parsed)) {
         raise InvalidFileField
@@ -166,19 +222,29 @@ fn parse_file_field(
     }
     CurveValue =>
       if @core.typeof_(value) == "number" {
-        parse_file_field(value, file_number, validation~)
+        parse_file_field(value, file_number, validation~, ownership~)
       } else {
-        parse_file_field(value, Color, validation~)
+        parse_file_field(value, Color, validation~, ownership~)
       }
     Keyframe => {
-      let parsed = parse_file_field(value, keyframe_file_field, validation~)
+      let parsed = parse_file_field(
+        value,
+        keyframe_file_field,
+        validation~,
+        ownership~,
+      )
       if !@scene.valid_keyframe(decode_Keyframe(parsed)) {
         raise InvalidFileField
       }
       parsed
     }
     SceneObject => {
-      let parsed = parse_file_field(value, object_file_field, validation~)
+      let parsed = parse_file_field(
+        value,
+        object_file_field,
+        validation~,
+        ownership~,
+      )
       let object = decode_SceneObject(parsed)
       if object.kind == @scene.Image && object.image is None {
         raise InvalidFileField

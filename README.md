@@ -312,6 +312,11 @@ Portable parsing and project asset capture use an operation-owned typed
 check; dimensions, MIME, duration, waveform and clip fields remain independently
 validated. The table is released with the operation and never trusts a mutable
 native record. Conflicting references still fail before asset transfer.
+Portable-file normalization owns the fresh `JSON.parse` tree and strips unknown
+fields in place, avoiding another tree of native records and arrays. A private
+ownership enum keeps ordinary asset/keyframe readers on the copying path. The
+reserved-key reviver, strict easing validation, typed decoding and reference checks
+remain shared by browser and headless imports; returned files stay independent.
 SVG escaping scans UTF-16 once and appends unchanged spans instead of individual
 code units. Unchanged text returns directly, including long embedded image sources;
 XML control filtering, entity escaping and isolated-surrogate replacement still
@@ -473,10 +478,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,826 |
+| MoonBit application | 310 | 61,898 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,148 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,189 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -541,56 +546,24 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The subsequent project-preview change passed 757 Vitest checks, five extension/
-linking checks, public contracts and the production build locally. Its 39 selected
-browser checks cover Canvas/SVG fallback, retained nodes, delayed video completion,
-Scene changes, preparation failure/retry, panel subscription isolation and actual
-MP4/WebM export. Native video preview performs no PNG conversion; legacy SVG-only
-renderers and cancellation remain covered. This selection is narrower than CI.
-The hold-key follow-up passed the build/contracts and 18 selected browser checks,
-including both rendering paths, clock progression, document/Scene invalidation,
-dynamic video during holds and independent MP4/WebM decoding.
-The editor hit-surface follow-up passed the build/contracts and 32 selected
-browser checks. Both legacy and draft painters keep visible Canvas pixels moving
-without rebuilding SVG; pause restores matching positions and live painter failure
-restores an animated SVG. Selection, drag, resize, curves, Glow and resource retry
-remain covered.
-The asset-validation change passed 773 Vitest checks, five extension/linking
-checks, 58 MoonBit JS and 56 WASM checks (including `assets`), 19 headless checks,
-public contracts and the production build. Its 21 browser checks cover portable
-images/audio, cross-room copying, cancellation, atomic failure and real MP4/WebM
-image rendering. New regressions reject changed source tails and invalid metadata
-after a duplicate source, while preserving independent valid waveforms.
-The SVG span change passed 775 Vitest checks, five extension/linking checks,
-59 MoonBit JS and 56 standard WASM checks, 19 headless checks, public contracts
-and the production build. Its 36 selected browser checks cover images, geometry,
-Canvas/SVG fallback, stale frames and portable files. Escaping regressions cover
-all 65,536 UTF-16 code units, valid/broken surrogate pairs and long mixed spans.
-The typed Scene-timeline follow-up passed those 775 Vitest checks and an additional
-public-panel rendering check, five extension/linking checks, 60 MoonBit JS and
-57 standard WASM checks, the production build and public contracts. Its 40 selected
-browser checks cover timeline gestures, peer edits, zero durations, exact boundaries,
-Scene/transition edit targets, media, export and subscription isolation.
-The metadata-projection follow-up passed 780 Vitest checks, five extension/linking
-checks, 61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public
-contracts and the production build. Projection regressions enforce required-field
-reads, fresh mutable inputs, retained-Composition video visibility and invalid-number
-propagation; 24 browser checks covering timeline, media and project export passed.
-The typed Project-span follow-up passed 781 Vitest checks, five extension/linking
-checks, public contracts, the production build and 20 browser checks for project
-preview, actual MP4/WebM output and export-dialog ownership/cancellation. Native
-timing records remain independent while preserving their input Scene references.
-The raster-ticket follow-up passed 784 Vitest checks, five extension/linking
-checks, the production build/contracts and all 22 painter browser checks. New
-races cover cached hits superseding pending replacement and already-aborted hits
-preserving live replacement.
-The typed raster-result follow-up passed 785 Vitest checks, five extension/linking
-checks, build/contracts, all 22 painter browser checks and ten cache/mask checks.
-Public record identity, native `null`, stale frames, cancellation and text-atlas
-leases remain covered.
-Additional public cubic-coordinate and native-path cache regressions pass against
-the existing renderer, including sub-precision changes, appearance changes and
-same-ID geometry replacement. They accompany the rejected experiment below.
+The current follow-up passed 791 Vitest checks, five extension/linking checks,
+61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public contracts
+and the production build locally on **2026-09-27**. Selected browser checks passed:
+22 painter cases, ten text/geometry cache and cancellation cases, and 24 portable
+file, media, hierarchy and shared-room cases. These selections are narrower than CI.
+New regressions cover owned file normalization, unknown/reserved keys, optional
+nulls, strict easing, independent parses and borrowed frozen assets. Raster tests
+preserve cached native identity, fallback `null`, pending-replacement cancellation
+and leases. Earlier follow-ups also exercised project preview/export, SVG escaping,
+media-aware timelines, subscription isolation, retained hit surfaces and mutable
+public inputs; raw performance evidence below includes parity assertions.
+
+[CI run 36283955457](https://github.com/Poietra/poietra/actions/runs/36283955457)
+completed 181 of 182 main browser cases; one test assumed real playback would
+remain inside a short Transition on the runner. The application correctly selected
+the later Composition. The test now chooses its edit time after checking actual
+paused pixels; both painter modes passed five repeated runs each locally. A full
+replacement CI run has not yet been recorded here.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -1037,6 +1010,28 @@ case they were 0.05406 [0.05334–0.05460] → 0.05218 [0.05107–0.05430] ms, w
 overlapping variation. The reports also include 100-object and media-free controls.
 These are metadata-query timings on stable caller-owned inputs without caching,
 frame evaluation, Yjs, browser work or decoding; no user-visible speedup is inferred.
+
+**Owned portable normalization.** The [before/after reports](benchmarks/2026-09-27-project-parsing/)
+compare the artifacts committed as `db01142` (before metadata records the preceding
+HEAD plus that uncommitted raster change) with the identified parsing build.
+Five fresh Node processes each use two warmup and seven measured batches, three
+operations per batch except one at 100 Compositions. One Scene contains ordinary
+circle poses, room-free data and Japanese/emoji text. Fixture creation, stringify
+and equality assertions are outside timing; each full parse starts from its string.
+
+| File / public operation | Before, ms | After, ms |
+| --- | ---: | ---: |
+| 100 objects × 2 Compositions, portable parse | 2.113 [2.017–2.293] | 1.509 [1.468–1.528] |
+| 500 × 12, portable parse | 51.642 [49.782–54.362] | 40.193 [38.564–41.523] |
+| 500 × 12 with unknown fields, portable parse | 59.210 [58.043–62.034] | 50.873 [49.917–52.148] |
+| 500 × 100, portable parse | 458.777 [450.752–478.909] | 345.026 [340.642–356.969] |
+| 500 × 100, headless inspection | 503.395 [482.327–505.398] | 384.432 [376.480–393.840] |
+
+The largest input is 13,343,340 UTF-8 bytes. Its JSON-only control was
+32.934 [32.465–35.605] → 33.480 [32.924–34.394] ms; that control does no schema or
+reference validation. Full parsing retains both, including the reserved-key reviver.
+Headless inspection also prepares its timeline, without pixels, codecs or I/O.
+These are CPU timings, not file-picker latency or peak-memory measurements.
 
 **Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
 compare `893cbfa` with an experimental typed, quantized cubic representation.

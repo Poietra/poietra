@@ -58,7 +58,9 @@ fn decode_file(text : String) -> (@core.Any, @scene.Project) raise {
         "対応する Poietra プロジェクト形式の JSON を読み取れませんでした。.poietra.json ファイルを選択してください。",
       )
   }
-  let parsed = parse_file_field(value, project_file_field) catch {
+  // JSON.parse produced a private tree and the reviver rejected reserved keys.
+  // Normalize that owned tree in place; ordinary native readers still copy.
+  let parsed = parse_file_field(value, project_file_field, ownership=ParsedJson) catch {
     _ =>
       raise InvalidProjectFile(
         "このファイルは対応する Poietra プロジェクト形式ではありません。",
