@@ -30,6 +30,10 @@ extern "js" fn bytes(value : @core.Any) -> @core.Any =
   #|value => new Uint8Array(value)
 
 ///|
+#module("lib0/decoding")
+extern "js" fn peek_sync_kind(input : @wire.Decoder) -> Double = "peekVarUint"
+
+///|
 fn native_error(error : Error) -> @core.Any {
   match error {
     @core.ThrowError(value) => value

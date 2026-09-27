@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import { EventEmitter, once } from 'node:events';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
@@ -125,7 +126,9 @@ class ControlledSocket extends EventEmitter {
   sent: Uint8Array[] = [];
   writes: { size: number; done: (error?: Error) => void }[] = [];
   closed: { code: number; reason: string }[] = [];
+  onSend?: (data: Uint8Array) => void;
   send(data: Uint8Array, done: (error?: Error) => void) {
+    this.onSend?.(data);
     this.sent.push(data); this.bufferedAmount += data.byteLength;
     this.writes.push({ size: data.byteLength, done });
   }
@@ -156,6 +159,14 @@ test('a large legal update and its ordered acknowledgment wait for write complet
     expect(update.byteLength).toBeGreaterThan(1048576);
     expect(update.byteLength).toBeLessThan(2097152);
     target.connect(socket as unknown as WebSocket);
+    const published: string[] = [];
+    socket.onSend = () => {
+      const saved = new Y.Doc();
+      try {
+        Y.applyUpdate(saved, readFileSync(join(directory, `${target.id}.yjs`)));
+        published.push(saved.getMap('project').get('large-field') as string);
+      } finally { saved.destroy(); }
+    };
     // The initial sync request is still being sent when the large update arrives.
     socket.emit('message', update);
     socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, peer)));
@@ -167,6 +178,7 @@ test('a large legal update and its ordered acknowledgment wait for write complet
     expect(socket.sent).toHaveLength(3);
     socket.finish();
     expect(socket.closed).toEqual([]);
+    expect(published).toEqual([value, value]);
     expect(target.doc.getMap('project').get('large-field')).toBe(value);
     const replica = new Y.Doc();
     try {
@@ -210,4 +222,72 @@ test('a write callback error discards pending packets and removes only the faile
     expect(target.connections.size).toBe(1);
     other.finish(); expect(other.closed).toEqual([]);
   } finally { other.close(); expect(target.dispose()).toBe(true); }
+});
+
+test.each(['ordinary', 'missing dependency'] as const)('ordered sync replies persist an %s update before sending', async kind => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room(`ordered-save-${kind.replace(' ', '-')}`), socket = new ControlledSocket(), peer = new Y.Doc();
+  const updates: Uint8Array[] = [];
+  try {
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(target.doc));
+    peer.on('update', update => updates.push(update));
+    const parent = new Y.Map(); peer.getMap('project').set('pending', parent);
+    parent.set('value', 'durable before reply');
+    target.connect(socket as unknown as WebSocket); socket.finish();
+    let savedBeforeReply: unknown;
+    socket.onSend = () => {
+      const saved = new Y.Doc();
+      try {
+        Y.applyUpdate(saved, readFileSync(join(directory, `${target.id}.yjs`)));
+        if (kind === 'missing dependency') Y.applyUpdate(saved, updates[0]);
+        savedBeforeReply = (saved.getMap('project').get('pending') as Y.Map<string> | undefined)?.get('value');
+      } finally { saved.destroy(); }
+    };
+    socket.emit('message', syncPacket(encoder => sync.writeUpdate(encoder,
+      kind === 'ordinary' ? Y.mergeUpdates(updates) : updates[1])));
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, peer)));
+    expect(socket.sent).toHaveLength(2);
+    expect(savedBeforeReply).toBe('durable before reply');
+    expect(socket.closed).toEqual([]);
+  } finally { socket.close(); peer.destroy(); expect(target.dispose()).toBe(true); }
+});
+
+test.each(['broadcast', 'ordered reply'] as const)('a storage failure prevents a successful %s', async trigger => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room(`failed-save-${trigger.replace(' ', '-')}`), socket = new ControlledSocket(), peer = new Y.Doc();
+  const temporary = join(directory, `${target.id}.yjs.tmp`), errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(target.doc));
+    const before = Y.encodeStateVector(peer);
+    peer.getMap('project').set('name', trigger === 'broadcast' ? 'x'.repeat(1200000) : 'not saved yet');
+    target.connect(socket as unknown as WebSocket); socket.finish();
+    await mkdir(temporary); // force the real atomic writer to fail
+    socket.emit('message', syncPacket(encoder => sync.writeUpdate(encoder, Y.encodeStateAsUpdate(peer, before))));
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, peer)));
+    expect(socket.sent).toHaveLength(1);
+    expect(socket.closed).toEqual([{ code: 1011, reason: 'Storage unavailable; resynchronize' }]);
+    expect(target.connections.size).toBe(0);
+    expect(errors).toHaveBeenCalled();
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+    peer.destroy(); expect(target.dispose()).toBe(true); errors.mockRestore();
+  }
+});
+
+test('a new room cannot acknowledge its initial document when the first save failed', async () => {
+  const { Room } = await import('../server/collaboration');
+  const id = 'failed-initial-save', temporary = join(directory, `${id}.yjs.tmp`);
+  const errors = vi.spyOn(console, 'error').mockImplementation(() => {}), socket = new ControlledSocket();
+  let target: Room | undefined;
+  try {
+    await mkdir(temporary); target = new Room(id);
+    target.connect(socket as unknown as WebSocket); socket.finish();
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, target!.doc)));
+    expect(socket.sent).toHaveLength(1);
+    expect(socket.closed).toEqual([{ code: 1011, reason: 'Storage unavailable; resynchronize' }]);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+    if (target) expect(target.dispose()).toBe(true);
+    errors.mockRestore();
+  }
 });

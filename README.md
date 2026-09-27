@@ -231,6 +231,12 @@ use nominal 10 ms input / 50 ms output windows. Both queues retain at most 128
 small updates or 256 KiB before flushing; a larger individually valid update
 flushes immediately. The journal compacts at 256 batches or 4 MiB. Unresolved Yjs
 dependencies remain in both merged journal entries and snapshots.
+The Node host marks incoming updates dirty before applying them, including updates
+with unresolved dependencies, and atomically replaces its snapshot before output
+batches or ordered sync replies. This **2026-09-27** correction closes the previous
+200 ms acknowledgment-before-save window. A save failure closes consumers without
+publishing that update or a successful reply; ordinary bursts still share the
+output batch's save, and disconnected edits retain the checkpoint timer.
 
 Presence coalesces over 100 ms and keeps the latest clock per client. Socket and
 owner indexes rebuild from attachments after hibernation; stale closes cannot
@@ -488,10 +494,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 311 | 62,040 |
+| MoonBit application | 311 | 62,071 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,341 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,421 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -556,10 +562,11 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The Node outbox follow-up passed 799 Vitest checks, five extension/linking checks,
+The Node transport follow-up passed 804 Vitest checks, five extension/linking checks,
 public contracts and a production build locally on **2026-09-27**. New deterministic
 regressions exercise a large write followed by its ordered reply, bounded stalled
-peers, failed sends and late callbacks. Four project browser cases (including a
+peers, failed sends, late callbacks, save-before-reply ordering (including missing
+Yjs dependencies), and actual filesystem failures before broadcast/reply. Four project browser cases (including a
 500-object/six-Composition import and reload) and four connection cases passed.
 The full CI above also covers owned file
 normalization, reserved/escaped keys in ignored subtrees, strict easing, independent

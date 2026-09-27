@@ -23,6 +23,7 @@ fn create_room(
     owners: @collection.JsMap::new(),
     fanout: None,
     disposed: false,
+    dirty: true,
     ai_busy: false,
     ai_last_request: 0.0,
   }
@@ -43,8 +44,8 @@ fn create_room(
   doc._call("on", [
     @core.any("update"),
     @core.any(fn(update : @core.Any) {
-      room.fanout.unwrap().document(update)
       room.schedule_persist()
+      room.fanout.unwrap().document(update)
     }),
   ])
   |> ignore

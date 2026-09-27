@@ -12,6 +12,7 @@ priv struct Room {
   mut fanout : @sync.Fanout?
   mut timer : @core.Any?
   mut disposed : Bool
+  mut dirty : Bool
   mut ai_busy : Bool
   mut ai_last_request : Double
 }
@@ -31,6 +32,11 @@ fn Room::persist(self : Room) -> Bool {
       )
     })
     @fs.rename_sync(temporary, self.filename)
+    self.dirty = false
+    if self.timer is Some(timer) {
+      @core.global_this()._call("clearTimeout", [timer]) |> ignore
+      self.timer = None
+    }
     true
   } catch {
     error => {
@@ -54,6 +60,7 @@ fn Room::persist(self : Room) -> Bool {
 
 ///|
 fn Room::schedule_persist(self : Room) -> Unit {
+  self.dirty = true
   if self.timer is None && !self.disposed {
     self.timer = Some(
       @core.global_this()._call("setTimeout", [
@@ -102,7 +109,22 @@ fn Room::stop_sending(self : Room, socket : @core.Any) -> Unit {
 
 ///|
 fn Room::broadcast(self : Room, message : @core.Any) -> Unit {
+  if !self.save_before_publication() {
+    return
+  }
   self.connections.forEach(fn(_, socket) { self.send(socket, message) })
+}
+
+///|
+fn Room::save_before_publication(self : Room) -> Bool {
+  if !self.dirty || self.persist() {
+    return true
+  }
+  // A write failure must never produce an acknowledgment or a peer update.
+  self.outboxes.forEach(fn(outbox, _) {
+    outbox.close(1011, "Storage unavailable; resynchronize")
+  })
+  false
 }
 
 ///|
@@ -200,24 +222,28 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
     let decoder = @wire.decoder(bytes(data))
     let kind = @wire.read_uint(decoder)
     if kind == 0.0 {
-      let reply = @wire.encoder()
-      @wire.write_uint(reply, 0.0)
-      let sync_type : Double = self.host
-        ._get("sync")
-        ._call("readSyncMessage", [
-          @core.any(decoder),
-          @core.any(reply),
-          self.doc,
-          socket,
-        ])
-        .cast()
-      self.migrate()
-      // Pending Yjs dependencies do not emit an update yet, but must be saved.
+      // Mark before applying: a large update may broadcast synchronously, while
+      // unresolved dependencies may emit no document event at all.
+      let sync_type = peek_sync_kind(decoder)
       if sync_type == 1.0 || sync_type == 2.0 {
         self.schedule_persist()
       }
+      let reply = @wire.encoder()
+      @wire.write_uint(reply, 0.0)
+      self.host
+      ._get("sync")
+      ._call("readSyncMessage", [
+        @core.any(decoder),
+        @core.any(reply),
+        self.doc,
+        socket,
+      ])
+      |> ignore
+      self.migrate()
       if @wire.length(reply) > 1 {
-        self.send(socket, @wire.to_bytes(reply))
+        if self.save_before_publication() {
+          self.send(socket, @wire.to_bytes(reply))
+        }
       }
     } else if kind == 1.0 {
       let previous = self.presence.get(socket).unwrap_or(@core.null())
