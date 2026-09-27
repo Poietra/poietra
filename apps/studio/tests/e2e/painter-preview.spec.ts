@@ -354,6 +354,9 @@ for (const draft of [false, true]) test(`playing Canvas retains the inactive hit
   const latest = await page.evaluate(() => window.painterPreview.renders.findLast(frame => frame.finished)!.x!);
   await expect.poll(async () => Number((await circle(page).getAttribute('transform'))!.match(/translate\(([^ ]+)/)![1])).toBeCloseTo(latest, 3);
   expect(await circle(page).evaluate((current, original) => current === original, node)).toBe(true);
+  // A busy runner can advance past the Transition while observing real frames.
+  // Choose its edit target explicitly after checking the actual paused pixels.
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('1400');
   await page.getByRole('button', { name: 'この場面を編集', exact: true }).click();
   await circle(page, 'to').click();
   await expect(page.locator('[data-testid="stage-to"] .stage-overlay rect')).not.toHaveCount(0);
