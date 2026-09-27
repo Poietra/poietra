@@ -1,17 +1,17 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const local = join(root, '.tools/moon');
-const moon = process.env.POIETRA_MOON ?? (existsSync(join(local, 'bin/moon')) ? join(local, 'bin/moon') : 'moon');
-const env = moon === join(local, 'bin/moon') ? { ...process.env, MOON_HOME: local } : process.env;
+function moon(...args) {
+  execFileSync(process.execPath, [join(root, 'scripts/moon.mjs'), ...args], { cwd: root, stdio: 'inherit' });
+}
 execFileSync('python3', ['scripts/generate-adapters.py'], { cwd: root, stdio: 'inherit' });
 execFileSync(process.execPath, ['scripts/client-runtime.mjs'], { cwd: root, stdio: 'inherit' });
-execFileSync(moon, ['fmt'], { cwd: root, env, stdio: 'inherit' });
+moon('fmt');
 for (const target of ['js', 'wasm']) {
-  execFileSync(moon, ['build', '--release', '--target', target, ...(target === 'wasm' ? ['moonbit/motion'] : [])], { cwd: root, env, stdio: 'inherit' });
+  moon('build', '--release', '--target', target, ...(target === 'wasm' ? ['moonbit/motion'] : []));
 }
 const wasm = join(root, 'apps/studio/public/wasm');
 mkdirSync(wasm, { recursive: true });

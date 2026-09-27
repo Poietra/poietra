@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build:moonbit": "node scripts/build.mjs",
-    "build": "pnpm build:moonbit && pnpm --dir apps/studio build:web",
+    "build": "pnpm --dir apps/studio build:web",
     "dev": "pnpm build:moonbit && pnpm --dir apps/studio dev",
     "test": "pnpm audit:source && pnpm check:test-suites && pnpm build:moonbit && pnpm test:extensions && pnpm --dir apps/studio test",
     "typecheck": "pnpm --dir apps/studio typecheck",
