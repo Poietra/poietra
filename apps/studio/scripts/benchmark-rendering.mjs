@@ -25,23 +25,24 @@ import { environment } from './benchmark-environment.mjs';
 const options = {
   url: process.env.POIETRA_BENCH_URL || 'http://127.0.0.1:5173',
   output: process.env.POIETRA_BENCH_OUTPUT || 'test-results/benchmarks/rendering.json',
-  ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg', frames: 20, video: true, previewCopies: false, shape: 'circle',
+  ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg', frames: 20, video: true, previewCopies: false, shape: 'circle', opacity: 1,
 };
 for (let index = 2; index < process.argv.length; index++) {
   const flag = process.argv[index];
   if (flag === '--help') {
-    console.log('Usage: node scripts/benchmark-rendering.mjs [--url VITE_URL] [--output JSON_PATH] [--frames 3..60] [--ffmpeg PATH] [--skip-video] [--preview-copies] [--shape circle|path]\nRequires an already running Vite server and Playwright Chromium; video also requires ffmpeg/libx264.\nCHROME_PATH optionally selects an installed Chromium executable.');
+    console.log('Usage: node scripts/benchmark-rendering.mjs [--url VITE_URL] [--output JSON_PATH] [--frames 3..60] [--ffmpeg PATH] [--skip-video] [--preview-copies] [--shape circle|path] [--opacity 0..1]\nRequires an already running Vite server and Playwright Chromium; video also requires ffmpeg/libx264.\nCHROME_PATH optionally selects an installed Chromium executable.');
     process.exit(0);
   }
   if (flag === '--skip-video') { options.video = false; continue; }
   if (flag === '--preview-copies') { options.previewCopies = true; continue; }
-  const key = { '--url': 'url', '--output': 'output', '--frames': 'frames', '--ffmpeg': 'ffmpeg', '--shape': 'shape' }[flag];
+  const key = { '--url': 'url', '--output': 'output', '--frames': 'frames', '--ffmpeg': 'ffmpeg', '--shape': 'shape', '--opacity': 'opacity' }[flag];
   const value = process.argv[++index];
   if (!key || !value || value.startsWith('--')) throw new Error(`Unknown or incomplete argument: ${flag}. Use --help.`);
-  options[key] = key === 'frames' ? Number(value) : value;
+  options[key] = key === 'frames' || key === 'opacity' ? Number(value) : value;
 }
 if (!Number.isInteger(options.frames) || options.frames < 3 || options.frames > 60) throw new Error('--frames must be an integer from 3 to 60.');
 if (!['circle', 'path'].includes(options.shape)) throw new Error('--shape must be circle or path.');
+if (!Number.isFinite(options.opacity) || options.opacity <= 0 || options.opacity > 1) throw new Error('--opacity must be greater than zero and at most one.');
 const base = new URL(options.url);
 if (!['http:', 'https:'].includes(base.protocol)) throw new Error('--url must be an HTTP(S) Vite server URL.');
 const outputPath = resolve(options.output);
@@ -67,7 +68,7 @@ try {
   await page.route('**/__poietra_render_bench', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body><div id="svg"></div></body></html>' }));
   if (media) await page.route(`**${mediaPath}`, route => route.fulfill({ contentType: 'video/mp4', body: media }));
   await page.goto(new URL('/__poietra_render_bench', base).href);
-  const result = await page.evaluate(async ({ frameCount, video, mediaPath, previewCopies, shapeKind }) => {
+  const result = await page.evaluate(async ({ frameCount, video, mediaPath, previewCopies, shapeKind, opacity }) => {
     // This routed fixture bypasses Vite's HTML transform. Initialize the same
     // React refresh preamble before importing the shared browser artifact.
     const refresh = (await import('/@react-refresh')).default;
@@ -133,7 +134,9 @@ try {
     }
     const shapes = [];
     for (const count of [100, 500]) {
-      const value = scene(count, 2, shapeKind), frame = compositionFrame(value, value.compositions.c0);
+      const value = scene(count, 2, shapeKind);
+      for (const composition of Object.values(value.compositions)) for (const state of Object.values(composition.states)) state.opacity = opacity;
+      const frame = compositionFrame(value, value.compositions.c0);
       const program = compileScene(value, kernel);
       await renderer.prepareScene(value);
       const canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720; document.body.append(canvas);
@@ -190,7 +193,7 @@ try {
             preview = { target: stats(samples.target), draft: stats(samples.draft), batches, identicalPixels: true };
           } finally { display.remove(); }
         }
-        shapes.push({ count, kind: shapeKind, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, marks: reportMarks(), ...(preview ? { previewCopies: preview } : {}) });
+        shapes.push({ count, kind: shapeKind, opacity, backend: painter.backend, evaluation, cloning, svg, svgBytes: markup.length, dom, moving, marks: reportMarks(), ...(preview ? { previewCopies: preview } : {}) });
       } finally { painter.dispose(); canvas.remove(); }
     }
     const preparations = [];
@@ -239,7 +242,7 @@ try {
     const gpu = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null;
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     return { userAgent: navigator.userAgent, gpu, headless: true, units: 'milliseconds (except counts and pngBytes/svgBytes)', shapes, preparations, video: videos, decodeOnly };
-  }, { frameCount: options.frames, video: options.video, mediaPath, previewCopies: options.previewCopies, shapeKind: options.shape });
+  }, { frameCount: options.frames, video: options.video, mediaPath, previewCopies: options.previewCopies, shapeKind: options.shape, opacity: options.opacity });
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { viewport: { width: 1440, height: 900 }, canvas: { width: 1280, height: 720 }, videoFrames: options.frames, source: 'Vite development modules with release MoonBit JS/WASM', video: 'Generated 2s H.264 720p30; painter owns preparation, decode and drawing (PNG only on SVG fallback); evaluation excluded', previewCopies: options.previewCopies ? 'Same painter and moving input; two warmup + seven measured batches of 15 frames per mode, alternating mode order, rAF outside timers; includes paint and publication, excludes evaluation/clone/readback; constructor target retained in both modes; full pixel parity checked after timing; async wall time, not GPU completion' : null, ffmpeg: options.video ? execFileSync(options.ffmpeg, ['-version'], { encoding: 'utf8' }).split('\n')[0] : null }, ...result }, null, 2) + '\n');
   console.log(`Saved ${outputPath}\nGPU: ${result.gpu}\nMean milliseconds; asynchronous microbench timings, not user-visible FPS:`);

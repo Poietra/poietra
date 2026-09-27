@@ -83,6 +83,40 @@ describe('MoonBit layer ownership and cache invalidation', () => {
     cache.clear();
   });
 
+  it('a cache hit supersedes a pending replacement without releasing the reused raster', async () => {
+    const cache = moon.createLayerCache(resources), original = item();
+    const first = cache.get(original, 1, glow, new AbortController().signal);
+    images[0].onload!();
+    const layer = await first;
+    const pending = cache.get(item('image', 'data:image/png;base64,Ag=='), 1, glow, new AbortController().signal);
+    const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(await cache.get(original, 1, glow, new AbortController().signal)).toBe(layer);
+    images[1].onload!();
+    await rejected;
+    expect(layer.canvas.width).toBeGreaterThan(0);
+    expect(surfaces.filter(canvas => canvas.width > 0)).toHaveLength(1);
+    expect(await cache.get(original, 1, glow, new AbortController().signal)).toBe(layer);
+    cache.clear();
+    expect(layer.canvas.width).toBe(0);
+  });
+
+  it('an already-aborted cache hit does not supersede a live replacement', async () => {
+    const cache = moon.createLayerCache(resources), original = item();
+    const first = cache.get(original, 1, glow, new AbortController().signal);
+    images[0].onload!();
+    const before = await first;
+    const replacement = item('image', 'data:image/png;base64,Ag==');
+    const pending = cache.get(replacement, 1, glow, new AbortController().signal);
+    const canceled = new AbortController(); canceled.abort();
+    await expect(cache.get(original, 1, glow, canceled.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    images[1].onload!();
+    const after = await pending;
+    expect(after.canvas.width).toBeGreaterThan(0);
+    expect(before.canvas.width).toBe(0);
+    expect(await cache.get(replacement, 1, glow, new AbortController().signal)).toBe(after);
+    cache.clear();
+  });
+
   it('releases a copied raster when drawing itself triggers cancellation', async () => {
     const cache = moon.createLayerCache(resources);
     const controller = new AbortController();

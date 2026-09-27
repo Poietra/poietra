@@ -454,13 +454,8 @@ async fn RasterCache::get(
   let id = drawable.id
   if self.pending.get(id) is Some(previous) {
     previous.val = false
-  }
-  let ticket = Ref(true)
-  self.pending[id] = ticket
-  defer (if self.pending.get(id) is Some(current) &&
-    physical_equal(current, ticket) {
     self.pending.remove(id)
-  })
+  }
   let identity : RasterIdentity = {
     item: @render.local_drawable(drawable),
     scale,
@@ -477,6 +472,14 @@ async fn RasterCache::get(
     self.entries[id] = previous
     return previous.result
   }
+  // A hit still supersedes older work, but owns no asynchronous preparation.
+  // Allocate a ticket only when this request may need to suspend.
+  let ticket = Ref(true)
+  self.pending[id] = ticket
+  defer (if self.pending.get(id) is Some(current) &&
+    physical_equal(current, ticket) {
+    self.pending.remove(id)
+  })
   let bounds = @core.throwable(fn() {
     @render.object_bounds(identity.item, self.resources)
   })

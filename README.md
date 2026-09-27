@@ -361,6 +361,9 @@ shapes without effects use cached native geometry for direct Canvas painting;
 opacity and Glow retain isolated compositing. Sequential video decoding keeps
 owned pixel surfaces and resets on seeking. Async owners suppress stale results,
 release resources on cancellation and preserve encoder/upload backpressure.
+Raster cache hits still invalidate older pending replacements, but create no
+preparation ticket of their own. Tickets belong only to cache misses; already
+aborted requests leave live preparation untouched.
 The public SVG view uses fixed native records and a single output array; it does
 not allocate intermediate key/value tuples or expose MoonBit record layout.
 The stage memoizes the corresponding React element tree with that view, so
@@ -467,10 +470,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,804 |
+| MoonBit application | 310 | 61,807 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,096 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,130 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -574,6 +577,10 @@ The typed Project-span follow-up passed 781 Vitest checks, five extension/linkin
 checks, public contracts, the production build and 20 browser checks for project
 preview, actual MP4/WebM output and export-dialog ownership/cancellation. Native
 timing records remain independent while preserving their input Scene references.
+The raster-ticket follow-up passed 784 Vitest checks, five extension/linking
+checks, the production build/contracts and all 22 painter browser checks. New
+races cover cached hits superseding pending replacement and already-aborted hits
+preserving live replacement.
 Additional public cubic-coordinate and native-path cache regressions pass against
 the existing renderer, including sub-precision changes, appearance changes and
 same-ID geometry replacement. They accompany the rejected experiment below.
@@ -1035,6 +1042,15 @@ distinguishable from run variation. The extra geometry variant was reverted;
 the shared quantization contract and cache invalidation probes remain. Publication
 pixels matched in every run, but these asynchronous SwiftShader timings do not
 measure physical GPU completion or editor responsiveness.
+
+**Raster pending ownership.** The [reports](benchmarks/2026-09-27-raster-tickets/)
+compare `35db79f` with hit-only ticket removal using the same three-process
+preview-publication method. At 500 half-opacity circles, draft publication was
+4.227 [4.171–4.313] → 4.206 [4.129–4.385] ms; the opaque direct-paint control was
+4.086 [3.978–4.177] → 4.196 [4.083–4.214] ms. No speedup is established. The small
+ownership simplification is retained, with matching pixels in every run.
+MoonBit already completes a cache hit synchronously through its async lowering;
+this removes unnecessary ticket/Map work, not a Promise or microtask per object.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,
