@@ -1,13 +1,19 @@
 ///|
+priv enum Payload {
+  Bytes(@core.Any)
+  SyncReply(() -> @core.Any?)
+}
+
+///|
 priv struct Packet {
-  data : @core.Any
+  payload : Payload
   size : Double
 }
 
 ///|
 priv enum SendState {
   Idle
-  Sending(Double)
+  Sending
   Closed
 }
 
@@ -46,7 +52,11 @@ fn Outbox::close(self : Outbox, code : Int, reason : String) -> Unit {
 
 ///|
 fn Outbox::drain(self : Outbox) -> Unit {
-  guard self.state is Idle && self.pending.length() > 0 else { return }
+  match self.state {
+    Idle => ()
+    Sending | Closed => return
+  }
+  guard self.pending.length() > 0 else { return }
   let connection : @websocket.WebSocket = self.socket.cast()
   if connection.readyState != 1 {
     self.stop()
@@ -56,12 +66,17 @@ fn Outbox::drain(self : Outbox) -> Unit {
   self.pending[0] = None
   self.pending.pop_front() |> ignore
   self.queued_bytes -= packet.size
-  self.state = Sending(packet.size)
   // ws owns the bytes until its public send callback fires. Queue references,
   // never copies; do not enqueue the next packet into its native write buffer.
   (@core.throwable(fn() {
+    let data = match packet.payload {
+      Bytes(data) => Some(data)
+      SyncReply(build) => build()
+    }
+    guard data is Some(data) && !(self.state is Closed) else { return }
+    self.state = Sending
     self.socket._call("send", [
-      packet.data,
+      data,
       @core.any(fn(error : @core.Any) {
         if self.state is Closed {
           return
@@ -74,6 +89,7 @@ fn Outbox::drain(self : Outbox) -> Unit {
         }
       }),
     ])
+    |> ignore
   })
   |> ignore) catch {
     _ => self.close(1011, "Send failed; resynchronize")
@@ -82,6 +98,11 @@ fn Outbox::drain(self : Outbox) -> Unit {
 
 ///|
 fn Outbox::send(self : Outbox, data : @core.Any) -> Unit {
+  self.enqueue({ payload: Bytes(data), size: data._get("byteLength").cast(), })
+}
+
+///|
+fn Outbox::enqueue(self : Outbox, packet : Packet) -> Unit {
   if self.state is Closed {
     return
   }
@@ -90,28 +111,22 @@ fn Outbox::send(self : Outbox, data : @core.Any) -> Unit {
     self.stop()
     return
   }
-  let size : Double = data._get("byteLength").cast()
-  let active = match self.state {
-    Sending(size) => size
-    Idle | Closed => 0.0
-  }
-  let mut largest = Double::max(active, size)
-  for packet in self.pending {
-    if packet is Some(packet) {
-      largest = Double::max(largest, packet.size)
+  let mut largest = packet.size
+  for queued in self.pending {
+    if queued is Some(queued) {
+      largest = Double::max(largest, queued.size)
     }
   }
-  // One indivisible sync packet may exceed 1 MiB. Bound all additional work
-  // by 1 MiB and 128 packets, including the active native write. This also
-  // permits a large packet queued behind the initial small sync request.
-  let outstanding = Double::max(active, connection.bufferedAmount.to_double()) +
-    self.queued_bytes +
-    size
-  if self.pending.length() >= 128 || outstanding > 1048576.0 + largest {
+  // The native writer owns one active packet. Independently bound the waiting
+  // queue by 128 entries and 1 MiB beyond one indivisible packet. Server-side
+  // migration can produce a larger packet while an accepted import is in flight.
+  // Deferred replies retain only their input vector until preceding writes finish.
+  if self.pending.length() >= 128 ||
+    self.queued_bytes + packet.size > 1048576.0 + largest {
     self.close(1013, "Slow connection; resynchronize")
     return
   }
-  self.pending.push_back(Some({ data, size, }))
-  self.queued_bytes += size
+  self.pending.push_back(Some(packet))
+  self.queued_bytes += packet.size
   self.drain()
 }

@@ -247,13 +247,17 @@ actual UTF-8 bytes determine the packet boundary. Native socket sends use the
 existing typed mizchi binding. The Node outbox serializes writes through the
 public `ws.send` completion callback and retains payload references without copying.
 A typed Idle/Sending/Closed state owns at most one native write, 128 queued packets,
-and 1 MiB beyond the largest indivisible packet (counting both active and queued
-bytes). This permits a valid large import followed by its acknowledgment while
+and at most 1 MiB beyond the largest indivisible waiting packet, in addition to
+the active packet. This permits a valid large import followed by server migrations while
 still disconnecting stalled consumers. Completion, replacement and close release
 queued references; late callbacks cannot resume a closed outbox. This fixes the
 **2026-09-27** import disconnect caused by checking native buffered bytes immediately
 after a healthy large write. The Workers WebSocket API has no equivalent callback
-or `bufferedAmount`; the outbox is Node-specific. This transport keeps the existing room authority and storage
+or `bufferedAmount`; the outbox is Node-specific. Ordered replies retain only an
+owned, validated state vector while earlier writes drain; the reply is encoded
+and pending changes are saved immediately before sending. This avoids holding
+duplicate large correction buffers during legacy track initialization. Queue
+bounds include retained request vectors, and invalid requests cancel pending output. This transport keeps the existing room authority and storage
 schema; it does not introduce a new namespace or document format.
 
 [Product rules](apps/studio/AGENTS.md) define these contracts, and
@@ -494,10 +498,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 311 | 62,071 |
+| MoonBit application | 311 | 62,123 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,421 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,464 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -562,12 +566,13 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The Node transport follow-up passed 804 Vitest checks, five extension/linking checks,
+The Node transport follow-up passed 806 Vitest checks, five extension/linking checks,
 public contracts and a production build locally on **2026-09-27**. New deterministic
 regressions exercise a large write followed by its ordered reply, bounded stalled
 peers, failed sends, late callbacks, save-before-reply ordering (including missing
-Yjs dependencies), and actual filesystem failures before broadcast/reply. Four project browser cases (including a
-500-object/six-Composition import and reload) and four connection cases passed.
+Yjs dependencies), and actual filesystem failures before broadcast/reply. Five project browser cases (including
+500-object/six-Composition imports with and without legacy track initialization)
+and four connection cases passed against the production build.
 The full CI above also covers owned file
 normalization, reserved/escaped keys in ignored subtrees, strict easing, independent
 parses, borrowed inputs, raster identity/cancellation and preview/export agreement.

@@ -108,6 +108,31 @@ fn Room::stop_sending(self : Room, socket : @core.Any) -> Unit {
 }
 
 ///|
+fn Room::sync_reply(
+  self : Room,
+  socket : @core.Any,
+  vector : @core.Any,
+) -> Unit {
+  if self.outboxes.get(socket) is Some(outbox) {
+    outbox.enqueue({
+      size: vector._get("byteLength").cast(),
+      payload: SyncReply(fn() {
+        if !self.save_before_publication() {
+          return None
+        }
+        let reply = @wire.encoder()
+        @wire.write_uint(reply, 0.0)
+        self.host
+        ._get("sync")
+        ._call("writeSyncStep2", [@core.any(reply), self.doc, vector])
+        |> ignore
+        Some(@wire.to_bytes(reply))
+      }),
+    })
+  }
+}
+
+///|
 fn Room::broadcast(self : Room, message : @core.Any) -> Unit {
   if !self.save_before_publication() {
     return
@@ -225,6 +250,16 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
       // Mark before applying: a large update may broadcast synchronously, while
       // unresolved dependencies may emit no document event at all.
       let sync_type = peek_sync_kind(decoder)
+      if sync_type == 0.0 {
+        @wire.read_uint(decoder) |> ignore
+        // Own just the vector, not a view retaining the complete input frame.
+        let vector = bytes(@wire.read_bytes(decoder))
+        // Reject malformed vectors on arrival, even behind a stalled write.
+        self.host._get("Y")._call("decodeStateVector", [vector]) |> ignore
+        self.migrate()
+        self.sync_reply(socket, vector)
+        return
+      }
       if sync_type == 1.0 || sync_type == 2.0 {
         self.schedule_persist()
       }
@@ -258,12 +293,14 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
       self.send_awareness(socket)
     }
   }) catch {
-    _ =>
+    _ => {
+      self.stop_sending(socket)
       socket._call("close", [
         @core.any(1003),
         @core.any("Invalid document update"),
       ])
       |> ignore
+    }
   }
 }
 

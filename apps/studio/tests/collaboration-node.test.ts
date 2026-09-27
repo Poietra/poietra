@@ -198,16 +198,57 @@ test.each(['bytes', 'packets'] as const)('a stalled peer has bounded %s and late
   const { Room } = await import('../server/collaboration');
   const target = new Room(`stalled-write-${limit}`), socket = new ControlledSocket(), empty = new Y.Doc();
   try {
-    if (limit === 'bytes') target.doc.getMap('project').set('large-field', 'x'.repeat(1200000));
     target.connect(socket as unknown as WebSocket);
     const request = syncPacket(encoder => sync.writeSyncStep1(encoder, empty));
-    for (let i = 0; i < 130 && socket.readyState === 1; i++) socket.emit('message', request);
+    let produced = 0;
+    while (produced < 130 && socket.readyState === 1) {
+      if (limit === 'bytes') target.doc.getMap('project').set('large-field', `${produced}${'x'.repeat(1200000)}`);
+      else socket.emit('message', request);
+      produced++;
+    }
+    expect(produced).toBe(limit === 'bytes' ? 2 : 129);
     expect(socket.closed).toEqual([{ code: 1013, reason: 'Slow connection; resynchronize' }]);
     expect(target.connections.size).toBe(0);
     expect(socket.sent).toHaveLength(1);
     socket.finish();
     expect(socket.sent).toHaveLength(1);
   } finally { empty.destroy(); expect(target.dispose()).toBe(true); }
+});
+
+test('a large server correction precedes a deferred sync reply without retaining a second correction buffer', async () => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room('deferred-large-reply'), socket = new ControlledSocket(), peer = new Y.Doc();
+  try {
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(target.doc));
+    const before = Y.encodeStateVector(peer); peer.getMap('project').set('import', 'x'.repeat(1200000));
+    target.connect(socket as unknown as WebSocket); socket.finish();
+    socket.emit('message', syncPacket(encoder => sync.writeUpdate(encoder, Y.encodeStateAsUpdate(peer, before))));
+    target.doc.getMap('project').set('server-correction', 'y'.repeat(1200000));
+    const request = syncPacket(encoder => sync.writeSyncStep1(encoder, peer));
+    socket.emit('message', request); request.fill(255);
+    target.doc.getMap('project').set('later', 'also persisted before reply');
+    expect(socket.sent).toHaveLength(2);
+    expect(socket.closed).toEqual([]);
+    socket.finish(); socket.finish(); socket.finish();
+    expect(socket.sent).toHaveLength(4);
+    const decoder = decoding.createDecoder(socket.sent[3]);
+    expect(decoding.readVarUint(decoder)).toBe(0);
+    expect(sync.readSyncMessage(decoder, encoding.createEncoder(), peer, null)).toBe(sync.messageYjsSyncStep2);
+    expect(peer.getMap('project').get('server-correction')).toBe('y'.repeat(1200000));
+    expect(peer.getMap('project').get('later')).toBe('also persisted before reply');
+  } finally { socket.close(); peer.destroy(); expect(target.dispose()).toBe(true); }
+});
+
+test('a malformed sync vector fails on arrival and cancels replies behind a stalled write', async () => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room('invalid-deferred-vector'), socket = new ControlledSocket();
+  try {
+    target.connect(socket as unknown as WebSocket);
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, target.doc)));
+    socket.emit('message', new Uint8Array([0, 0, 1, 255]));
+    expect(socket.closed).toEqual([{ code: 1003, reason: 'Invalid document update' }]);
+    socket.finish(); expect(socket.sent).toHaveLength(1);
+  } finally { expect(target.dispose()).toBe(true); }
 });
 
 test('a write callback error discards pending packets and removes only the failed connection', async () => {
