@@ -1,6 +1,5 @@
 ///|
 priv struct Segment {
-  scene : @scene.Scene
   start : Double
   duration : Double
   playback : @scene.PreparedScene
@@ -14,6 +13,8 @@ pub struct Timeline {
   priv duration : Double
   priv size : @exporting.Size
   priv images : Array[String]
+  priv texts : Array[String]
+  priv equations : Array[String]
   priv audio : Array[AudioClip]
   priv issues : Array[String]
 }
@@ -33,13 +34,24 @@ pub fn prepare(
   }
   let segments : Array[Segment] = []
   let images : Map[String, Unit] = Map([])
+  let texts : Map[String, Unit] = Map([])
+  let equations : Map[String, Unit] = Map([])
+  let mut size : @exporting.Size? = None
   let audio = []
   let issues = []
   let mut start = 0.0
   for id in project.sceneOrder {
     guard project.scenes.get(id) is Some(scene) else { continue }
+    if size is None {
+      size = Some({ width: scene.width, height: scene.height, })
+    }
     let duration = @scene.scene_duration(scene)
+    let mut has_text = false
     for _, object in scene.objects {
+      match object.kind {
+        Text | Equation => has_text = true
+        _ => ()
+      }
       if object.kind == @scene.Video {
         issues.push(
           "Video decoding is not available: \{object.name} (\{object.id}).",
@@ -53,6 +65,21 @@ pub fn prepare(
           issues.push(
             "Embed a PNG or JPEG image in the portable file: \{object.name} (\{object.id}).",
           )
+        }
+      }
+    }
+    if has_text {
+      // Retain resource values, not all source maps. Keep the previous traversal
+      // order and include retained/hidden Composition states for preparation.
+      for _, composition in scene.compositions {
+        for id, state in composition.states {
+          if scene.objects.get(id) is Some(object) {
+            match object.kind {
+              Text => texts[state.text] = ()
+              Equation => equations[state.text] = ()
+              _ => ()
+            }
+          }
         }
       }
     }
@@ -74,7 +101,6 @@ pub fn prepare(
       }
     }
     segments.push({
-      scene,
       start,
       duration,
       playback: @scene.prepare_scene(scene, kernel),
@@ -87,19 +113,17 @@ pub fn prepare(
   if audio.length() > 32 {
     issues.push("Headless rendering supports at most 32 audible tracks.")
   }
-  let size : @exporting.Size = {
-    width: segments[0].scene.width,
-    height: segments[0].scene.height,
-  }
   let bounds = segments.map(fn(segment) { (segment.start, segment.duration) })
   {
     name: project.name,
     segments,
     bounds,
-    size,
+    size: size.unwrap(),
     audio,
     issues,
     images: images.keys().to_array(),
+    texts: texts.keys().to_array(),
+    equations: equations.keys().to_array(),
     duration: start,
   }
 }

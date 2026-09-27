@@ -432,6 +432,10 @@ The document schema and public JS API remain unchanged.
 `RenderResult`. It owns timeline evaluation, validation, audio mixing and the
 render loop, with no `Any`, JS FFI or HTTP dependency. The prepared timeline hides
 its mutable internals; callers must keep its source project stable until done.
+Its compiled segments retain playback programs rather than source Scenes. Text and
+equation values are projected once, including retained/hidden Compositions; each
+backend call receives independent text/equation lists. This **2026-09-27** ownership
+change releases source maps during native resource preparation.
 `headless_render` converts native host objects through opaque FFI handles and
 checks buffers before constructing typed values. `render_http` owns HTTP routing;
 CLI and MCP use the same Node facade. Node adapters own worker threads, I/O and
@@ -498,7 +502,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 311 | 62,123 |
+| MoonBit application | 311 | 62,133 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
 | TypeScript tests, fixtures and test configurations | 159 | 18,464 |
@@ -566,13 +570,16 @@ production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The Node transport follow-up passed 806 Vitest checks, five extension/linking checks,
-public contracts and a production build locally on **2026-09-27**. New deterministic
+The transport/headless follow-up passed 806 Vitest checks, five extension/linking
+checks, 63 MoonBit JS and 60 standard WASM checks, 19 headless checks, public
+contracts and a production build locally on **2026-09-27**. New deterministic
 regressions exercise a large write followed by its ordered reply, bounded stalled
 peers, failed sends, late callbacks, save-before-reply ordering (including missing
 Yjs dependencies), and actual filesystem failures before broadcast/reply. Five project browser cases (including
 500-object/six-Composition imports with and without legacy track initialization)
-and four connection cases passed against the production build.
+and four connection cases passed against the production build. Pure JS/WASM tests
+also preserve retained/hidden text resources, first ordered Scene dimensions and
+independent resource lists when a prepared timeline is reused.
 The full CI above also covers owned file
 normalization, reserved/escaped keys in ignored subtrees, strict easing, independent
 parses, borrowed inputs, raster identity/cancellation and preview/export agreement.
@@ -1088,6 +1095,26 @@ Yjs random IDs vary binary packet lengths; the portable inputs are byte-identica
 It excludes WAN, media and physical GPU completion. The
 [measurement script](apps/studio/scripts/measure-project-import.mjs) accepts
 `POIETRA_PERF_URL` and `POIETRA_PERF_OUTPUT`; use an isolated production Node host.
+
+**Headless retained ownership.** The [five-process heap reports](benchmarks/2026-09-27-headless-ownership/)
+compare `e521995` with the identified build that releases source Scenes after
+preparing playback and resource values. Per process, two renders warm up the code;
+three jobs then prepare sequentially and pause at the native resource port. Values
+below are per-job JS heap deltas after forced GC, with the input string already
+allocated. Every released job completes SVG rendering with identical output bytes.
+
+| Objects × Compositions | Before, MiB | After, MiB |
+| --- | ---: | ---: |
+| 500 × 12 | 5.138 [5.134–5.144] | 4.576 [4.576–4.578] |
+| 500 × 60 | 25.754 [25.740–25.762] | 23.128 [23.122–23.137] |
+
+Preparation (parse/compile/resource-port arrival) was 31.132 [28.657–32.421] →
+30.663 [30.361–31.864] ms for 12 Compositions and 97.469 [96.768–99.750] →
+94.639 [93.323–96.261] ms for 60. The 100-object/two-Composition heap control
+was 0.200 [0.159–0.228] → 0.173 [0.168–0.204] MiB, with overlapping variation.
+This measures retained typed timelines and suspended orchestration, not peak RSS,
+input strings, native/WASM buffers, fonts, codecs or real resource preparation.
+Run `node scripts/benchmark-headless-heap.mjs --output <report.json>` after building.
 
 **Cubic cache experiment, not adopted.** The [reports and proposed patch](benchmarks/2026-09-27-cubic-geometry/)
 compare `893cbfa` with an experimental typed, quantized cubic representation.

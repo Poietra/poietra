@@ -1,0 +1,370 @@
+{
+  "measuredAt": "2026-09-27T02:02:33.144Z",
+  "environment": {
+    "applicationRevision": "e52199523470f2de4dc4d7b61d1b109b42e59f08",
+    "trackedModifications": [],
+    "applicationSourcesSha256": "600bd3e752abb1953c8bb5afbf7bcb0d593e43605d16ddc08ccd633839b29806",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      0.07,
+      0.5,
+      0.52
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "9ef0e0a51dbb3b3d95d0b60d862e29e09ad7b3ea67c1db10056b33286ef13b60",
+    "boundarySha256": "6148617114ba6730cb1c625c382bb8c22c4cd768b3d1a9504429a716a3fac58c",
+    "clientRuntimeSha256": "6c4d708d09841b5a7a6436928f22bc885931d6e9c67e5204b02bfdc06368ce18",
+    "viteManifestSha256": "3d35ada4dd886e97cb97940bbd6e57895cf857ca42e07891e7f55fb3c7f0d463"
+  },
+  "harnessSha256": "b6f7614a3a42b87e8540d749568eb5e96a267ad83d04883c99d84c8b907122b8",
+  "headlessArtifactSha256": "6ee40f436755e475959b6eab4064c34813f68faf8fa545ffbfd4f77b2c36360b",
+  "method": "Five fresh Node processes per case, sequential. Two completed warmup renders, then three render jobs prepared sequentially and held at the native resource-preparation port. Retained JS heap delta after forced GC divided by three, relative to the already-created input string. Includes typed timelines and suspended orchestration, excludes transient/peak memory, source string, file I/O, fonts/media, native/WASM memory and encoding. Preparation time includes public string parsing, timeline compilation and reaching the resource port, without forced GC inside each timed interval. After measuring, every job completes SVG rendering and verifies object count and identical bytes. No real native rendering backend is benchmarked.",
+  "results": [
+    {
+      "objects": 100,
+      "compositions": 2,
+      "retainedBytes": {
+        "n": 5,
+        "median": 209736,
+        "min": 166845.33333333334,
+        "max": 238730.66666666666
+      },
+      "preparationMs": {
+        "n": 5,
+        "median": 2.6090389999999957,
+        "min": 2.343747999999991,
+        "max": 3.125810999999999
+      },
+      "samples": [
+        {
+          "objects": 100,
+          "compositions": 2,
+          "inputBytes": 63371,
+          "inputSha256": "38058539b2eb96deee04968106b3fff92c167d45cf3b624432eb3204908d5c5b",
+          "outputSha256": "ab361d897715a994af5de64a7c943e019bb1dc0026ee390eb575fbf5dd3c8cfc",
+          "retainedBytes": 209736,
+          "preparationMs": {
+            "n": 3,
+            "median": 2.5261540000000053,
+            "min": 2.0584850000000046,
+            "max": 3.039620999999997
+          },
+          "rawPreparationMs": [
+            3.039620999999997,
+            2.5261540000000053,
+            2.0584850000000046
+          ]
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "inputBytes": 63371,
+          "inputSha256": "38058539b2eb96deee04968106b3fff92c167d45cf3b624432eb3204908d5c5b",
+          "outputSha256": "ab361d897715a994af5de64a7c943e019bb1dc0026ee390eb575fbf5dd3c8cfc",
+          "retainedBytes": 238730.66666666666,
+          "preparationMs": {
+            "n": 3,
+            "median": 2.343747999999991,
+            "min": 1.5941950000000134,
+            "max": 2.356027999999995
+          },
+          "rawPreparationMs": [
+            2.343747999999991,
+            2.356027999999995,
+            1.5941950000000134
+          ]
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "inputBytes": 63371,
+          "inputSha256": "38058539b2eb96deee04968106b3fff92c167d45cf3b624432eb3204908d5c5b",
+          "outputSha256": "ab361d897715a994af5de64a7c943e019bb1dc0026ee390eb575fbf5dd3c8cfc",
+          "retainedBytes": 214157.33333333334,
+          "preparationMs": {
+            "n": 3,
+            "median": 2.6090389999999957,
+            "min": 2.0670630000000045,
+            "max": 2.9380549999999914
+          },
+          "rawPreparationMs": [
+            2.9380549999999914,
+            2.6090389999999957,
+            2.0670630000000045
+          ]
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "inputBytes": 63371,
+          "inputSha256": "38058539b2eb96deee04968106b3fff92c167d45cf3b624432eb3204908d5c5b",
+          "outputSha256": "ab361d897715a994af5de64a7c943e019bb1dc0026ee390eb575fbf5dd3c8cfc",
+          "retainedBytes": 199560,
+          "preparationMs": {
+            "n": 3,
+            "median": 3.125810999999999,
+            "min": 2.0911390000000125,
+            "max": 3.4309240000000045
+          },
+          "rawPreparationMs": [
+            3.4309240000000045,
+            3.125810999999999,
+            2.0911390000000125
+          ]
+        },
+        {
+          "objects": 100,
+          "compositions": 2,
+          "inputBytes": 63371,
+          "inputSha256": "38058539b2eb96deee04968106b3fff92c167d45cf3b624432eb3204908d5c5b",
+          "outputSha256": "ab361d897715a994af5de64a7c943e019bb1dc0026ee390eb575fbf5dd3c8cfc",
+          "retainedBytes": 166845.33333333334,
+          "preparationMs": {
+            "n": 3,
+            "median": 2.786338999999998,
+            "min": 1.8573769999999996,
+            "max": 3.1115739999999903
+          },
+          "rawPreparationMs": [
+            3.1115739999999903,
+            2.786338999999998,
+            1.8573769999999996
+          ]
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 12,
+      "retainedBytes": {
+        "n": 5,
+        "median": 5387706.666666667,
+        "min": 5383258.666666667,
+        "max": 5394109.333333333
+      },
+      "preparationMs": {
+        "n": 5,
+        "median": 31.13175100000001,
+        "min": 28.657250000000005,
+        "max": 32.42075600000001
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 12,
+          "inputBytes": 1663176,
+          "inputSha256": "32bf7b0894fec40d4edf883e3b73d9520c65594a68876c7bfaecbf62fa0fcd81",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 5387706.666666667,
+          "preparationMs": {
+            "n": 3,
+            "median": 32.42075600000001,
+            "min": 20.44081299999999,
+            "max": 34.64345399999999
+          },
+          "rawPreparationMs": [
+            34.64345399999999,
+            32.42075600000001,
+            20.44081299999999
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "inputBytes": 1663176,
+          "inputSha256": "32bf7b0894fec40d4edf883e3b73d9520c65594a68876c7bfaecbf62fa0fcd81",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 5394109.333333333,
+          "preparationMs": {
+            "n": 3,
+            "median": 28.657250000000005,
+            "min": 25.139601999999996,
+            "max": 33.507390000000015
+          },
+          "rawPreparationMs": [
+            33.507390000000015,
+            28.657250000000005,
+            25.139601999999996
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "inputBytes": 1663176,
+          "inputSha256": "32bf7b0894fec40d4edf883e3b73d9520c65594a68876c7bfaecbf62fa0fcd81",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 5383258.666666667,
+          "preparationMs": {
+            "n": 3,
+            "median": 31.22497100000001,
+            "min": 20.479442000000006,
+            "max": 34.31225699999999
+          },
+          "rawPreparationMs": [
+            34.31225699999999,
+            31.22497100000001,
+            20.479442000000006
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "inputBytes": 1663176,
+          "inputSha256": "32bf7b0894fec40d4edf883e3b73d9520c65594a68876c7bfaecbf62fa0fcd81",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 5388088,
+          "preparationMs": {
+            "n": 3,
+            "median": 31.13175100000001,
+            "min": 19.823409999999996,
+            "max": 34.70467099999999
+          },
+          "rawPreparationMs": [
+            34.70467099999999,
+            31.13175100000001,
+            19.823409999999996
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 12,
+          "inputBytes": 1663176,
+          "inputSha256": "32bf7b0894fec40d4edf883e3b73d9520c65594a68876c7bfaecbf62fa0fcd81",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 5385608,
+          "preparationMs": {
+            "n": 3,
+            "median": 30.399495,
+            "min": 19.59000500000002,
+            "max": 35.36757299999999
+          },
+          "rawPreparationMs": [
+            35.36757299999999,
+            30.399495,
+            19.59000500000002
+          ]
+        }
+      ]
+    },
+    {
+      "objects": 500,
+      "compositions": 60,
+      "retainedBytes": {
+        "n": 5,
+        "median": 27005061.333333332,
+        "min": 26989944,
+        "max": 27013282.666666668
+      },
+      "preparationMs": {
+        "n": 5,
+        "median": 97.46899799999994,
+        "min": 96.76768800000002,
+        "max": 99.74990299999996
+      },
+      "samples": [
+        {
+          "objects": 500,
+          "compositions": 60,
+          "inputBytes": 8122408,
+          "inputSha256": "ebd109ada2962b0607fbf8beac60316beb31e344e761bd103dba5990b95e156e",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 26989944,
+          "preparationMs": {
+            "n": 3,
+            "median": 96.76768800000002,
+            "min": 92.83444299999996,
+            "max": 117.477033
+          },
+          "rawPreparationMs": [
+            117.477033,
+            92.83444299999996,
+            96.76768800000002
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 60,
+          "inputBytes": 8122408,
+          "inputSha256": "ebd109ada2962b0607fbf8beac60316beb31e344e761bd103dba5990b95e156e",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 27005061.333333332,
+          "preparationMs": {
+            "n": 3,
+            "median": 97.46899799999994,
+            "min": 94.80823300000003,
+            "max": 115.97921099999996
+          },
+          "rawPreparationMs": [
+            115.97921099999996,
+            94.80823300000003,
+            97.46899799999994
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 60,
+          "inputBytes": 8122408,
+          "inputSha256": "ebd109ada2962b0607fbf8beac60316beb31e344e761bd103dba5990b95e156e",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 27013282.666666668,
+          "preparationMs": {
+            "n": 3,
+            "median": 99.74990299999996,
+            "min": 93.39182200000005,
+            "max": 119.19883800000002
+          },
+          "rawPreparationMs": [
+            119.19883800000002,
+            99.74990299999996,
+            93.39182200000005
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 60,
+          "inputBytes": 8122408,
+          "inputSha256": "ebd109ada2962b0607fbf8beac60316beb31e344e761bd103dba5990b95e156e",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 27011784,
+          "preparationMs": {
+            "n": 3,
+            "median": 97.239011,
+            "min": 95.20139599999999,
+            "max": 116.44226200000003
+          },
+          "rawPreparationMs": [
+            116.44226200000003,
+            95.20139599999999,
+            97.239011
+          ]
+        },
+        {
+          "objects": 500,
+          "compositions": 60,
+          "inputBytes": 8122408,
+          "inputSha256": "ebd109ada2962b0607fbf8beac60316beb31e344e761bd103dba5990b95e156e",
+          "outputSha256": "cf80b5b6de61e572522eb9cb0b17eaccc507f50b8caf814f2b68f8622d2e03f7",
+          "retainedBytes": 26999128,
+          "preparationMs": {
+            "n": 3,
+            "median": 97.65770199999997,
+            "min": 95.17520999999999,
+            "max": 114.61006700000002
+          },
+          "rawPreparationMs": [
+            114.61006700000002,
+            95.17520999999999,
+            97.65770199999997
+          ]
+        }
+      ]
+    }
+  ]
+}

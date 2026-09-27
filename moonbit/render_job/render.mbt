@@ -59,24 +59,10 @@ fn validate(
 
 ///|
 fn Timeline::preparation(self : Timeline) -> Preparation {
-  let texts : Map[String, Unit] = Map([])
-  let equations : Map[String, Unit] = Map([])
-  for segment in self.segments {
-    for _, composition in segment.scene.compositions {
-      for id, state in composition.states {
-        if segment.scene.objects.get(id) is Some(object) {
-          match object.kind {
-            Text => texts[state.text] = ()
-            Equation => equations[state.text] = ()
-            _ => ()
-          }
-        }
-      }
-    }
-  }
   {
-    texts: texts.keys().to_array(),
-    equations: equations.keys().to_array(),
+    // Backends receive independent lists on every render of a reusable timeline.
+    texts: self.texts.copy(),
+    equations: self.equations.copy(),
     images: self.images,
   }
 }
