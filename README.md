@@ -238,10 +238,16 @@ remove a replacement. A replacement retires the old socket and releases its
 admission slot immediately. Full rosters are split into packets accepted by older
 clients: at most 100 entries and 16,000 bytes. Each entry is encoded once, and its
 actual UTF-8 bytes determine the packet boundary. Native socket sends use the
-existing typed mizchi binding. Node disconnects clients with more than 1 MiB of
-queued output; the
-Workers WebSocket API does not expose Node's `bufferedAmount`, so that guard is
-Node-specific. This transport keeps the existing room authority and storage
+existing typed mizchi binding. The Node outbox serializes writes through the
+public `ws.send` completion callback and retains payload references without copying.
+A typed Idle/Sending/Closed state owns at most one native write, 128 queued packets,
+and 1 MiB beyond the largest indivisible packet (counting both active and queued
+bytes). This permits a valid large import followed by its acknowledgment while
+still disconnecting stalled consumers. Completion, replacement and close release
+queued references; late callbacks cannot resume a closed outbox. This fixes the
+**2026-09-27** import disconnect caused by checking native buffered bytes immediately
+after a healthy large write. The Workers WebSocket API has no equivalent callback
+or `bufferedAmount`; the outbox is Node-specific. This transport keeps the existing room authority and storage
 schema; it does not introduce a new namespace or document format.
 
 [Product rules](apps/studio/AGENTS.md) define these contracts, and
@@ -482,10 +488,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,921 |
+| MoonBit application | 311 | 62,040 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 159 | 18,210 |
+| TypeScript tests, fixtures and test configurations | 159 | 18,341 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -540,36 +546,26 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `cc615e0` passed the complete
-[CI run 36280136534](https://github.com/Poietra/poietra/actions/runs/36280136534)
-on **2026-09-27**: 757 Vitest checks, 58 MoonBit JS checks, 55 WASM checks,
-177 main browser checks, ten export checks, six media checks and 28 production
+Application revision `c52ca3d` passed the complete
+[CI run 36285624232](https://github.com/Poietra/poietra/actions/runs/36285624232)
+on **2026-09-27**: 795 Vitest checks, 61 MoonBit JS checks, 58 WASM checks,
+182 main browser checks, ten export checks, six media checks and 28 production
 page checks. Generated bindings, warning-free MoonBit types, public TypeScript
 contracts, five extension/linking checks, 19 headless API/MCP checks and the
 production build also passed.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
 selection; these counts describe that run.
 
-The current follow-up passed 795 Vitest checks, five extension/linking checks,
-61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public contracts
-and the production build locally on **2026-09-27**. Selected browser checks passed:
-22 painter cases, ten text/geometry cache and cancellation cases, and 24 portable
-file, media, hierarchy and shared-room cases. These selections are narrower than CI.
-New regressions cover owned file normalization, unknown/reserved keys, optional
-nulls, strict easing, independent parses and borrowed frozen assets. The key guard
-also rejects escaped reserved keys in ignored arrays while permitting reserved
-words as values and honoring overwritten JSON members. Raster tests
-preserve cached native identity, fallback `null`, pending-replacement cancellation
-and leases. Earlier follow-ups also exercised project preview/export, SVG escaping,
-media-aware timelines, subscription isolation, retained hit surfaces and mutable
-public inputs; raw performance evidence below includes parity assertions.
-
-[CI run 36283955457](https://github.com/Poietra/poietra/actions/runs/36283955457)
-completed 181 of 182 main browser cases; one test assumed real playback would
-remain inside a short Transition on the runner. The application correctly selected
-the later Composition. The test now chooses its edit time after checking actual
-paused pixels; both painter modes passed five repeated runs each locally. A full
-replacement CI run has not yet been recorded here.
+The Node outbox follow-up passed 799 Vitest checks, five extension/linking checks,
+public contracts and a production build locally on **2026-09-27**. New deterministic
+regressions exercise a large write followed by its ordered reply, bounded stalled
+peers, failed sends and late callbacks. Four project browser cases (including a
+500-object/six-Composition import and reload) and four connection cases passed.
+The full CI above also covers owned file
+normalization, reserved/escaped keys in ignored subtrees, strict easing, independent
+parses, borrowed inputs, raster identity/cancellation and preview/export agreement.
+The earlier playback-test timeout was resolved by selecting the edit time explicitly
+after checking actual paused pixels; the complete replacement CI passed.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.

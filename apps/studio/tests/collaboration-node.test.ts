@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test, vi } from 'vitest';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +8,7 @@ import { presenceMessage } from '../worker/presence';
 import type { Room } from '../server/collaboration';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
+import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
 
 let directory: string;
@@ -114,4 +115,99 @@ test('saves an out-of-order update before disconnect so a restart can finish it 
     send(updates[0]);
     await expect.poll(() => (room.doc.getMap('project').get('pending-parent') as Y.Map<string> | undefined)?.get('value')).toBe('survives restart');
   } finally { socket.close(); peer.destroy(); }
+});
+
+// Model ws's public write callback, including a healthy large write that remains
+// buffered while its following acknowledgment arrives. No socket-private hooks.
+class ControlledSocket extends EventEmitter {
+  readyState = 1;
+  bufferedAmount = 0;
+  sent: Uint8Array[] = [];
+  writes: { size: number; done: (error?: Error) => void }[] = [];
+  closed: { code: number; reason: string }[] = [];
+  send(data: Uint8Array, done: (error?: Error) => void) {
+    this.sent.push(data); this.bufferedAmount += data.byteLength;
+    this.writes.push({ size: data.byteLength, done });
+  }
+  finish(error?: Error) {
+    const write = this.writes.shift();
+    if (!write) throw new Error('No pending write');
+    this.bufferedAmount -= write.size; write.done(error);
+  }
+  close(code = 1000, reason = '') {
+    this.closed.push({ code, reason }); this.readyState = 3; this.emit('close');
+  }
+}
+
+function syncPacket(write: (encoder: encoding.Encoder) => void) {
+  const encoder = encoding.createEncoder(); encoding.writeVarUint(encoder, 0);
+  write(encoder); return encoding.toUint8Array(encoder);
+}
+
+test('a large legal update and its ordered acknowledgment wait for write completion without disconnecting', async () => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room('large-write-order'), socket = new ControlledSocket(), peer = new Y.Doc();
+  try {
+    const baseline = Y.encodeStateAsUpdate(target.doc);
+    Y.applyUpdate(peer, baseline);
+    const before = Y.encodeStateVector(peer), value = 'x'.repeat(1200000);
+    peer.getMap('project').set('large-field', value);
+    const update = syncPacket(encoder => sync.writeUpdate(encoder, Y.encodeStateAsUpdate(peer, before)));
+    expect(update.byteLength).toBeGreaterThan(1048576);
+    expect(update.byteLength).toBeLessThan(2097152);
+    target.connect(socket as unknown as WebSocket);
+    // The initial sync request is still being sent when the large update arrives.
+    socket.emit('message', update);
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, peer)));
+    expect(socket.sent).toHaveLength(1);
+    socket.finish(); // sends the large echo
+    expect(socket.sent).toHaveLength(2);
+    expect(socket.bufferedAmount).toBeGreaterThan(1048576);
+    socket.finish(); // sends the acknowledgment only after the echo is drained
+    expect(socket.sent).toHaveLength(3);
+    socket.finish();
+    expect(socket.closed).toEqual([]);
+    expect(target.doc.getMap('project').get('large-field')).toBe(value);
+    const replica = new Y.Doc();
+    try {
+      Y.applyUpdate(replica, baseline);
+      const kinds: number[] = [];
+      for (const packet of socket.sent.slice(1)) {
+        const decoder = decoding.createDecoder(packet); expect(decoding.readVarUint(decoder)).toBe(0);
+        kinds.push(sync.readSyncMessage(decoder, encoding.createEncoder(), replica, null));
+      }
+      expect(kinds).toEqual([sync.messageYjsUpdate, sync.messageYjsSyncStep2]);
+      expect(replica.getMap('project').get('large-field')).toBe(value);
+    } finally { replica.destroy(); }
+  } finally { socket.close(); peer.destroy(); expect(target.dispose()).toBe(true); }
+});
+
+test.each(['bytes', 'packets'] as const)('a stalled peer has bounded %s and late callbacks cannot restart its queue', async limit => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room(`stalled-write-${limit}`), socket = new ControlledSocket(), empty = new Y.Doc();
+  try {
+    if (limit === 'bytes') target.doc.getMap('project').set('large-field', 'x'.repeat(1200000));
+    target.connect(socket as unknown as WebSocket);
+    const request = syncPacket(encoder => sync.writeSyncStep1(encoder, empty));
+    for (let i = 0; i < 130 && socket.readyState === 1; i++) socket.emit('message', request);
+    expect(socket.closed).toEqual([{ code: 1013, reason: 'Slow connection; resynchronize' }]);
+    expect(target.connections.size).toBe(0);
+    expect(socket.sent).toHaveLength(1);
+    socket.finish();
+    expect(socket.sent).toHaveLength(1);
+  } finally { empty.destroy(); expect(target.dispose()).toBe(true); }
+});
+
+test('a write callback error discards pending packets and removes only the failed connection', async () => {
+  const { Room } = await import('../server/collaboration');
+  const target = new Room('failed-write'), socket = new ControlledSocket(), other = new ControlledSocket();
+  try {
+    target.connect(socket as unknown as WebSocket); target.connect(other as unknown as WebSocket);
+    socket.emit('message', syncPacket(encoder => sync.writeSyncStep1(encoder, target.doc)));
+    socket.finish(new Error('write failed'));
+    expect(socket.closed).toEqual([{ code: 1011, reason: 'Send failed; resynchronize' }]);
+    expect(socket.sent).toHaveLength(1);
+    expect(target.connections.size).toBe(1);
+    other.finish(); expect(other.closed).toEqual([]);
+  } finally { other.close(); expect(target.dispose()).toBe(true); }
 });

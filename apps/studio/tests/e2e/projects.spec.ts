@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { makeDemoProject } from '../../shared/demo';
+import { defaultState } from '../../shared/model';
+import { createProjectMessages } from '../../src/editor/projects';
+import * as Y from 'yjs';
 
 test('opening a saved project creates a separate shared room and leaves collaborators in the original', async ({ browser }) => {
   const context = await browser.newContext();
@@ -64,4 +67,36 @@ test('closing a pending file read permits another operation and ignores the old 
   await expect(page).toHaveURL(new RegExp(room));
   await expect(page.getByRole('alert')).toContainText('形式');
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeEnabled();
+});
+
+test('a valid import larger than the ordinary socket backlog survives its acknowledgment and reload', async ({ page }) => {
+  const project = makeDemoProject(), scene = project.scenes['scene-1'];
+  project.name = 'Large imported project';
+  scene.objects = {}; scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
+  for (let i = 0; i < 500; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false };
+  for (let c = 0; c < 6; c++) {
+    const id = `c${c}`; scene.compositionOrder.push(id);
+    scene.compositions[id] = { id, name: `Composition ${c}`, accent: '#123456', duration: 1000,
+      states: Object.fromEntries(Object.keys(scene.objects).map((id, i) => [id, defaultState('circle', {
+        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20,
+      })])) };
+  }
+  const empty = new Y.Doc();
+  try {
+    const { updateMessage } = createProjectMessages(empty, project);
+    expect(updateMessage.byteLength).toBeGreaterThan(1048576);
+    expect(updateMessage.byteLength).toBeLessThan(2097152);
+  } finally { empty.destroy(); }
+  const originalRoom = crypto.randomUUID(); await page.goto(`/?room=${originalRoom}`);
+  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
+  await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'large.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(project)) });
+  await expect(page).not.toHaveURL(new RegExp(originalRoom));
+  await expect(page.getByRole('textbox', { name: 'Project name', exact: true })).toHaveValue(project.name);
+  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('stage-main').locator('.scene-svg [data-object-id]')).toHaveCount(500);
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Project name', exact: true })).toHaveValue(project.name);
+  await page.getByRole('button', { name: 'Composition 5', exact: true }).click();
+  await expect(page.getByTestId('stage-main').locator('[data-object-id="o0"]')).toHaveAttribute('transform', 'translate(30 25) rotate(0)');
 });

@@ -6,6 +6,7 @@ priv struct Room {
   doc : @core.Any
   awareness : @core.Any
   connections : @collection.JsMap[@core.Any, @collection.JsSet[Double]]
+  outboxes : @collection.JsMap[@core.Any, Outbox]
   presence : @collection.JsMap[@core.Any, @core.Any]
   owners : @collection.JsMap[Double, @core.Any]
   mut fanout : @sync.Fanout?
@@ -85,31 +86,23 @@ fn Room::dispose(self : Room) -> Bool {
 }
 
 ///|
-fn send(socket : @core.Any, message : @core.Any) -> Unit {
-  let connection : @websocket.WebSocket = socket.cast()
-  if connection.readyState == 1 {
-    // ws exposes backpressure; disconnect slow consumers so Yjs can resync.
-    if connection.bufferedAmount > 1048576 {
-      socket._call("close", [
-        @core.any(1013),
-        @core.any("Slow connection; resynchronize"),
-      ])
-      |> ignore
-      return
-    }
-    // A failed peer must not interrupt delivery or persistence for other peers.
-    try
-      @core.throwable(fn() { connection.send_uint8array(message.cast()) })
-      |> ignore
-    catch {
-      _ => ()
-    }
+fn Room::send(self : Room, socket : @core.Any, message : @core.Any) -> Unit {
+  if self.outboxes.get(socket) is Some(outbox) {
+    outbox.send(message)
   }
 }
 
 ///|
+fn Room::stop_sending(self : Room, socket : @core.Any) -> Unit {
+  if self.outboxes.get(socket) is Some(outbox) {
+    outbox.stop()
+  }
+  self.outboxes.delete(socket) |> ignore
+}
+
+///|
 fn Room::broadcast(self : Room, message : @core.Any) -> Unit {
-  self.connections.forEach(fn(_, socket) { send(socket, message) })
+  self.connections.forEach(fn(_, socket) { self.send(socket, message) })
 }
 
 ///|
@@ -141,7 +134,7 @@ fn Room::send_awareness(self : Room, socket : @core.Any) -> Unit {
     )
   })
   for packet in @presence.presence_messages(FixedArray::from_array(entries[:])) {
-    send(socket, packet)
+    self.send(socket, packet)
   }
 }
 
@@ -174,6 +167,7 @@ fn Room::update_presence(
     }
   }
   if self.owners.get(client_id) is Some(other) && !@core.equal(other, socket) {
+    self.stop_sending(other)
     self.connections.delete(other) |> ignore
     self.presence.delete(other) |> ignore
     (@core.throwable(fn() {
@@ -223,7 +217,7 @@ fn Room::message(self : Room, socket : @core.Any, data : @core.Any) -> Unit {
         self.schedule_persist()
       }
       if @wire.length(reply) > 1 {
-        send(socket, @wire.to_bytes(reply))
+        self.send(socket, @wire.to_bytes(reply))
       }
     } else if kind == 1.0 {
       let previous = self.presence.get(socket).unwrap_or(@core.null())
@@ -259,17 +253,7 @@ fn Room::connect(self : Room, socket : @core.Any) -> Unit {
     return
   }
   self.connections.set(socket, @collection.JsSet::new()) |> ignore
-  let encoder = @wire.encoder()
-  @wire.write_uint(encoder, 0.0)
-  self.host._get("sync")._call("writeSyncStep1", [@core.any(encoder), self.doc])
-  |> ignore
-  send(socket, @wire.to_bytes(encoder))
-  let states : @collection.JsMap[Double, @core.Any] = self.awareness
-    ._call("getStates", [])
-    .cast()
-  if states.size() > 0 {
-    self.send_awareness(socket)
-  }
+  self.outboxes.set(socket, Outbox::new(socket)) |> ignore
   socket._call("on", [
     @core.any("message"),
     @core.any(fn(data : @core.Any) { self.message(socket, data) }),
@@ -278,6 +262,7 @@ fn Room::connect(self : Room, socket : @core.Any) -> Unit {
   socket._call("on", [
     @core.any("close"),
     @core.any(fn() {
+      self.stop_sending(socket)
       let clients = match self.connections.get(socket) {
         Some(owned) => set_values(owned)
         None => array([])
@@ -300,7 +285,21 @@ fn Room::connect(self : Room, socket : @core.Any) -> Unit {
   |> ignore
   socket._call("on", [
     @core.any("error"),
-    @core.any(fn() { socket._call("close", []) |> ignore }),
+    @core.any(fn() {
+      self.stop_sending(socket)
+      socket._call("close", []) |> ignore
+    }),
   ])
   |> ignore
+  let encoder = @wire.encoder()
+  @wire.write_uint(encoder, 0.0)
+  self.host._get("sync")._call("writeSyncStep1", [@core.any(encoder), self.doc])
+  |> ignore
+  self.send(socket, @wire.to_bytes(encoder))
+  let states : @collection.JsMap[Double, @core.Any] = self.awareness
+    ._call("getStates", [])
+    .cast()
+  if states.size() > 0 {
+    self.send_awareness(socket)
+  }
 }

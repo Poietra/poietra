@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/deque",
   "mizchi/js_core" @core,
   "mizchi/js_web/websocket",
   "poietra/poietra/server_sync" @sync,

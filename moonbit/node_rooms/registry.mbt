@@ -17,6 +17,7 @@ fn create_room(
     doc,
     awareness,
     connections: @collection.JsMap::new(),
+    outboxes: @collection.JsMap::new(),
     presence: @collection.JsMap::new(),
     timer: None,
     owners: @collection.JsMap::new(),
@@ -51,6 +52,8 @@ fn create_room(
     @core.any("destroy"),
     @core.any(fn() {
       room.disposed = true
+      room.outboxes.forEach(fn(outbox, _) { outbox.stop() })
+      room.outboxes.clear()
       room.fanout.unwrap().dispose()
       if room.timer is Some(timer) {
         @core.global_this()._call("clearTimeout", [timer]) |> ignore
