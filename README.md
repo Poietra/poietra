@@ -312,6 +312,10 @@ Portable parsing and project asset capture use an operation-owned typed
 check; dimensions, MIME, duration, waveform and clip fields remain independently
 validated. The table is released with the operation and never trusts a mutable
 native record. Conflicting references still fail before asset transfer.
+SVG escaping scans UTF-16 once and appends unchanged spans instead of individual
+code units. Unchanged text returns directly, including long embedded image sources;
+XML control filtering, entity escaping and isolated-surrogate replacement still
+apply to every input. This reduces string assembly without a resource cache.
 The layout resolves parent and paint indices once. Composition and transition
 evaluation share one traversal over current pose arrays; neither rebuilds an
 ID-keyed world-matrix map. Authored paint order, hidden ancestors and missing
@@ -447,10 +451,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,750 |
+| MoonBit application | 310 | 61,760 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 155 | 17,945 |
+| TypeScript tests, fixtures and test configurations | 156 | 17,964 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -535,6 +539,11 @@ public contracts and the production build. Its 21 browser checks cover portable
 images/audio, cross-room copying, cancellation, atomic failure and real MP4/WebM
 image rendering. New regressions reject changed source tails and invalid metadata
 after a duplicate source, while preserving independent valid waveforms.
+The SVG span change passed 775 Vitest checks, five extension/linking checks,
+59 MoonBit JS and 56 standard WASM checks, 19 headless checks, public contracts
+and the production build. Its 36 selected browser checks cover images, geometry,
+Canvas/SVG fallback, stale frames and portable files. Escaping regressions cover
+all 65,536 UTF-16 code units, valid/broken surrogate pairs and long mixed spans.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.
@@ -942,6 +951,33 @@ hashing/comparison remains included. Parsing includes validation and independent
 output records; saving includes its snapshot and size serialization. Payloads
 exercise syntax checks, not decoding; room I/O is stubbed and no browser, codec,
 network, file download or peak-memory measurement is included.
+
+**SVG string assembly.** The [CPU before/after reports](benchmarks/2026-09-27-svg-escaping/)
+compare `410419c` with the identified build. Five fresh Node processes each use
+two warmup and seven measured batches; iteration counts vary by workload and are
+recorded. Process medians, median [min–max] ms per operation:
+
+| Workload | Before | After |
+| --- | ---: | ---: |
+| Escape 1 MiB of Base64 source characters | 21.119 [20.858–22.393] | 1.687 [1.676–1.693] |
+| Serialize one image with that source | 20.150 [19.644–20.576] | 1.931 [1.922–2.003] |
+| Serialize 16 images, each with 64 KiB source characters | 21.105 [20.735–21.383] | 1.955 [1.858–2.024] |
+| Escape 15,000 code units with frequent replacements | 0.118 [0.116–0.126] | 0.115 [0.113–0.120] |
+
+These cases measure escaping and public SVG conversion, without image decoding,
+DOM, GPU or peak-memory measurement. The replacement-heavy control has no clear
+gain. All inputs retain the same XML character rules.
+
+The separate [production image-drag reports](benchmarks/2026-09-27-svg-image-drag/)
+use three fresh Chromium processes, each with one warmup and three 60-move drags.
+One selected image replaces a circle; all other objects remain circles. The same
+256×256 PNG (104,443 encoded bytes, hash in reports) is uploaded and prepared before
+timing. Capture-listener-to-DOM medians improved from 9.1 [9.0–9.1] to
+7.7 [7.5–7.8] ms at 100 objects and 13.7 [13.6–13.7] to 12.2 [12.1–12.2] ms at
+500. Two-rAF presentation-opportunity medians were 37.7 → 37.6 ms and 40.1 →
+40.5 ms respectively, with no improvement claimed. Delivered pointer spacing was
+33.3–33.4 ms and playback rAF spacing 16.7 ms. These are local SwiftShader results
+with CPU profiling enabled, not physical paint latency or field INP.
 
 The [current checks](#checks) include mutable public inputs, nested and
 observer-queued transactions, exception recovery, metadata changes, video timing,

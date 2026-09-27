@@ -3,6 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import WebSocket from 'ws';
+import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { applyChanges } from '../shared/document.js';
@@ -13,6 +14,7 @@ const base = new URL(process.env.POIETRA_PERF_URL || 'http://127.0.0.1:5195');
 if (!['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)) throw new Error('Use an isolated loopback server.');
 const output = process.env.POIETRA_PERF_OUTPUT || 'test-results/interaction-performance.json';
 const parents = process.env.POIETRA_PERF_PARENTS === '1';
+const imageDrag = process.env.POIETRA_PERF_IMAGE === '1';
 const measuredEnvironment = environment();
 await mkdir(dirname(output), { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -22,6 +24,8 @@ try {
     const room = crypto.randomUUID(), doc = new Y.Doc();
     const provider = new WebsocketProvider(new URL('/sync', base).href.replace('http:', 'ws:'), room, doc, { WebSocketPolyfill: WebSocket, disableBc: true, connect: false });
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    let image = null;
     try {
       await new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Seed timeout')), 15000);
@@ -41,12 +45,33 @@ try {
           });
         }
       }
+      if (imageDrag) {
+        const data = await page.evaluate(() => {
+          const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+          const context = canvas.getContext('2d'), image = context.createImageData(256, 256);
+          let seed = 123456;
+          for (let i = 0; i < image.data.length; i += 4) {
+            seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+            image.data[i] = seed >>> 24; image.data[i + 1] = seed >>> 16; image.data[i + 2] = seed >>> 8; image.data[i + 3] = 255;
+          }
+          context.putImageData(image, 0, 0); return canvas.toDataURL('image/png').split(',')[1];
+        });
+        const bytes = Buffer.from(data, 'base64');
+        const response = await page.request.post(new URL(`/api/rooms/${room}/images`, base).href, { headers: { 'Content-Type': 'image/png', Origin: base.origin }, data: bytes });
+        if (!response.ok()) throw new Error(`Fixture image upload failed (${response.status()}): ${await response.text()}`);
+        scene.objects.circle.kind = 'image'; scene.objects.circle.image = { src: (await response.json()).src, width: 256, height: 256 };
+        image = { width: 256, height: 256, encodedBytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+      }
       applyChanges(doc, Object.entries({ version: parents ? 2 : 1, name: 'Interaction benchmark', sceneOrder: ['s'], scenes: { s: scene } }).map(([key, value]) => ({ path: [key], value })));
-      const page = await context.newPage(), errors = [];
+      const errors = [];
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(new URL(`/?room=${room}`, base).href);
       await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 20000 });
       await expect(page.getByTestId('stage-main').locator('[data-object-id]')).toHaveCount(count);
+      if (imageDrag) {
+        await expect(page.getByTestId('stage-main').locator('.scene-svg image')).toHaveAttribute('href', /^data:image\/png;base64,/);
+        await expect(page.getByTestId('stage-main').locator('canvas')).toHaveCSS('visibility', 'visible');
+      }
       await page.getByRole('button', { name: 'Circle', exact: true }).click();
       const cdp = await context.newCDPSession(page);
       await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 1000 }); await cdp.send('Profiler.start');
@@ -112,9 +137,9 @@ try {
       const { profile } = await cdp.send('Profiler.stop');
       await writeFile(`${output}.${count}.cpuprofile`, JSON.stringify(profile));
       if (errors.length) throw new Error(errors.join('\n'));
-      const result = { objects: count, parents, drag, playbackIntervalsMs: playback, dragLatencyMs: stats(drag.flatMap(s => s.latencies)), dragDomLatencyMs: stats(drag.flatMap(s => s.domLatencies)), deliveredInputIntervalMs: stats(drag.flatMap(s => s.inputIntervals)), playbackIntervalMs: stats(playback) };
+      const result = { objects: count, parents, image, drag, playbackIntervalsMs: playback, dragLatencyMs: stats(drag.flatMap(s => s.latencies)), dragDomLatencyMs: stats(drag.flatMap(s => s.domLatencies)), deliveredInputIntervalMs: stats(drag.flatMap(s => s.inputIntervals)), playbackIntervalMs: stats(playback) };
       results.push(result); console.log(JSON.stringify({ objects: count, dragLatencyMs: result.dragLatencyMs, dragDomLatencyMs: result.dragDomLatencyMs, deliveredInputIntervalMs: result.deliveredInputIntervalMs, playbackIntervalMs: result.playbackIntervalMs }));
     } finally { provider.destroy(); doc.destroy(); await context.close(); }
   }
-  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', objects: [100, 500], parents, hierarchy: parents ? 'One visible root; every other circle is its child. Initial and endpoint world geometry match the flat fixture.' : 'Independent circles', clients: 1, viewport: { width: 1440, height: 900 }, drag: '60 trusted pointer moves at nominal 60 Hz, 1 warmup + 3 runs; DOM update + two rAF callbacks after pointer delivery', inputDiagnostics: 'Also records capture-listener to DOM mutation and actual delivered pointer spacing; excludes pre-delivery waiting and is not paint latency', playback: 'Three-second Scene, two one-second holds and one-second transition; rAF spacing, not physical FPS', profiling: 'CDP CPU sampler at 1 ms; includes measurement overhead', exclusions: 'No media, WAN or hardware GPU; not field INP' }, results }, null, 2) + '\n');
+  await writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), environment: measuredEnvironment, browser: browser.version(), conditions: { server: 'Production Node on loopback', objects: [100, 500], parents, imageDrag, imageFixture: imageDrag ? 'One deterministic 256x256 PNG uploaded to the isolated room before timing; selected object draws it at 42x42, with other objects remaining circles.' : null, hierarchy: parents ? 'One visible root; every other circle is its child. Initial and endpoint world geometry match the flat fixture.' : 'Independent circles', clients: 1, viewport: { width: 1440, height: 900 }, drag: '60 trusted pointer moves at nominal 60 Hz, 1 warmup + 3 runs; DOM update + two rAF callbacks after pointer delivery', inputDiagnostics: 'Also records capture-listener to DOM mutation and actual delivered pointer spacing; excludes pre-delivery waiting and is not paint latency', playback: 'Three-second Scene, two one-second holds and one-second transition; rAF spacing, not physical FPS', profiling: 'CDP CPU sampler at 1 ms; includes measurement overhead', exclusions: 'No audio/video, WAN or hardware GPU; not field INP; fixture upload and initial image preparation are outside timing' }, results }, null, 2) + '\n');
 } finally { await browser.close(); }

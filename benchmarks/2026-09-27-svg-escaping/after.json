@@ -1,0 +1,922 @@
+{
+  "schemaVersion": 2,
+  "measuredAt": "2026-09-27T00:31:19.614Z",
+  "environment": {
+    "applicationRevision": "410419c4bf1b4fc25734b405f083c96846b62f00",
+    "trackedModifications": [
+      "apps/studio/scripts/measure-interaction.mjs",
+      "moonbit/render/svg.mbt",
+      "scripts/benchmark.mjs"
+    ],
+    "applicationSourcesSha256": "eb0c5e66d530f57d8da112a04ac35931d3d087bab261ad6b98f56b7937f3e451",
+    "node": "v24.13.0",
+    "platform": "linux/x64",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "logicalCpus": 16,
+    "affinity": "0-15",
+    "memoryBytes": 33384738816,
+    "loadAverage": [
+      1.13,
+      1,
+      0.81
+    ],
+    "moonVersion": "0.10.13+cbb11c36f",
+    "wasmSha256": "f43a8fabe9cf28b03ab652dd1da48c0313d12cd188ba0f0dea13f916225ce9cb",
+    "browserEditorSha256": "ed3fb92c7cda018a6335f6816fd3ff1a020e327b2a332f9a508a079c278505d8",
+    "boundarySha256": "40f02af493b146cb4e6e3902a0889d80f320d13060a6ebd487cbed0ea9708423",
+    "clientRuntimeSha256": "a2eabca7ce4e58e35f877036acf5dab8df5421da173589d4ec3a4597d9f77c7e",
+    "viteManifestSha256": "caa2c0d257dd4a3a1ce8074e66edf0cb2871581916f0e6befc14f7ec51e9a940"
+  },
+  "method": "Current MoonBit implementation in fresh processes, sequential scenarios; summary is median of process medians. Min/max span process medians, not individual operations.",
+  "runs": 5,
+  "suites": {
+    "svg-escaping": {
+      "summary": [
+        {
+          "operation": "escape",
+          "name": "short ASCII",
+          "codeUnits": 23,
+          "iterations": 10000,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.000039208,
+            "min": 0.00003676520000000032,
+            "max": 0.00004163829999999962
+          }
+        },
+        {
+          "operation": "escape",
+          "name": "multilingual",
+          "codeUnits": 12000,
+          "iterations": 100,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.018470080000000024,
+            "min": 0.01815868999999999,
+            "max": 0.01906862999999994
+          }
+        },
+        {
+          "operation": "escape",
+          "name": "embedded source",
+          "codeUnits": 1048598,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.6866926666666682,
+            "min": 1.6756719999999963,
+            "max": 1.6926570000000016
+          }
+        },
+        {
+          "operation": "escape",
+          "name": "mixed escaping",
+          "codeUnits": 15000,
+          "iterations": 50,
+          "msPerOperation": {
+            "n": 5,
+            "median": 0.11543503999999985,
+            "min": 0.11283472000000018,
+            "max": 0.12006412000000012
+          }
+        },
+        {
+          "operation": "view",
+          "name": "embedded images",
+          "objects": 1,
+          "sourceCharacters": 1048576,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.9789123333333312,
+            "min": 1.9335333333333342,
+            "max": 2.1218496666666717
+          }
+        },
+        {
+          "operation": "svg",
+          "name": "embedded images",
+          "objects": 1,
+          "sourceCharacters": 1048576,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.9307553333333374,
+            "min": 1.9221963333333367,
+            "max": 2.003391666666668
+          }
+        },
+        {
+          "operation": "view",
+          "name": "embedded images",
+          "objects": 16,
+          "sourceCharacters": 65536,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.8960983333333274,
+            "min": 1.8552973333333398,
+            "max": 1.9741443333333375
+          }
+        },
+        {
+          "operation": "svg",
+          "name": "embedded images",
+          "objects": 16,
+          "sourceCharacters": 65536,
+          "iterations": 3,
+          "msPerOperation": {
+            "n": 5,
+            "median": 1.954944666666658,
+            "min": 1.8583469999999995,
+            "max": 2.0236700000000005
+          }
+        }
+      ],
+      "samples": [
+        {
+          "scope": "UTF-16 XML escaping and public SVG view/serialization with embedded source strings. Image bytes exercise markup only, without decoding. Native inputs are read each call; movement changes every frame. No browser, React, resource fetch, GPU or encoding; no peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches; per-case iteration counts are included.",
+          "results": [
+            {
+              "operation": "escape",
+              "name": "short ASCII",
+              "codeUnits": 23,
+              "iterations": 10000,
+              "msPerOperation": 0.000039208,
+              "samples": {
+                "msPerOperation": [
+                  0.000048661200000000096,
+                  0.000039112100000000184,
+                  0.00003930190000000025,
+                  0.00003904660000000035,
+                  0.00003902909999999977,
+                  0.00006313099999999992,
+                  0.000039208
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "multilingual",
+              "codeUnits": 12000,
+              "iterations": 100,
+              "msPerOperation": 0.018983399999999973,
+              "samples": {
+                "msPerOperation": [
+                  0.018966009999999967,
+                  0.01920631,
+                  0.018983399999999973,
+                  0.019069360000000018,
+                  0.01894309,
+                  0.019335299999999975,
+                  0.01897303000000001
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "embedded source",
+              "codeUnits": 1048598,
+              "iterations": 3,
+              "msPerOperation": 1.6794183333333355,
+              "samples": {
+                "msPerOperation": [
+                  1.772824,
+                  1.74258766666667,
+                  1.6580286666666666,
+                  1.6561543333333333,
+                  1.8864043333333314,
+                  1.6614479999999976,
+                  1.6794183333333355
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "mixed escaping",
+              "codeUnits": 15000,
+              "iterations": 50,
+              "msPerOperation": 0.11283472000000018,
+              "samples": {
+                "msPerOperation": [
+                  0.11489944000000009,
+                  0.1155186599999999,
+                  0.11283472000000018,
+                  0.11250986000000011,
+                  0.11692364000000055,
+                  0.10804779999999994,
+                  0.1122373399999998
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.943676666666666,
+              "samples": {
+                "msPerOperation": [
+                  2.020728333333333,
+                  1.943676666666666,
+                  1.911686666666668,
+                  2.4339986666666675,
+                  2.735429666666666,
+                  1.8877436666666654,
+                  1.9119640000000022
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9221963333333367,
+              "samples": {
+                "msPerOperation": [
+                  1.9063073333333402,
+                  1.900967666666664,
+                  2.06529199999999,
+                  2.0214176666666503,
+                  1.9221963333333367,
+                  2.6130483333333245,
+                  1.9192273333333485
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.8552973333333398,
+              "samples": {
+                "msPerOperation": [
+                  1.9346486666666654,
+                  1.8403606666666785,
+                  1.8552973333333398,
+                  1.9308123333333356,
+                  1.8055386666666777,
+                  1.99139066666667,
+                  1.8490543333333374
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 2.0236700000000005,
+              "samples": {
+                "msPerOperation": [
+                  1.8640223333333286,
+                  2.2515206666666736,
+                  1.8612053333333354,
+                  2.6234883333333414,
+                  2.0236700000000005,
+                  1.7749236666666661,
+                  2.0635573333333355
+                ]
+              }
+            }
+          ],
+          "checksum": 143589492
+        },
+        {
+          "scope": "UTF-16 XML escaping and public SVG view/serialization with embedded source strings. Image bytes exercise markup only, without decoding. Native inputs are read each call; movement changes every frame. No browser, React, resource fetch, GPU or encoding; no peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches; per-case iteration counts are included.",
+          "results": [
+            {
+              "operation": "escape",
+              "name": "short ASCII",
+              "codeUnits": 23,
+              "iterations": 10000,
+              "msPerOperation": 0.00003676520000000032,
+              "samples": {
+                "msPerOperation": [
+                  0.00003676299999999984,
+                  0.000036725699999999864,
+                  0.00003676520000000032,
+                  0.00003742020000000004,
+                  0.00003756319999999995,
+                  0.000037160699999999734,
+                  0.00003673050000000018
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "multilingual",
+              "codeUnits": 12000,
+              "iterations": 100,
+              "msPerOperation": 0.01815868999999999,
+              "samples": {
+                "msPerOperation": [
+                  0.017885980000000003,
+                  0.01785736,
+                  0.01818629999999999,
+                  0.01815868999999999,
+                  0.018183760000000007,
+                  0.018151590000000013,
+                  0.018552210000000003
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "embedded source",
+              "codeUnits": 1048598,
+              "iterations": 3,
+              "msPerOperation": 1.6866926666666682,
+              "samples": {
+                "msPerOperation": [
+                  1.698958,
+                  1.7422250000000001,
+                  1.6582826666666648,
+                  1.6727210000000003,
+                  1.6802553333333303,
+                  1.7231196666666666,
+                  1.6866926666666682
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "mixed escaping",
+              "codeUnits": 15000,
+              "iterations": 50,
+              "msPerOperation": 0.1151161000000002,
+              "samples": {
+                "msPerOperation": [
+                  0.1177555799999999,
+                  0.1151161000000002,
+                  0.11347728000000018,
+                  0.13823644000000002,
+                  0.11068629999999985,
+                  0.11570178000000056,
+                  0.11350570000000004
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 2.1218496666666717,
+              "samples": {
+                "msPerOperation": [
+                  2.626694999999993,
+                  2.1218496666666717,
+                  1.9088326666666735,
+                  2.1615540000000046,
+                  1.959349666666668,
+                  1.9630699999999972,
+                  2.483348333333339
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9811866666666635,
+              "samples": {
+                "msPerOperation": [
+                  2.197210000000003,
+                  1.8927469999999953,
+                  1.91913066666667,
+                  1.9360223333333408,
+                  1.9811866666666635,
+                  2.6080709999999954,
+                  2.0481516666666644
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.9595556666666691,
+              "samples": {
+                "msPerOperation": [
+                  1.9442896666666722,
+                  1.955774333333333,
+                  1.9299699999999878,
+                  2.1068783333333463,
+                  2.1602126666666663,
+                  1.9845726666666603,
+                  1.9595556666666691
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.954944666666658,
+              "samples": {
+                "msPerOperation": [
+                  1.9245126666666579,
+                  2.3027923333333242,
+                  1.9989366666666608,
+                  1.954944666666658,
+                  1.8995833333333394,
+                  1.8342310000000073,
+                  2.113640333333327
+                ]
+              }
+            }
+          ],
+          "checksum": 143589492
+        },
+        {
+          "scope": "UTF-16 XML escaping and public SVG view/serialization with embedded source strings. Image bytes exercise markup only, without decoding. Native inputs are read each call; movement changes every frame. No browser, React, resource fetch, GPU or encoding; no peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches; per-case iteration counts are included.",
+          "results": [
+            {
+              "operation": "escape",
+              "name": "short ASCII",
+              "codeUnits": 23,
+              "iterations": 10000,
+              "msPerOperation": 0.00003913909999999987,
+              "samples": {
+                "msPerOperation": [
+                  0.000042144499999999854,
+                  0.00003913909999999987,
+                  0.00003905990000000017,
+                  0.00004011179999999967,
+                  0.00004011899999999997,
+                  0.00003867400000000032,
+                  0.000038647900000000135
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "multilingual",
+              "codeUnits": 12000,
+              "iterations": 100,
+              "msPerOperation": 0.018277410000000032,
+              "samples": {
+                "msPerOperation": [
+                  0.018317409999999937,
+                  0.01805979999999998,
+                  0.018034350000000005,
+                  0.018343689999999954,
+                  0.018277410000000032,
+                  0.018494809999999973,
+                  0.018181859999999973
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "embedded source",
+              "codeUnits": 1048598,
+              "iterations": 3,
+              "msPerOperation": 1.6904806666666683,
+              "samples": {
+                "msPerOperation": [
+                  1.6993616666666658,
+                  1.6904806666666683,
+                  1.8573233333333359,
+                  1.6629689999999993,
+                  1.659760666666666,
+                  1.9544696666666634,
+                  1.6803933333333323
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "mixed escaping",
+              "codeUnits": 15000,
+              "iterations": 50,
+              "msPerOperation": 0.11550834000000008,
+              "samples": {
+                "msPerOperation": [
+                  0.12053424000000035,
+                  0.1132764000000003,
+                  0.1145547799999997,
+                  0.11865301999999986,
+                  0.11550834000000008,
+                  0.11452255999999977,
+                  0.11640858000000037
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9789123333333312,
+              "samples": {
+                "msPerOperation": [
+                  1.990712666666667,
+                  2.3479949999999974,
+                  1.974931666666663,
+                  1.9510603333333354,
+                  2.459705333333327,
+                  1.9789123333333312,
+                  1.9064459999999979
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9260286666666673,
+              "samples": {
+                "msPerOperation": [
+                  1.8839333333333361,
+                  1.8894456666666695,
+                  1.9260286666666673,
+                  1.941421666666675,
+                  3.3551180000000045,
+                  2.195238333333331,
+                  1.9103286666666577
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.9741443333333375,
+              "samples": {
+                "msPerOperation": [
+                  2.247855333333329,
+                  2.347260333333338,
+                  1.9401756666666756,
+                  1.8597703333333395,
+                  1.9200753333333296,
+                  1.994084333333338,
+                  1.9741443333333375
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.963498999999994,
+              "samples": {
+                "msPerOperation": [
+                  1.963498999999994,
+                  1.9604726666666654,
+                  2.015418666666676,
+                  1.931584333333338,
+                  1.9561299999999922,
+                  2.2042613333333443,
+                  2.103167666666669
+                ]
+              }
+            }
+          ],
+          "checksum": 143589492
+        },
+        {
+          "scope": "UTF-16 XML escaping and public SVG view/serialization with embedded source strings. Image bytes exercise markup only, without decoding. Native inputs are read each call; movement changes every frame. No browser, React, resource fetch, GPU or encoding; no peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches; per-case iteration counts are included.",
+          "results": [
+            {
+              "operation": "escape",
+              "name": "short ASCII",
+              "codeUnits": 23,
+              "iterations": 10000,
+              "msPerOperation": 0.00004037790000000001,
+              "samples": {
+                "msPerOperation": [
+                  0.000049190699999999766,
+                  0.00004086999999999961,
+                  0.00004049300000000002,
+                  0.00003982779999999977,
+                  0.00004037790000000001,
+                  0.00003901859999999999,
+                  0.000039840600000000135
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "multilingual",
+              "codeUnits": 12000,
+              "iterations": 100,
+              "msPerOperation": 0.01906862999999994,
+              "samples": {
+                "msPerOperation": [
+                  0.01904772000000001,
+                  0.019180339999999987,
+                  0.01905064000000003,
+                  0.01919271000000002,
+                  0.01897707000000004,
+                  0.019078660000000056,
+                  0.01906862999999994
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "embedded source",
+              "codeUnits": 1048598,
+              "iterations": 3,
+              "msPerOperation": 1.6756719999999963,
+              "samples": {
+                "msPerOperation": [
+                  1.662042333333332,
+                  2.3592810000000006,
+                  1.6756719999999963,
+                  1.6592346666666675,
+                  1.6789350000000003,
+                  1.6680170000000014,
+                  1.813534999999997
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "mixed escaping",
+              "codeUnits": 15000,
+              "iterations": 50,
+              "msPerOperation": 0.11543503999999985,
+              "samples": {
+                "msPerOperation": [
+                  0.11633441999999974,
+                  0.11450589999999977,
+                  0.11543503999999985,
+                  0.12606572000000027,
+                  0.11438729999999964,
+                  0.11405405999999971,
+                  0.11588645999999983
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9335333333333342,
+              "samples": {
+                "msPerOperation": [
+                  1.9665183333333403,
+                  1.9335333333333342,
+                  1.930815333333328,
+                  1.944928333333337,
+                  2.239339000000001,
+                  1.9019120000000005,
+                  1.9066263333333306
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 2.003391666666668,
+              "samples": {
+                "msPerOperation": [
+                  2.0459826666666743,
+                  2.888325999999997,
+                  1.9479816666666636,
+                  1.9352916666666715,
+                  1.9278886666666608,
+                  2.003391666666668,
+                  2.981164666666681
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.8960983333333274,
+              "samples": {
+                "msPerOperation": [
+                  1.9213296666666793,
+                  1.9738839999999982,
+                  1.8522296666666687,
+                  1.7887036666666631,
+                  1.9568363333333423,
+                  1.8732766666666596,
+                  1.8960983333333274
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.8646476666666747,
+              "samples": {
+                "msPerOperation": [
+                  1.8801566666666645,
+                  1.8113466666666795,
+                  1.8020430000000072,
+                  1.839976999999995,
+                  2.061959999999999,
+                  1.8646476666666747,
+                  2.001526333333326
+                ]
+              }
+            }
+          ],
+          "checksum": 143589492
+        },
+        {
+          "scope": "UTF-16 XML escaping and public SVG view/serialization with embedded source strings. Image bytes exercise markup only, without decoding. Native inputs are read each call; movement changes every frame. No browser, React, resource fetch, GPU or encoding; no peak-memory measurement.",
+          "iterations": "Two warmup + seven measured batches; per-case iteration counts are included.",
+          "results": [
+            {
+              "operation": "escape",
+              "name": "short ASCII",
+              "codeUnits": 23,
+              "iterations": 10000,
+              "msPerOperation": 0.00004163829999999962,
+              "samples": {
+                "msPerOperation": [
+                  0.00007620879999999985,
+                  0.000049604500000000226,
+                  0.00004163829999999962,
+                  0.00005339140000000029,
+                  0.00003686289999999985,
+                  0.000036731100000000086,
+                  0.000036707399999999526
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "multilingual",
+              "codeUnits": 12000,
+              "iterations": 100,
+              "msPerOperation": 0.018470080000000024,
+              "samples": {
+                "msPerOperation": [
+                  0.018578949999999993,
+                  0.018408659999999983,
+                  0.018198929999999933,
+                  0.018470080000000024,
+                  0.018386500000000014,
+                  0.020266639999999968,
+                  0.02590161000000002
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "embedded source",
+              "codeUnits": 1048598,
+              "iterations": 3,
+              "msPerOperation": 1.6926570000000016,
+              "samples": {
+                "msPerOperation": [
+                  1.6804013333333359,
+                  1.6857000000000018,
+                  1.709738999999999,
+                  1.6926570000000016,
+                  1.704621666666668,
+                  1.6919819999999959,
+                  1.7160996666666695
+                ]
+              }
+            },
+            {
+              "operation": "escape",
+              "name": "mixed escaping",
+              "codeUnits": 15000,
+              "iterations": 50,
+              "msPerOperation": 0.12006412000000012,
+              "samples": {
+                "msPerOperation": [
+                  0.11571244000000007,
+                  0.11966453999999999,
+                  0.11967881999999974,
+                  0.12006412000000012,
+                  0.12136939999999981,
+                  0.12103244000000019,
+                  0.12159791999999982
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 2.0063346666666746,
+              "samples": {
+                "msPerOperation": [
+                  2.1271613333333335,
+                  2.026392000000006,
+                  1.886321666666665,
+                  2.0510896666666745,
+                  2.0063346666666746,
+                  1.9283746666666655,
+                  1.946704999999999
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 1,
+              "sourceCharacters": 1048576,
+              "iterations": 3,
+              "msPerOperation": 1.9307553333333374,
+              "samples": {
+                "msPerOperation": [
+                  1.9043876666666602,
+                  1.9626930000000016,
+                  1.9451200000000028,
+                  1.9307553333333374,
+                  1.9284983333333419,
+                  1.938874333333331,
+                  1.9186996666666687
+                ]
+              }
+            },
+            {
+              "operation": "view",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.889186000000014,
+              "samples": {
+                "msPerOperation": [
+                  1.8461840000000127,
+                  1.8207566666666632,
+                  2.219403,
+                  1.898691666666669,
+                  2.4717093333333273,
+                  1.889186000000014,
+                  1.864596666666671
+                ]
+              }
+            },
+            {
+              "operation": "svg",
+              "name": "embedded images",
+              "objects": 16,
+              "sourceCharacters": 65536,
+              "iterations": 3,
+              "msPerOperation": 1.8583469999999995,
+              "samples": {
+                "msPerOperation": [
+                  1.9085559999999948,
+                  1.7834296666666773,
+                  1.8583469999999995,
+                  1.8130173333333346,
+                  2.3664580000000037,
+                  1.7879906666666632,
+                  1.9951093333333272
+                ]
+              }
+            }
+          ],
+          "checksum": 143589492
+        }
+      ]
+    }
+  },
+  "completedAt": "2026-09-27T00:31:21.662Z",
+  "loadAverageAfter": [
+    1.13,
+    1,
+    0.81
+  ]
+}

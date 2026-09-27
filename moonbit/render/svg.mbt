@@ -24,40 +24,50 @@ pub fn number(value : Double) -> String {
 
 ///|
 /// Read UTF-16 explicitly: isolated surrogates are invalid XML, pairs are not.
+/// Keep unchanged spans intact; long embedded sources normally need no copy.
 pub fn escape_xml(value : String) -> String {
   let output = StringBuilder()
   let mut i = 0
+  let mut start = 0
   while i < value.length() {
     let code = value.code_unit_at(i).to_int()
     if code >= 0xd800 && code <= 0xdbff && i + 1 < value.length() {
       let next = value.code_unit_at(i + 1).to_int()
       if next >= 0xdc00 && next <= 0xdfff {
-        output.write_substring(value, i, 2)
         i += 2
         continue
       }
     }
-    if code >= 0xd800 && code <= 0xdfff {
-      output.write_string("�")
+    let replacement = if code >= 0xd800 && code <= 0xdfff {
+      Some("�")
     } else if code <= 8 ||
       code == 11 ||
       code == 12 ||
       (code >= 14 && code <= 31) ||
       code == 0xfffe ||
       code == 0xffff {
-      ()
+      Some("")
     } else {
       match code {
-        38 => output.write_string("&amp;")
-        60 => output.write_string("&lt;")
-        62 => output.write_string("&gt;")
-        34 => output.write_string("&quot;")
-        39 => output.write_string("&apos;")
-        _ => output.write_substring(value, i, 1)
+        38 => Some("&amp;")
+        60 => Some("&lt;")
+        62 => Some("&gt;")
+        34 => Some("&quot;")
+        39 => Some("&apos;")
+        _ => None
       }
+    }
+    if replacement is Some(text) {
+      output.write_substring(value, start, i - start)
+      output.write_string(text)
+      start = i + 1
     }
     i += 1
   }
+  if start == 0 {
+    return value
+  }
+  output.write_substring(value, start, value.length() - start)
   output.to_string()
 }
 
