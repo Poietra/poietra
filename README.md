@@ -578,7 +578,7 @@ issue ordering and limits; it has not been implemented or benchmarked here.
 isolated copy, regenerates and compiles them, checks standalone/shared-runtime
 calls and rejects incorrect TypeScript consumer fields. The contract gate checks
 108 captured public modules while allowing new exports; shared-runtime tests
-compare 219 function exports and their arity.
+compare 221 function exports and their arity.
 
 For a headless backend, implement `render_job.Backend` using the contracts in
 `media_pipeline`; keep native conversions in its adapter. New formats belong in
@@ -587,15 +587,20 @@ consumer needs them, and preserve the standalone JS/WASM compilation test.
 
 ## Checks
 
-Application revision `0ef67ab` passed the complete
-[CI run 36287891334](https://github.com/Poietra/poietra/actions/runs/36287891334)
-on **2026-09-27**: 808 Vitest checks, 63 MoonBit JS checks, 60 WASM checks,
-184 main browser checks, ten export checks, six media checks and 28 production
-page checks. Generated bindings, warning-free MoonBit types, public TypeScript
-contracts, five extension/linking checks, 19 headless API/MCP checks and the
-production build also passed.
+Application revision `db4865f` passed local validation on **2026-09-27**:
+817 Vitest checks, 66 MoonBit JS checks, 63 WASM checks, 207 main browser checks,
+ten export checks, six media checks and 28 production page checks. Generated
+bindings, warning-free MoonBit types, public TypeScript contracts, five
+extension/linking checks, 20 headless API/MCP checks and the production build also
+passed. Browser checks used isolated Node storage; production page checks used
+the built application with an explicitly started production-mode Node host.
+These are local results, not a production deployment.
+
+The preceding clipping revision `cb08b4b` passed the complete
+[CI run 36304463514](https://github.com/Poietra/poietra/actions/runs/36304463514),
+including real Worker storage, collaboration and account restart checks.
 [.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
-selection; these counts describe that run.
+CI selection; the local main browser run above used the complete default config.
 
 Regressions cover independent parsing, reserved/escaped keys in ignored subtrees,
 strict easing, borrowed inputs, raster identity/cancellation and preview/export
