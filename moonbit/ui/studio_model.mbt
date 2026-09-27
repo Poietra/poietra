@@ -150,8 +150,8 @@ priv struct StudioDocument {
   transition : @core.Any
   objects : Array[String]
   total : Double
-  selected : @core.Any
-  segments : FixedArray[@core.Any]
+  selected : @scene.Segment?
+  segments : Array[@scene.Segment]
 }
 
 ///|
@@ -178,7 +178,7 @@ fn studio_document(
   project : @core.Any,
   scene : @core.Any,
   state : StudioState,
-  segments : FixedArray[@core.Any],
+  segments : Array[@scene.Segment],
 ) -> StudioDocument {
   let has_scene = !@core.is_nullish(scene)
   let valid = has_scene &&
@@ -213,16 +213,12 @@ fn studio_document(
   }
   let selected = segments
     .iter()
-    .find_first(fn(segment) {
-      @core.equal(segment._get("id"), @core.any(selection.id()))
-    })
-    .unwrap_or(@core.undefined())
+    .find_first(fn(segment) { segment.id == selection.id() })
   let total = if segments.is_empty() {
     0.0
   } else {
     let last = segments[segments.length() - 1]
-    let start : Double = last._get("start").cast()
-    start + (last._get("duration").cast() : Double)
+    last.start + last.duration
   }
   {
     project,
@@ -340,10 +336,18 @@ fn StudioController::stop(self : StudioController) -> Unit {
 
 ///|
 fn studio_segment_start(scene : @core.Any, id : String) -> Double {
-  let segments : FixedArray[@core.Any] = @boundary.scene_segments(scene).cast()
+  let segments : Array[@scene.Segment] = @boundary.read_scene_segments(scene)
   segments
   .iter()
-  .find_first(fn(segment) { @core.equal(segment._get("id"), @core.any(id)) })
-  .map(fn(segment) { segment._get("start").cast() })
+  .find_first(fn(segment) { segment.id == id })
+  .map(fn(segment) { segment.start })
   .unwrap_or(0.0)
+}
+
+///|
+fn segment_selection(segment : @scene.Segment) -> StudioSelection {
+  match segment.kind {
+    CompositionSegment => CompositionSelection(segment.id)
+    TransitionSegment => TransitionSelection(segment.id)
+  }
 }

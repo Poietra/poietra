@@ -56,6 +56,22 @@ pub fn timeline_duration(data : TimelineData) -> Double {
 }
 
 ///|
+/// Scene editing retains the final segment at the end, including a zero hold.
+/// Project cuts below instead skip empty Scenes whenever a positive one exists.
+pub fn segment_at(segments : Array[Segment], time : Double) -> Segment? {
+  for segment in segments {
+    if time < segment.start + segment.duration {
+      return Some(segment)
+    }
+  }
+  if segments.is_empty() {
+    None
+  } else {
+    Some(segments[segments.length() - 1])
+  }
+}
+
+///|
 pub fn project_segment_at(
   bounds : Array[(Double, Double)],
   time : Double,

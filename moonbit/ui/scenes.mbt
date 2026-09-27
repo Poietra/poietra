@@ -376,39 +376,59 @@ fn scene_tabs_content(input : @core.Any) -> @react.Element {
 
 ///|
 pub fn playback_panel(input : @core.Any) -> @react.Element {
-  let scene = input._get("scene")
   let segment = input._get("segment")
+  playback_panel_view(
+    input._get("scene"),
+    if @core.is_nullish(segment) {
+      None
+    } else {
+      Some(studio_selection(segment))
+    },
+    input._get("playhead").cast(),
+    input._get("onEdit"),
+  )
+}
+
+///|
+fn playback_panel_view(
+  scene : @core.Any,
+  selection : StudioSelection?,
+  playhead : Double,
+  on_edit : @core.Any,
+) -> @react.Element {
   let compositions = scene._get("compositions")
-  let title = if @core.is_nullish(segment) {
-    scene._get("name")
-  } else if string_value(segment._get("kind")) == "transition" {
-    let transition = scene._get("transitions")._get(segment._get("id").cast())
-    if @core.is_nullish(transition) {
-      @core.undefined()
-    } else {
-      let from : String = compositions
-        ._get(transition._get("fromId").cast())
-        ._get("name")
-        .cast()
-      let to : String = compositions
-        ._get(transition._get("toId").cast())
-        ._get("name")
-        .cast()
-      @core.any(from + " → " + to)
+  let title = match selection {
+    None => scene._get("name")
+    Some(TransitionSelection(id)) => {
+      let transition = scene._get("transitions")._get(id)
+      if @core.is_nullish(transition) {
+        @core.undefined()
+      } else {
+        let from : String = compositions
+          ._get(transition._get("fromId").cast())
+          ._get("name")
+          .cast()
+        let to : String = compositions
+          ._get(transition._get("toId").cast())
+          ._get("name")
+          .cast()
+        @core.any(from + " → " + to)
+      }
     }
-  } else {
-    let composition = compositions._get(segment._get("id").cast())
-    if @core.is_nullish(composition) {
-      @core.undefined()
-    } else {
-      composition._get("name")
+    Some(CompositionSelection(id)) => {
+      let composition = compositions._get(id)
+      if @core.is_nullish(composition) {
+        @core.undefined()
+      } else {
+        composition._get("name")
+      }
     }
   }
   h("div", { "className": @core.any("inspector-content playback-panel") }, [
     h("div", { "className": @core.any("inspector-title") }, [
       h("span", Map([]), ["Scene preview"]),
       h("span", { "className": @core.any("inspector-kind") }, [
-        @boundary.format_milliseconds(input._get("playhead").cast()) + " ms",
+        @boundary.format_milliseconds(playhead) + " ms",
       ]),
     ]),
     h("div", { "className": @core.any("property-section") }, [
@@ -421,7 +441,7 @@ pub fn playback_panel(input : @core.Any) -> @react.Element {
         "button",
         {
           "className": @core.any("subtle-button full-width"),
-          "onClick": input._get("onEdit"),
+          "onClick": on_edit,
         },
         [icon("PencilLine", 14), "この場面を編集"],
       ),

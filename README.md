@@ -333,6 +333,12 @@ public `together` / `sequential` strings; pure packages no longer convert this
 value through strings. The `editor` and `render` type aliases share that enum.
 Timeline segments likewise carry `SegmentKind`; preparation and evaluation match
 both cases exhaustively, while native segment records keep their existing strings.
+The studio controller, rulers, import planning and preview edit targets consume
+typed `scene.Segment` values directly. Only the public JS adapter builds native
+segment records. Scene selection shares one pure boundary rule, retaining a final
+zero-duration hold; project cuts separately skip empty Scenes. The public
+`PlaybackPanel` adapter preserves its native props while the studio uses typed
+selection internally. This is a structural change; no speedup is claimed for it.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -454,7 +460,7 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 | MoonBit application | 310 | 61,760 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 156 | 17,964 |
+| TypeScript tests, fixtures and test configurations | 157 | 17,981 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -544,6 +550,11 @@ The SVG span change passed 775 Vitest checks, five extension/linking checks,
 and the production build. Its 36 selected browser checks cover images, geometry,
 Canvas/SVG fallback, stale frames and portable files. Escaping regressions cover
 all 65,536 UTF-16 code units, valid/broken surrogate pairs and long mixed spans.
+The typed Scene-timeline follow-up passed those 775 Vitest checks and an additional
+public-panel rendering check, five extension/linking checks, 60 MoonBit JS and
+57 standard WASM checks, the production build and public contracts. Its 40 selected
+browser checks cover timeline gestures, peer edits, zero durations, exact boundaries,
+Scene/transition edit targets, media, export and subscription isolation.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.

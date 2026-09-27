@@ -237,8 +237,8 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
   let selected_id : String = selection._get("id").cast()
   let scene_id : String = scene._get("id").cast()
   // The playback clock does not rebuild structural timelines or target lists.
-  let segments : FixedArray[@core.Any] = @react.use_memo(
-    fn() { @boundary.scene_segments(scene).cast() },
+  let segments : Array[@scene.Segment] = @react.use_memo(
+    fn() { @boundary.read_scene_segments(scene) },
     [scene],
   )
   let total = @react.use_memo(fn() { @boundary.scene_duration(scene) }, [scene])
@@ -261,10 +261,10 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
   let feedback = use_operation_feedback(scene_id + ":" + selected_id)
   let cards : Array[&@react.ReactNode] = []
   for part in segments {
-    let id : String = part._get("id").cast()
-    let kind : String = part._get("kind").cast()
-    let duration : Double = part._get("duration").cast()
-    let composition = if kind == "composition" {
+    let id = part.id
+    let kind = @scene.segment_kind_name(part.kind)
+    let duration = part.duration
+    let composition = if part.kind == @scene.CompositionSegment {
       scene._get("compositions")._get(id)
     } else {
       @core.undefined()
@@ -364,12 +364,8 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
     h("div", { "className": @core.any("composition-strip") }, cards),
   ]
   if truthy(transition) {
-    let part = segments
-      .iter()
-      .find_first(fn(part) { part._get("id").cast() == selected_id })
-    let start : Double = part
-      .map(fn(part) { part._get("start").cast() })
-      .unwrap_or(0.0)
+    let part = segments.iter().find_first(fn(part) { part.id == selected_id })
+    let start : Double = part.map(fn(part) { part.start }).unwrap_or(0.0)
     content.push(
       timeline_tracks(editor, transition, start, animations, feedback),
     )

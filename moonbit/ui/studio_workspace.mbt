@@ -383,8 +383,8 @@ fn studio_transition_stages(
             "value": @core.any(doc.local_time(time)),
             "step": @core.any(1),
             "onChange": @core.any(fn(event : @core.Any) {
-              let start = if truthy(controller.document.selected) {
-                controller.document.selected._get("start").cast()
+              let start = if controller.document.selected is Some(segment) {
+                segment.start
               } else {
                 0.0
               }

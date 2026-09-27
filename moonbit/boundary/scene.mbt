@@ -119,8 +119,13 @@ pub fn transition_frame(
 }
 
 ///|
+pub fn read_scene_segments(input : @core.Any) -> Array[@scene.Segment] {
+  @scene.timeline_segments(decode_timeline(input))
+}
+
+///|
 pub fn scene_segments(input : @core.Any) -> @core.Any {
-  let segments = @scene.timeline_segments(decode_timeline(input))
+  let segments = read_scene_segments(input)
   @core.any(
     FixedArray::makei(segments.length(), fn(i) {
       let segment = segments[i]

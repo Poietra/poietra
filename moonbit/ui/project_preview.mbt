@@ -324,29 +324,16 @@ fn project_playback(input : @core.Any) -> @react.Element {
     if !truthy(scene) {
       return
     }
-    let parts : FixedArray[@core.Any] = @boundary.scene_segments(scene).cast()
-    let mut selected = if parts.is_empty() {
-      None
-    } else {
-      Some(parts[parts.length() - 1])
-    }
-    for part in parts {
-      let start : Double = part._get("start").cast()
-      let duration : Double = part._get("duration").cast()
-      if scene_time < start + duration {
-        selected = Some(part)
-        break
-      }
-    }
-    if selected is Some(part) {
+    let parts = @boundary.read_scene_segments(scene)
+    if @scene.segment_at(parts, scene_time) is Some(part) {
       input._get("onOpenChange")._invoke([@core.any(false)]) |> ignore
       input
       ._get("onEdit")
       ._invoke([
         scene_id,
         @core.from_entries([
-          ("kind", part._get("kind")),
-          ("id", part._get("id")),
+          ("kind", @core.any(@scene.segment_kind_name(part.kind))),
+          ("id", @core.any(part.id)),
         ]),
       ])
       |> ignore

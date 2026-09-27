@@ -138,11 +138,7 @@ fn use_studio_effects(
           }
       }
       let end = if scope == SelectedTransition && truthy(doc.transition) {
-        (if truthy(doc.selected) {
-          doc.selected._get("start").cast()
-        } else {
-          0.0
-        }) +
+        doc.selected.map(fn(segment) { segment.start }).unwrap_or(0.0) +
         (doc.transition._get("duration").cast() : Double)
       } else {
         doc.total
@@ -156,8 +152,8 @@ fn use_studio_effects(
     [
       @core.any(doc.total),
       @core.any(state.cursor),
-      if truthy(doc.selected) {
-        doc.selected._get("start")
+      if doc.selected is Some(segment) {
+        @core.any(segment.start)
       } else {
         @core.undefined()
       },

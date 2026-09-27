@@ -170,14 +170,10 @@ fn studio_stage_view(input : @core.Any) -> @react.Element {
 fn studio_playback_panel(input : @core.Any) -> @react.Element {
   let self : StudioController = input._get("controller").cast()
   let time = use_studio_position(self.position)
-  component(
-    playback_panel,
-    {
-      "scene": self.document.scene,
-      "segment": self.document.segment_at(time),
-      "playhead": @core.any(time),
-      "onEdit": @core.any(fn() { self.edit_moment(false) }),
-    },
-    [],
+  playback_panel_view(
+    self.document.scene,
+    self.document.segment_at(time).map(segment_selection),
+    time,
+    @core.any(fn() { self.edit_moment(false) }),
   )
 }

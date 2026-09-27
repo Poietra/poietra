@@ -4,10 +4,10 @@ pub fn studio(input : @core.Any) -> @react.Element {
   let (state, publish) = @react.use_state_lazy(fn() { studio_initial(store) })
   let project = use_store_field(store, "project")
   let scene = studio_scene(project, state.scene_id)
-  let segments : FixedArray[@core.Any] = @react.use_memo(
+  let segments : Array[@scene.Segment] = @react.use_memo(
     fn() {
       if truthy(scene) {
-        @boundary.scene_segments(scene).cast()
+        @boundary.read_scene_segments(scene)
       } else {
         []
       }

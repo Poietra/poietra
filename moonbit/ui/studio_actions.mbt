@@ -107,11 +107,10 @@ fn StudioController::edit_moment(
   composition_only : Bool,
 ) -> Unit {
   let doc = self.document
-  let at_time = doc.segment_at(self.position.time)
-  if !truthy(doc.scene) || !truthy(at_time) {
+  guard truthy(doc.scene) && doc.segment_at(self.position.time) is Some(at_time) else {
     return
   }
-  let next = studio_selection(at_time)
+  let next = segment_selection(at_time)
   let next = match next {
     TransitionSelection(id) if composition_only =>
       CompositionSelection(
@@ -122,8 +121,8 @@ fn StudioController::edit_moment(
   let time = self.position.time
   self.select(next)
   if next is TransitionSelection(_) {
-    let start : Double = at_time._get("start").cast()
-    let duration : Double = at_time._get("duration").cast()
+    let start = at_time.start
+    let duration = at_time.duration
     self.position.set(@scene.clamp(time, start, start + duration))
   }
 }
@@ -198,8 +197,9 @@ fn StudioController::play(self : StudioController, scope : StudioScope) -> Unit 
         return
       }
       let doc = self.document
-      let begin = if scope == SelectedTransition && truthy(doc.selected) {
-        doc.selected._get("start").cast()
+      let begin = if scope == SelectedTransition &&
+        doc.selected is Some(segment) {
+        segment.start
       } else {
         0.0
       }

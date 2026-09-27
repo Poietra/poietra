@@ -71,33 +71,15 @@ fn use_studio_position(position : StudioPosition) -> Double {
 fn StudioDocument::segment_at(
   self : StudioDocument,
   time : Double,
-) -> @core.Any {
-  self.segments
-  .iter()
-  .find_first(fn(segment) {
-    let start : Double = segment._get("start").cast()
-    let duration : Double = segment._get("duration").cast()
-    time < start + duration
-  })
-  .unwrap_or(
-    if self.segments.is_empty() {
-      @core.undefined()
-    } else {
-      self.segments[self.segments.length() - 1]
-    },
-  )
+) -> @scene.Segment? {
+  @scene.segment_at(self.segments, time)
 }
 
 ///|
 fn StudioDocument::local_time(self : StudioDocument, time : Double) -> Double {
   if truthy(self.transition) {
     @scene.clamp(
-      time -
-      (if truthy(self.selected) {
-        self.selected._get("start").cast()
-      } else {
-        0.0
-      }),
+      time - self.selected.map(fn(segment) { segment.start }).unwrap_or(0.0),
       0.0,
       self.transition._get("duration").cast(),
     )

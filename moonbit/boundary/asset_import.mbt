@@ -10,13 +10,11 @@ pub fn asset_import_changes(
   let transitions = scene._get("transitions")
   let audio = scene._get("audioTracks")
   let order : FixedArray[String] = scene._get("compositionOrder").cast()
-  let segments : FixedArray[@core.Any] = scene_segments(scene).cast()
+  let segments = read_scene_segments(scene)
   let start = segments
     .iter()
-    .find_first(fn(segment) {
-      @core.equal(segment._get("id"), @core.any(composition))
-    })
-    .map(fn(segment) { segment._get("start").cast() })
+    .find_first(fn(segment) { segment.id == composition })
+    .map(fn(segment) { segment.start })
     .unwrap_or(0.0)
   let target : @editor.ImportScene = {
     width: scene._get("width").cast(),

@@ -113,18 +113,18 @@ fn transition_ruler(input : @core.Any) -> @react.Element {
 ///|
 fn scene_ruler(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let segments : FixedArray[@core.Any] = input._get("segments").cast()
+  let segments : Array[@scene.Segment] = input._get("segments").cast()
   let total : Double = input._get("total").cast()
   let playhead = use_editor_position(editor)
   let nodes : Array[&@react.ReactNode] = []
   for part in segments {
-    let start : Double = part._get("start").cast()
+    let start = part.start
     let left = timeline_fraction(start, total) * 100.0
     nodes.push(
       h(
         "span",
         {
-          "key": part._get("id"),
+          "key": @core.any(part.id),
           "style": host_record({
             "left": @core.any(string_value(@core.any(left)) + "%"),
           }),
