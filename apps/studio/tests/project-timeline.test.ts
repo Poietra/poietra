@@ -31,4 +31,20 @@ describe('project playback time', () => {
     expect(projectDuration(project)).toBe(0);
     expect(projectSegmentAt(projectSegments(project), 0)).toBeUndefined();
   });
+
+  it('owns native timing records while retaining Scene identity and reading fresh values', () => {
+    const project = makeDemoProject(), scene = project.scenes['scene-1'];
+    const first = projectSegments(project), second = projectSegments(project);
+    expect(first).not.toBe(second);
+    expect(first[0]).not.toBe(second[0]);
+    expect(first[0].scene).toBe(scene);
+    first[0].duration = 1;
+    expect(second[0].duration).toBe(3400);
+    expect(projectDuration(project)).toBe(3400);
+    expect(projectSegmentAt(first, 0)).toBe(first[0]);
+    scene.compositions['comp-1'].duration = 2000;
+    expect(projectDuration(project)).toBe(4400);
+    expect(projectSegments(project)[0].duration).toBe(4400);
+    expect(second[0].duration).toBe(3400);
+  });
 });

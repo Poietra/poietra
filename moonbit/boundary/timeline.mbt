@@ -88,10 +88,21 @@ extern "js" fn make_project_segment(
   #|(scene, start, duration) => ({scene, start, duration})
 
 ///|
-pub fn project_segments(project : @core.Any) -> FixedArray[@core.Any] {
+/// Borrowed host Scene, with typed timing. Ownership remains with the caller's
+/// immutable document snapshot or private export capture.
+pub(all) struct ProjectSpan {
+  scene : @core.Any
+  start : Double
+  duration : Double
+}
+
+///|
+fn visit_project_segments(
+  project : @core.Any,
+  visit : (@core.Any, Double, Double) -> Unit,
+) -> Double {
   let order : FixedArray[String] = project._get("sceneOrder").cast()
   let scenes = project._get("scenes")
-  let result : Array[@core.Any] = []
   let mut start = 0.0
   for id in order {
     let scene = scenes._get(id)
@@ -99,20 +110,49 @@ pub fn project_segments(project : @core.Any) -> FixedArray[@core.Any] {
       continue
     }
     let duration = scene_duration(scene)
-    result.push(make_project_segment(scene, start, duration))
+    visit(scene, start, duration)
     start += duration
   }
+  start
+}
+
+///|
+pub fn read_project_segments(project : @core.Any) -> Array[ProjectSpan] {
+  let result = []
+  visit_project_segments(project, fn(scene, start, duration) {
+    result.push(ProjectSpan::{ scene, start, duration, })
+  })
+  |> ignore
+  result
+}
+
+///|
+pub fn project_segments(project : @core.Any) -> FixedArray[@core.Any] {
+  let result = []
+  visit_project_segments(project, fn(scene, start, duration) {
+    result.push(make_project_segment(scene, start, duration))
+  })
+  |> ignore
   FixedArray::makei(result.length(), fn(i) { result[i] })
 }
 
 ///|
 pub fn project_duration(project : @core.Any) -> Double {
-  let mut total = 0.0
-  for segment in project_segments(project) {
-    let duration : Double = segment._get("duration").cast()
-    total += duration
+  visit_project_segments(project, fn(_, _, _) { () })
+}
+
+///|
+/// Inspecting output dimensions does not require preparing every Scene's timing.
+pub fn first_project_scene(project : @core.Any) -> @core.Any? {
+  let order : FixedArray[String] = project._get("sceneOrder").cast()
+  let scenes = project._get("scenes")
+  for id in order {
+    let scene = scenes._get(id)
+    if truthy(scene) {
+      return Some(scene)
+    }
   }
-  total
+  None
 }
 
 ///|

@@ -122,12 +122,7 @@ fn first_export_scene(project : @core.Any, fallback : @core.Any) -> @core.Any {
   if @core.is_nullish(project) {
     return fallback
   }
-  let segments = @boundary.project_segments(project)
-  if segments.is_empty() {
-    fallback
-  } else {
-    segments[0]._get("scene")
-  }
+  @boundary.first_project_scene(project).unwrap_or(fallback)
 }
 
 ///|

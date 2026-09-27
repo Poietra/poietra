@@ -1,13 +1,6 @@
 ///|
-priv struct PreviewSegment {
-  scene : @core.Any
-  start : Double
-  duration : Double
-}
-
-///|
 priv struct PreviewTimeline {
-  segments : Array[PreviewSegment]
+  segments : Array[@boundary.ProjectSpan]
   bounds : Array[(Double, Double)]
   duration : Double
 }
@@ -27,16 +20,7 @@ priv struct CanvasPresentation {
 
 ///|
 fn preview_timeline(project : @core.Any) -> PreviewTimeline {
-  let segments = @boundary.project_segments(project)
-    .iter()
-    .map(fn(value) {
-      PreviewSegment::{
-        scene: value._get("scene"),
-        start: value._get("start").cast(),
-        duration: value._get("duration").cast(),
-      }
-    })
-    .to_array()
+  let segments = @boundary.read_project_segments(project)
   {
     segments,
     bounds: segments.map(fn(value) { (value.start, value.duration) }),

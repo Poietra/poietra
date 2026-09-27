@@ -344,6 +344,11 @@ a separate input to duration calculation, so segment queries and playback schedu
 preparation do not traverse objects or audio. Duration queries still consider all
 Composition visibility, including retained ones, and reuse the Composition-ID list
 across video objects within that call. No caller-owned Scene is cached.
+Project preview and browser export share typed timing spans carrying borrowed
+native Scene handles. A single traversal feeds either those spans or the public
+JS records; duration-only queries allocate neither representation. Export dimension
+lookup reads the first present Scene without preparing every Scene's schedule.
+The existing capture-before-await ownership and public Scene identity remain intact.
 
 Document panels, presence, chat and the local clock have separate subscriptions.
 Scene tabs, layers, timeline structure and media rows retain presentation inputs
@@ -462,10 +467,10 @@ Source audit rerun **2026-09-27**, including the standalone render host:
 
 | Source purpose | Files | Physical lines |
 | --- | ---: | ---: |
-| MoonBit application | 310 | 61,785 |
+| MoonBit application | 310 | 61,804 |
 | Native JS runtime adapters | 119 | 1,326 |
 | Executable application TS/TSX (studio and render hosts) | 0 | 0 |
-| TypeScript tests, fixtures and test configurations | 158 | 18,032 |
+| TypeScript tests, fixtures and test configurations | 158 | 18,048 |
 | Public/environment type declarations | 114 | 1,997 |
 | TypeScript benchmark/tool configuration | 5 | 140 |
 
@@ -565,6 +570,10 @@ checks, 61 MoonBit JS and 58 standard WASM checks, 19 headless checks, public
 contracts and the production build. Projection regressions enforce required-field
 reads, fresh mutable inputs, retained-Composition video visibility and invalid-number
 propagation; 24 browser checks covering timeline, media and project export passed.
+The typed Project-span follow-up passed 781 Vitest checks, five extension/linking
+checks, public contracts, the production build and 20 browser checks for project
+preview, actual MP4/WebM output and export-dialog ownership/cancellation. Native
+timing records remain independent while preserving their input Scene references.
 
 Actual workerd verified offline edits, selective Undo, ordered durable replies,
 compaction, hibernation, late closes, process restart and pending dependencies.

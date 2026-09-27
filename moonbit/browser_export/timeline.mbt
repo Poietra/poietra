@@ -121,21 +121,21 @@ pub fn export_captured_project(
 ) -> @core.Promise[@core.Any] {
   @core.from_async(async fn() {
     check_signal(settings._get("signal"))
-    let values = @boundary.project_segments(source)
+    let values = @boundary.read_project_segments(source)
     if values.is_empty() {
       raise Invalid("書き出す Scene がありません。")
     }
     let audio = []
     let segments = []
     for value in values {
-      let scene = value._get("scene")
+      let scene = value.scene
       if !@exporting.valid_size(size(scene)) {
         raise Invalid(
           "Scene の幅と高さを正の数に設定してください。",
         )
       }
-      let start : Double = value._get("start").cast()
-      let duration : Double = value._get("duration").cast()
+      let start = value.start
+      let duration = value.duration
       segments.push({
         source: scene,
         start,
@@ -152,7 +152,7 @@ pub fn export_captured_project(
     let timeline : Timeline = {
       segments,
       bounds: segments.map(fn(segment) { (segment.start, segment.duration) }),
-      size: size(values[0]._get("scene")),
+      size: size(values[0].scene),
       audio: FixedArray::from_array(audio[:]),
     }
     export_timeline(timeline, settings, host)
