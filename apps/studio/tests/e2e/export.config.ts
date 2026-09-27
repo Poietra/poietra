@@ -1,3 +1,5 @@
+import { suites } from './suites.ts';
+import { report } from './report';
 import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
@@ -5,13 +7,14 @@ const windowsChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'export.spec.ts',
+  testMatch: suites.export,
+  forbidOnly: !!process.env.CI,
   timeout: 180_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
   outputDir: '../../test-results/export',
-  reporter: [['list']],
+  reporter: report('export'),
   use: {
     browserName: 'chromium',
     headless: true,

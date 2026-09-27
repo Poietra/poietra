@@ -1,10 +1,13 @@
 import { defineConfig } from '@playwright/test';
+import { suites } from './tests/e2e/suites.ts';
+import { report } from './tests/e2e/report';
 
 const baseURL = process.env.POIETRA_TEST_URL || 'http://127.0.0.1:5173';
 export default defineConfig({
   testDir: './tests/e2e',
-  testIgnore: ['**/dogfood-landing.spec.ts', '**/dogfood-landing-i18n.spec.ts', '**/dogfood-home-seo.spec.ts'],
-  testMatch: ['motion-template.spec.ts', 'clipping.spec.ts', 'primitives.spec.ts', 'images.spec.ts', 'chat.spec.ts', 'editor.spec.ts', 'canvas.spec.ts', 'ai*.spec.ts', 'project*.spec.ts', 'timeline.spec.ts', 'layers.spec.ts', 'structure.spec.ts', 'clipboard.spec.ts', 'keyboard.spec.ts', 'text-editing.spec.ts', 'dogfood*.spec.ts', 'marquee.spec.ts', 'groups.spec.ts', 'ime.spec.ts', 'undo-tracks.spec.ts', 'undo-objects.spec.ts', 'playback.spec.ts', 'scenes.spec.ts', 'connection.spec.ts', 'painter-preview.spec.ts', 'export-dialog.spec.ts'],
+  testMatch: [...suites.editor, ...suites.components],
+  forbidOnly: !!process.env.CI,
+  reporter: report('browser'),
   fullyParallel: true,
   workers: 2,
   timeout: 30000,

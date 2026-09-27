@@ -13,27 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  core:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-        with:
-          version: 10.23.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24.13.0
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - name: Install the pinned MoonBit compiler and core library
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
-          bash /tmp/install-moonbit.sh "$(cat .moon-version)"
-          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-      - run: moon version --all
-      - run: moon update
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Check generated adapters and MoonBit types
         run: |
           python3 scripts/generate-adapters.py
@@ -48,36 +33,105 @@ jobs:
         run: git diff --exit-code -- apps/studio/src apps/studio/shared apps/studio/server apps/studio/worker
       - run: node scripts/moon.mjs test --target js
       - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
-      - run: pnpm build
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build:moonbit
       - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
-      - name: Install video verification tools
+      - name: Check editor and browser component contracts
+        run: pnpm --dir apps/studio test:e2e --shard=${{ matrix.shard }}/4
+      - name: Preserve timings and browser failure evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-${{ matrix.shard }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: apps/studio/test-results/
+
+  media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build:moonbit
+      - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
+      - name: Install independent video verification tools
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Check collaborative editing, custom easing and actual video output
-        run: pnpm --dir apps/studio exec playwright test tests/e2e/motion-template.spec.ts tests/e2e/clipping.spec.ts tests/e2e/primitives.spec.ts tests/e2e/editor.spec.ts tests/e2e/canvas.spec.ts tests/e2e/dogfood-custom-easing.spec.ts tests/e2e/project-playback.spec.ts tests/e2e/structure.spec.ts tests/e2e/groups.spec.ts tests/e2e/scenes.spec.ts tests/e2e/undo-tracks.spec.ts tests/e2e/undo-objects.spec.ts tests/e2e/clipboard.spec.ts tests/e2e/keyboard.spec.ts tests/e2e/images.spec.ts tests/e2e/connection.spec.ts tests/e2e/painter-preview.spec.ts tests/e2e/export-dialog.spec.ts tests/e2e/text-editing.spec.ts tests/e2e/ime.spec.ts tests/e2e/layers.spec.ts tests/e2e/dogfood-property-timing.spec.ts tests/e2e/dogfood-media.spec.ts tests/e2e/dogfood-feedback.spec.ts tests/e2e/timeline.spec.ts tests/e2e/playback.spec.ts tests/e2e/chat.spec.ts tests/e2e/ai.spec.ts tests/e2e/ai-create.spec.ts tests/e2e/ai-compositions.spec.ts tests/e2e/ai-paths.spec.ts tests/e2e/ai-dogfood.spec.ts tests/e2e/dogfood-accounts.spec.ts tests/e2e/projects.spec.ts tests/e2e/dogfood-site-lifecycle.spec.ts
+      - name: Check project playback and its actual video download
+        run: pnpm --dir apps/studio test:project-playback
       - name: Check MP4/WebM rendering of hierarchy and value curves
-        run: pnpm --dir apps/studio exec playwright test --config tests/e2e/export.config.ts
-      - name: Check media decoding, stereo mixing and actual browser audio playback
-        run: pnpm --dir apps/studio exec playwright test --config tests/e2e/media-export.config.ts
+        if: ${{ !cancelled() }}
+        run: pnpm --dir apps/studio test:export
+      - name: Check media decoding, stereo mixing and browser audio playback
+        if: ${{ !cancelled() }}
+        run: pnpm --dir apps/studio test:media
+      - name: Preserve media timings and failure evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: media
+          retention-days: 7
+          if-no-files-found: warn
+          path: apps/studio/test-results/
+
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --dir apps/studio build:web
+      - run: pnpm --dir apps/studio exec playwright install --with-deps chromium
       - name: Check prerendered pages, hydration and project creation in production
-        run: pnpm --dir apps/studio exec playwright test --config tests/e2e/site-production.config.ts
+        run: pnpm --dir apps/studio test:site
       - name: Check real Worker startup, hibernation and restart recovery
+        if: ${{ !cancelled() }}
         run: pnpm --dir apps/studio exec node tests/collaboration-worker.integration.mjs --port 8796
       - name: Check local media persistence and R2 migration/failure recovery
+        if: ${{ !cancelled() }}
         run: |
           pnpm --dir apps/studio exec node tests/media-storage.integration.mjs node
           pnpm --dir apps/studio exec node tests/r2-assets-worker.integration.mjs
       - name: Check account isolation, callback races and TTL across Worker restarts
+        if: ${{ !cancelled() }}
         run: pnpm --dir apps/studio exec node tests/accounts-worker.integration.mjs
-      - name: Preserve browser and local runtime failure evidence
-        if: failure()
+      - name: Preserve production timings and runtime failure evidence
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: browser-failure-evidence
+          name: production
           retention-days: 7
-          if-no-files-found: ignore
+          if-no-files-found: warn
           path: |
-            apps/studio/test-results/**/error-context.md
-            apps/studio/test-results/**/trace.zip
-            apps/studio/test-results/**/test-failed-*.png
+            apps/studio/test-results/
             /tmp/poietra-media-storage-*/*.log
             /tmp/poietra-accounts-worker-*/*.log
+
+  # Preserve the existing required check name, including failures in any shard.
+  check:
+    if: ${{ always() }}
+    needs: [core, browser, media, production]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every test suite to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          failed = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          if failed:
+              raise SystemExit(f'Unsuccessful suites: {failed}')
+          PYTHON

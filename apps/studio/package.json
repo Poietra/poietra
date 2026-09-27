@@ -25,7 +25,10 @@
     "test:e2e": "playwright test",
     "test:export": "playwright test --config tests/e2e/export.config.ts",
     "test:ai": "playwright test --config tests/e2e/ai.config.ts",
-    "test:collaboration": "pnpm build:web && node tests/collaboration-worker.integration.mjs"
+    "test:collaboration": "pnpm build:web && node tests/collaboration-worker.integration.mjs",
+    "test:project-playback": "playwright test --config tests/e2e/project-playback.config.ts",
+    "test:media": "playwright test --config tests/e2e/media-export.config.ts",
+    "test:site": "playwright test --config tests/e2e/site-production.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

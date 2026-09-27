@@ -599,8 +599,38 @@ These are local results, not a production deployment.
 The preceding clipping revision `cb08b4b` passed the complete
 [CI run 36304463514](https://github.com/Poietra/poietra/actions/runs/36304463514),
 including real Worker storage, collaboration and account restart checks.
-[.github/workflows/check.yml](.github/workflows/check.yml) is the authoritative
-CI selection; the local main browser run above used the complete default config.
+Those are the pre-audit counts. The test design review on **2026-09-27** found
+18 cases selected locally but omitted by CI's command-line filename list. Browser
+configs now share [suites.ts](apps/studio/tests/e2e/suites.ts); `pnpm check:test-suites`
+rejects missing, duplicate and unclassified specs, including nested files.
+[check.yml](.github/workflows/check.yml) runs these configs without a second list.
+
+| Boundary being checked | Execution |
+| --- | --- |
+| Pure plans, parsing, history budgets, Yjs leaf semantics and host contracts | Vitest, MoonBit JS/WASM, extension/linking and headless tests in `core` |
+| Real editor gestures, peer edits, offline/Undo and browser lifecycle contracts | `test:e2e`: 199 cases across four CI shards, two workers each |
+| Project playback/download, encoded MP4/WebM and browser audio | `test:project-playback`, `test:export`, `test:media`: 5 + 10 + 6 cases, sequential in `media` |
+| Built public pages and real persistence/restart behavior | `test:site`: 28 cases, then Node/workerd integration checks in `production` |
+| Extended WebGL/Canvas/Write pixel matrices | Opt-in `effects.config.ts`, `effects-write.config.ts`, `glow.config.ts`; retained outside PR CI |
+| Rendering timings and SVG source profiles | Separate opt-in measurement specs; run alone on an otherwise idle machine |
+
+The redesign removes duplicate scenarios only where their assertions are retained:
+AI Scene cancellation is folded into the stronger return-to-Scene/history case;
+synthetic single-object cut/paste is covered by real keyboard group cut/paste,
+including Undo/Redo and peer edits. History entry/content limits moved from 19 UI
+request/reply cycles to a direct `chatHistory` contract test; browser multi-turn,
+retry and proposal-status wiring remain. Composition inheritance and peer Undo
+run once through the timeline, with a short sidebar entry/selection check.
+The sync-watchdog and held-key tests advance the browser clock instead of waiting
+for wall time. Audio-device timing tests still use the real audio clock.
+
+JS/WASM conformance, immutable snapshot identity, independent video decoding and
+real process restart tests intentionally remain: they detect failures at different
+boundaries. Timing-only rendering cases have separate files/config selection and
+do not masquerade as correctness checks. No new retry policy hides failures.
+Every CI browser job retains JSON case durations and failure traces for seven
+days. The final `check` job retains the existing required-check name and fails
+if any suite fails, is cancelled or is unexpectedly skipped.
 
 Regressions cover independent parsing, reserved/escaped keys in ignored subtrees,
 strict easing, borrowed inputs, raster identity/cancellation and preview/export
@@ -658,7 +688,7 @@ decoders, verify timing/trim/gain/mute, exercise HTTP/MCP, oversized requests an
 cancellation, and render with subprocess launches and network fetch disabled.
 They also verify typed-package isolation, invalid consumer rejection, native
 buffer validation, encoder backpressure, single cleanup and error preservation.
-CI runs them before installing Chromium or FFmpeg.
+CI runs them in a job that does not install Chromium or FFmpeg.
 
 The account/project browser checks cover search/order, failed reads, restoration
 retries, identity changes, delayed replies and guest project operations. Sources
@@ -679,9 +709,10 @@ pnpm build
 cd apps/studio
 pnpm exec playwright install chromium
 pnpm test:e2e
+pnpm test:project-playback
 pnpm test:export
-pnpm exec playwright test --config tests/e2e/media-export.config.ts
-pnpm exec playwright test --config tests/e2e/site-production.config.ts
+pnpm test:media
+pnpm test:site
 node tests/collaboration-worker.integration.mjs --port 8796
 node tests/media-storage.integration.mjs node
 node tests/r2-assets-worker.integration.mjs
@@ -695,6 +726,13 @@ Use an isolated local test host: browser tests create and edit rooms. The defaul
 E2E configuration uses port 5173 and may reuse an existing server; set
 `POIETRA_TEST_URL` to a dedicated host if that port belongs to your development
 session. The production-page configuration serves the completed build separately.
+
+The extended rendering configs remain opt-in as before; they are not counted as
+PR CI coverage. `effects.config.ts` now runs correctness only; use
+`effects-benchmark.config.ts` for its timings. For the prebuilt Write/Glow fixtures,
+`RUN_WRITE_BENCHMARK=1` and `GLOW_BENCHMARK=1` select only measurement specs in their
+respective configs; `RUN_SVG_PROFILE=1` selects only the Write source profiler.
+Do not run these measurements alongside builds, tests or encoders.
 
 Automated provider HTTP is simulated. Production smoke verified GitHub's
 authorization redirect and flow storage; full Google/GitHub login completion and

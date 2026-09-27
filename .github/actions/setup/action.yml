@@ -1,0 +1,25 @@
+name: Pinned toolchain
+description: Install the locked Node, pnpm and MoonBit toolchains and dependencies.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      with:
+        version: 10.23.0
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: 24.13.0
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+    - name: Install the pinned MoonBit compiler and core library
+      shell: bash
+      run: |
+        curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/install-moonbit.sh
+        bash /tmp/install-moonbit.sh "$(cat .moon-version)"
+        echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+    - shell: bash
+      run: moon version --all
+    - shell: bash
+      run: moon update
+    - shell: bash
+      run: pnpm install --frozen-lockfile
