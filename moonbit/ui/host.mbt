@@ -173,8 +173,13 @@ fn[T] memo_typed_component(render : (T) -> @react.Element) -> TypedComponent[T] 
 fn[T] typed_component(
   component : TypedComponent[T],
   view : T,
+  key? : String,
 ) -> @react.Element {
-  keyed_element(@core.any(component), { "view": @core.any(view) }, [])
+  let props = { "view": @core.any(view) }
+  if key is Some(key) {
+    props["key"] = @core.any(key)
+  }
+  keyed_element(@core.any(component), props, [])
 }
 
 ///|

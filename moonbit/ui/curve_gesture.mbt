@@ -2,54 +2,35 @@
 priv struct CurveGesture {
   pointer : Int
   point : @editor.CurvePoint
-  before : @core.Any
+  before : UndoEntry?
   element : @core.Any
   mut last : @scene.Easing
-  mut undo : @core.Any
+  mut undo : UndoEntry?
   mut moved : Bool
 }
 
 ///|
 priv struct CurveController {
-  store : @core.Any
+  history : GestureHistory
   notify : (String) -> Unit
-  latest : @react.ReactRef[@core.Any]
+  latest : @react.ReactRef[EasingView]
   plot : @react.ReactRef[@core.Any]
   gesture : @react.ReactRef[CurveGesture]
   ignore_click : @react.ReactRef[Bool]
 }
 
 ///|
-fn top_undo(store : @core.Any) -> @core.Any {
-  let stack : FixedArray[@core.Any] = store
-    ._get("undoManager")
-    ._get("undoStack")
-    .cast()
-  if stack.is_empty() {
-    @core.undefined()
-  } else {
-    stack[stack.length() - 1]
-  }
-}
-
-///|
 fn CurveController::current(self : CurveController) -> @scene.Easing? {
   let latest = self.latest.get_current().unwrap()
-  let value = if truthy(latest._get("getValue")) {
-    latest._get("getValue")._invoke([])
-  } else {
-    latest._get("value")
-  }
-  if @core.is_nullish(value) {
-    None
-  } else {
-    Some(@boundary.read_easing(value))
+  match latest.current {
+    Some(read) => read()
+    None => latest.value
   }
 }
 
 ///|
 fn CurveController::disabled(self : CurveController) -> Bool {
-  truthy(self.latest.get_current().unwrap()._get("disabled"))
+  self.latest.get_current().unwrap().disabled
 }
 
 ///|
@@ -58,10 +39,10 @@ fn CurveController::finish(self : CurveController, cancel : Bool) -> Unit {
   self.gesture.set_current(None)
   @core.throwable(fn() {
     if cancel &&
-      truthy(current.undo) &&
-      !@core.equal(current.undo, current.before) &&
-      @core.equal(top_undo(self.store), current.undo) {
-      self.store._call("rollbackGesture", [current.undo]) |> ignore
+      current.undo is Some(entry) &&
+      current.undo != current.before &&
+      self.history.top() == current.undo {
+      self.history.rollback(entry)
     }
   }) catch {
     failure =>
@@ -72,7 +53,7 @@ fn CurveController::finish(self : CurveController, cancel : Bool) -> Unit {
         ),
       )
   }
-  ui_quiet(self.store, "endGesture")
+  self.history.end()
   self.ignore_click.set_current(Some(current.moved))
   @core.throwable(fn() {
     if current.element
@@ -113,13 +94,13 @@ fn CurveController::down(
     pointer: event._get("pointerId").cast(),
     point,
     last: current,
-    before: top_undo(self.store),
+    before: self.history.top(),
     element,
-    undo: @core.undefined(),
+    undo: None,
     moved: false,
   }
   self.gesture.set_current(Some(gesture))
-  self.store._call("beginGesture", []) |> ignore
+  self.history.begin()
   try
     @core.throwable(fn() {
       element._call("setPointerCapture", [@core.any(gesture.pointer)])
@@ -154,7 +135,7 @@ fn CurveController::pointer_move(
     self.finish(true)
     return
   }
-  if truthy(current.undo) && !@core.equal(top_undo(self.store), current.undo) {
+  if current.undo is Some(_) && self.history.top() != current.undo {
     self.finish(false)
     return
   }
@@ -179,14 +160,9 @@ fn CurveController::pointer_move(
     return
   }
   @core.throwable(fn() {
-    self.latest
-    .get_current()
-    .unwrap()
-    ._get("onChange")
-    ._invoke([@boundary.write_easing(next), @core.any(false)])
-    |> ignore
+    (self.latest.get_current().unwrap().on_change)(next, false)
     current.last = next
-    current.undo = top_undo(self.store)
+    current.undo = self.history.top()
     current.moved = true
   }) catch {
     _ => self.finish(true)
@@ -215,15 +191,9 @@ fn CurveController::coordinate(
 ) -> Unit {
   if !self.disabled() &&
     self.current() is Some(CubicBezier(_, _, _, _) as current) {
-    self.latest
-    .get_current()
-    .unwrap()
-    ._get("onChange")
-    ._invoke([
-      @boundary.write_easing(
-        @editor.edit_curve_coordinate(current, coordinate, value),
-      ),
-    ])
-    |> ignore
+    (self.latest.get_current().unwrap().on_change)(
+      @editor.edit_curve_coordinate(current, coordinate, value),
+      true,
+    )
   }
 }

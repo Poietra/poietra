@@ -225,50 +225,36 @@ pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
     )
   }
   fields.push(
-    component(
-      easing_editor,
+    typed_component(
+      easing_component,
       {
-        "key": @core.any(target_key),
-        "value": @boundary.common_track_value(targets, "easing"),
-        "label": @core.any("Selected animation easing"),
-        "onChange": @core.any(fn(value : @core.Any, separate : @core.Any) {
-          apply(
-            "easing",
-            value,
-            @core.is_undefined(separate) || truthy(separate),
-          )
-        }),
-        "getValue": @core.any(fn() {
-          let current = store._call("project", [])._get("scenes")._get(scene_id)
-          if !truthy(current) {
-            return @core.undefined()
-          }
-          @boundary.common_track_value(
-            @boundary.group_animation_targets(current, transition_id, ids)
-            ._get("targets")
-            .cast(),
-            "easing",
-          )
-        }),
-        "disabled": @core.any(
-          targets.length() == 0 ||
-          viewing ||
-          playing ||
-          kind == Some(@scene.Cut),
+        value: read_optional_easing(
+          @boundary.common_track_value(targets, "easing"),
         ),
-        "disabledReason": if kind == Some(@scene.Cut) {
-          @core.any(
+        label: "Selected animation easing",
+        on_change: fn(value, separate) {
+          apply("easing", @boundary.write_easing(value), separate)
+        },
+        current: Some(fn() {
+          native_group_easing(store, scene_id, transition_id, ids)
+        }),
+        disabled: targets.length() == 0 ||
+        viewing ||
+        playing ||
+        kind == Some(@scene.Cut),
+        disabled_reason: if kind == Some(@scene.Cut) {
+          Some(
             "Cut は瞬時に切り替わるため、イージングを使用しません。",
           )
         } else if playing {
-          @core.any(
+          Some(
             "再生を停止すると、イージングを調整できます。",
           )
         } else {
-          @core.undefined()
+          None
         },
       },
-      [],
+      key=target_key,
     ),
   )
   content.push(

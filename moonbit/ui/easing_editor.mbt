@@ -57,7 +57,22 @@ fn curve_handle(
 }
 
 ///|
-pub fn easing_editor(input : @core.Any) -> @react.Element {
+priv struct EasingView {
+  value : @scene.Easing?
+  label : String
+  disabled : Bool
+  disabled_reason : String?
+  current : (() -> @scene.Easing?)?
+  on_change : (@scene.Easing, Bool) -> Unit
+}
+
+///|
+let easing_component : TypedComponent[EasingView] = memo_typed_component(
+  render_easing_editor,
+)
+
+///|
+fn render_easing_editor(input : EasingView) -> @react.Element {
   let editor = use_editor_state()
   let plot = @react.use_ref((None : @core.Any?))
   let editor_node = @react.use_ref((None : @core.Any?))
@@ -67,22 +82,17 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
   let ignore_click = @react.use_ref(Some(false))
   let description = @react.use_id()
   let controller : CurveController = {
-    store: editor.store,
+    history: native_gesture_history(editor.store),
     notify: editor.actions.notify,
     latest,
     plot,
     gesture,
     ignore_click,
   }
-  let value = input._get("value")
-  let curve = if @core.is_nullish(value) {
-    None
-  } else {
-    Some(@boundary.read_easing(value))
-  }
+  let curve = input.value
   let custom = curve is Some(CubicBezier(_, _, _, _))
-  let disabled = truthy(input._get("disabled"))
-  let label : String = input._get("label").cast()
+  let disabled = input.disabled
+  let label = input.label
   @react.use_effect(
     fn() {
       let cancel = fn() { controller.finish(true) }
@@ -140,34 +150,36 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
         "select",
         {
           "aria-label": @core.any(label),
-          "aria-describedby": if truthy(input._get("disabledReason")) {
+          "aria-describedby": if input.disabled_reason is Some(_) {
             @core.any(description)
           } else {
             @core.undefined()
           },
           "disabled": @core.any(disabled),
-          "value": if custom {
-            @core.any("custom")
-          } else if @core.typeof_(value) == "string" {
-            value
-          } else {
-            @core.any("")
-          },
+          "value": @core.any(
+            match curve {
+              Some(Linear) => "linear"
+              Some(EaseInOut) => "easeInOut"
+              Some(EaseIn) => "easeIn"
+              Some(EaseOut) => "easeOut"
+              Some(CubicBezier(_, _, _, _)) => "custom"
+              None => ""
+            },
+          ),
           "onChange": @core.any(fn(event : @core.Any) {
             if !disabled {
-              let value = event._get("target")._get("value")
-              input
-              ._get("onChange")
-              ._invoke([
-                if @core.equal(value, @core.any("custom")) {
-                  @boundary.write_easing(
-                    @scene.CubicBezier(0.25, 0.1, 0.25, 1.0),
-                  )
-                } else {
-                  value
-                },
-              ])
-              |> ignore
+              let name : String = event._get("target")._get("value").cast()
+              let next = match name {
+                "linear" => Some(@scene.Linear)
+                "easeInOut" => Some(@scene.EaseInOut)
+                "easeIn" => Some(@scene.EaseIn)
+                "easeOut" => Some(@scene.EaseOut)
+                "custom" => Some(@scene.CubicBezier(0.25, 0.1, 0.25, 1.0))
+                _ => None
+              }
+              if next is Some(next) {
+                (input.on_change)(next, true)
+              }
             }
           }),
         },
@@ -326,7 +338,7 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
       ]),
     )
   }
-  if truthy(input._get("disabledReason")) {
+  if input.disabled_reason is Some(reason) {
     nodes.push(
       h(
         "p",
@@ -334,7 +346,7 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
           "id": @core.any(description),
           "className": @core.any("easing-editor-note"),
         },
-        [HostNode::{ value: input._get("disabledReason"), }],
+        [reason],
       ),
     )
   }
