@@ -3,11 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { EditorContext, useEditor, type EditorContextValue } from '../../../src/editor/context';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { makeDemoProject } from '../../../shared/demo';
-import type { Selection } from '../../../shared/model';
+import type { Easing, Selection } from '../../../shared/model';
 import { loadKernel } from '../../../src/engine/kernel';
 import * as renderer from '../../../src/engine/renderer';
 import { GroupControls } from '../../../src/ui/GroupInspector';
 import { Timeline } from '../../../src/ui/Timeline';
+import { EasingEditor } from '../../../src/ui/EasingEditor';
+import { PropertyTimingInspector } from '../../../src/ui/PropertyTimingInspector';
 import '../../../src/styles.css';
 
 const kernel = await loadKernel();
@@ -65,5 +67,62 @@ function PanelsFixture() {
     <button onClick={() => setGeneration(generation + 1)}>Replace callbacks</button>
   </EditorContext.Provider></Tooltip.Provider>;
 }
-const panels = new URLSearchParams(location.search).has('panels');
-createRoot(document.getElementById('root')!).render(<StrictMode>{panels ? <PanelsFixture/> : <Fixture/>}</StrictMode>);
+function AnimationFixture() {
+  const [project] = useState(() => {
+    const project = makeDemoProject();
+    const track = project.scenes['scene-1'].transitions['transition-1'].tracks.circle;
+    track.positionTiming = { start: 100, duration: 500, easing: 'linear' };
+    track.keyframes = {};
+    // Exported UI must accept the immutable snapshots used by the real store.
+    function freeze(value: unknown) {
+      if (value && typeof value === 'object') {
+        Object.values(value).forEach(freeze);
+        Object.freeze(value);
+      }
+    }
+    freeze(project);
+    return project;
+  });
+  const current = useRef(project);
+  const [command, setCommand] = useState('');
+  const [curve, setCurve] = useState<Easing>('linear');
+  const currentCurve = useRef<Easing>(curve);
+  const [generation, setGeneration] = useState(1);
+  const [store] = useState(() => ({
+    project() { return current.current; },
+    snapshot() { throw new Error('External animation panels must not subscribe to the store'); },
+    setPropertyTiming(...args: Parameters<EditorContextValue['store']['setPropertyTiming']>) {
+      setCommand(JSON.stringify(['timing', ...args]));
+    },
+  }) as unknown as EditorContextValue['store']);
+  const scene = project.scenes['scene-1'], transition = scene.transitions['transition-1'];
+  const unexpected = () => { throw new Error('Unexpected editor action from an animation control'); };
+  const context: EditorContextValue = {
+    store, scene, kernel, renderer, selection: { kind: 'transition', id: transition.id },
+    compositionId: transition.toId, selectedIds: ['circle'], playhead: 0, peers: [],
+    tool: 'select', playing: false, previewScope: 'scene', pathEditing: false,
+    select: unexpected, appendComposition: unexpected, requestTextEdit: unexpected,
+    setSelectedIds: unexpected, setTool: unexpected, setPathEditing: unexpected,
+    seek: unexpected, play: unexpected,
+    notify(message: string) { throw new Error(message); },
+  };
+  return <EditorContext.Provider value={context}>
+    <EasingEditor value={curve} getValue={() => currentCurve.current} label="External easing" onChange={(value, separate) => {
+      setCommand(JSON.stringify([generation, 'curve', value, separate ?? 'default']));
+      currentCurve.current = value;
+      setCurve(value);
+    }}/>
+    <PropertyTimingInspector object={scene.objects.circle} transition={transition} track={transition.tracks.circle}/>
+    <output data-testid="command">{command}</output>
+    <button onClick={() => setGeneration(generation + 1)}>Replace callbacks</button>
+    <button onClick={() => { currentCurve.current = { type: 'cubicBezier', x1: .65, y1: .3, x2: .7, y2: .9 }; }}>Peer curve before render</button>
+    <button onClick={() => {
+      const next = structuredClone(project);
+      next.scenes['scene-1'].transitions['transition-1'].tracks.circle.positionTiming = { start: 200, duration: 300, easing: 'easeIn' };
+      current.current = next;
+    }}>Peer timing before render</button>
+    <button onClick={() => { current.current = { ...project, scenes: {}, sceneOrder: [] }; }}>Remove target before render</button>
+  </EditorContext.Provider>;
+}
+const params = new URLSearchParams(location.search);
+createRoot(document.getElementById('root')!).render(<StrictMode>{params.has('animation') ? <AnimationFixture/> : params.has('panels') ? <PanelsFixture/> : <Fixture/>}</StrictMode>);

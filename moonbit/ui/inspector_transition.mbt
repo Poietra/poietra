@@ -76,6 +76,13 @@ fn transition_inspector(
     )
   }
   let timing = @boundary.read_track(native)
+  let property_view = native_property_timing_view(
+    controller.editor,
+    object,
+    transition,
+    timing,
+  )
+  let binding = property_view.binding
   let set_track = fn(patch : Map[String, @core.Any], separate : Bool) {
     if controller.can_edit() {
       store._call("setTrack", [
@@ -181,71 +188,38 @@ fn transition_inspector(
         max=duration - timing.start,
         suffix="ms",
       ),
-      component(
-        easing_editor,
+      typed_component(
+        easing_component,
         {
-          "key": @core.any(key),
-          "value": @boundary.write_easing(timing.easing),
-          "label": @core.any("Easing"),
-          "onChange": @core.any(fn(value : @core.Any, separate : @core.Any) {
-            set_track(
-              { "easing": value },
-              @core.is_undefined(separate) || truthy(separate),
-            )
-          }),
-          "getValue": @core.any(fn() {
-            let current = store
-              ._call("project", [])
-              ._get("scenes")
-              ._get(controller.scene_id)
-            if !truthy(current) {
-              return @core.undefined()
+          value: Some(timing.easing),
+          label: "Easing",
+          on_change: fn(value, separate) {
+            if controller.can_edit() {
+              binding.set_easing(value, separate)
             }
-            let latest = current._get("transitions")._get(transition_id)
-            if !truthy(latest) {
-              return @core.undefined()
-            }
-            let value = @boundary.visible_animation(current, latest, object_id)
-            if truthy(value) {
-              value._get("track")._get("easing")
-            } else {
-              @core.undefined()
-            }
-          }),
-          "disabled": @core.any(
-            locked ||
-            playing ||
-            controller.editor.viewing_playback ||
-            timing.type_ is Cut,
-          ),
-          "disabledReason": if timing.type_ is Cut {
-            @core.any(
+          },
+          current: Some(fn() { binding.easing() }),
+          disabled: locked ||
+          playing ||
+          controller.editor.viewing_playback ||
+          timing.type_ is Cut,
+          disabled_reason: if timing.type_ is Cut {
+            Some(
               "Cut は瞬時に切り替わるため、イージングを使用しません。",
             )
           } else if playing {
-            @core.any(
+            Some(
               "再生を停止すると、イージングを調整できます。",
             )
           } else {
-            @core.undefined()
+            None
           },
         },
-        [],
+        key~,
       ),
     ]),
   )
-  content.push(
-    component(
-      property_timing_inspector,
-      {
-        "key": @core.any(key),
-        "object": object,
-        "transition": transition,
-        "track": native,
-      },
-      [],
-    ),
-  )
+  content.push(typed_component(property_timing_component, property_view, key~))
   if timing.type_ is Move && from_visible && to_visible {
     let editing = controller.editor.path_editing
     let path_fields : Array[&@react.ReactNode] = [

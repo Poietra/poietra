@@ -13,14 +13,16 @@ fn keyframe_label(property : @scene.CurveProperty) -> String {
 }
 
 ///|
-fn keyframe_inspector(input : @core.Any) -> @react.Element {
-  let editor = use_editor_state()
-  let scene = editor.scene
-  let store = editor.store
-  let transition = input._get("transition")
-  let object = input._get("object")
-  let track = @boundary.read_track(input._get("track"))
-  let channel = @scene.property_channel(input._get("channel").cast()).unwrap()
+let keyframe_component : TypedComponent[KeyframeView] = memo_typed_component(
+  keyframe_inspector,
+)
+
+///|
+fn keyframe_inspector(input : KeyframeView) -> @react.Element {
+  let animation = input.animation
+  let binding = input.binding
+  let track = animation.track
+  let channel = input.channel
   let properties = @scene.curve_properties(channel)
   let (chosen, choose) = @react.use_state(@scene.PositionX)
   let property = if properties.contains(chosen) {
@@ -29,18 +31,11 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
     properties[0]
   }
   let name = @scene.curve_property_name(property)
-  let sid : String = scene._get("id").cast()
-  let tid : String = transition._get("id").cast()
-  let oid : String = object._get("id").cast()
-  let timing = @scene.timing_override(track, channel).unwrap_or({
-    start: track.start,
-    duration: track.duration,
-    easing: track.easing,
-  })
-  let disabled = truthy(input._get("disabled")) ||
+  let timing = animation.timing(channel)
+  let disabled = input.disabled ||
     track.type_ == Cut ||
     timing.duration <= 0.0 ||
-    !truthy(transition._get("tracks")._get(oid)._get("keyframes"))
+    !animation.keyframes_ready
   let (error, set_error) = @react.use_state("")
   let keys : Array[(String, @scene.Keyframe)] = []
   if track.keyframes is Some(values) {
@@ -59,21 +54,13 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
       a.0.compare(b.0)
     }
   })
-  let apply = fn(id : String, patch : @core.Any, separate : Bool) {
+  let apply = fn(change : () -> Unit) {
     if disabled {
       return
     }
     attempt(
       fn() {
-        store._call("setKeyframe", [
-          @core.any(sid),
-          @core.any(tid),
-          @core.any(oid),
-          @core.any(id),
-          patch,
-          @core.any(separate),
-        ])
-        |> ignore
+        change()
         set_error("")
       },
       set_error,
@@ -115,8 +102,8 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
       ]),
     )
   }
-  let curve = @boundary.keyframe_curve(scene, transition, oid, property)
-  let kernel = @boundary.read_kernel(editor.kernel)
+  let curve = (input.evaluation.curve)(property)
+  let kernel = input.evaluation.kernel
   if curve is Some(curve) &&
     !(property is ObjectFill || property is ObjectStroke) {
     let values : Array[Double] = []
@@ -176,7 +163,7 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
           label + " value",
           value,
           fn(value) {
-            apply(id, host_record({ "value": @core.any(value) }), true)
+            apply(fn() { binding.set_keyframe_value(id, CurveNumber(value)) })
           },
           min=if property is ObjectOpacity ||
             property is ObjectReveal ||
@@ -200,7 +187,7 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
             "label": @core.any(label + " value"),
             "value": @core.any(value),
             "onChange": @core.any(fn(value : String) {
-              apply(id, host_record({ "value": @core.any(value) }), true)
+              apply(fn() { binding.set_keyframe_value(id, CurveColor(value)) })
             }),
           },
           [],
@@ -221,7 +208,7 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
               label + " time",
               key.at * 100.0,
               fn(value) {
-                apply(id, host_record({ "at": @core.any(value / 100.0) }), true)
+                apply(fn() { binding.set_keyframe_at(id, value / 100.0) })
               },
               min=0.001,
               max=99.999,
@@ -229,29 +216,20 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
             ),
             value_input,
           ]),
-          component(
-            easing_editor,
-            {
-              "value": @boundary.write_easing(key.easing),
-              "label": @core.any(label + " outgoing easing"),
-              "disabled": @core.any(disabled),
-              "onChange": @core.any(fn(
-                value : @core.Any,
-                separate : @core.Any,
-              ) {
-                apply(
-                  id,
-                  host_record({ "easing": value }),
-                  @core.is_undefined(separate) || truthy(separate),
-                )
-              }),
+          typed_component(easing_component, {
+            value: Some(key.easing),
+            label: label + " outgoing easing",
+            disabled,
+            disabled_reason: None,
+            current: Some(fn() { binding.keyframe_easing(id) }),
+            on_change: fn(value, separate) {
+              apply(fn() { binding.set_keyframe_easing(id, value, separate) })
             },
-            [],
-          ),
+          }),
           inspector_button(
             "中間点を削除",
             "Trash2",
-            fn() { apply(id, @core.null(), true) },
+            fn() { apply(fn() { binding.remove_keyframe(id) }) },
             class_name="text-button",
             disabled~,
           ),
@@ -281,51 +259,22 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
         let value = match curve {
           Some(curve) =>
             curve.evaluate(timing.start + at * timing.duration, kernel)
-          None => {
-            let frame = @boundary.transition_frame(
-              scene,
-              transition,
+          None =>
+            (input.evaluation.sample)(
+              property,
               timing.start + at * timing.duration,
-              editor.kernel,
-              @core.undefined(),
+              at,
             )
-            let objects : FixedArray[@core.Any] = frame._get("objects").cast()
-            let item = objects
-              .iter()
-              .find_first(fn(item) {
-                string_value(item._get("object")._get("id")) == oid
-              })
-            match item {
-              Some(item) =>
-                if property is ObjectReveal {
-                  @scene.CurveNumber(at)
-                } else {
-                  @scene.state_curve_value(
-                    @boundary.read_object_state(item._get("state")),
-                    property,
-                  )
-                }
-              None =>
-                @scene.state_curve_value(
-                  @scene.default_state(
-                    @boundary.read_object_kind(object._get("kind")),
-                  ),
-                  property,
-                )
-            }
-          }
         }
-        apply(
-          @boundary.new_id("key"),
-          @boundary.write_keyframe({
+        apply(fn() {
+          binding.add_keyframe({
             property,
             at,
             value,
             easing: timing.easing,
             deleted: None,
-          }),
-          true,
-        )
+          })
+        })
       },
       disabled~,
     ),

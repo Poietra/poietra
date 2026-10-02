@@ -1,30 +1,21 @@
 ///|
-pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
+let property_timing_component : TypedComponent[PropertyTimingView] = memo_typed_component(
+  render_property_timing,
+)
+
+///|
+fn render_property_timing(input : PropertyTimingView) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor.scene
-  let store = editor.store
-  let object = input._get("object")
-  let transition = input._get("transition")
-  let track = @boundary.read_track(input._get("track"))
+  let animation = input.animation
+  let binding = input.binding
+  let track = animation.track
   let (chosen, set_chosen) = @react.use_state(@scene.PropertyChannel::Position)
-  let channels = @editor.property_channels(
-    @boundary.read_object_kind(object._get("kind")),
-    track,
-  )
+  let channels = @editor.property_channels(animation.kind, track)
   let channel = if channels.contains(chosen) { chosen } else { channels[0] }
   let channel_name = @editor.property_channel_name(channel)
-  let timing = @scene.timing_override(track, channel).unwrap_or({
-    start: track.start,
-    duration: track.duration,
-    easing: track.easing,
-  })
+  let timing = animation.timing(channel)
   let independent = @scene.timing_override(track, channel) is Some(_)
-  let object_id : String = object._get("id").cast()
-  let transition_id : String = transition._get("id").cast()
-  let scene_id : String = scene._get("id").cast()
-  let visible = truthy(
-    @boundary.visible_animation(scene, transition, object_id),
-  )
+  let visible = animation.visible
   let label = @editor.property_channel_label(channel)
   let (error, set_error) = @react.use_state("")
   let playing = editor.playing
@@ -35,36 +26,7 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
     }
     attempt(
       fn() {
-        let current_scene = store._call("scene", [@core.any(scene_id)])
-        let current_transition = current_scene
-          ._get("transitions")
-          ._get(transition_id)
-        if !truthy(current_transition) {
-          return
-        }
-        let current = @boundary.visible_animation(
-          current_scene, current_transition, object_id,
-        )
-        if !truthy(current) || truthy(current._get("object")._get("locked")) {
-          return
-        }
-        let previous = @boundary.read_timing(
-          @boundary.get_property_timing(current._get("track"), channel_name),
-        )
-        let next = @editor.change_property_timing(
-          previous,
-          patch,
-          current_transition._get("duration").cast(),
-        )
-        store._call("setPropertyTiming", [
-          @core.any(scene_id),
-          @core.any(transition_id),
-          @core.any(object_id),
-          @core.any(channel_name),
-          next.map(@boundary.write_timing).unwrap_or(@core.null()),
-          @core.any(separate),
-        ])
-        |> ignore
+        binding.change_timing(channel, patch, separate)
         set_error("")
       },
       set_error,
@@ -117,11 +79,8 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
       ],
     ),
   ]
-  let duration : Double = transition._get("duration").cast()
-  let disabled = truthy(object._get("locked")) ||
-    playing ||
-    playback ||
-    !visible
+  let duration = animation.duration
+  let disabled = animation.locked || playing || playback || !visible
   content.push(
     h(
       "fieldset",
@@ -164,54 +123,29 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
             [],
           ),
         ]),
-        component(
-          easing_editor,
+        typed_component(
+          easing_component,
           {
-            "key": @core.any(
-              "\{scene_id}/\{transition_id}/\{object_id}/\{channel_name}",
-            ),
-            "value": @boundary.write_easing(timing.easing),
-            "label": @core.any(label + " animation easing"),
-            "onChange": @core.any(fn(value : @core.Any, separate : @core.Any) {
-              apply(
-                @editor.TimingEasing(@boundary.read_easing(value)),
-                @core.is_undefined(separate) || truthy(separate),
-              )
+            value: Some(timing.easing),
+            label: label + " animation easing",
+            on_change: fn(value, separate) {
+              apply(@editor.TimingEasing(value), separate)
+            },
+            current: Some(fn() {
+              binding
+              .property_timing(channel)
+              .map(fn(current) { current.timing.easing })
             }),
-            "getValue": @core.any(fn() {
-              let current = store
-                ._call("project", [])
-                ._get("scenes")
-                ._get(scene_id)
-              if !truthy(current) {
-                return @core.undefined()
-              }
-              let latest = current._get("transitions")._get(transition_id)
-              if !truthy(latest) {
-                return @core.undefined()
-              }
-              let animation = @boundary.visible_animation(
-                current, latest, object_id,
-              )
-              if truthy(animation) {
-                @boundary.get_property_timing(
-                  animation._get("track"),
-                  channel_name,
-                )._get("easing")
-              } else {
-                @core.undefined()
-              }
-            }),
-            "disabled": @core.any(disabled || track.type_ is Cut),
-            "disabledReason": if track.type_ is Cut {
-              @core.any(
+            disabled: disabled || track.type_ is Cut,
+            disabled_reason: if track.type_ is Cut {
+              Some(
                 "Cut は瞬時に切り替わるため、イージングを使用しません。",
               )
             } else {
-              @core.undefined()
+              None
             },
           },
-          [],
+          key=binding.target.key() + "/" + channel_name,
         ),
         h(
           "button",
@@ -249,17 +183,10 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
     )
   }
   content.push(
-    component(
-      keyframe_inspector,
-      {
-        "key": @core.any(scene_id + "/" + transition_id + "/" + object_id),
-        "object": object,
-        "transition": transition,
-        "track": input._get("track"),
-        "channel": @core.any(channel_name),
-        "disabled": @core.any(disabled),
-      },
-      [],
+    typed_component(
+      keyframe_component,
+      { animation, binding, evaluation: input.evaluation, channel, disabled, },
+      key=binding.target.key(),
     ),
   )
   if !error.is_empty() {

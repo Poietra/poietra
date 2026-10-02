@@ -120,6 +120,35 @@ test('exported panels use native selections, scopes and current external callbac
   expect(errors).toEqual([]);
 });
 
+test('exported animation controls keep native values, optional callback arguments and latest timing reads', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/tests/e2e/fixtures/editor-context.html?animation=1');
+  const command = () => page.getByTestId('command').textContent().then(value => JSON.parse(value || 'null'));
+  await page.getByRole('combobox', { name: 'External easing', exact: true }).selectOption('custom');
+  await expect.poll(command).toEqual([1, 'curve', { type: 'cubicBezier', x1: .25, y1: .1, x2: .25, y2: 1 }, 'default']);
+  await page.getByRole('button', { name: 'Replace callbacks', exact: true }).click();
+  const coordinate = page.getByRole('spinbutton', { name: 'External easing X1', exact: true });
+  await coordinate.fill('.4'); await coordinate.press('Tab');
+  await expect.poll(command).toEqual([2, 'curve', { type: 'cubicBezier', x1: .4, y1: .1, x2: .25, y2: 1 }, 'default']);
+  await page.getByRole('button', { name: 'Peer curve before render', exact: true }).click();
+  const second = page.getByRole('spinbutton', { name: 'External easing X2', exact: true });
+  await second.fill('.8'); await second.press('Tab');
+  await expect.poll(command).toEqual([2, 'curve', { type: 'cubicBezier', x1: .65, y1: .3, x2: .8, y2: .9 }, 'default']);
+  await page.getByRole('button', { name: 'Peer timing before render', exact: true }).click();
+  const duration = page.getByRole('spinbutton', { name: 'Position animation duration', exact: true });
+  // The render still has the old 100/500/linear snapshot. The command must
+  // preserve the peer's current start and easing, and write only our duration.
+  await expect(duration).toHaveValue('500');
+  await duration.fill('250'); await duration.press('Tab');
+  const expected = ['timing', 'scene-1', 'transition-1', 'circle', 'position', { start: 200, duration: 250, easing: 'easeIn' }, true];
+  await expect.poll(command).toEqual(expected);
+  await page.getByRole('button', { name: 'Remove target before render', exact: true }).click();
+  await duration.fill('150'); await duration.press('Tab');
+  expect(await command()).toEqual(expected);
+  expect(errors).toEqual([]);
+});
+
 test('presence and playback notify their consumers without rendering document panels', async ({ page }) => {
   await countEditorRenders(page);
   await open(page);

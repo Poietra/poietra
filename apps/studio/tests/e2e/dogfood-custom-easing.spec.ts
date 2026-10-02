@@ -159,6 +159,45 @@ for (const replacement of ['preset', 'custom'] as const) test(`cancelling a drag
   } finally { room.close(); }
 });
 
+test('keyframe time, value and easing edits preserve peer leaves and earlier undo during curve cancellation', async ({ page }) => {
+  const room = await fixture(page);
+  try {
+    await select(page);
+    await page.getByRole('button', { name: '中間点を追加', exact: true }).click();
+    await number(page, 'X keyframe 1 time', 35);
+    await number(page, 'X keyframe 1 value', 400);
+    const label = 'X keyframe 1 outgoing easing';
+    await custom(page, label);
+    const name = page.getByRole('textbox', { name: 'Project name', exact: true });
+    await name.fill('Keep the action before the point drag'); await name.press('Tab');
+    await expect.poll(() => Object.values(room.track().keyframes!)).toEqual([
+      { property: 'x', at: .35, value: 400, easing: curve },
+    ]);
+    const [id] = Object.keys(room.track().keyframes!);
+    const finalDrag = await dragDestination(page, label, 30, -25);
+    await expect.poll(() => room.track().keyframes![id].easing).toEqual(finalDrag);
+    const path = ['scenes', 'scene-1', 'transitions', 'transition-1', 'tracks', 'circle', 'keyframes', id];
+    const peerCurve = { ...curve, x1: .9, y1: .3 };
+    applyChanges(room.doc, [
+      { path: [...path, 'value'], value: 750 },
+      { path: [...path, 'easing'], value: peerCurve },
+    ], 'peer');
+    await expect(page.getByRole('spinbutton', { name: `${label} X1`, exact: true })).toHaveValue('0.9');
+    await page.keyboard.press('Escape'); await page.mouse.up();
+    await expect(name).toHaveValue('Keep the action before the point drag');
+    const expected = { property: 'x', at: .35, value: 750, easing: peerCurve };
+    expect(room.track().keyframes![id]).toEqual(expected);
+    await undo(page);
+    await expect(name).toHaveValue('A little motion');
+    expect(room.track().keyframes![id]).toEqual(expected);
+    await page.getByRole('button', { name: '中間点を削除', exact: true }).click();
+    await expect.poll(() => room.track().keyframes![id].deleted).toBe(true);
+    await undo(page);
+    await expect(page.getByRole('spinbutton', { name: 'X keyframe 1 value', exact: true })).toHaveValue('750');
+    expect(room.track().keyframes![id]).toEqual(expected);
+  } finally { room.close(); }
+});
+
 test('cancelling the first independent curve drag preserves a peer edit to the new property timing', async ({ page }) => {
   const room = await fixture(page);
   try {
