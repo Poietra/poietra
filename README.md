@@ -20,15 +20,17 @@ the same structured objects, so positions, colors and timings remain editable.
   intermediate keyframes and custom easing. Group, parent and clip objects.
 - Reuse motions with editable text and colors, trim audio/video, and save
   portable project files containing their media.
+- Choose landscape, portrait or custom canvas dimensions, and export browser
+  videos at 4K or a custom resolution while preserving the aspect ratio.
 - Ask `@codex` in shared chat for structured edits or generated image assets.
   Optional Google/GitHub login keeps a private list of project shortcuts.
 
-Desktop Chromium is the primary tested browser; codec support varies by device.
+Video codec support varies by browser and device.
 See the [studio guide](apps/studio/README.md) for editing, accounts and limits.
 
 ## Run locally
 
-Use Node.js **24+** (tested: 24.13.0), pnpm **10.23.0**, Python **3.12+** and
+Use Node.js **24+**, pnpm **10.23.0**, Python **3.12+** and
 MoonBit pinned by [.moon-version](.moon-version). In a POSIX shell:
 
 ```sh
@@ -75,40 +77,6 @@ used for public declarations and build/test tooling.
 
 | Read more | Contents |
 | --- | --- |
-| [Development](docs/development.md) | Architecture, commands, extension steps, checks and deployment record |
+| [Development](docs/development.md) | Architecture, commands and extension steps |
 | [Measurements](benchmarks/README.md) | Performance results, conditions, raw evidence and reproduction |
 | [Studio guide — 日本語](apps/studio/README.md) | Editing, configuration, deployment procedures and troubleshooting |
-
-## Add a feature
-
-Follow the [extension steps](docs/development.md#add-a-feature) and the
-[implementation rules](AGENTS.md). Define domain records once and regenerate
-adapters; preserve collaboration semantics and preview/export agreement.
-
-## Checks
-
-From the repository root:
-
-```sh
-pnpm test        # source audit, build, extension checks and Vitest
-pnpm typecheck  # public API contracts
-pnpm build      # production build
-```
-
-[CI](.github/workflows/check.yml) also runs MoonBit JS/WASM, browser, headless and
-real persistence/restart checks. See [test commands and scope](docs/development.md#checks)
-for choosing the suites relevant to a change.
-
-## Performance
-
-[Measurements and reproduction](benchmarks/README.md) include CI latency,
-rendering, import/memory, collaboration and export. Each result records its
-revision and conditions; local CPU or software-GPU results do not predict user FPS.
-
-## Deployment and limits
-
-The last recorded production deployment is **2026-09-22**, application `2d76eed`.
-Later commits and successful CI runs do not imply deployment. See the
-[release record and verification scope](docs/development.md#deployment-and-limits),
-[deployment procedure](apps/studio/README.md#実行と配置) and
-[current limits](apps/studio/README.md#現在の制限).

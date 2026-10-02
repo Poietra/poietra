@@ -196,5 +196,8 @@ project entry point; architecture and development instructions live in the
   Preserve raw evidence and link older explanations at a fixed Git revision.
   Date verification records; keep historical application text historical.
   Do not add ADRs/research logs unless needed.
+- 2026-10-03: READMEs describe capabilities and usage. Keep verification dates,
+  environments and deployment history in development/evidence documents, not
+  READMEs, so product descriptions stay focused on what users can do.
 - Date decisions and state the problem they resolve. Do not label untested behavior
   verified, or describe a local build/dry-run as a production deployment.
