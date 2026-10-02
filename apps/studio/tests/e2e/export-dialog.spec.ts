@@ -9,6 +9,36 @@ async function ready(page: Page, index = 0) {
 async function start(page: Page) { await page.getByRole('button', { name: 'Export video', exact: true }).click(); }
 test.beforeEach(async ({ page }) => { await page.goto('/tests/e2e/fixtures/export-dialog.html'); });
 
+test('the studio keeps the export session when an Undo notification expires', async ({ page }) => {
+  await page.clock.install();
+  await page.goto(`/tests/e2e/fixtures/export-dialog.html?studio=1&room=${crypto.randomUUID()}`);
+  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await page.getByTestId('stage-main').click({ position: { x: 10, y: 10 } });
+  const width = page.getByRole('spinbutton', { name: 'Canvas width', exact: true });
+  await width.fill('1600'); await width.press('Tab');
+  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(width).toHaveValue('1280');
+  await expect(page.locator('.toast')).toBeVisible();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await ready(page);
+  const resolution = page.getByRole('combobox', { name: 'Export resolution' });
+  await resolution.selectOption('2160');
+  await start(page);
+  await page.evaluate(() => window.exportDialogProbe.progress(0, .25));
+  await page.clock.runFor(4000);
+  await expect(page.locator('.toast')).toHaveCount(0);
+  await expect(resolution).toHaveValue('2160');
+  await expect(resolution).toBeDisabled();
+  await expect(page.getByRole('progressbar')).toHaveAttribute('value', '0.25');
+  expect((await page.evaluate(() => window.exportDialogProbe.state())).exports).toMatchObject([
+    { width: 3840, height: 2160, aborted: false },
+  ]);
+  const downloading = page.waitForEvent('download');
+  await page.evaluate(() => window.exportDialogProbe.finish(0));
+  await downloading;
+  await expect(page.getByRole('button', { name: 'Download again', exact: true })).toBeVisible();
+});
+
 test('4K follows the current source orientation and freezes the chosen dimensions', async ({ page }) => {
   await open(page); await ready(page);
   const resolution = page.getByRole('combobox', { name: 'Export resolution' });

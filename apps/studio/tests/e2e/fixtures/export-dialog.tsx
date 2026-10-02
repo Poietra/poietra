@@ -51,4 +51,12 @@ function Fixture() {
   probe.changeSource = (width, height, sceneName, projectName) => setProject(previous => ({ ...previous, name: projectName, scenes: { ...previous.scenes, 'scene-1': { ...previous.scenes['scene-1'], width, height, name: sceneName } } }));
   return <>{mounted && <ExportDialog open={open} onOpenChange={setOpen} exporter={exporter} scene={scene} project={projectMode ? project : undefined} kernel={kernel} name={name}/>}</>;
 }
-createRoot(document.getElementById('root')!).render(<StrictMode><Fixture/></StrictMode>);
+const root = createRoot(document.getElementById('root')!);
+if (new URLSearchParams(location.search).has('studio')) {
+  const [{ App }, { EditorStore, currentRoom }, { loadKernel }, renderer] = await Promise.all([
+    import('../../../src/App'), import('../../../src/editor/store'),
+    import('../../../src/engine/kernel'), import('../../../src/engine/renderer'),
+  ]);
+  const store = new EditorStore(currentRoom()), kernel = await loadKernel();
+  root.render(<StrictMode><App store={store} kernel={kernel} renderer={renderer} exporter={exporter}/></StrictMode>);
+} else root.render(<StrictMode><Fixture/></StrictMode>);

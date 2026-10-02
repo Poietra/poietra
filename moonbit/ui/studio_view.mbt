@@ -371,7 +371,11 @@ fn studio_view(
     )
   }
   nodes.push(
-    component(studio_dialogs_view, { "controller": @core.any(controller) }, []),
+    component(
+      studio_dialogs_view,
+      { "key": @core.any("dialogs"), "controller": @core.any(controller) },
+      [],
+    ),
   )
   h(
     "div",
