@@ -3,11 +3,12 @@ fn StageController::finish(self : StageController, cancel : Bool) -> Unit {
   guard self.gesture.get_current() is Some(current) else { return }
   self.gesture.set_current(None)
   @core.throwable(fn() {
+    let history = current.binding.history()
     if cancel &&
-      truthy(current.undo) &&
-      !@core.equal(current.undo, current.undo_before) &&
-      @core.equal(top_undo(self.store), current.undo) {
-      self.store._call("rollbackGesture", [current.undo]) |> ignore
+      current.undo is Some(entry) &&
+      current.undo != current.undo_before &&
+      history.top() == current.undo {
+      history.rollback(entry)
     }
   }) catch {
     failure =>
@@ -20,7 +21,7 @@ fn StageController::finish(self : StageController, cancel : Bool) -> Unit {
   }
   match current.mode {
     SelectArea(area) => if cancel { self.select(host_array(area.initial)) }
-    _ => ui_quiet(self.store, "endGesture")
+    _ => current.binding.history().end()
   }
   (self.draw)(None)
   (self.marquee)(None)
@@ -43,20 +44,18 @@ fn StageController::finish(self : StageController, cancel : Bool) -> Unit {
       }
     }
     (self.report)(
-      encode_status(
-        Some({
-          kind: if cancel {
-            @editor.Cancelled
-          } else {
-            @editor.Complete
-          },
-          label,
-          detail,
-        }),
-      ),
+      Some({
+        kind: if cancel {
+          @editor.Cancelled
+        } else {
+          @editor.Complete
+        },
+        label,
+        detail,
+      }),
     )
   } else {
-    (self.report)(@core.null())
+    (self.report)(None)
   }
   @core.throwable(fn() {
     if truthy(
@@ -77,7 +76,7 @@ fn StageController::feedback(
   self : StageController,
   current : StageGesture,
   at : @scene.Point,
-  patch : @core.Any?,
+  value : StageTransformValue?,
 ) -> Unit {
   let coordinate = @boundary.format_milliseconds
   let (label, detail) = match current.mode {
@@ -104,23 +103,20 @@ fn StageController::feedback(
         "X " + coordinate(at.x) + " · Y " + coordinate(at.y),
       )
     TransformObject(_, @editor.RotateObject, state, _, _) => {
-      let rotation : Double = patch
-        .map(fn(patch) { optional_number(patch, "rotation", state.rotation) })
-        .unwrap_or(state.rotation)
+      let rotation = match value {
+        Some(Rotation(rotation)) => rotation
+        _ => state.rotation
+      }
       ("回転", coordinate(rotation) + "° · Shift で角度を固定")
     }
     TransformObject(_, _, state, _, _) => {
-      let detail = if patch is Some(patch) &&
-        !@core.is_undefined(patch._get("fontSize")) {
-        coordinate(patch._get("fontSize").cast()) + " px"
-      } else {
-        let width = patch
-          .map(fn(patch) { optional_number(patch, "width", state.width) })
-          .unwrap_or(state.width)
-        let height = patch
-          .map(fn(patch) { optional_number(patch, "height", state.height) })
-          .unwrap_or(state.height)
-        coordinate(width) + " × " + coordinate(height) + " px"
+      let (width, height, font_size) = match value {
+        Some(Size(size)) => (size.width, size.height, size.font_size)
+        _ => (state.width, state.height, None)
+      }
+      let detail = match font_size {
+        Some(size) => coordinate(size) + " px"
+        None => coordinate(width) + " × " + coordinate(height) + " px"
       }
       ("サイズを変更", detail)
     }
@@ -143,7 +139,7 @@ fn StageController::feedback(
     detail: Some(detail),
   }
   current.feedback = Some(status)
-  (self.report)(encode_status(Some(status)))
+  (self.report)(Some(status))
 }
 
 ///|
@@ -155,7 +151,7 @@ fn StageController::capture(
   self.gesture.set_current(Some(gesture))
   if !(gesture.mode is SelectArea(_)) {
     self.feedback(gesture, gesture.start, None)
-    self.store._call("beginGesture", []) |> ignore
+    gesture.binding.history().begin()
   }
   try
     @core.throwable(fn() {
@@ -200,11 +196,12 @@ fn StageController::double_click(
   guard self.point(event) is Some(at) && self.hit(at, target) is Some(id) else {
     return
   }
-  let object = self.scene._get("objects")._get(id)
-  if !truthy(object) || truthy(object._get("locked")) {
+  guard self.binding.current() is Some(snapshot) &&
+    snapshot.object(id) is Some(object) &&
+    !object.locked else {
     return
   }
-  let kind = @boundary.read_object_kind(object._get("kind"))
+  let kind = object.kind
   if !(kind is Text || kind is Equation) {
     return
   }

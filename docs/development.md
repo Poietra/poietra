@@ -33,8 +33,13 @@ The boundaries to preserve are:
   Property timing, keyframes, easing and timeline tracks also retain typed values
   and callbacks through their inspectors and gestures (`ui/animation_model.mbt`).
   Timeline row models contain display metadata and timing values; operation
-  feedback uses the domain status type through rendering. The native
-  adapters translate public JS props, targeted document reads and leaf commands;
+  feedback uses the domain status type through rendering. Canvas gestures carry
+  typed transforms, Bézier control points and positions to `ui/stage_native.mbt`, which
+  reads current object metadata and encodes only the edited fields. Gesture
+  bindings retain their original Scene/Composition and native Undo owner.
+  Path gestures preserve the shared path/control-point maps, so Undo and
+  concurrent edits retain the other control point. The native adapters translate
+  public JS props, targeted document reads and leaf commands;
   gesture history uses opaque identities (`ui/gesture_native.mbt`). This separation
   was extended on 2026-10-03 to keep JavaScript records out of editing logic.
   Property timing commands read current leaves before planning an edit, preserving

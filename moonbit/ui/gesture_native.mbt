@@ -24,11 +24,14 @@ fn native_gesture_history(store : @core.Any) -> GestureHistory {
 
 ///|
 fn GestureHistory::top(self : GestureHistory) -> UndoEntry? {
-  let value = top_undo(@core.any(self))
-  if @core.is_undefined(value) {
+  let stack : FixedArray[UndoEntry] = @core.any(self)
+    ._get("undoManager")
+    ._get("undoStack")
+    .cast()
+  if stack.is_empty() {
     None
   } else {
-    Some(value.cast())
+    Some(stack[stack.length() - 1])
   }
 }
 
@@ -47,16 +50,3 @@ extern "js" fn GestureHistory::rollback(
   entry : UndoEntry,
 ) -> Unit =
   #|(store, entry) => { store.rollbackGesture(entry); }
-
-///|
-fn top_undo(store : @core.Any) -> @core.Any {
-  let stack : FixedArray[@core.Any] = store
-    ._get("undoManager")
-    ._get("undoStack")
-    .cast()
-  if stack.is_empty() {
-    @core.undefined()
-  } else {
-    stack[stack.length() - 1]
-  }
-}

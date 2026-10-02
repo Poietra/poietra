@@ -8,25 +8,24 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
   let element = event._get("currentTarget")
   element._call("focus", [host_record({ "preventScroll": @core.any(true) })])
   |> ignore
-  let scene = self.store._call("scene", [@core.any(self.scene_id)])
+  guard self.binding.current() is Some(snapshot) else { return }
   guard self.point(event) is Some(start) else { return }
   let target = event._get("target")
   let make = fn(mode : StageMode) {
     StageGesture::{
       pointer: event._get("pointerId").cast(),
-      scene_id: self.scene_id,
-      composition_id: self.composition_id,
+      binding: self.binding,
       start,
       mode,
       element,
-      undo_before: top_undo(self.store),
-      undo: @core.undefined(),
+      undo_before: self.binding.history().top(),
+      undo: None,
       changed: false,
       feedback: None,
     }
   }
   (self.hover)(None)
-  (self.report)(@core.null())
+  (self.report)(None)
   let selected = if self.selected.length() == 1 {
     Some(self.selected[0])
   } else {
@@ -38,15 +37,15 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
     None => None
   }
   let mode = if handle is Some(handle) && selected is Some(id) {
-    let object = scene._get("objects")._get(id)
+    let object = snapshot.object(id)
     let selection = self.editor.selection
     let transition = if selection is TransitionSelection(_) {
       Some(selection.id())
     } else {
       None
     }
-    if !truthy(object) ||
-      truthy(object._get("locked")) ||
+    if object is None ||
+      object.unwrap().locked ||
       (transition is None && !self.state_editing) {
       return
     }
@@ -60,33 +59,13 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
       transition,
     )
   } else if transform is Some(transform) && selected is Some(id) {
-    let object = scene._get("objects")._get(id)
-    if !self.state_editing || !truthy(object) || truthy(object._get("locked")) {
+    guard self.state_editing &&
+      snapshot.object(id) is Some(object) &&
+      !object.locked &&
+      self.binding.transform_start(snapshot, id) is Some((state, width, height)) else {
       return
     }
-    let stored = @boundary.state_for(scene, self.composition_id, id)
-    if !truthy(stored) || !truthy(stored._get("visible")) {
-      return
-    }
-    let state = @boundary.read_object_state(stored)
-    let bounds = stage_bounds(
-      self.renderer._call("objectBounds", [
-        host_record({
-          "object": object,
-          "state": stored,
-          "writeProgress": @core.any(1),
-          "order": @core.any("together"),
-        }),
-      ]),
-    )
-    let stroke = state.strokeWidth.max(0.0)
-    TransformObject(
-      id,
-      transform,
-      state,
-      bounds.width - stroke,
-      bounds.height - stroke,
-    )
+    TransformObject(id, transform, state, width, height)
   } else if self.tool is DrawTool(kind) {
     if !self.state_editing {
       return
@@ -103,11 +82,12 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
     DrawObject(kind)
   } else {
     let id = self.hit(start, target)
-    let object = id
-      .map(fn(id) { scene._get("objects")._get(id) })
-      .unwrap_or(@core.undefined())
+    let object = match id {
+      Some(id) => snapshot.object(id)
+      None => None
+    }
     let additive = truthy(event._get("shiftKey"))
-    if !truthy(object) || id is None {
+    if object is None || id is None {
       let area : StageMarquee = {
         initial: self.selected.iter().to_array(),
         additive,
@@ -128,22 +108,10 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
       [id]
     }
     self.select(host_array(ids))
-    if !self.state_editing || truthy(object._get("locked")) || !ids.contains(id) {
+    if !self.state_editing || object.unwrap().locked || !ids.contains(id) {
       return
     }
-    let linked : FixedArray[String] = self.store
-      ._call("linkedIds", [@core.any(self.scene_id), @core.any(host_array(ids))])
-      .cast()
-    let positions : Map[String, @scene.Point] = Map([])
-    for id in linked {
-      let state = @boundary.state_for(scene, self.composition_id, id)
-      if truthy(state) && truthy(state._get("visible")) {
-        positions[id] = {
-          x: state._get("x").cast(),
-          y: state._get("y").cast(),
-        }
-      }
-    }
+    let positions = snapshot.positions(self.binding.linked_ids(ids))
     MoveObjects(positions)
   }
   self.capture(event, make(mode))
@@ -159,7 +127,7 @@ fn StageController::up(self : StageController, event : @core.Any) -> Unit {
     return
   }
   if current.mode is DrawObject(kind) {
-    guard self.point(event) is Some(at) else {
+    guard current.binding.current() is Some(_) && self.point(event) is Some(at) else {
       self.finish(true)
       return
     }
@@ -184,19 +152,15 @@ fn StageController::up(self : StageController, event : @core.Any) -> Unit {
         truthy(event._get("shiftKey")),
       )
     }
-    let id : String = self.store
-      ._call("addObject", [
-        @core.any(current.scene_id),
-        @core.any(current.composition_id),
-        @core.any(@scene.object_kind_name(kind)),
-        @boundary.write_object_state(state),
-      ])
-      .cast()
+    let id = current.binding.add_object(kind, state)
     self.finish(false)
     self.select([id])
     (self.editor.actions.set_tool)(@editor.SelectTool)
     if kind is Text || kind is Equation {
-      (self.editor.actions.request_text_edit)(id, current.composition_id)
+      (self.editor.actions.request_text_edit)(
+        id,
+        current.binding.composition_id,
+      )
     }
   } else {
     self.finish(false)

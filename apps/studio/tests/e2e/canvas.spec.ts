@@ -1,4 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+import WebSocket from 'ws';
+import { applyChanges, readProject } from '../../shared/document';
 
 async function open(page: Page) {
   await page.goto(`/?room=${crypto.randomUUID()}`);
@@ -24,6 +28,97 @@ async function origin(page: Page, id = 'circle') {
   const result = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(transform || '');
   return { x: Number(result![1]), y: Number(result![2]) };
 }
+
+async function peer(page: Page) {
+  const doc = new Y.Doc(), endpoint = new URL(page.url());
+  const room = endpoint.searchParams.get('room')!;
+  endpoint.protocol = endpoint.protocol === 'https:' ? 'wss:' : 'ws:'; endpoint.pathname = '/sync'; endpoint.search = '';
+  const provider = new WebsocketProvider(endpoint.toString(), room, doc, { WebSocketPolyfill: WebSocket as never, disableBc: true });
+  const close = () => { provider.destroy(); doc.destroy(); };
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Canvas peer did not sync')), 10000);
+      provider.on('sync', synced => { if (synced) { clearTimeout(timer); resolve(); } });
+    });
+  } catch (error) { close(); throw error; }
+  return { doc, scene: () => readProject(doc)!.scenes['scene-1'], close };
+}
+
+test('resize starts from a committed draft and preserves peer fields through Undo and lock cancellation', async ({ page }) => {
+  await open(page); await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  const data = await peer(page);
+  try {
+    const composition = data.scene().compositionOrder[0];
+    const state = () => data.scene().compositions[composition].states.circle;
+    const initial = structuredClone(state());
+    const statePath = ['scenes', 'scene-1', 'compositions', composition, 'states', 'circle'];
+    const width = page.getByRole('spinbutton', { name: 'Width', exact: true });
+    const stage = page.getByTestId('stage-main');
+    // Pointer focus must commit the draft before capturing the resize baseline.
+    await width.fill('90');
+    const at = await center(stage.locator('[data-transform-handle="se"]'));
+    await page.mouse.move(at.x, at.y); await page.mouse.down();
+    await expect.poll(() => state().width).toBe(90);
+    await page.mouse.move(at.x + 20, at.y + 10, { steps: 3 });
+    await expect.poll(() => state().width).toBeGreaterThan(90);
+    applyChanges(data.doc, [
+      { path: [...statePath, 'fill'], value: '#f4ce55' },
+      { path: [...statePath, 'fontSize'], value: 91 },
+    ], 'peer');
+    await expect(shape(page)).toHaveAttribute('fill', '#f4ce55');
+    await page.mouse.move(at.x + 40, at.y + 20, { steps: 3 }); await page.mouse.up();
+    await expect.poll(() => state().width).toBeGreaterThan(130);
+    expect(state()).toMatchObject({ fill: '#f4ce55', fontSize: 91 });
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect.poll(() => state().width).toBe(90);
+    expect(state()).toMatchObject({ x: initial.x, y: initial.y, fill: '#f4ce55', fontSize: 91 });
+
+    const next = await center(stage.locator('[data-transform-handle="se"]'));
+    await page.mouse.move(next.x, next.y); await page.mouse.down();
+    await page.mouse.move(next.x + 25, next.y + 15, { steps: 3 });
+    await expect.poll(() => state().width).toBeGreaterThan(90);
+    applyChanges(data.doc, [{ path: ['scenes', 'scene-1', 'objects', 'circle', 'locked'], value: true }], 'peer');
+    await expect(stage.locator('[data-transform-handle]')).toHaveCount(0);
+    await page.mouse.move(next.x + 35, next.y + 20); await page.mouse.up();
+    await expect(stage.locator('.stage-feedback')).toHaveAttribute('data-feedback-state', 'cancelled');
+    await expect.poll(() => state().width).toBe(90);
+    expect(state()).toMatchObject({ x: initial.x, y: initial.y, fill: '#f4ce55', fontSize: 91 });
+    expect(data.scene().objects.circle.locked).toBe(true);
+    // Cancellation must leave the earlier draft edit available as the next Undo.
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect.poll(() => state().width).toBe(initial.width);
+    expect(state()).toMatchObject({ fill: '#f4ce55', fontSize: 91 });
+  } finally { data.close(); }
+});
+
+for (const transition of [false, true]) test(`Bézier gestures retain the other peer-edited control point on cancellation (transition=${transition})`, async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: transition ? 'Circle' : 'Sigmoid path', exact: true }).click();
+  if (transition) {
+    await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit Bézier path', exact: true }).click();
+  }
+  const data = await peer(page);
+  try {
+    const composition = data.scene().compositionOrder[0];
+    const path = () => transition ? data.scene().transitions['transition-1'].tracks.circle.path! : data.scene().compositions[composition].states.sigmoid.path;
+    const base = ['scenes', 'scene-1', ...(transition ? ['transitions', 'transition-1', 'tracks', 'circle'] : ['compositions', composition, 'states', 'sigmoid']), 'path'];
+    const initial = structuredClone(path());
+    const handle = page.locator('[data-path-handle="c1"]'), other = page.locator('[data-path-handle="c2"]');
+    const at = await center(handle), beforeOther = await center(other);
+    await page.mouse.move(at.x, at.y); await page.mouse.down();
+    await page.mouse.move(at.x + 20, at.y - 10, { steps: 3 });
+    await expect.poll(() => path().c1).not.toEqual(initial.c1);
+    const c2 = { x: initial.c2.x + 20, y: initial.c2.y + 30 };
+    applyChanges(data.doc, [{ path: [...base, 'c2', 'x'], value: c2.x }, { path: [...base, 'c2', 'y'], value: c2.y }], 'peer');
+    await expect.poll(() => center(other)).not.toEqual(beforeOther);
+    await page.mouse.move(at.x + 35, at.y - 20, { steps: 3 });
+    await expect.poll(async () => (await center(handle)).x - at.x).toBeCloseTo(35, 0);
+    await expect.poll(async () => (await center(handle)).y - at.y).toBeCloseTo(-20, 0);
+    await page.keyboard.press('Escape'); await page.mouse.up();
+    await expect.poll(() => path()).toEqual({ c1: initial.c1, c2 });
+  } finally { data.close(); }
+});
 
 test('resize keeps the opposite corner fixed, rotation snaps, and each gesture can be undone', async ({ page }) => {
   await open(page); await page.getByRole('button', { name: 'Circle', exact: true }).click();

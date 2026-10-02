@@ -14,6 +14,18 @@ priv struct StageMarquee {
 }
 
 ///|
+priv struct StageObjectInfo {
+  kind : @scene.ObjectKind
+  locked : Bool
+}
+
+///|
+priv enum StageTransformValue {
+  Rotation(Double)
+  Size(@geometry.Resize)
+}
+
+///|
 priv enum StageMode {
   MoveObjects(Map[String, @scene.Point])
   DrawObject(@scene.ObjectKind)
@@ -31,13 +43,12 @@ priv enum StageMode {
 ///|
 priv struct StageGesture {
   pointer : Int
-  scene_id : String
-  composition_id : String
+  binding : StageBinding
   start : @scene.Point
   mode : StageMode
   element : @core.Any
-  undo_before : @core.Any
-  mut undo : @core.Any
+  undo_before : UndoEntry?
+  mut undo : UndoEntry?
   mut changed : Bool
   mut feedback : @editor.OperationStatus?
 }
@@ -45,6 +56,7 @@ priv struct StageGesture {
 ///|
 priv struct StageController {
   editor : EditorView
+  binding : StageBinding
   scene : @core.Any
   store : @core.Any
   renderer : @core.Any
@@ -64,7 +76,7 @@ priv struct StageController {
   draw : (@scene.ObjectState?) -> Unit
   marquee : (@geometry.Rectangle?) -> Unit
   hover : (String?) -> Unit
-  report : (@core.Any) -> Unit
+  report : (@editor.OperationStatus?) -> Unit
 }
 
 ///|
@@ -211,4 +223,34 @@ fn StageController::path_parent(
     }
   }
   @boundary.parent_matrix(self.scene, self.composition_id, id)
+}
+
+///|
+/// Marquee and point selection both use the frame actually presented by the
+/// renderer, including its world matrices and visibility during playback.
+fn StageController::enclosed(
+  self : StageController,
+  rectangle : @geometry.Rectangle,
+) -> Array[String] {
+  let enclosed : Array[String] = []
+  let objects : FixedArray[@core.Any] = self.frame._get("objects").cast()
+  for item in objects {
+    let state = item._get("state")
+    let id : String = item._get("object")._get("id").cast()
+    let opacity : Double = state._get("opacity").cast()
+    let progress : Double = item._get("writeProgress").cast()
+    if truthy(self.scene._get("objects")._get(id)) &&
+      truthy(state._get("visible")) &&
+      opacity > 0.0 &&
+      progress > 0.0 &&
+      @geometry.rectangle_contains_matrix(
+        rectangle,
+        stage_bounds(self.renderer._call("objectBounds", [item])),
+        { x: state._get("x").cast(), y: state._get("y").cast(), },
+        stage_item_matrix(item),
+      ) {
+      enclosed.push(id)
+    }
+  }
+  enclosed
 }

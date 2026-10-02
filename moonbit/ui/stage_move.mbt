@@ -21,8 +21,7 @@ fn StageController::pointer_move(
     let cursor = if handle {
       ""
     } else if id is Some(id) {
-      let object = self.scene._get("objects")._get(id)
-      if truthy(object) && truthy(object._get("locked")) {
+      if stage_object_locked(self.scene, id) {
         "not-allowed"
       } else if self.state_editing {
         "move"
@@ -40,14 +39,7 @@ fn StageController::pointer_move(
     .cast()
   if now - self.cursor_time.get_current().unwrap_or(0.0) > 40.0 {
     self.cursor_time.set_current(Some(now))
-    self.store._call("presence", [
-      host_record({
-        "sceneId": @core.any(self.scene_id),
-        "compositionId": @core.any(self.composition_id),
-        "cursor": stage_point(at),
-      }),
-    ])
-    |> ignore
+    self.binding.presence(Some(at))
   }
   guard self.gesture.get_current() is Some(current) else { return }
   if current.pointer != event._get("pointerId").cast() {
@@ -70,23 +62,8 @@ fn StageController::pointer_move(
       } else {
         []
       }
-      let objects : FixedArray[@core.Any] = self.frame._get("objects").cast()
-      for item in objects {
-        let state = item._get("state")
-        let id : String = item._get("object")._get("id").cast()
-        let opacity : Double = state._get("opacity").cast()
-        let progress : Double = item._get("writeProgress").cast()
-        if truthy(self.scene._get("objects")._get(id)) &&
-          truthy(state._get("visible")) &&
-          opacity > 0.0 &&
-          progress > 0.0 &&
-          @geometry.rectangle_contains_matrix(
-            rectangle,
-            stage_bounds(self.renderer._call("objectBounds", [item])),
-            { x: state._get("x").cast(), y: state._get("y").cast(), },
-            stage_item_matrix(item),
-          ) &&
-          !enclosed.contains(id) {
+      for id in self.enclosed(rectangle) {
+        if !enclosed.contains(id) {
           enclosed.push(id)
         }
       }
@@ -101,7 +78,7 @@ fn StageController::pointer_move(
         detail: Some("\{enclosed.length()} 個 · Esc で戻す"),
       }
       current.feedback = Some(status)
-      (self.report)(encode_status(Some(status)))
+      (self.report)(Some(status))
       return
     }
     DrawObject(kind) => {
@@ -116,15 +93,20 @@ fn StageController::pointer_move(
     }
     _ => ()
   }
-  let scene = self.store._call("scene", [@core.any(current.scene_id)])
+  let binding = current.binding
+  guard binding.current() is Some(snapshot) else {
+    self.finish(true)
+    return
+  }
   let object_id = match current.mode {
     EditPath(id, _, _) | TransformObject(id, _, _, _, _) => Some(id)
     _ => None
   }
-  let object = object_id
-    .map(fn(id) { scene._get("objects")._get(id) })
-    .unwrap_or(@core.undefined())
-  if object_id is Some(_) && (!truthy(object) || truthy(object._get("locked"))) {
+  let object = match object_id {
+    Some(id) => snapshot.object(id)
+    None => None
+  }
+  if object_id is Some(_) && (object is None || object.unwrap().locked) {
     self.finish(true)
     return
   }
@@ -133,77 +115,32 @@ fn StageController::pointer_move(
     self.scale
   match current.mode {
     EditPath(id, handle, transition_id) => {
-      let key = if handle is First { "c1" } else { "c2" }
-      match transition_id {
-        Some(transition_id) => {
-          let transition = scene._get("transitions")._get(transition_id)
-          let track = if truthy(transition) {
-            transition._get("tracks")._get(id)
-          } else {
-            @core.undefined()
-          }
-          if truthy(track) && truthy(track._get("path")) {
-            let path = ui_shallow_copy(track._get("path"))
-            guard self.path_parent(id).inverse() is Some(inverse) else {
-              return
-            }
-            path._set(key, stage_point(inverse.point(at)))
-            self.store._call("setTrack", [
-              @core.any(current.scene_id),
-              @core.any(transition_id),
-              @core.any(id),
-              host_record({ "path": path }),
-              @core.any(false),
-            ])
-            |> ignore
-          }
+      if snapshot.has_path(id, transition_id) {
+        let matrix = match transition_id {
+          Some(_) => self.path_parent(id)
+          None => snapshot.object_matrix(id)
         }
-        None => {
-          let state = @boundary.state_for(scene, current.composition_id, id)
-          if truthy(state) {
-            let path = ui_shallow_copy(state._get("path"))
-            path._set(
-              key,
-              stage_point(
-                match
-                  @boundary.object_matrix(scene, current.composition_id, id).inverse() {
-                  Some(inverse) => inverse.point(at)
-                  None => return
-                },
-              ),
-            )
-            self.store._call("updateState", [
-              @core.any(current.scene_id),
-              @core.any(current.composition_id),
-              @core.any(id),
-              host_record({ "path": path }),
-              @core.any(false),
-            ])
-            |> ignore
-          }
-        }
+        guard matrix.inverse() is Some(inverse) else { return }
+        binding.set_path_point(id, transition_id, handle, inverse.point(at))
       }
       self.feedback(current, at, None)
     }
     TransformObject(id, transform, state, width, height) => {
-      guard @boundary.parent_matrix(scene, current.composition_id, id).inverse()
-        is Some(inverse) else {
+      guard snapshot.parent_matrix(id).inverse() is Some(inverse) else {
         return
       }
       let start_local = inverse.point(current.start)
       let at_local = inverse.point(at)
-      let kind = @boundary.read_object_kind(object._get("kind"))
-      let patch = if transform is RotateObject {
-        host_record({
-          "rotation": @core.any(
-            @geometry.rotation_from_pointer(
-              { x: state.x, y: state.y, rotation: state.rotation, },
-              start_local,
-              at_local,
-              shift,
-            ),
+      let kind = object.unwrap().kind
+      let value : StageTransformValue = if transform is RotateObject {
+        Rotation(
+          @geometry.rotation_from_pointer(
+            { x: state.x, y: state.y, rotation: state.rotation, },
+            start_local,
+            at_local,
+            shift,
           ),
-        })
+        )
       } else {
         let changed = @geometry.resize_from_corner(
           state,
@@ -218,26 +155,10 @@ fn StageController::pointer_move(
           },
           kind is Text || kind is Equation,
         )
-        let patch = host_record({
-          "x": @core.any(changed.x),
-          "y": @core.any(changed.y),
-          "width": @core.any(changed.width),
-          "height": @core.any(changed.height),
-        })
-        if changed.font_size is Some(size) {
-          patch._set("fontSize", @core.any(size))
-        }
-        patch
+        Size(changed)
       }
-      self.store._call("updateState", [
-        @core.any(current.scene_id),
-        @core.any(current.composition_id),
-        @core.any(id),
-        patch,
-        @core.any(false),
-      ])
-      |> ignore
-      self.feedback(current, at, Some(patch))
+      binding.set_transform(id, value)
+      self.feedback(current, at, Some(value))
     }
     MoveObjects(positions) => {
       let mut dx = at.x - current.start.x
@@ -249,21 +170,13 @@ fn StageController::pointer_move(
           dx = 0.0
         }
       }
-      let targets = @core.new_object()
+      let targets : Map[String, @scene.Point] = Map([])
       for id, position in positions {
-        let object = scene._get("objects")._get(id)
-        if !truthy(object) || !truthy(object._get("locked")) {
-          targets._set(id, stage_point(position))
+        if snapshot.object(id) is Some(object) && !object.locked {
+          targets[id] = position
         }
       }
-      self.store._call("translate", [
-        @core.any(current.scene_id),
-        @core.any(current.composition_id),
-        targets,
-        @core.any(dx),
-        @core.any(dy),
-      ])
-      |> ignore
+      binding.translate(targets, { x: dx, y: dy, })
       self.feedback(
         current,
         { x: current.start.x + dx, y: current.start.y + dy, },
@@ -272,5 +185,5 @@ fn StageController::pointer_move(
     }
     _ => ()
   }
-  current.undo = top_undo(self.store)
+  current.undo = binding.history().top()
 }

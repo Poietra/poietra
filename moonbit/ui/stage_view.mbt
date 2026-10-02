@@ -7,7 +7,7 @@ fn stage_view(
   marquee : @geometry.Rectangle?,
   on_present : (StagePresentation?) -> Unit,
   hover_id : String,
-  feedback : @core.Any,
+  feedback : @editor.OperationStatus?,
   prepared : PreparedFrameState,
   key : String,
   svg : @react.Element,
@@ -61,27 +61,23 @@ fn stage_view(
     } else {
       "ドラッグで移動"
     }
-    encode_status(
-      Some({
-        kind: if idle_locked {
-          @editor.Locked
-        } else {
-          @editor.Inactive
-        },
-        label: object._get("name").cast(),
-        detail: Some(detail),
-      }),
-    )
+    Some(@editor.OperationStatus::{
+      kind: if idle_locked {
+        @editor.Locked
+      } else {
+        @editor.Inactive
+      },
+      label: object._get("name").cast(),
+      detail: Some(detail),
+    })
   } else if selection.length() > 1 {
-    encode_status(
-      Some({
-        kind: @editor.Inactive,
-        label: "\{selection.length()} 個を選択",
-        detail: Some("Shift で選択を追加・解除"),
-      }),
-    )
+    Some(@editor.OperationStatus::{
+      kind: @editor.Inactive,
+      label: "\{selection.length()} 個を選択",
+      detail: Some("Shift で選択を追加・解除"),
+    })
   } else {
-    @core.null()
+    None
   }
   let factory = controller.editor.create_frame_painter
   let content : Array[&@react.ReactNode] = []
@@ -121,25 +117,21 @@ fn stage_view(
   }
   content.push(svg)
   content.push(stage_overlay(controller, selection, hovered, marquee))
-  let active = truthy(feedback) && feedback._get("kind").cast() == "active"
-  let cancelled = truthy(feedback) &&
-    feedback._get("kind").cast() == "cancelled"
+  let active = feedback is Some({ kind: @editor.Active, .. })
+  let cancelled = feedback is Some({ kind: @editor.Cancelled, .. })
   if controller.can_edit {
     content.push(
-      component(
-        operation_feedback,
-        {
-          "status": if idle_locked && !active && !cancelled {
-            idle
-          } else if truthy(feedback) {
-            feedback
-          } else {
-            idle
-          },
-          "className": @core.any("stage-feedback"),
+      typed_component(operation_feedback_component, {
+        status: if idle_locked && !active && !cancelled {
+          idle
+        } else {
+          match feedback {
+            Some(_) => feedback
+            None => idle
+          }
         },
-        [],
-      ),
+        class_name: Some("stage-feedback"),
+      }),
     )
   }
   if prepared.failure is Some(_) || !prepared.ready {
@@ -228,10 +220,7 @@ fn stage_view(
           "onLostPointerCapture": @core.any(fn() { controller.finish(true) }),
           "onPointerLeave": @core.any(fn() {
             if controller.gesture.get_current() is None {
-              controller.store._call("presence", [
-                host_record({ "cursor": @core.null() }),
-              ])
-              |> ignore
+              controller.binding.presence(None)
               (controller.hover)(None)
               if controller.surface.get_current() is Some(element) {
                 element._get("style")._set("cursor", @core.any(""))

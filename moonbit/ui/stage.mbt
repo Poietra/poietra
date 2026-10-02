@@ -36,7 +36,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
   let (painted, set_painted) = @react.use_state((None : StagePresentation?))
   let (failed_canvas, set_failed_canvas) = @react.use_state((None : String?))
   let (hover_id, set_hover_id) = @react.use_state("")
-  let feedback = use_operation_feedback(
+  let feedback = use_operation_feedback_state(
     "\{scene_id}:\{composition_id}:\{prefix}",
   )
   @react.use_effect(
@@ -150,6 +150,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
   let selected : FixedArray[String] = editor.selected_ids
   let controller : StageController = {
     editor,
+    binding: native_stage_binding(store, renderer, scene_id, composition_id),
     scene,
     store,
     renderer,
@@ -169,7 +170,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     draw: set_draw_preview,
     marquee: set_marquee,
     hover: fn(id) { set_hover_id(id.unwrap_or("")) },
-    report: feedback._get("report").cast(),
+    report: feedback.report,
   }
   @react.use_effect(
     fn() {
@@ -224,7 +225,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     marquee,
     set_painted,
     hover_id,
-    feedback._get("feedback"),
+    feedback.status,
     prepared,
     key,
     svg,
