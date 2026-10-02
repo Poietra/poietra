@@ -10,23 +10,21 @@ priv struct TrackGesture {
   mut last_start : Double
   mut last_duration : Double
   mut materialized : Bool
-  undo_before : @core.Any
-  mut undo : @core.Any
+  undo_before : UndoEntry?
+  mut undo : UndoEntry?
   element : @core.Any
 }
 
 ///|
 priv struct TrackController {
-  store : @core.Any
-  scene_id : String
-  transition_id : String
-  object_id : String
+  binding : AnimationBinding
+  history : GestureHistory
   object_name : String
   label : String
   channel : @scene.PropertyChannel?
   lane : @react.ReactRef[@core.Any]
   drag : @react.ReactRef[TrackGesture]
-  report : (@core.Any) -> Unit
+  report : (@editor.OperationStatus?) -> Unit
   select : (FixedArray[String]) -> Unit
   notify : (String) -> Unit
   playing : Bool
@@ -56,10 +54,10 @@ fn TrackController::feedback(
     " · " +
     action
   (self.report)(
-    host_record({
-      "kind": @core.any("active"),
-      "label": @core.any(label),
-      "detail": @core.any(
+    Some({
+      kind: Active,
+      label,
+      detail: Some(
         track_detail(gesture.last_start, gesture.last_duration) +
         (if changed { " · Esc で戻す" } else { "" }),
       ),
@@ -73,12 +71,12 @@ fn TrackController::finish(self : TrackController, cancel : Bool) -> Unit {
   self.drag.set_current(None)
   @core.throwable(fn() {
     if cancel &&
-      truthy(current.undo) &&
-      !@core.equal(current.undo, current.undo_before) &&
-      @core.equal(top_undo(self.store), current.undo) {
+      current.undo is Some(entry) &&
+      current.undo != current.undo_before &&
+      self.history.top() == current.undo {
       // The exact owned item may now contain only peer-protected fields. Never
       // fall through to an earlier action when that item has nothing left to undo.
-      self.store._call("rollbackGesture", [current.undo]) |> ignore
+      self.history.rollback(entry)
     }
   }) catch {
     failure =>
@@ -89,26 +87,28 @@ fn TrackController::finish(self : TrackController, cancel : Bool) -> Unit {
         ),
       )
   }
-  ui_quiet(self.store, "endGesture")
+  self.history.end()
   (self.report)(
-    if truthy(current.undo) {
-      host_record({
-        "kind": @core.any(if cancel { "cancelled" } else { "complete" }),
-        "label": @core.any(
-          if cancel {
-            "時間の調整をキャンセル"
-          } else {
-            "時間を確定"
-          },
-        ),
-        "detail": if cancel {
-          @core.undefined()
+    if current.undo is Some(_) {
+      Some({
+        kind: if cancel {
+          Cancelled
         } else {
-          @core.any(track_detail(current.last_start, current.last_duration))
+          Complete
+        },
+        label: if cancel {
+          "時間の調整をキャンセル"
+        } else {
+          "時間を確定"
+        },
+        detail: if cancel {
+          None
+        } else {
+          Some(track_detail(current.last_start, current.last_duration))
         },
       })
     } else {
-      @core.null()
+      None
     },
   )
   @core.throwable(fn() {
@@ -126,38 +126,6 @@ fn TrackController::finish(self : TrackController, cancel : Bool) -> Unit {
 }
 
 ///|
-fn TrackController::timing(
-  self : TrackController,
-  track : @core.Any,
-) -> @scene.Timing {
-  match self.channel {
-    None => @boundary.read_timing(track)
-    Some(channel) =>
-      @boundary.read_timing(
-        @boundary.get_property_timing(
-          track,
-          @editor.property_channel_name(channel),
-        ),
-      )
-  }
-}
-
-///|
-fn TrackController::materialized(
-  self : TrackController,
-  animation : @core.Any,
-) -> Bool {
-  match self.channel {
-    None => truthy(animation._get("existing"))
-    Some(channel) =>
-      @boundary.has_property_timing(
-        animation._get("track"),
-        @editor.property_channel_name(channel),
-      )
-  }
-}
-
-///|
 fn TrackController::down(self : TrackController, event : @core.Any) -> Unit {
   if event._get("button").cast() != 0 || self.drag.get_current() is Some(_) {
     return
@@ -165,31 +133,22 @@ fn TrackController::down(self : TrackController, event : @core.Any) -> Unit {
   let element = event._get("currentTarget")
   element._call("focus", [host_record({ "preventScroll": @core.any(true) })])
   |> ignore
-  (self.select)([self.object_id])
+  (self.select)([self.binding.target.object_id])
   let width : Double = self.lane
     .get_current()
     .map(fn(lane) {
       lane._call("getBoundingClientRect", [])._get("width").cast()
     })
     .unwrap_or(0.0)
-  let scene = self.store._call("scene", [@core.any(self.scene_id)])
-  let transition = scene._get("transitions")._get(self.transition_id)
-  if !truthy(transition) {
+  guard self.binding.timing(self.channel) is Some(current) else { return }
+  let total = current.limit
+  if current.locked || self.playing || total <= 0.0 || width <= 0.0 {
     return
   }
-  let current = @boundary.visible_animation(scene, transition, self.object_id)
-  let total : Double = transition._get("duration").cast()
-  if !truthy(current) ||
-    truthy(current._get("object")._get("locked")) ||
-    self.playing ||
-    total <= 0.0 ||
-    width <= 0.0 {
+  if self.channel is Some(_) && !current.materialized {
     return
   }
-  if self.channel is Some(_) && !self.materialized(current) {
-    return
-  }
-  let timing = self.timing(current._get("track"))
+  let timing = current.timing
   let gesture : TrackGesture = {
     pointer: event._get("pointerId").cast(),
     x: event._get("clientX").cast(),
@@ -204,13 +163,13 @@ fn TrackController::down(self : TrackController, event : @core.Any) -> Unit {
     edge: pointer_edge(event),
     last_start: timing.start,
     last_duration: timing.duration,
-    materialized: self.materialized(current),
-    undo_before: top_undo(self.store),
-    undo: @core.undefined(),
+    materialized: current.materialized,
+    undo_before: self.history.top(),
+    undo: None,
     element,
   }
   self.drag.set_current(Some(gesture))
-  self.store._call("beginGesture", []) |> ignore
+  self.history.begin()
   try
     @core.throwable(fn() {
       element._call("setPointerCapture", [@core.any(gesture.pointer)])
@@ -235,31 +194,23 @@ fn TrackController::pointer_move(
   if initial.pointer != event._get("pointerId").cast() {
     return
   }
-  let scene = self.store._call("project", [])._get("scenes")._get(self.scene_id)
-  let transition = if truthy(scene) {
-    scene._get("transitions")._get(self.transition_id)
-  } else {
-    @core.undefined()
-  }
-  let current = if truthy(transition) {
-    @boundary.visible_animation(scene, transition, self.object_id)
-  } else {
-    @core.undefined()
-  }
-  if !truthy(current) ||
-    truthy(current._get("object")._get("locked")) ||
-    (initial.materialized && !self.materialized(current)) ||
-    transition._get("duration").cast() != initial.total {
+  guard self.binding.timing(self.channel) is Some(current) else {
     self.finish(true)
     return
   }
-  let timing = self.timing(current._get("track"))
+  if current.locked ||
+    (initial.materialized && !current.materialized) ||
+    current.limit != initial.total {
+    self.finish(true)
+    return
+  }
+  let timing = current.timing
   if timing.start != initial.last_start ||
     timing.duration != initial.last_duration {
     self.finish(true)
     return
   }
-  if truthy(initial.undo) && !@core.equal(top_undo(self.store), initial.undo) {
+  if initial.undo is Some(_) && self.history.top() != initial.undo {
     self.finish(false)
     return
   }
@@ -281,37 +232,17 @@ fn TrackController::pointer_move(
   @core.throwable(fn() {
     match self.channel {
       Some(channel) =>
-        self.store._call("setPropertyTiming", [
-          @core.any(self.scene_id),
-          @core.any(self.transition_id),
-          @core.any(self.object_id),
-          @core.any(@editor.property_channel_name(channel)),
-          @boundary.write_timing({ start, duration, easing: timing.easing, }),
-          @core.any(false),
-        ])
-        |> ignore
-      None => {
-        let patch = @core.new_object()
-        if start != timing.start {
-          patch._set("start", @core.any(start))
-        }
-        if duration != timing.duration {
-          patch._set("duration", @core.any(duration))
-        }
-        self.store._call("setTrack", [
-          @core.any(self.scene_id),
-          @core.any(self.transition_id),
-          @core.any(self.object_id),
-          patch,
-          @core.any(false),
-        ])
-        |> ignore
-      }
+        self.binding.set_timing(
+          channel,
+          Some({ start, duration, easing: timing.easing, }),
+          false,
+        )
+      None => self.binding.set_track_range(timing, { start, duration, }, false)
     }
     initial.last_start = start
     initial.last_duration = duration
     initial.materialized = true
-    initial.undo = top_undo(self.store)
+    initial.undo = self.history.top()
     self.feedback(initial, true)
   }) catch {
     _ => self.finish(true)

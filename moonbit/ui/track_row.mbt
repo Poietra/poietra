@@ -8,53 +8,41 @@ fn timeline_fraction(value : Double, duration : Double) -> Double {
 }
 
 ///|
-fn track_row(input : @core.Any) -> @react.Element {
+let track_row_component : TypedComponent[TrackRowView] = memo_typed_component(
+  track_row,
+)
+
+///|
+fn track_row(input : TrackRowView) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor.scene
+  let data = input.data
   let store = editor.store
-  let scene_id : String = scene._get("id").cast()
-  let transition_id : String = editor.selection.id()
-  let track = input._get("track")
-  let object_id : String = track._get("objectId").cast()
-  let transition = scene._get("transitions")._get(transition_id)
-  let object = scene._get("objects")._get(object_id)
+  let target = data.binding.target
+  let object_id = target.object_id
   let lane = @react.use_ref((None : @core.Any?))
   let drag = @react.use_ref((None : TrackGesture?))
-  let channel = if @core.is_undefined(input._get("channel")) {
-    None
-  } else {
-    @scene.property_channel(input._get("channel").cast())
-  }
+  let channel = input.channel
+  let channel_name = channel.map(@editor.property_channel_name)
   let label = match channel {
     Some(channel) => @editor.property_channel_label(channel)
-    None => animation_label(track._get("type"))
+    None => data.animation_label
   }
   let playing = editor.playing
-  let locked = truthy(object) && truthy(object._get("locked"))
+  let locked = data.locked
   let controller : TrackController = {
-    store,
-    scene_id,
-    transition_id,
-    object_id,
-    object_name: if truthy(object) {
-      object._get("name").cast()
-    } else {
-      ""
-    },
+    binding: data.binding,
+    history: native_gesture_history(store),
+    object_name: data.object_name,
     label,
     channel,
     lane,
     drag,
-    report: input._get("report").cast(),
+    report: input.report,
     select: editor.actions.select_objects,
     notify: editor.actions.notify,
     playing,
   }
-  let total : Double = if truthy(transition) {
-    transition._get("duration").cast()
-  } else {
-    0.0
-  }
+  let total = data.total
   @react.use_effect(
     fn() {
       let window = @core.global_this()._get("window")
@@ -90,20 +78,17 @@ fn track_row(input : @core.Any) -> @react.Element {
       }
     },
     [
-      @core.any(scene_id),
-      @core.any(transition_id),
+      @core.any(target.scene_id),
+      @core.any(target.transition_id),
       @core.any(object_id),
-      input._get("channel"),
+      @core.from_option(channel_name),
       @core.any(total),
       @core.any(locked),
       @core.any(playing),
       store,
     ],
   )
-  if !truthy(object) || !truthy(transition) {
-    return @react.fragment([])
-  }
-  let timing = controller.timing(track)
+  let timing = input.timing
   let selected : FixedArray[String] = editor.selected_ids
   let chosen = selected.iter().any(fn(id) { id == object_id })
   let disabled = locked || playing || total <= 0.0
@@ -120,7 +105,11 @@ fn track_row(input : @core.Any) -> @react.Element {
     if channel is Some(_) {
       icon("CornerDownRight", 12)
     } else {
-      component(object_icon, { "kind": object._get("kind") }, [])
+      component(
+        object_icon,
+        { "kind": @core.any(@scene.object_kind_name(data.object_kind)) },
+        [],
+      )
     },
     h("span", Map([]), [
       if channel is Some(_) {
@@ -149,7 +138,7 @@ fn track_row(input : @core.Any) -> @react.Element {
       },
       "aria-pressed": @core.any(chosen),
       "onClick": @core.any(fn() {
-        (controller.report)(@core.null())
+        (controller.report)(None)
         (controller.select)([object_id])
       }),
     },
@@ -245,11 +234,8 @@ fn track_row(input : @core.Any) -> @react.Element {
       } else {
         @core.undefined()
       },
-      "data-property-channel": input._get("channel"),
-      "data-track-active": if @core.equal(
-          input._get("active"),
-          @core.any(object_id),
-        ) {
+      "data-property-channel": @core.from_option(channel_name),
+      "data-track-active": if input.active {
         @core.any(true)
       } else {
         @core.undefined()

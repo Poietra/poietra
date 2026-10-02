@@ -49,10 +49,33 @@ priv struct PropertyTimingView {
 }
 
 ///|
-priv struct PropertyTimingEdit {
+priv struct AnimationTimingEdit {
   timing : @scene.Timing
   limit : Double
   locked : Bool
+  materialized : Bool
+}
+
+///|
+/// Timeline rows carry presentation values, not decoded Track/keyframe maps.
+priv struct TrackRowData {
+  binding : AnimationBinding
+  object_name : String
+  object_kind : @scene.ObjectKind
+  animation_label : String
+  locked : Bool
+  timing : @scene.Timing
+  properties : Array[(@scene.PropertyChannel, @scene.Timing)]
+  total : Double
+}
+
+///|
+priv struct TrackRowView {
+  data : TrackRowData
+  channel : @scene.PropertyChannel?
+  timing : @scene.Timing
+  active : Bool
+  report : (@editor.OperationStatus?) -> Unit
 }
 
 ///|

@@ -3,50 +3,50 @@ fn timeline_tracks(
   editor : EditorView,
   transition : @core.Any,
   start : Double,
-  animations : FixedArray[@core.Any],
-  feedback : @core.Any,
+  animations : Array[TrackRowData],
+  feedback : OperationFeedback,
 ) -> @react.Element {
   let selected : FixedArray[String] = editor.selected_ids
   let selected_track = animations
     .iter()
     .find_first(fn(item) {
-      let id : String = item._get("object")._get("id").cast()
-      selected.iter().any(fn(chosen) { chosen == id })
+      selected
+      .iter()
+      .any(fn(chosen) { chosen == item.binding.target.object_id })
     })
-  let idle = match selected_track {
-    Some(item) => {
-      let locked = truthy(item._get("object")._get("locked"))
-      host_record({
-        "kind": @core.any(if locked { "locked" } else { "idle" }),
-        "label": item._get("object")._get("name"),
-        "detail": @core.any(
-          if locked {
+  let idle : @editor.OperationStatus = match selected_track {
+    Some(item) =>
+      {
+        kind: if item.locked {
+          Locked
+        } else {
+          Inactive
+        },
+        label: item.object_name,
+        detail: Some(
+          if item.locked {
             "ロック中 · 選択のみ"
           } else if editor.playing {
             "再生中 · 編集は停止後"
           } else {
-            track_detail(
-              item._get("track")._get("start").cast(),
-              item._get("track")._get("duration").cast(),
-            )
+            track_detail(item.timing.start, item.timing.duration)
           },
         ),
-      })
-    }
+      }
     None =>
-      host_record({
-        "kind": @core.any("idle"),
-        "label": @core.any("バーを選択して時間を調整"),
-        "detail": @core.any("両端をドラッグで長さを変更"),
-      })
+      {
+        kind: Inactive,
+        label: "バーを選択して時間を調整",
+        detail: Some("両端をドラッグで長さを変更"),
+      }
   }
-  let status = feedback._get("feedback")
-  let active = if truthy(status) &&
-    status._get("kind").cast() == "active" &&
+  let status = feedback.status
+  let active = if status is Some(status) &&
+    status.kind == Active &&
     selected.length() > 0 {
-    @core.any(selected[0])
+    Some(selected[0])
   } else {
-    @core.null()
+    None
   }
   let duration : Double = transition._get("duration").cast()
   let marks : Array[&@react.ReactNode] = []
@@ -70,40 +70,34 @@ fn timeline_tracks(
     ),
   ]
   for item in animations {
-    let track = item._get("track")
-    let id : String = track._get("objectId").cast()
+    let id = item.binding.target.object_id
     rows.push(
-      component(
-        track_row,
+      typed_component(
+        track_row_component,
         {
-          "key": @core.any("object/" + id),
-          "track": track,
-          "report": feedback._get("report"),
-          "active": active,
+          data: item,
+          timing: item.timing,
+          channel: None,
+          report: feedback.report,
+          active: active == Some(id),
         },
-        [],
+        key="object/" + id,
       ),
     )
-    for
-      channel in [
-        "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-        "fontSize", "cornerRadius", "path", "reveal",
-      ] {
-      if @boundary.has_property_timing(track, channel) {
-        rows.push(
-          component(
-            track_row,
-            {
-              "key": @core.any("property/" + id + "/" + channel),
-              "track": track,
-              "channel": @core.any(channel),
-              "report": feedback._get("report"),
-              "active": active,
-            },
-            [],
-          ),
-        )
-      }
+    for (channel, timing) in item.properties {
+      rows.push(
+        typed_component(
+          track_row_component,
+          {
+            data: item,
+            timing,
+            channel: Some(channel),
+            report: feedback.report,
+            active: active == Some(id),
+          },
+          key="property/" + id + "/" + @editor.property_channel_name(channel),
+        ),
+      )
     }
   }
   if animations.is_empty() {
@@ -128,18 +122,10 @@ fn timeline_tracks(
     h("div", { "className": @core.any("transition-caption") }, [
       h("span", Map([]), ["Transition"]),
       h("span", Map([]), [@boundary.format_milliseconds(duration) + " ms"]),
-      component(
-        operation_feedback,
-        {
-          "status": if truthy(status) {
-            status
-          } else {
-            idle
-          },
-          "className": @core.any("timeline-feedback"),
-        },
-        [],
-      ),
+      typed_component(operation_feedback_component, {
+        status: Some(status.unwrap_or(idle)),
+        class_name: Some("timeline-feedback"),
+      }),
       h(
         "button",
         {
@@ -240,17 +226,17 @@ fn timeline_structure(editor : EditorView) -> @react.Element {
   } else {
     @core.undefined()
   }
-  let animations : FixedArray[@core.Any] = @react.use_memo(
+  let animations : Array[TrackRowData] = @react.use_memo(
     fn() {
       if truthy(transition) {
-        @boundary.visible_animations(scene, transition)
+        native_timeline_tracks(editor, transition)
       } else {
         []
       }
     },
-    [scene, transition],
+    [scene, transition, editor.store],
   )
-  let feedback = use_operation_feedback(scene_id + ":" + selected_id)
+  let feedback = use_operation_feedback_state(scene_id + ":" + selected_id)
   let cards : Array[&@react.ReactNode] = []
   for part in segments {
     let id = part.id

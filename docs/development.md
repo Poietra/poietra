@@ -30,11 +30,13 @@ The boundaries to preserve are:
   This boundary was established on 2026-10-02 to catch internal field and callback
   mismatches at compilation. Native document snapshots retain their shared identity;
   decoding entire Scenes for UI state would lose that property and add work.
-  Property timing, keyframes and easing also retain typed values and callbacks
-  through their inspectors and gestures (`ui/animation_model.mbt`). The native
+  Property timing, keyframes, easing and timeline tracks also retain typed values
+  and callbacks through their inspectors and gestures (`ui/animation_model.mbt`).
+  Timeline row models contain display metadata and timing values; operation
+  feedback uses the domain status type through rendering. The native
   adapters translate public JS props, targeted document reads and leaf commands;
-  gesture history uses opaque identities. This separation was extended on
-  2026-10-03 to prevent native-shaped values from leaking back into edit logic.
+  gesture history uses opaque identities (`ui/gesture_native.mbt`). This separation
+  was extended on 2026-10-03 to keep JavaScript records out of editing logic.
   Property timing commands read current leaves before planning an edit, preserving
   intervening peer values under the existing timing bounds. Gesture calculations
   keep the shared document snapshots intact.

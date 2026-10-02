@@ -226,12 +226,18 @@ extern "js" fn feedback_value(
   #|(feedback, report) => ({feedback, report})
 
 ///|
-pub fn use_operation_feedback(scope : String) -> @core.Any {
+priv struct OperationFeedback {
+  status : @editor.OperationStatus?
+  report : (@editor.OperationStatus?) -> Unit
+}
+
+///|
+fn use_operation_feedback_state(scope : String) -> OperationFeedback {
   let initial : @editor.FeedbackState = { revision: 0, entry: None, }
   let (state, dispatch) = @react.use_reducer(@editor.reduce_feedback, initial)
   let report = @react.use_callback(
-    fn(value : @core.Any) {
-      dispatch(@editor.Report(scope, decode_status(value)))
+    fn(value : @editor.OperationStatus?) {
+      dispatch(@editor.Report(scope, value))
     },
     [@core.any(scope)],
   )
@@ -253,12 +259,41 @@ pub fn use_operation_feedback(scope : String) -> @core.Any {
     Some(entry) if entry.scope == scope => Some(entry.status)
     _ => None
   }
-  feedback_value(encode_status(status), report)
+  { status, report, }
 }
 
 ///|
+pub fn use_operation_feedback(scope : String) -> @core.Any {
+  let feedback = use_operation_feedback_state(scope)
+  let report = @react.use_callback(
+    fn(value : @core.Any) { (feedback.report)(decode_status(value)) },
+    [@core.any(feedback.report)],
+  )
+  feedback_value(encode_status(feedback.status), report)
+}
+
+///|
+priv struct OperationFeedbackView {
+  status : @editor.OperationStatus?
+  class_name : String?
+}
+
+///|
+let operation_feedback_component : TypedComponent[OperationFeedbackView] = memo_typed_component(
+  render_operation_feedback,
+)
+
+///|
 pub fn operation_feedback(input : @core.Any) -> @react.Element {
-  let status = decode_status(input._get("status"))
+  render_operation_feedback({
+    status: decode_status(input._get("status")),
+    class_name: optional_string(input._get("className")),
+  })
+}
+
+///|
+fn render_operation_feedback(input : OperationFeedbackView) -> @react.Element {
+  let status = input.status
   let nodes : Array[&@react.ReactNode] = []
   if status is Some(status) {
     let name = match status.kind {
@@ -306,7 +341,7 @@ pub fn operation_feedback(input : @core.Any) -> @react.Element {
     {
       "className": classes([
         @core.any("operation-feedback"),
-        input._get("className"),
+        @core.from_option(input.class_name),
       ]),
       "data-feedback-state": @core.any(
         status.map(fn(s) { @editor.feedback_name(s.kind) }).unwrap_or("empty"),

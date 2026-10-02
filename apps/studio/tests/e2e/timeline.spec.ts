@@ -134,6 +134,39 @@ test('a peer changing the same track during a drag keeps their timing', async ({
 
 const previewPosition = (page: Page) => page.getByRole('slider', { name: 'Transition preview position', exact: true });
 const seekHandle = (page: Page) => page.locator('.track-seek-thumb');
+for (const channel of ['base', 'opacity'] as const) test(`${channel} timing drag keeps a peer easing edit through continuation and undo`, async ({ browser }) => {
+  const a = await browser.newContext(), b = await browser.newContext();
+  const alice = await a.newPage(), bob = await b.newPage(), room = crypto.randomUUID();
+  try {
+    await Promise.all([open(alice, room), open(bob, room)]);
+    await Promise.all([transition(alice), transition(bob)]);
+    if (channel === 'opacity') {
+      for (const page of [alice, bob]) await page.getByRole('combobox', { name: 'Animation property', exact: true }).selectOption('opacity');
+    }
+    const durationLabel = channel === 'base' ? 'Animation duration' : 'Opacity animation duration';
+    const startLabel = channel === 'base' ? 'Animation start' : 'Opacity animation start';
+    const easingLabel = channel === 'base' ? 'Easing' : 'Opacity animation easing';
+    await field(alice, durationLabel, 500);
+    await expect(bob.getByRole('spinbutton', { name: durationLabel, exact: true })).toHaveValue('500');
+    const target = channel === 'base' ? bar(alice) : alice.locator('[data-property-object-id="circle"][data-property-channel="opacity"] .animation-bar');
+    const at = await center(target), lane = (await target.locator('..').boundingBox())!;
+    await alice.mouse.move(at.x, at.y); await alice.mouse.down();
+    await alice.mouse.move(at.x + lane.width * 80 / 800, at.y, { steps: 4 });
+    await expect(bob.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('80');
+    await bob.getByRole('combobox', { name: easingLabel, exact: true }).selectOption('easeOut');
+    await expect(alice.getByRole('combobox', { name: easingLabel, exact: true })).toHaveValue('easeOut');
+    await alice.mouse.move(at.x + lane.width * 160 / 800, at.y, { steps: 4 }); await alice.mouse.up();
+    await expect(bob.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('160');
+    await expect(alice.locator('.timeline-feedback')).toHaveAttribute('data-feedback-state', 'complete');
+    await alice.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    for (const page of [alice, bob]) {
+      await expect(page.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('0');
+      await expect(page.getByRole('spinbutton', { name: durationLabel, exact: true })).toHaveValue('500');
+      await expect(page.getByRole('combobox', { name: easingLabel, exact: true })).toHaveValue('easeOut');
+    }
+  } finally { await a.close(); await b.close(); }
+});
+
 test('a ruler press seeks precisely when the wide playhead overlaps the target', async ({ page }) => {
   await open(page, crypto.randomUUID()); await transition(page);
   await previewPosition(page).evaluate((element: HTMLInputElement) => {

@@ -69,22 +69,121 @@ fn AnimationBinding::current(
 fn AnimationBinding::property_timing(
   self : AnimationBinding,
   channel : @scene.PropertyChannel,
-) -> PropertyTimingEdit? {
+) -> AnimationTimingEdit? {
+  self.timing(Some(channel))
+}
+
+///|
+fn AnimationBinding::timing(
+  self : AnimationBinding,
+  channel : @scene.PropertyChannel?,
+) -> AnimationTimingEdit? {
   self
   .current()
   .map(fn(current) {
     let (transition, animation) = current
     {
-      timing: @boundary.read_timing(
-        @boundary.get_property_timing(
-          animation._get("track"),
-          @editor.property_channel_name(channel),
-        ),
-      ),
+      timing: match channel {
+        None => @boundary.read_timing(animation._get("track"))
+        Some(channel) =>
+          @boundary.read_timing(
+            @boundary.get_property_timing(
+              animation._get("track"),
+              @editor.property_channel_name(channel),
+            ),
+          )
+      },
       limit: transition._get("duration").cast(),
       locked: truthy(animation._get("object")._get("locked")),
+      materialized: match channel {
+        None => truthy(animation._get("existing"))
+        Some(channel) =>
+          @boundary.has_property_timing(
+            animation._get("track"),
+            @editor.property_channel_name(channel),
+          )
+      },
     }
   })
+}
+
+///|
+fn AnimationBinding::set_track_range(
+  self : AnimationBinding,
+  previous : @scene.Timing,
+  next : @editor.TimingRange,
+  separate : Bool,
+) -> Unit {
+  let patch = @core.new_object()
+  if previous.start != next.start {
+    patch._set("start", @core.any(next.start))
+  }
+  if previous.duration != next.duration {
+    patch._set("duration", @core.any(next.duration))
+  }
+  @core.any(self.store)._call("setTrack", [
+    @core.any(self.target.scene_id),
+    @core.any(self.target.transition_id),
+    @core.any(self.target.object_id),
+    patch,
+    @core.any(separate),
+  ])
+  |> ignore
+}
+
+///|
+fn native_timeline_tracks(
+  editor : EditorView,
+  transition : @core.Any,
+) -> Array[TrackRowData] {
+  let scene = editor.scene
+  let total : Double = transition._get("duration").cast()
+  @boundary.visible_animations(scene, transition)
+  .iter()
+  .map(fn(animation) {
+    let object = animation._get("object")
+    let track = animation._get("track")
+    let properties : Array[(@scene.PropertyChannel, @scene.Timing)] = []
+    for
+      channel in [
+        @scene.Position,
+        Opacity,
+        Size,
+        Rotation,
+        Fill,
+        Stroke,
+        StrokeWidth,
+        FontSize,
+        CornerRadius,
+        ShapePath,
+        Reveal,
+      ] {
+      let name = @editor.property_channel_name(channel)
+      if @boundary.has_property_timing(track, name) {
+        properties.push(
+          (
+            channel,
+            @boundary.read_timing(@boundary.get_property_timing(track, name)),
+          ),
+        )
+      }
+    }
+    {
+      binding: native_animation_binding(editor.store, {
+        scene_id: scene._get("id").cast(),
+        transition_id: transition._get("id").cast(),
+        object_id: object._get("id").cast(),
+      }),
+      object_name: object._get("name").cast(),
+      object_kind: @boundary.read_object_kind(object._get("kind")),
+      animation_label: animation_label(track._get("type")),
+      locked: truthy(object._get("locked")),
+      timing: @boundary.read_timing(track),
+      properties,
+      total,
+    }
+  })
+  .to_array()
 }
 
 ///|
