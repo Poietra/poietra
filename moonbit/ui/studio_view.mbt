@@ -321,7 +321,7 @@ fn studio_aside(
 ///|
 fn studio_view(
   controller : StudioController,
-  imports : @core.Any,
+  imports : ImportView,
   panel : @react.ReactRef[@core.Any],
   image_input : @react.ReactRef[@core.Any],
   media_input : @react.ReactRef[@core.Any],
@@ -475,7 +475,10 @@ fn studio_people(input : @core.Any) -> @react.Element {
   let controller : StudioController = input._get("controller").cast()
   let store = controller.input._get("store")
   let peers = use_editor_peers(use_editor_state())
-  let participants = studio_participants(store, host_record({ "peers": peers }))
+  let participants = studio_participants(
+    store,
+    host_record({ "peers": @core.any(peers) }),
+  )
   let avatars : Array[&@react.ReactNode] = []
   for index = 0; index < participants.length().min(4); index = index + 1 {
     let peer = participants[index]

@@ -6,7 +6,7 @@ fn chat_proposal_card(
 ) -> @react.Element {
   let proposal = message.proposal.unwrap()
   let own = message.author_id == controller.author_id
-  let scene = controller.editor._get("scene")
+  let scene = controller.editor.scene
   let targets = if truthy(target_scene) {
     @boundary.read_proposal_targets(proposal, target_scene)
   } else {
@@ -43,7 +43,7 @@ fn chat_proposal_card(
           "button",
           {
             "className": @core.any("primary-button small-button"),
-            "disabled": controller.editor._get("viewingPlayback"),
+            "disabled": @core.any(controller.editor.viewing_playback),
             "onClick": @core.any(fn() { controller.apply(message.id, false) }),
           },
           ["Apply edits"],

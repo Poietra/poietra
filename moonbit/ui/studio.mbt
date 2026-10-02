@@ -58,49 +58,35 @@ pub fn studio(input : @core.Any) -> @react.Element {
         WholeScene
       }
   }
-  let context = @react.use_memo(
+  let context : EditorView = @react.use_memo(
     fn() {
-      let context = ui_shallow_copy(callbacks)
-      for
-        (key, value) in [
-          ("store", store),
-          ("scene", scene),
-          ("compositionId", @core.any(document.composition)),
-          ("playing", @core.any(state.playing())),
-          ("transportView", @core.any(state.viewing())),
-          ("transition", document.transition),
-          ("activeIds", @core.any(host_array(document.objects))),
-          ("composing", composing.as_any()),
-          ("pasteInPlace", paste_in_place.as_any()),
-        ] {
-        context._set(key, value)
+      {
+        store,
+        scene,
+        selection: document.selection,
+        composition_id: document.composition,
+        selected_ids: host_array(document.objects),
+        tool: state.tool,
+        kernel: input._get("kernel"),
+        renderer: input._get("renderer"),
+        create_frame_painter: input._get("createFramePainter"),
+        position_source: Some(self.position),
+        playhead: 0.0,
+        peers: [],
+        playing: state.playing(),
+        viewing_playback: state.viewing(),
+        preview_scope: scope,
+        path_editing: state.path_editing,
+        actions: callbacks,
       }
-      for
-        (key, value) in [
-          ("selection", document.selection.native()),
-          ("selectedIds", @core.any(host_array(document.objects))),
-          ("setSelectedIds", callbacks._get("chooseObjects")),
-          ("tool", @core.any(studio_tool_name(state.tool))),
-          ("kernel", input._get("kernel")),
-          ("renderer", input._get("renderer")),
-          ("createFramePainter", input._get("createFramePainter")),
-          ("positionSource", @core.any(self.position)),
-          ("previewScope", @core.any(scope.name())),
-          ("viewingPlayback", @core.any(state.viewing())),
-          ("pathEditing", @core.any(state.path_editing)),
-        ] {
-        context._set(key, value)
-      }
-      context
     },
     [
-      callbacks,
+      @core.any(callbacks),
       store,
       scene,
       @core.any(document.composition),
       @core.any(state.playing()),
       @core.any(state.viewing()),
-      document.transition,
       @core.any(state.objects),
       @core.any(document.selection.id()),
       @core.any(document.selection is TransitionSelection(_)),
@@ -112,26 +98,47 @@ pub fn studio(input : @core.Any) -> @react.Element {
       input._get("createFramePainter"),
     ],
   )
-  let controls = @react.use_memo(
+  let native_callbacks = @react.use_memo(
+    fn() { native_editor_actions(callbacks) },
+    [@core.any(callbacks)],
+  )
+  let public_context = @react.use_memo(
+    fn() { native_editor_view(context, native_callbacks) },
+    [@core.any(context), native_callbacks],
+  )
+  let controls : EditorControls = @react.use_memo(
     fn() {
-      let value = ui_shallow_copy(context)
-      value._set("setSelectedIds", callbacks._get("setSelectedIds"))
-      value
+      {
+        store,
+        scene,
+        composition_id: document.composition,
+        active_ids: context.selected_ids,
+        playing: context.playing,
+        viewing_playback: context.viewing_playback,
+        has_transition: truthy(document.transition),
+        composing,
+        paste_in_place,
+        actions: callbacks,
+      }
     },
-    [context, callbacks],
+    [@core.any(context), @core.any(callbacks), document.transition],
   )
-  let imports = use_editor_imports(controls)
-  use_editor_keyboard(controls)
-  let clipboard = ui_shallow_copy(controls)
-  for
-    key in ["imageRequest", "mediaRequest", "setImportingImage", "importFiles"] {
-    clipboard._set(key, imports._get(key))
-  }
-  clipboard._set(
-    "rehostImageAssets",
-    input._get("services")._get("rehostImageAssets"),
+  let imports = use_import_controls(controls)
+  use_keyboard_controls(controls)
+  let rehost_images = @react.use_memo(
+    fn() { native_image_rehost(input._get("services")) },
+    [input._get("services")],
   )
-  use_editor_clipboard(clipboard)
+  use_clipboard_controls({
+    controls,
+    image_request: imports.image_request,
+    media_request: imports.media_request,
+    set_importing_image: imports.set_importing_image,
+    import_files: fn(files, point) {
+      (imports.import_files)(files, point) |> ignore
+    },
+    rehost_images,
+  })
   if !truthy(project) || !truthy(scene) {
     return h("div", { "className": @core.any("loading-screen") }, [
       h(
@@ -147,14 +154,22 @@ pub fn studio(input : @core.Any) -> @react.Element {
   ui("Tooltip", "Provider", { "delay": @core.any(450) }, [
     keyed_element(
       editor_context_runtime()._get("Provider"),
-      { "value": context },
+      { "value": public_context },
       [
         component(
           studio_position_provider,
           { "position": @core.any(self.position) },
           [
             component(studio_audio, { "controller": @core.any(self) }, []),
-            studio_view(self, imports, right_panel, image_input, media_input),
+            @react.provider(
+              typed_editor_context,
+              [
+                studio_view(
+                  self, imports, right_panel, image_input, media_input,
+                ),
+              ],
+              value=Some(context),
+            ),
           ],
         ),
       ],

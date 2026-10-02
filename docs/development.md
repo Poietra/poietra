@@ -24,6 +24,12 @@ The boundaries to preserve are:
 
 - Pure domain packages are independent of React, Yjs and host types. Edit plans
   name changed leaves; boundary code validates and encodes before publishing.
+- Editor components share typed MoonBit state, selection and commands through
+  `ui/editor_model.mbt`; `ui/editor_native.mbt` adapts the public JS context and
+  hooks. Cached panel views retain their typed props through the React adapter.
+  This boundary was established on 2026-10-02 to catch internal field and callback
+  mismatches at compilation. Native document snapshots retain their shared identity;
+  decoding entire Scenes for UI state would lose that property and add work.
 - Each room has one authoritative Yjs document. Reads share immutable snapshots;
   selective Undo preserves peer edits. Persist updates before broadcasting or
   acknowledging them, including unresolved dependencies.

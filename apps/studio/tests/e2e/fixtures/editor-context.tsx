@@ -1,6 +1,16 @@
 import { StrictMode, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorContext, useEditor, type EditorContextValue } from '../../../src/editor/context';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { makeDemoProject } from '../../../shared/demo';
+import type { Selection } from '../../../shared/model';
+import { loadKernel } from '../../../src/engine/kernel';
+import * as renderer from '../../../src/engine/renderer';
+import { GroupControls } from '../../../src/ui/GroupInspector';
+import { Timeline } from '../../../src/ui/Timeline';
+import '../../../src/styles.css';
+
+const kernel = await loadKernel();
 
 function Probe() {
   const editor = useEditor(), previous = useRef(editor);
@@ -18,4 +28,42 @@ function Fixture() {
   }) as unknown as EditorContextValue);
   return <EditorContext.Provider value={context}><Probe/><button onClick={() => setContext({ ...context, playhead: 375, peers: [{ ...context.peers[0], name: 'Bob' }] })}>Update context</button></EditorContext.Provider>;
 }
-createRoot(document.getElementById('root')!).render(<StrictMode><Fixture/></StrictMode>);
+// Real exported panels must also work under an external provider, including
+// native callback arguments and replacement callbacks after a provider update.
+function PanelsFixture() {
+  const [scene] = useState(() => {
+    const project = makeDemoProject(), scene = project.scenes[project.sceneOrder[0]];
+    scene.objects.circle.groupId = scene.objects.sigmoid.groupId = 'fixture-group';
+    return scene;
+  });
+  const [selection, setSelection] = useState<Selection>({ kind: 'composition', id: 'comp-1' });
+  const [selectedIds, setSelectedIds] = useState(['circle']);
+  const [playhead, setPlayhead] = useState(125);
+  const [generation, setGeneration] = useState(1);
+  const [command, setCommand] = useState('');
+  const record = (name: string, ...args: unknown[]) => setCommand(JSON.stringify([generation, name, ...args]));
+  const [store] = useState(() => ({
+    snapshot() { throw new Error('External panels must not subscribe to the editor store'); },
+  }) as unknown as EditorContextValue['store']);
+  const context: EditorContextValue = {
+    store, scene, kernel, renderer, selection, selectedIds, playhead, peers: [],
+    compositionId: selection.kind === 'composition' ? selection.id : scene.transitions[selection.id].toId,
+    tool: 'select', playing: false, previewScope: 'scene', pathEditing: false,
+    select(value) { record('select', value); setSelection(value); },
+    setSelectedIds(value) { record('objects', value); setSelectedIds(value); },
+    seek(time, scope) { record('seek', time, scope); setPlayhead(time); },
+    play(scope) { record('play', scope); },
+    appendComposition() { record('append'); },
+    requestTextEdit(object, composition) { record('text', object, composition); },
+    setTool(tool) { record('tool', tool); },
+    setPathEditing(editing) { record('path', editing); },
+    notify(message) { record('notify', message); },
+  };
+  return <Tooltip.Provider><EditorContext.Provider value={context}>
+    <GroupControls/><Timeline zoom={1} setZoom={() => {}}/>
+    <output data-testid="command">{command}</output>
+    <button onClick={() => setGeneration(generation + 1)}>Replace callbacks</button>
+  </EditorContext.Provider></Tooltip.Provider>;
+}
+const panels = new URLSearchParams(location.search).has('panels');
+createRoot(document.getElementById('root')!).render(<StrictMode>{panels ? <PanelsFixture/> : <Fixture/>}</StrictMode>);

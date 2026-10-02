@@ -185,7 +185,7 @@ fn stage_selection(
 
 ///|
 fn stage_peers(controller : StageController) -> Array[&@react.ReactNode] {
-  let peers : FixedArray[@core.Any] = controller.editor._get("peers").cast()
+  let peers : FixedArray[@core.Any] = controller.editor.peers
   let result : Array[&@react.ReactNode] = []
   for peer in peers {
     if @core.equal(

@@ -83,7 +83,7 @@ fn stage_view(
   } else {
     @core.null()
   }
-  let factory = controller.editor._get("createFramePainter")
+  let factory = controller.editor.create_frame_painter
   let content : Array[&@react.ReactNode] = []
   if truthy(factory) {
     content.push(

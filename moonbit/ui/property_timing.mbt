@@ -1,8 +1,8 @@
 ///|
 pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let scene = editor.scene
+  let store = editor.store
   let object = input._get("object")
   let transition = input._get("transition")
   let track = @boundary.read_track(input._get("track"))
@@ -27,8 +27,8 @@ pub fn property_timing_inspector(input : @core.Any) -> @react.Element {
   )
   let label = @editor.property_channel_label(channel)
   let (error, set_error) = @react.use_state("")
-  let playing = truthy(editor._get("playing"))
-  let playback = truthy(editor._get("viewingPlayback"))
+  let playing = editor.playing
+  let playback = editor.viewing_playback
   let apply = fn(patch : @editor.PropertyTimingChange, separate : Bool) {
     if playing || playback {
       return

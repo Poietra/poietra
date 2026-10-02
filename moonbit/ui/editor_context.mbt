@@ -3,7 +3,7 @@
 extern "js" fn editor_context_runtime() -> @core.Any = "editorContextRuntime"
 
 ///|
-fn use_editor_state() -> @core.Any {
+fn use_native_editor_context() -> @core.Any {
   let value : @core.Any = @react.use_context(editor_context_runtime().cast())
   if !truthy(value) {
     ui_throw(
@@ -13,6 +13,32 @@ fn use_editor_state() -> @core.Any {
     )
   }
   value
+}
+
+///|
+#module("react")
+extern "js" fn create_editor_context(
+  initial : EditorView?,
+) -> @react.Context[EditorView?] = "createContext"
+
+///|
+let typed_editor_context : @react.Context[EditorView?] = create_editor_context(
+  None,
+)
+
+///|
+fn use_editor_state() -> EditorView {
+  let internal = @react.use_context(typed_editor_context)
+  let native = use_native_editor_context()
+  @react.use_memo(
+    fn() {
+      match internal {
+        Some(view) => view
+        None => read_native_editor(native)
+      }
+    },
+    [@core.any(internal), native],
+  )
 }
 
 ///|
@@ -54,27 +80,25 @@ fn use_store_field(
 }
 
 ///|
-fn use_editor_position(editor : @core.Any) -> Double {
+fn use_editor_position(editor : EditorView) -> Double {
   match @react.use_context(studio_position_context) {
-    Some(view) if @core.equal(
-        @core.any(view.source),
-        editor._get("positionSource"),
-      ) => view.time
-    _ => editor._get("playhead").cast()
+    Some(view) if editor.position_source is Some(source) &&
+      @core.equal(@core.any(view.source), @core.any(source)) => view.time
+    _ => editor.playhead
   }
 }
 
 ///|
-fn use_editor_peers(editor : @core.Any) -> @core.Any {
+fn use_editor_peers(editor : EditorView) -> FixedArray[@core.Any] {
   use_store_field(
-    if truthy(editor._get("positionSource")) {
-      editor._get("store")
+    if editor.position_source is Some(_) {
+      editor.store
     } else {
       @core.undefined()
     },
     "peers",
-    fallback=editor._get("peers"),
-  )
+    fallback=@core.any(editor.peers),
+  ).cast()
 }
 
 ///|
@@ -116,9 +140,25 @@ fn use_store_fields(
 /// Compatibility API: consumers asking for the whole editor still receive the
 /// live clock and presence. Internal components subscribe only to what they use.
 pub fn use_editor() -> @core.Any {
-  let editor = use_editor_state()
-  let time = use_editor_position(editor)
-  let peers = use_editor_peers(editor)
+  // Public providers may supply only the fields their consumers need. Do not
+  // decode internal commands or subscribe to a different store in that case.
+  let editor = use_native_editor_context()
+  let time = match @react.use_context(studio_position_context) {
+    Some(view) if @core.equal(
+        @core.any(view.source),
+        editor._get("positionSource"),
+      ) => view.time
+    _ => editor._get("playhead").cast()
+  }
+  let peers = use_store_field(
+    if truthy(editor._get("positionSource")) {
+      editor._get("store")
+    } else {
+      @core.undefined()
+    },
+    "peers",
+    fallback=editor._get("peers"),
+  )
   @react.use_memo(
     fn() {
       let value = ui_shallow_copy(editor)

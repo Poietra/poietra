@@ -17,7 +17,7 @@ priv struct ImportProgress {
 
 ///|
 priv struct ImportJob {
-  input : @core.Any
+  input : EditorControls
   request : @core.Any
   scene : String
   composition : String
@@ -26,7 +26,7 @@ priv struct ImportJob {
 
 ///|
 priv struct ImportSession {
-  mut input : @core.Any
+  mut input : EditorControls
   mut mounted : Bool
   mut job : ImportJob?
   image : @react.ReactRef[@core.Any]
@@ -37,8 +37,8 @@ priv struct ImportSession {
 }
 
 ///|
-fn import_scene_id(input : @core.Any) -> @core.Any {
-  let scene = input._get("scene")
+fn import_scene_id(input : EditorControls) -> @core.Any {
+  let scene = input.scene
   if @core.is_nullish(scene) {
     @core.undefined()
   } else {
@@ -56,11 +56,11 @@ fn ImportSession::owns(self : ImportSession, job : ImportJob) -> Bool {
 fn ImportSession::current(self : ImportSession, job : ImportJob) -> Bool {
   self.owns(job) &&
   !ui_aborted(job.request._get("controller")._get("signal")) &&
-  @core.equal(self.input._get("store"), job.input._get("store")) &&
+  @core.equal(self.input.store, job.input.store) &&
   @core.equal(import_scene_id(self.input), @core.any(job.scene)) &&
-  @core.equal(self.input._get("compositionId"), @core.any(job.composition)) &&
-  !truthy(self.input._get("playing")) &&
-  !truthy(self.input._get("transportView"))
+  @core.equal(@core.any(self.input.composition_id), @core.any(job.composition)) &&
+  !self.input.playing &&
+  !self.input.viewing_playback
 }
 
 ///|
@@ -94,9 +94,7 @@ fn ImportSession::cancel(self : ImportSession) -> Unit {
     (self.image_progress)(false)
     (self.progress)(None)
     if previous is Some(job) && !job.images_only {
-      key_callback(self.input, "notify", [
-        @core.any("素材の追加を中止しました"),
-      ])
+      (self.input.actions.notify)("素材の追加を中止しました")
     }
   }
 }
@@ -134,19 +132,19 @@ fn ImportSession::report(
 fn ImportSession::start(
   self : ImportSession,
   files : FixedArray[@core.Any],
-  point : @core.Any,
+  point : @scene.Point?,
   force_image : Bool,
 ) -> @core.Promise[Unit] {
   @core.from_async(async fn() {
     let input = self.input
     if !self.mounted ||
-      @core.is_nullish(input._get("scene")) ||
+      @core.is_nullish(input.scene) ||
       files.is_empty() ||
       self.image.get_current() is Some(_) ||
       self.media.get_current() is Some(_) {
       return
     }
-    if truthy(input._get("playing")) || truthy(input._get("transportView")) {
+    if input.playing || input.viewing_playback {
       (self.error)(
         "編集する場面に戻ってから素材を追加してください。",
       )
@@ -164,7 +162,7 @@ fn ImportSession::start(
         mime.has_prefix("image/")
       })
     let scene : String = import_scene_id(input).cast()
-    let composition : String = input._get("compositionId").cast()
+    let composition : String = input.composition_id
     let controller = new_controller()
     let signal = controller._get("signal")
     let request = host_record({
@@ -180,7 +178,7 @@ fn ImportSession::start(
     (self.image_progress)(images_only)
     defer self.release(job)
     try {
-      let store = input._get("store")
+      let store = input.store
       let room : String = store._get("roomId").cast()
       let prepared : Array[@editor.PreparedAsset] = []
       for index, file in files {
@@ -262,11 +260,6 @@ fn ImportSession::start(
       let current = @core.throwable(fn() {
         store._call("scene", [@core.any(scene)])
       })
-      let point : @scene.Point? = if @core.is_nullish(point) {
-        None
-      } else {
-        Some({ x: point._get("x").cast(), y: point._get("y").cast(), })
-      }
       let insertion = @boundary.asset_import_changes(
         current, composition, prepared, point,
       )
@@ -274,9 +267,9 @@ fn ImportSession::start(
       |> ignore
       let latest = self.input
       key_select_composition(latest, composition)
-      key_callback(latest, "setSelectedIds", [insertion._get("ids")])
-      key_callback(latest, "setTool", [@core.any("select")])
-      key_callback(latest, "setRightTab", [@core.any("properties")])
+      (latest.actions.set_selected_ids)(insertion._get("ids").cast())
+      (latest.actions.set_tool)(@editor.SelectTool)
+      (latest.actions.set_panel)(DesignPanel)
       let has_audio = prepared
         .iter()
         .any(fn(asset) {
@@ -286,20 +279,18 @@ fn ImportSession::start(
             _ => false
           }
         })
-      key_callback(latest, "notify", [
-        @core.any(
-          if images_only {
-            "\{prepared.length()} 枚の画像を追加しました"
+      (latest.actions.notify)(
+        if images_only {
+          "\{prepared.length()} 枚の画像を追加しました"
+        } else {
+          "\{prepared.length()} 件の素材を追加しました" +
+          (if has_audio {
+            "。音声は下の専用トラックで編集できます"
           } else {
-            "\{prepared.length()} 件の素材を追加しました" +
-            (if has_audio {
-              "。音声は下の専用トラックで編集できます"
-            } else {
-              ""
-            })
-          },
-        ),
-      ])
+            ""
+          })
+        },
+      )
     } catch {
       error =>
         if self.current(job) {

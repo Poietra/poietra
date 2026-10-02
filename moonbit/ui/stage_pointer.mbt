@@ -39,9 +39,9 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
   }
   let mode = if handle is Some(handle) && selected is Some(id) {
     let object = scene._get("objects")._get(id)
-    let selection = self.editor._get("selection")
-    let transition = if selection._get("kind").cast() == "transition" {
-      Some(string_value(selection._get("id")))
+    let selection = self.editor.selection
+    let transition = if selection is TransitionSelection(_) {
+      Some(selection.id())
     } else {
       None
     }
@@ -194,12 +194,9 @@ fn StageController::up(self : StageController, event : @core.Any) -> Unit {
       .cast()
     self.finish(false)
     self.select([id])
-    self.editor._get("setTool")._invoke([@core.any("select")]) |> ignore
+    (self.editor.actions.set_tool)(@editor.SelectTool)
     if kind is Text || kind is Equation {
-      self.editor
-      ._get("requestTextEdit")
-      ._invoke([@core.any(id), @core.any(current.composition_id)])
-      |> ignore
+      (self.editor.actions.request_text_edit)(id, current.composition_id)
     }
   } else {
     self.finish(false)

@@ -99,6 +99,27 @@ test('public useEditor accepts an external Context and keeps unchanged snapshots
   expect(errors).toEqual([]);
 });
 
+test('exported panels use native selections, scopes and current external callbacks', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/tests/e2e/fixtures/editor-context.html?panels=1');
+  const command = () => page.getByTestId('command').textContent().then(value => JSON.parse(value || 'null'));
+  await page.getByRole('button', { name: 'Select group · 2', exact: true }).click();
+  await expect.poll(command).toEqual([1, 'objects', expect.arrayContaining(['circle', 'sigmoid'])]);
+  await page.getByRole('button', { name: 'Composition 2 1,600 ms', exact: true }).click();
+  await expect.poll(command).toEqual([1, 'select', { id: 'comp-2', kind: 'composition' }]);
+  await page.getByRole('slider', { name: '再生位置', exact: true }).fill('350');
+  await expect.poll(command).toEqual([1, 'seek', 350, 'scene']);
+  await page.getByRole('button', { name: 'Replace callbacks', exact: true }).click();
+  await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
+  await expect.poll(command).toEqual([2, 'play', 'scene']);
+  await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
+  await expect.poll(command).toEqual([2, 'select', { id: 'transition-1', kind: 'transition' }]);
+  await page.getByRole('button', { name: 'Composition に戻る', exact: true }).click();
+  await expect.poll(command).toEqual([2, 'select', { id: 'comp-2', kind: 'composition' }]);
+  expect(errors).toEqual([]);
+});
+
 test('presence and playback notify their consumers without rendering document panels', async ({ page }) => {
   await countEditorRenders(page);
   await open(page);

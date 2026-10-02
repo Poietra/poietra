@@ -31,10 +31,10 @@ async fn ChatController::send_async(
     return
   }
   let mention = @boundary.codex_mention(text)
-  let selected : FixedArray[String] = self.editor._get("selectedIds").cast()
+  let selected : FixedArray[String] = self.editor.selected_ids
   let error = if text.length() > 3000 {
     "メッセージは 3,000 文字以内で入力してください。"
-  } else if mention is Some(_) && truthy(self.editor._get("viewingPlayback")) {
+  } else if mention is Some(_) && self.editor.viewing_playback {
     "「この場面を編集」で編集に戻ってから Codex に依頼してください。"
   } else if mention is Some(_) && self.request.get_current() is Some(_) {
     "Codex の返答を待つか、現在の依頼を停止してください。"
@@ -51,8 +51,8 @@ async fn ChatController::send_async(
     (self.set_error)(error)
     return
   }
-  let scene = self.editor._get("scene")
-  let selection = @boundary.read_chat_selection(self.editor._get("selection"))
+  let scene = self.editor.scene
+  let selection = self.editor.selection.chat()
   let target = match selection {
     Composition(id) =>
       optional_string(scene._get("compositions")._get(id)._get("name")).unwrap_or(
@@ -182,7 +182,7 @@ async fn ChatController::send_async(
     let body = host_record({
       "roomId": self.store._get("roomId"),
       "sceneId": @core.any(scope.scene_id),
-      "compositionId": self.editor._get("compositionId"),
+      "compositionId": @core.any(self.editor.composition_id),
       "transitionId": match selection {
         Transition(id) => @core.any(id)
         _ => @core.null()

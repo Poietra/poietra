@@ -1,48 +1,38 @@
 ///|
-fn studio_callbacks(controller : StudioController) -> @core.Any {
-  host_record({
-    "notify": @core.any(fn(text : String) { controller.notify(text) }),
-    "select": @core.any(fn(value : @core.Any) {
-      controller.select(studio_selection(value))
-    }),
-    "undo": @core.any(fn() { controller.undo() }),
-    "redo": @core.any(fn() { controller.redo() }),
-    "editMoment": @core.any(fn(composition : @core.Any) {
-      controller.edit_moment(truthy(composition))
-    }),
-    "activateTool": @core.any(fn(value : String) {
-      controller.activate(studio_tool(value))
-    }),
-    "play": @core.any(fn(value : @core.Any) {
-      controller.play(studio_scope(value))
-    }),
-    "appendComposition": @core.any(fn() { controller.append() }),
-    "requestTextEdit": @core.any(fn(object : String, composition : String) {
+fn studio_callbacks(controller : StudioController) -> EditorActions {
+  {
+    notify: fn(text) { controller.notify(text) },
+    select: fn(selection) { controller.select(selection) },
+    undo: fn() { controller.undo() },
+    redo: fn() { controller.redo() },
+    edit_moment: fn(composition) { controller.edit_moment(composition) },
+    activate_tool: fn(tool) { controller.activate(tool) },
+    play: fn(scope) { controller.play(scope) },
+    append_composition: fn() { controller.append() },
+    request_text_edit: fn(object, composition) {
       controller.text_edit(object, composition)
-    }),
-    "setSelectedIds": @core.any(fn(ids : FixedArray[String]) {
+    },
+    set_selected_ids: fn(ids) {
       controller.update({
         ..controller.state,
         objects: Array::makei(ids.length(), fn(i) { ids[i] }),
       })
-    }),
-    "chooseObjects": @core.any(fn(ids : FixedArray[String]) {
+    },
+    select_objects: fn(ids) {
       controller.choose(Array::makei(ids.length(), fn(i) { ids[i] }))
-    }),
-    "seek": @core.any(fn(time : Double, value : @core.Any) {
-      let scope = if @core.is_undefined(value) {
+    },
+    seek: fn(time, scope) {
+      let scope = scope.unwrap_or_else(fn() {
         if truthy(controller.document.transition) && !controller.state.viewing() {
           SelectedTransition
         } else {
           WholeScene
         }
-      } else {
-        studio_scope(value)
-      }
+      })
       controller.seek(time, scope)
-    }),
-    "setPlaying": @core.any(fn(value : Bool) { if !value { controller.stop() } }),
-    "setTransportView": @core.any(fn(value : Bool) {
+    },
+    set_playing: fn(value) { if !value { controller.stop() } },
+    set_transport_view: fn(value) {
       controller.update({
         ..controller.state,
         cursor: if value {
@@ -51,24 +41,13 @@ fn studio_callbacks(controller : StudioController) -> @core.Any {
           SelectedState
         },
       })
-    }),
-    "setTool": @core.any(fn(value : String) {
-      controller.update({ ..controller.state, tool: studio_tool(value), })
-    }),
-    "setPathEditing": @core.any(fn(value : Bool) {
+    },
+    set_tool: fn(tool) { controller.update({ ..controller.state, tool, }) },
+    set_path_editing: fn(value) {
       controller.update({ ..controller.state, path_editing: value, })
-    }),
-    "setRightTab": @core.any(fn(value : String) {
-      controller.update({
-        ..controller.state,
-        panel: if value == "assistant" {
-          ChatPanel
-        } else {
-          DesignPanel
-        },
-      })
-    }),
-  })
+    },
+    set_panel: fn(panel) { controller.update({ ..controller.state, panel, }) },
+  }
 }
 
 ///|

@@ -9,15 +9,15 @@ fn stage_paths(controller : StageController) -> Array[&@react.ReactNode] {
   if !truthy(object) {
     return result
   }
-  let selection = controller.editor._get("selection")
-  let transition = if selection._get("kind").cast() == "transition" {
-    controller.scene._get("transitions")._get(selection._get("id").cast())
+  let selection = controller.editor.selection
+  let transition = if selection is TransitionSelection(_) {
+    controller.scene._get("transitions")._get(selection.id())
   } else {
     @core.undefined()
   }
   let scale = controller.scale
   let locked = truthy(object._get("locked"))
-  if truthy(transition) && truthy(controller.editor._get("pathEditing")) {
+  if truthy(transition) && controller.editor.path_editing {
     let track = transition._get("tracks")._get(id)
     let from = @boundary.state_for(
       controller.scene,

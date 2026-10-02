@@ -1,5 +1,5 @@
 ///|
-pub fn use_editor_imports(input : @core.Any) -> @core.Any {
+fn use_import_controls(input : EditorControls) -> ImportView {
   let image = @react.use_ref((None : @core.Any?))
   let media = @react.use_ref((None : @core.Any?))
   let (importing_image, set_image) = @react.use_state(false)
@@ -33,7 +33,7 @@ pub fn use_editor_imports(input : @core.Any) -> @core.Any {
         session.cancel()
       }
     },
-    [input._get("store")],
+    [input.store],
   )
   @react.use_effect(
     fn() {
@@ -43,10 +43,10 @@ pub fn use_editor_imports(input : @core.Any) -> @core.Any {
             !@core.equal(request._get("sceneId"), import_scene_id(input)) ||
             !@core.equal(
               request._get("compositionId"),
-              input._get("compositionId"),
+              @core.any(input.composition_id),
             ) ||
-            truthy(input._get("playing")) ||
-            truthy(input._get("transportView"))
+            input.playing ||
+            input.viewing_playback
           ) {
           session.cancel()
           break
@@ -56,47 +56,26 @@ pub fn use_editor_imports(input : @core.Any) -> @core.Any {
     },
     [
       import_scene_id(input),
-      input._get("compositionId"),
-      input._get("playing"),
-      input._get("transportView"),
+      @core.any(input.composition_id),
+      @core.any(input.playing),
+      @core.any(input.viewing_playback),
     ],
   )
-  let import_files = fn(files : FixedArray[@core.Any], point : @core.Any) {
-    session.start(files, point, false)
+  {
+    image_request: image,
+    media_request: media,
+    importing_image,
+    media_import: progress,
+    error,
+    set_importing_image: set_image,
+    set_error,
+    import_images: fn(files, point) { session.start(files, point, true) },
+    import_files: fn(files, point) { session.start(files, point, false) },
+    cancel: fn() { session.cancel() },
   }
-  host_record({
-    "imageRequest": image.as_any(),
-    "mediaRequest": media.as_any(),
-    "importingImage": @core.any(importing_image),
-    "setImportingImage": @core.any(set_image),
-    "importError": @core.any(error),
-    "setImportError": @core.any(set_error),
-    "mediaImport": match progress {
-      None => @core.null()
-      Some(progress) =>
-        host_record({
-          "name": @core.any(progress.name),
-          "index": @core.any(progress.index),
-          "count": @core.any(progress.count),
-          "progress": @core.any(progress.progress),
-          "phase": @core.any(
-            match progress.phase {
-              ReadAsset => "reading"
-              ReadWaveform => "waveform"
-              TransferAsset => "uploading"
-              SaveAsset => "saving"
-            },
-          ),
-        })
-    },
-    "importImages": @core.any(fn(
-      files : FixedArray[@core.Any],
-      point : @core.Any,
-    ) {
-      session.start(files, point, true)
-    }),
-    "importMediaFiles": @core.any(import_files),
-    "importFiles": @core.any(import_files),
-    "cancel": @core.any(fn() { session.cancel() }),
-  })
+}
+
+///|
+pub fn use_editor_imports(input : @core.Any) -> @core.Any {
+  native_import_view(use_import_controls(read_native_controls(input)))
 }

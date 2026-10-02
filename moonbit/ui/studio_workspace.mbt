@@ -24,7 +24,7 @@ fn studio_import_input(
   input : @react.ReactRef[@core.Any],
   label : String,
   accept : String,
-  action : @core.Any,
+  action : (FixedArray[@core.Any], @scene.Point?) -> @core.Promise[Unit],
 ) -> @react.Element {
   h(
     "input",
@@ -38,11 +38,12 @@ fn studio_import_input(
       "hidden": @core.any(true),
       "onChange": @core.any(fn(event : @core.Any) {
         let input = event._get("currentTarget")
-        let files = @core.global_this()
+        let files : FixedArray[@core.Any] = @core.global_this()
           ._get("Array")
           ._call("from", [input._get("files")])
+          .cast()
         input._set("value", @core.any(""))
-        action._invoke([files]) |> ignore
+        action(files, None) |> ignore
       }),
     },
     [],
@@ -52,7 +53,7 @@ fn studio_import_input(
 ///|
 fn studio_workspace_heading(
   controller : StudioController,
-  imports : @core.Any,
+  imports : ImportView,
   image_input : @react.ReactRef[@core.Any],
   media_input : @react.ReactRef[@core.Any],
 ) -> @react.Element {
@@ -102,8 +103,8 @@ fn studio_workspace_heading(
       ]),
     )
   }
-  let busy = truthy(imports._get("importingImage")) ||
-    truthy(imports._get("mediaImport")) ||
+  let busy = imports.importing_image ||
+    imports.media_import is Some(_) ||
     state.viewing() ||
     state.playing()
   let actions : Array[&@react.ReactNode] = [
@@ -120,7 +121,7 @@ fn studio_workspace_heading(
       },
       [
         icon("ImagePlus", 14),
-        if truthy(imports._get("importingImage")) {
+        if imports.importing_image {
           "Uploading…"
         } else {
           "Add image"
@@ -176,21 +177,14 @@ fn studio_workspace_heading(
 }
 
 ///|
-fn studio_import_status(imports : @core.Any) -> @react.Element {
-  let progress = imports._get("mediaImport")
-  let text = if truthy(progress) {
-    let phase : String = progress._get("phase").cast()
-    string_value(progress._get("index")) +
-    "/" +
-    string_value(progress._get("count")) +
-    " · " +
-    string_value(progress._get("name")) +
-    " · " +
-    (match phase {
-      "waveform" => "波形を作成中"
-      "uploading" => "アップロード中"
-      "saving" => "共有素材を保存中"
-      _ => "素材を読み込み中"
+fn studio_import_status(imports : ImportView) -> @react.Element {
+  let text = if imports.media_import is Some(progress) {
+    "\{progress.index}/\{progress.count} · \{progress.name} · " +
+    (match progress.phase {
+      ReadWaveform => "波形を作成中"
+      TransferAsset => "アップロード中"
+      SaveAsset => "共有素材を保存中"
+      ReadAsset => "素材を読み込み中"
     })
   } else {
     "画像を準備・保存しています…"
@@ -199,13 +193,13 @@ fn studio_import_status(imports : @core.Any) -> @react.Element {
     icon("LoaderCircle", 16, props={ "className": @core.any("loading-spinner") }),
     h("span", Map([]), [text]),
   ]
-  if truthy(progress) {
+  if imports.media_import is Some(progress) {
     nodes.push(
       h(
         "progress",
         {
           "max": @core.any(1),
-          "value": progress._get("progress"),
+          "value": @core.any(progress.progress),
           "aria-label": @core.any("素材の読み込み進捗"),
         },
         [],
@@ -217,7 +211,7 @@ fn studio_import_status(imports : @core.Any) -> @react.Element {
       "button",
       {
         "className": @core.any("text-button"),
-        "onClick": imports._get("cancel"),
+        "onClick": @core.any(imports.cancel),
       },
       ["中止"],
     ),
@@ -495,7 +489,7 @@ fn studio_composition_stage(
 ///|
 fn studio_main(
   controller : StudioController,
-  imports : @core.Any,
+  imports : ImportView,
   image_input : @react.ReactRef[@core.Any],
   media_input : @react.ReactRef[@core.Any],
 ) -> @react.Element {
@@ -504,11 +498,10 @@ fn studio_main(
   let workspace : Array[&@react.ReactNode] = [
     studio_workspace_heading(controller, imports, image_input, media_input),
   ]
-  if truthy(imports._get("mediaImport")) ||
-    truthy(imports._get("importingImage")) {
+  if imports.media_import is Some(_) || imports.importing_image {
     workspace.push(studio_import_status(imports))
   }
-  let error : String = imports._get("importError").cast()
+  let error : String = imports.error
   if !error.is_empty() {
     workspace.push(
       h(
@@ -521,7 +514,7 @@ fn studio_main(
         [
           h("span", Map([]), [error]),
           studio_icon_button("素材エラーを閉じる", "X", 14, fn() {
-            imports._get("setImportError")._invoke([@core.any("")]) |> ignore
+            (imports.set_error)("")
           }),
         ],
       ),
@@ -644,13 +637,13 @@ fn studio_main(
       media_input,
       "音声・動画ファイル",
       studio_media_accept,
-      imports._get("importMediaFiles"),
+      imports.import_files,
     ),
     studio_import_input(
       image_input,
       "画像ファイル",
       "image/png,image/jpeg,image/webp",
-      imports._get("importImages"),
+      imports.import_images,
     ),
     h(
       "div",
@@ -685,8 +678,8 @@ fn studio_main(
               studio_add_media(media_input, kind)
             }),
             "disabled": @core.any(
-              truthy(imports._get("importingImage")) ||
-              truthy(imports._get("mediaImport")) ||
+              imports.importing_image ||
+              imports.media_import is Some(_) ||
               state.viewing(),
             ),
           },
@@ -747,7 +740,7 @@ fn studio_main(
           let rect = stage_bounds(surface._call("getBoundingClientRect", []))
           let x : Double = event._get("clientX").cast()
           let y : Double = event._get("clientY").cast()
-          stage_point({
+          Some(@scene.Point::{
             x: (x - rect.x) /
             rect.width *
             (doc.scene._get("width").cast() : Double),
@@ -756,9 +749,9 @@ fn studio_main(
             (doc.scene._get("height").cast() : Double),
           })
         } else {
-          @core.undefined()
+          None
         }
-        imports._get("importFiles")._invoke([@core.any(files), point]) |> ignore
+        (imports.import_files)(files, point) |> ignore
       }),
     },
     nodes,

@@ -36,15 +36,6 @@ fn finish_key_nudge(owner : @react.ReactRef[KeyNudge]) -> Unit {
 }
 
 ///|
-fn key_callback(
-  input : @core.Any,
-  name : String,
-  values : FixedArray[@core.Any],
-) -> Unit {
-  input._get(name)._invoke(values) |> ignore
-}
-
-///|
 fn key_visible(scene : @core.Any, composition : String, id : String) -> Bool {
   let comp = scene._get("compositions")._get(composition)
   if @core.is_nullish(comp) {
@@ -55,25 +46,23 @@ fn key_visible(scene : @core.Any, composition : String, id : String) -> Bool {
 }
 
 ///|
-fn key_select_composition(input : @core.Any, id : String) -> Unit {
-  key_callback(input, "select", [
-    host_record({ "kind": @core.any("composition"), "id": @core.any(id) }),
-  ])
+fn key_select_composition(input : EditorControls, id : String) -> Unit {
+  (input.actions.select)(CompositionSelection(id))
 }
 
 ///|
 fn key_nudge(
-  input : @core.Any,
+  input : EditorControls,
   owner : @react.ReactRef[KeyNudge],
   dx : Int,
   dy : Int,
 ) -> Unit {
-  let store = input._get("store")
-  let scene_id : String = input._get("scene")._get("id").cast()
-  let composition : String = input._get("compositionId").cast()
+  let store = input.store
+  let scene_id : String = input.scene._get("id").cast()
+  let composition : String = input.composition_id
   let current = store._call("scene", [@core.any(scene_id)])
   let linked : FixedArray[String] = store
-    ._call("linkedIds", [@core.any(scene_id), input._get("activeIds")])
+    ._call("linkedIds", [@core.any(scene_id), @core.any(input.active_ids)])
     .cast()
   let ids = linked
     .iter()
@@ -109,23 +98,23 @@ fn key_nudge(
     @core.any(dy),
   ])
   |> ignore
-  key_callback(input, "setPlaying", [@core.any(false)])
-  key_callback(input, "setTransportView", [@core.any(false)])
-  key_callback(input, "setTool", [@core.any("select")])
-  if !@core.is_nullish(input._get("transition")) {
+  (input.actions.set_playing)(false)
+  (input.actions.set_transport_view)(false)
+  (input.actions.set_tool)(@editor.SelectTool)
+  if input.has_transition {
     key_select_composition(input, composition)
   }
 }
 
 ///|
 fn editor_key(
-  input : @core.Any,
+  input : EditorControls,
   owner : @react.ReactRef[KeyNudge],
   event : @core.Any,
 ) -> Unit {
   if truthy(event._get("defaultPrevented")) ||
     truthy(event._get("isComposing")) ||
-    truthy(input._get("composing")._get("current")) ||
+    input.composing.get_current() == Some(true) ||
     @core.equal(event._get("keyCode"), @core.any(229)) {
     return
   }
@@ -142,9 +131,9 @@ fn editor_key(
   if !key.has_prefix("Arrow") {
     finish_key_nudge(owner)
   }
-  let scene = input._get("scene")
-  let active : FixedArray[String] = input._get("activeIds").cast()
-  let preview = truthy(input._get("transportView"))
+  let scene = input.scene
+  let active : FixedArray[String] = input.active_ids
+  let preview = input.viewing_playback
   let action = @editor.keyboard_action(
     key,
     code,
@@ -157,34 +146,31 @@ fn editor_key(
   if @editor.shortcut_consumes(action) {
     prevent_default(event)
   }
-  let store = input._get("store")
+  let store = input.store
   match action {
     IgnoreShortcut => ()
-    RememberPaste(in_place) =>
-      input._get("pasteInPlace")._set("current", @core.any(in_place))
+    RememberPaste(in_place) => input.paste_in_place.set_current(Some(in_place))
     PreviewNotice =>
-      key_callback(input, "notify", [
-        @core.any(
-          "「この場面を編集」または Esc で編集に戻れます。",
-        ),
-      ])
-    ReturnFromPreview => key_callback(input, "editMoment", [])
-    UndoShortcut => key_callback(input, "undo", [])
-    RedoShortcut => key_callback(input, "redo", [])
+      (input.actions.notify)(
+        "「この場面を編集」または Esc で編集に戻れます。",
+      )
+    ReturnFromPreview => (input.actions.edit_moment)(false)
+    UndoShortcut => (input.actions.undo)()
+    RedoShortcut => (input.actions.redo)()
     DuplicateSelection => {
       let ids = store._call("duplicate", [
         scene._get("id"),
-        input._get("compositionId"),
+        @core.any(input.composition_id),
         @core.any(active),
       ])
-      key_callback(input, "setSelectedIds", [ids])
+      (input.actions.set_selected_ids)(ids.cast())
     }
     SelectAllObjects => {
-      let composition : String = input._get("compositionId").cast()
+      let composition : String = input.composition_id
       let ids = @core.object_keys(scene._get("objects")).filter(fn(id) {
         key_visible(scene, composition, id)
       })
-      key_callback(input, "setSelectedIds", [@core.any(ids)])
+      (input.actions.set_selected_ids)(host_array(ids))
     }
     GroupSelection(join) =>
       store._call(if join { "link" } else { "unlink" }, [
@@ -194,25 +180,21 @@ fn editor_key(
       |> ignore
     NudgeSelection(dx, dy) => key_nudge(input, owner, dx, dy)
     TogglePlayback =>
-      key_callback(input, "play", [
-        @core.any(
-          if preview || @core.is_nullish(input._get("transition")) {
-            "scene"
-          } else {
-            "transition"
-          },
-        ),
-      ])
+      (input.actions.play)(
+        if preview || !input.has_transition {
+          WholeScene
+        } else {
+          SelectedTransition
+        },
+      )
     ClearSelection => {
-      key_callback(input, "setSelectedIds", [
-        @core.any(([] : FixedArray[String])),
-      ])
-      key_callback(input, "setTool", [@core.any("select")])
-      key_callback(input, "setPlaying", [@core.any(false)])
-      key_callback(input, "setPathEditing", [@core.any(false)])
+      (input.actions.set_selected_ids)(([] : FixedArray[String]))
+      (input.actions.set_tool)(@editor.SelectTool)
+      (input.actions.set_playing)(false)
+      (input.actions.set_path_editing)(false)
     }
     HideSelection => {
-      let composition : String = input._get("compositionId").cast()
+      let composition : String = input.composition_id
       let objects = scene._get("objects")
       let ids = active
         .iter()
@@ -232,39 +214,27 @@ fn editor_key(
           .iter()
           .filter(fn(id) { !ids.contains(id) })
           .to_array()
-        key_callback(input, "setSelectedIds", [
-          @core.any(FixedArray::from_array(remaining[:])),
-        ])
+        (input.actions.set_selected_ids)(FixedArray::from_array(remaining[:]))
         let name : String = scene
           ._get("compositions")
           ._get(composition)
           ._get("name")
           .cast()
-        key_callback(input, "notify", [
-          @core.any(
-            "\{ids.length()} 個を \{name} から非表示にしました。ほかの場面には残ります。",
-          ),
-        ])
+        (input.actions.notify)(
+          "\{ids.length()} 個を \{name} から非表示にしました。ほかの場面には残ります。",
+        )
       }
     }
-    ChooseTool(tool) =>
-      key_callback(input, "activateTool", [
-        @core.any(
-          match tool {
-            SelectTool => "select"
-            DrawTool(kind) => @scene.object_kind_name(kind)
-          },
-        ),
-      ])
+    ChooseTool(tool) => (input.actions.activate_tool)(tool)
   }
 }
 
 ///|
-pub fn use_editor_keyboard(input : @core.Any) -> Unit {
+fn use_keyboard_controls(input : EditorControls) -> Unit {
   let latest = @react.use_ref(Some(input))
   latest.set_current(Some(input))
   let owner = @react.use_ref((None : KeyNudge?))
-  let store = input._get("store")
+  let store = input.store
   @react.use_effect(
     fn() {
       let window = @core.global_this()
@@ -282,19 +252,11 @@ pub fn use_editor_keyboard(input : @core.Any) -> Unit {
         }
       }
       let composition_start = fn() {
-        latest
-        .get_current()
-        .unwrap()
-        ._get("composing")
-        ._set("current", @core.any(true))
+        latest.get_current().unwrap().composing.set_current(Some(true))
         finish_key_nudge(owner)
       }
       let composition_end = fn() {
-        latest
-        .get_current()
-        .unwrap()
-        ._get("composing")
-        ._set("current", @core.any(false))
+        latest.get_current().unwrap().composing.set_current(Some(false))
       }
       let blur = fn() {
         composition_end()
@@ -347,8 +309,8 @@ pub fn use_editor_keyboard(input : @core.Any) -> Unit {
     },
     [store],
   )
-  let scene = input._get("scene")
-  let ids : FixedArray[String] = input._get("activeIds").cast()
+  let scene = input.scene
+  let ids : FixedArray[String] = input.active_ids
   @react.use_effect(
     fn() {
       finish_key_nudge(owner)
@@ -360,8 +322,13 @@ pub fn use_editor_keyboard(input : @core.Any) -> Unit {
       } else {
         scene._get("id")
       },
-      input._get("compositionId"),
+      @core.any(input.composition_id),
       @core.any(ids.iter().to_array().join(",")),
     ],
   )
+}
+
+///|
+pub fn use_editor_keyboard(input : @core.Any) -> Unit {
+  use_keyboard_controls(read_native_controls(input))
 }

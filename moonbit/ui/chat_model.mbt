@@ -14,7 +14,7 @@ priv struct ChatRetry {
 
 ///|
 priv struct ChatController {
-  editor : @core.Any
+  editor : EditorView
   store : @core.Any
   chat : @core.Any
   scene_id : String
@@ -139,29 +139,19 @@ fn ChatController::show_target(
   self : ChatController,
   target : @editor.ProposalTarget,
 ) -> Unit {
-  let scene = self.editor._get("scene")
+  let scene = self.editor.scene
   if !chat_selection_exists(scene, target.selection) {
     (self.set_error)(
       "編集案の対象が削除されています。今の状態でもう一度依頼してください。",
     )
     return
   }
-  self.editor
-  ._get("select")
-  ._invoke([@boundary.write_chat_selection(target.selection)])
-  |> ignore
-  self.editor
-  ._get("setSelectedIds")
-  ._invoke([
-    @core.any(
-      host_array(
-        target.object_ids.filter(fn(id) {
-          truthy(scene._get("objects")._get(id))
-        }),
-      ),
+  (self.editor.actions.select)(studio_chat_selection(target.selection))
+  (self.editor.actions.select_objects)(
+    host_array(
+      target.object_ids.filter(fn(id) { truthy(scene._get("objects")._get(id)) }),
     ),
-  ])
-  |> ignore
+  )
   (self.set_error)("")
 }
 
@@ -171,7 +161,7 @@ fn ChatController::apply(
   id : String,
   automatic : Bool,
 ) -> Unit {
-  if truthy(self.editor._get("viewingPlayback")) {
+  if self.editor.viewing_playback {
     (self.set_error)("編集に戻ってから適用してください。")
     return
   }
@@ -194,10 +184,7 @@ fn ChatController::apply(
   }
   attempt(
     fn() {
-      let targets = @boundary.read_proposal_targets(
-        proposal,
-        self.editor._get("scene"),
-      )
+      let targets = @boundary.read_proposal_targets(proposal, self.editor.scene)
       let undo = self.store._get("undoManager")
       undo._call("stopCapturing", []) |> ignore
       @core.throwable(fn() {
@@ -234,27 +221,16 @@ fn ChatController::apply(
         None => targets.rev_iter().find_first(fn(target) { target.created })
       }
       if created is Some(target) {
-        self.editor
-        ._get("select")
-        ._invoke([@boundary.write_chat_selection(target.selection)])
-        |> ignore
-        self.editor
-        ._get("setSelectedIds")
-        ._invoke([@core.any(host_array(target.object_ids))])
-        |> ignore
+        (self.editor.actions.select)(studio_chat_selection(target.selection))
+        (self.editor.actions.select_objects)(host_array(target.object_ids))
       }
-      self.editor
-      ._get("notify")
-      ._invoke([
-        @core.any(
-          if automatic {
-            "Codex の編集案を即適用しました。Undo で戻せます"
-          } else {
-            "編集案を適用しました。Undo で戻せます"
-          },
-        ),
-      ])
-      |> ignore
+      (self.editor.actions.notify)(
+        if automatic {
+          "Codex の編集案を即適用しました。Undo で戻せます"
+        } else {
+          "編集案を適用しました。Undo で戻せます"
+        },
+      )
       (self.set_error)("")
       (self.set_retry)(None)
     },

@@ -1,12 +1,12 @@
 ///|
 fn transform_inspector(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let scene = editor.scene
+  let store = editor.store
   let object = input._get("object")
   let state = @boundary.read_object_state(input._get("state"))
   let sid : String = scene._get("id").cast()
-  let cid : String = editor._get("compositionId").cast()
+  let cid : String = editor.composition_id
   let id : String = object._get("id").cast()
   let (error, set_error) = @react.use_state("")
   let change = fn(action : String, args : FixedArray[@core.Any]) {

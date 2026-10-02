@@ -11,17 +11,12 @@ fn StageController::finish(self : StageController, cancel : Bool) -> Unit {
     }
   }) catch {
     failure =>
-      self.editor
-      ._get("notify")
-      ._invoke([
-        @core.any(
-          error_message(
-            ui_native_error(failure),
-            "操作を取り消せませんでした。",
-          ),
+      (self.editor.actions.notify)(
+        error_message(
+          ui_native_error(failure),
+          "操作を取り消せませんでした。",
         ),
-      ])
-      |> ignore
+      )
   }
   match current.mode {
     SelectArea(area) => if cancel { self.select(host_array(area.initial)) }
@@ -214,8 +209,5 @@ fn StageController::double_click(
     return
   }
   prevent_default(event)
-  self.editor
-  ._get("requestTextEdit")
-  ._invoke([@core.any(id), @core.any(self.composition_id)])
-  |> ignore
+  (self.editor.actions.request_text_edit)(id, self.composition_id)
 }

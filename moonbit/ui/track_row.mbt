@@ -10,10 +10,10 @@ fn timeline_fraction(value : Double, duration : Double) -> Double {
 ///|
 fn track_row(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let scene = editor.scene
+  let store = editor.store
   let scene_id : String = scene._get("id").cast()
-  let transition_id : String = editor._get("selection")._get("id").cast()
+  let transition_id : String = editor.selection.id()
   let track = input._get("track")
   let object_id : String = track._get("objectId").cast()
   let transition = scene._get("transitions")._get(transition_id)
@@ -29,7 +29,7 @@ fn track_row(input : @core.Any) -> @react.Element {
     Some(channel) => @editor.property_channel_label(channel)
     None => animation_label(track._get("type"))
   }
-  let playing = truthy(editor._get("playing"))
+  let playing = editor.playing
   let locked = truthy(object) && truthy(object._get("locked"))
   let controller : TrackController = {
     store,
@@ -46,8 +46,8 @@ fn track_row(input : @core.Any) -> @react.Element {
     lane,
     drag,
     report: input._get("report").cast(),
-    select: editor._get("setSelectedIds").cast(),
-    notify: editor._get("notify").cast(),
+    select: editor.actions.select_objects,
+    notify: editor.actions.notify,
     playing,
   }
   let total : Double = if truthy(transition) {
@@ -104,7 +104,7 @@ fn track_row(input : @core.Any) -> @react.Element {
     return @react.fragment([])
   }
   let timing = controller.timing(track)
-  let selected : FixedArray[String] = editor._get("selectedIds").cast()
+  let selected : FixedArray[String] = editor.selected_ids
   let chosen = selected.iter().any(fn(id) { id == object_id })
   let disabled = locked || playing || total <= 0.0
   let reason = if locked {

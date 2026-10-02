@@ -145,7 +145,7 @@ fn chat_view(
       ),
     )
   }
-  if truthy(controller.editor._get("viewingPlayback")) {
+  if controller.editor.viewing_playback {
     composer.push(
       h(
         "p",
@@ -243,7 +243,7 @@ fn chat_view(
           ),
           h("span", Map([]), [
             if addressing {
-              string_value(controller.editor._get("scene")._get("name"))
+              string_value(controller.editor.scene._get("name"))
             } else {
               "Everyone"
             },
@@ -261,7 +261,7 @@ fn chat_view(
                   (
                     pending is Some(_) ||
                     controller.available != Some(true) ||
-                    truthy(controller.editor._get("viewingPlayback"))
+                    controller.editor.viewing_playback
                   )
                 ),
               ),

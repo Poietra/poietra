@@ -147,10 +147,17 @@ pub fn object_icon(input : @core.Any) -> @react.Element {
 }
 
 ///|
+priv struct SidebarView {
+  editor : EditorView
+  scene_count : Int
+  new_scene : () -> Unit
+}
+
+///|
 pub fn sidebar(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let cid : String = editor._get("compositionId").cast()
+  let scene = editor.scene
+  let cid : String = editor.composition_id
   let dependencies = editor_presentation_inputs(editor)
   dependencies.push(scene._get("objects"))
   dependencies.append(composition_presentation_inputs(scene, false))
@@ -158,45 +165,42 @@ pub fn sidebar(input : @core.Any) -> @react.Element {
     let state = @boundary.state_for(scene, cid, id)
     dependencies.push(@core.any(truthy(state) && truthy(state._get("visible"))))
   }
-  let project = editor._get("store")._call("snapshot", [])._get("project")
-  let count = if truthy(project) {
-    project._get("sceneOrder")._get("length")
+  let project = editor.store._call("snapshot", [])._get("project")
+  let count : Int = if truthy(project) {
+    project._get("sceneOrder")._get("length").cast()
   } else {
-    @core.any(0)
+    0
   }
-  dependencies.push(count)
-  let new_scene = use_latest_action(input._get("onNewScene"))
-  let props = use_presentation_props(dependencies, fn() {
-    host_record({
-      "editor": editor,
-      "sceneCount": count,
-      "onNewScene": new_scene,
-    })
+  dependencies.push(@core.any(count))
+  let new_scene = use_latest_procedure(input._get("onNewScene").cast())
+  let props : SidebarView = use_presentation_props(dependencies, fn() {
+    { editor, scene_count: count, new_scene, }
   })
-  keyed_element(cached_sidebar_content, { "view": props }, [])
+  typed_component(cached_sidebar_content, props)
 }
 
 ///|
-let cached_sidebar_content : @core.Any = memo_component(sidebar_content)
+let cached_sidebar_content : TypedComponent[SidebarView] = memo_typed_component(
+  sidebar_content,
+)
 
 ///|
-fn sidebar_content(input : @core.Any) -> @react.Element {
-  let input = input._get("view")
-  let editor = input._get("editor")
-  let scene = editor._get("scene")
+fn sidebar_content(input : SidebarView) -> @react.Element {
+  let editor = input.editor
+  let scene = editor.scene
   let scene_id : String = scene._get("id").cast()
-  let composition_id : String = editor._get("compositionId").cast()
-  let store = editor._get("store")
-  let selection = editor._get("selection")
-  let selected_ids : FixedArray[String] = editor._get("selectedIds").cast()
+  let composition_id : String = editor.composition_id
+  let store = editor.store
+  let selection = editor.selection
+  let selected_ids : FixedArray[String] = editor.selected_ids
   let selected = selected_ids.iter().to_array()
   let selected_set : Map[String, Bool] = Map([])
   for id in selected_ids {
     selected_set[id] = true
   }
-  let select : (@core.Any) -> Unit = editor._get("select").cast()
-  let notify : (String) -> Unit = editor._get("notify").cast()
-  let playback = truthy(editor._get("viewingPlayback"))
+  let select = editor.actions.select
+  let notify : (String) -> Unit = editor.actions.notify
+  let playback = editor.viewing_playback
   let (searching, set_searching) = @react.use_state(false)
   let (query, set_query) = @react.use_state("")
   let (collapsed, set_collapsed) = @react.use_state(
@@ -211,14 +215,9 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
     name.to_lower().contains(folded)
   })
   let choose = fn(ids : Array[String], additive : Bool) {
-    editor
-    ._get("setSelectedIds")
-    ._invoke([
-      @core.any(
-        host_array(@editor.select_layer_members(selected, ids, additive)),
-      ),
-    ])
-    |> ignore
+    (editor.actions.select_objects)(
+      host_array(@editor.select_layer_members(selected, ids, additive)),
+    )
   }
   let change_composition = fn(id : String, duplicate : Bool) {
     stop_capturing(store)
@@ -231,12 +230,7 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
             id,
             shared_runtime(),
           )
-          select(
-            host_record({
-              "kind": @core.any("composition"),
-              "id": @core.any(created),
-            }),
-          )
+          select(CompositionSelection(created))
           notify(
             "Composition を複製しました。配置と見た目を個別に編集できます。",
           )
@@ -247,22 +241,16 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
             id,
             shared_runtime(),
           )
-          let current_id : String = selection._get("id").cast()
-          let current_kind : String = selection._get("kind").cast()
+          let current_id : String = selection.id()
           let removed_ids : FixedArray[String] = removed
             ._get("removedTransitionIds")
             .cast()
-          if (current_kind == "composition" && current_id == id) ||
+          if (selection is CompositionSelection(_) && current_id == id) ||
             (
-              current_kind == "transition" &&
+              selection is TransitionSelection(_) &&
               removed_ids.iter().any(fn(id) { id == current_id })
             ) {
-            select(
-              host_record({
-                "kind": @core.any("composition"),
-                "id": removed._get("selectedId"),
-              }),
-            )
+            select(CompositionSelection(removed._get("selectedId").cast()))
           }
           notify(
             "Composition と前後のアニメーションを削除しました。元に戻すで復元できます。",
@@ -309,14 +297,14 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
       [],
     )
   }
-  let scene_count : Int = input._get("sceneCount").cast()
+  let scene_count = input.scene_count
   let content : Array[&@react.ReactNode] = [
     h("div", { "className": @core.any("new-scene-row") }, [
       h(
         "button",
         {
           "className": @core.any("new-scene-button"),
-          "onClick": input._get("onNewScene"),
+          "onClick": @core.any(input.new_scene),
           "disabled": @core.any(scene_count >= 100),
         },
         [
@@ -495,7 +483,7 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
         icon_button,
         {
           "label": @core.any("Composition を追加"),
-          "onClick": editor._get("appendComposition"),
+          "onClick": @core.any(editor.actions.append_composition),
         },
         [icon("Plus", 16)],
       ),
@@ -507,8 +495,7 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
     if !truthy(composition) {
       continue
     }
-    let chosen = selection._get("kind").cast() == "composition" &&
-      selection._get("id").cast() == id
+    let chosen = selection is CompositionSelection(_) && selection.id() == id
     let name : String = composition._get("name").cast()
     compositions.push(
       h(
@@ -526,14 +513,7 @@ fn sidebar_content(input : @core.Any) -> @react.Element {
                 @core.any("composition-list-item min-w-0 flex-1"),
                 @core.any(if chosen { "selected" } else { "" }),
               ]),
-              "onClick": @core.any(fn() {
-                select(
-                  host_record({
-                    "kind": @core.any("composition"),
-                    "id": @core.any(id),
-                  }),
-                )
-              }),
+              "onClick": @core.any(fn() { select(CompositionSelection(id)) }),
               "aria-pressed": @core.any(chosen),
             },
             [icon("Square", 14), h("span", Map([]), [name])],

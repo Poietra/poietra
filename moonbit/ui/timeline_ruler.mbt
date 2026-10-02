@@ -69,13 +69,10 @@ fn transition_ruler(input : @core.Any) -> @react.Element {
         "value": @core.any(scene_time),
         "disabled": @core.any(duration <= 0.0),
         "onValueChange": @core.any(fn(value : Double) {
-          editor
-          ._get("seek")
-          ._invoke([
-            @core.any(start + @scene.clamp(value, 0.0, duration)),
-            @core.any("transition"),
-          ])
-          |> ignore
+          (editor.actions.seek)(
+            start + @scene.clamp(value, 0.0, duration),
+            Some(SelectedTransition),
+          )
         }),
       },
       [
@@ -86,13 +83,10 @@ fn transition_ruler(input : @core.Any) -> @react.Element {
             "className": @core.any("track-seek-control"),
             "onPointerDownCapture": @core.any(fn(event : @core.Any) {
               if event._get("button").cast() == 0 {
-                editor
-                ._get("seek")
-                ._invoke([
-                  @core.any(start + scene_time),
-                  @core.any("transition"),
-                ])
-                |> ignore
+                (editor.actions.seek)(
+                  start + scene_time,
+                  Some(SelectedTransition),
+                )
               }
             }),
           },
@@ -150,13 +144,10 @@ fn scene_ruler(input : @core.Any) -> @react.Element {
         "step": @core.any(1),
         "value": @core.any(playhead.min(total)),
         "onChange": @core.any(fn(event : @core.Any) {
-          editor
-          ._get("seek")
-          ._invoke([
-            @core.any(number_value(event._get("target")._get("value").cast())),
-            @core.any("scene"),
-          ])
-          |> ignore
+          (editor.actions.seek)(
+            number_value(event._get("target")._get("value").cast()),
+            Some(WholeScene),
+          )
         }),
       },
       [],
@@ -168,11 +159,11 @@ fn scene_ruler(input : @core.Any) -> @react.Element {
 ///|
 fn timeline_transport(
   input : @core.Any,
-  editor : @core.Any,
+  editor : EditorView,
   total : Double,
 ) -> @react.Element {
-  let playing = truthy(editor._get("playing"))
-  let scene = editor._get("scene")
+  let playing = editor.playing
+  let scene = editor.scene
   let options : Array[&@react.ReactNode] = []
   for
     (value, name) in [
@@ -193,8 +184,7 @@ fn timeline_transport(
         {
           "label": @core.any("最初に戻る"),
           "onClick": @core.any(fn() {
-            editor._get("seek")._invoke([@core.any(0), @core.any("scene")])
-            |> ignore
+            (editor.actions.seek)(0, Some(WholeScene))
           }),
         },
         [icon("SkipBack", 14)],
@@ -209,9 +199,7 @@ fn timeline_transport(
               "シーンを再生"
             },
           ),
-          "onClick": @core.any(fn() {
-            editor._get("play")._invoke([@core.any("scene")]) |> ignore
-          }),
+          "onClick": @core.any(fn() { (editor.actions.play)(WholeScene) }),
         },
         [
           icon(if playing { "Pause" } else { "Play" }, 15, props={

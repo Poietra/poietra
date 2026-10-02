@@ -490,7 +490,7 @@ fn composition_inspector(
                 @core.any(controller.composition_id),
                 @core.any(controller.selected),
               ])
-              controller.editor._get("setSelectedIds")._invoke([next]) |> ignore
+              (controller.editor.actions.select_objects)(next.cast())
             }
           }),
         },
@@ -511,10 +511,9 @@ fn composition_inspector(
               @core.any(controller.selected),
             ])
             |> ignore
-            controller.editor
-            ._get("setSelectedIds")
-            ._invoke([@core.any(([] : FixedArray[String]))])
-            |> ignore
+            (controller.editor.actions.select_objects)(
+              ([] : FixedArray[String]),
+            )
           }
         },
         class_name="text-button",

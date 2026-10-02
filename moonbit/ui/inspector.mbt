@@ -1,11 +1,11 @@
 ///|
 pub fn inspector(_input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let scene = editor.scene
+  let store = editor.store
   let scene_id : String = scene._get("id").cast()
-  let composition_id : String = editor._get("compositionId").cast()
-  let selected : FixedArray[String] = editor._get("selectedIds").cast()
+  let composition_id : String = editor.composition_id
+  let selected : FixedArray[String] = editor.selected_ids
   let controller : InspectorController = {
     editor,
     scene,
@@ -14,14 +14,14 @@ pub fn inspector(_input : @core.Any) -> @react.Element {
     composition_id,
     selected,
   }
-  let selection = editor._get("selection")
+  let selection = editor.selection
   let object = if selected.length() == 1 {
     scene._get("objects")._get(selected[0])
   } else {
     @core.undefined()
   }
-  let transition = if selection._get("kind").cast() == "transition" {
-    scene._get("transitions")._get(selection._get("id").cast())
+  let transition = if selection is TransitionSelection(_) {
+    scene._get("transitions")._get(selection.id())
   } else {
     @core.undefined()
   }

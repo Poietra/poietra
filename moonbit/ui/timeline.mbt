@@ -1,12 +1,12 @@
 ///|
 fn timeline_tracks(
-  editor : @core.Any,
+  editor : EditorView,
   transition : @core.Any,
   start : Double,
   animations : FixedArray[@core.Any],
   feedback : @core.Any,
 ) -> @react.Element {
-  let selected : FixedArray[String] = editor._get("selectedIds").cast()
+  let selected : FixedArray[String] = editor.selected_ids
   let selected_track = animations
     .iter()
     .find_first(fn(item) {
@@ -22,7 +22,7 @@ fn timeline_tracks(
         "detail": @core.any(
           if locked {
             "ロック中 · 選択のみ"
-          } else if truthy(editor._get("playing")) {
+          } else if editor.playing {
             "再生中 · 編集は停止後"
           } else {
             track_detail(
@@ -145,15 +145,9 @@ fn timeline_tracks(
         {
           "aria-label": @core.any("Composition に戻る"),
           "onClick": @core.any(fn() {
-            editor
-            ._get("select")
-            ._invoke([
-              host_record({
-                "kind": @core.any("composition"),
-                "id": transition._get("toId"),
-              }),
-            ])
-            |> ignore
+            (editor.actions.select)(
+              CompositionSelection(transition._get("toId").cast()),
+            )
           }),
         },
         [icon("ChevronDown", 14)],
@@ -171,10 +165,9 @@ fn timeline_tracks(
 ///|
 pub fn timeline(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let selection = editor._get("selection")
-  let expanded = selection._get("kind").cast() == "transition" &&
-    !truthy(editor._get("viewingPlayback"))
+  let scene = editor.scene
+  let selection = editor.selection
+  let expanded = selection is TransitionSelection(_) && !editor.viewing_playback
   let total = @boundary.scene_duration(scene)
   let dependencies = editor_presentation_inputs(editor)
   dependencies.append(composition_presentation_inputs(scene, true))
@@ -193,7 +186,7 @@ pub fn timeline(input : @core.Any) -> @react.Element {
   }
   if expanded {
     dependencies.push(scene._get("objects"))
-    let transition = scene._get("transitions")._get(selection._get("id").cast())
+    let transition = scene._get("transitions")._get(selection.id())
     if truthy(transition) {
       dependencies.push(transition._get("tracks"))
       for key in ["fromId", "toId"] {
@@ -207,9 +200,7 @@ pub fn timeline(input : @core.Any) -> @react.Element {
       }
     }
   }
-  let props = use_presentation_props(dependencies, fn() {
-    host_record({ "editor": editor })
-  })
+  let props = use_presentation_props(dependencies, fn() { editor })
   h(
     "section",
     {
@@ -219,7 +210,7 @@ pub fn timeline(input : @core.Any) -> @react.Element {
       "aria-label": @core.any("タイムライン"),
     },
     [
-      keyed_element(cached_timeline_structure, { "view": props }, []),
+      typed_component(cached_timeline_structure, props),
       children(input),
       timeline_transport(input, editor, total),
     ],
@@ -227,14 +218,15 @@ pub fn timeline(input : @core.Any) -> @react.Element {
 }
 
 ///|
-let cached_timeline_structure : @core.Any = memo_component(timeline_structure)
+let cached_timeline_structure : TypedComponent[EditorView] = memo_typed_component(
+  timeline_structure,
+)
 
 ///|
-fn timeline_structure(input : @core.Any) -> @react.Element {
-  let editor = input._get("view")._get("editor")
-  let scene = editor._get("scene")
-  let selection = editor._get("selection")
-  let selected_id : String = selection._get("id").cast()
+fn timeline_structure(editor : EditorView) -> @react.Element {
+  let scene = editor.scene
+  let selection = editor.selection
+  let selected_id : String = selection.id()
   let scene_id : String = scene._get("id").cast()
   // The playback clock does not rebuild structural timelines or target lists.
   let segments : Array[@scene.Segment] = @react.use_memo(
@@ -242,8 +234,8 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
     [scene],
   )
   let total = @react.use_memo(fn() { @boundary.scene_duration(scene) }, [scene])
-  let transition = if selection._get("kind").cast() == "transition" &&
-    !truthy(editor._get("viewingPlayback")) {
+  let transition = if selection is TransitionSelection(_) &&
+    !editor.viewing_playback {
     scene._get("transitions")._get(selected_id)
   } else {
     @core.undefined()
@@ -327,12 +319,7 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
           ),
           "style": host_record({ "flexGrow": @core.any(duration.max(500.0)) }),
           "onClick": @core.any(fn() {
-            editor
-            ._get("select")
-            ._invoke([
-              host_record({ "kind": @core.any(kind), "id": @core.any(id) }),
-            ])
-            |> ignore
+            (editor.actions.select)(segment_selection(part))
           }),
           "aria-label": @core.any(
             name + " " + @boundary.format_milliseconds(duration) + " ms",
@@ -355,7 +342,7 @@ fn timeline_structure(input : @core.Any) -> @react.Element {
         "key": @core.any("add"),
         "className": @core.any("add-composition"),
         "aria-label": @core.any("Composition を追加"),
-        "onClick": editor._get("appendComposition"),
+        "onClick": @core.any(editor.actions.append_composition),
       },
       [icon("Plus", 21)],
     ),

@@ -2,10 +2,9 @@
 pub fn stage(input : @core.Any) -> @react.Element {
   let state = use_editor_state()
   let peers = use_editor_peers(state)
-  let editor = ui_shallow_copy(state)
-  editor._set("peers", peers)
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let editor = { ..state, peers, }
+  let scene = editor.scene
+  let store = editor.store
   let scene_id : String = scene._get("id").cast()
   let composition_id : String = input._get("compositionId").cast()
   let frame = input._get("frame")
@@ -17,15 +16,11 @@ pub fn stage(input : @core.Any) -> @react.Element {
   let state_editing = @core.is_undefined(input._get("stateEditing")) ||
     truthy(input._get("stateEditing"))
   let prefix = optional_string(input._get("prefix")).unwrap_or("main")
-  let tool_name : String = editor._get("tool").cast()
-  let tool = if tool_name == "select" {
-    @editor.SelectTool
-  } else {
-    @editor.DrawTool(@scene.object_kind(tool_name).unwrap())
-  }
-  let playing = truthy(editor._get("playing"))
+  let tool = editor.tool
+  let tool_name = studio_tool_name(tool)
+  let playing = editor.playing
   let can_edit = interactive && !playing
-  let renderer = editor._get("renderer")
+  let renderer = editor.renderer
   let container = @react.use_ref((None : @core.Any?))
   let surface = @react.use_ref((None : @core.Any?))
   let gesture = @react.use_ref((None : StageGesture?))
@@ -110,7 +105,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     string_value(@core.any(state_editing)) +
     ":" +
     drawing_kind.map(@scene.object_kind_name).unwrap_or("idle")
-  let factory = editor._get("createFramePainter")
+  let factory = editor.create_frame_painter
   let prepared = use_frame_preparation(
     drawn_frame,
     renderer,
@@ -152,7 +147,7 @@ pub fn stage(input : @core.Any) -> @react.Element {
     },
     [svg_frame, renderer, @core.any(prefix), @core.any(canvas_visible)],
   )
-  let selected : FixedArray[String] = editor._get("selectedIds").cast()
+  let selected : FixedArray[String] = editor.selected_ids
   let controller : StageController = {
     editor,
     scene,

@@ -12,7 +12,7 @@ priv struct CurveGesture {
 ///|
 priv struct CurveController {
   store : @core.Any
-  notify : @core.Any
+  notify : (String) -> Unit
   latest : @react.ReactRef[@core.Any]
   plot : @react.ReactRef[@core.Any]
   gesture : @react.ReactRef[CurveGesture]
@@ -65,15 +65,12 @@ fn CurveController::finish(self : CurveController, cancel : Bool) -> Unit {
     }
   }) catch {
     failure =>
-      self.notify._invoke([
-        @core.any(
-          error_message(
-            ui_native_error(failure),
-            "ドラッグを取り消せませんでした。",
-          ),
+      (self.notify)(
+        error_message(
+          ui_native_error(failure),
+          "ドラッグを取り消せませんでした。",
         ),
-      ])
-      |> ignore
+      )
   }
   ui_quiet(self.store, "endGesture")
   self.ignore_click.set_current(Some(current.moved))

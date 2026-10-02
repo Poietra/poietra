@@ -131,7 +131,7 @@ fn inspector_button(
 
 ///|
 priv struct InspectorController {
-  editor : @core.Any
+  editor : EditorView
   scene : @core.Any
   store : @core.Any
   scene_id : String
@@ -208,7 +208,7 @@ fn InspectorController::align(
     let origin : @scene.Point = { x: state.x, y: state.y, }
     let matrix = stage_item_matrix(item)
     let bounds = @geometry.matrix_bounds(
-      stage_bounds(self.editor._get("renderer")._call("objectBounds", [item])),
+      stage_bounds(self.editor.renderer._call("objectBounds", [item])),
       origin,
       matrix,
     )

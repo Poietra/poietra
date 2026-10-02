@@ -150,7 +150,7 @@ fn transition_inspector(
     ),
   )
   let key = "\{controller.scene_id}/\{transition_id}/\{object_id}"
-  let playing = truthy(controller.editor._get("playing"))
+  let playing = controller.editor.playing
   content.push(
     inspector_section("Timing", [
       number_field(
@@ -215,7 +215,7 @@ fn transition_inspector(
           "disabled": @core.any(
             locked ||
             playing ||
-            truthy(controller.editor._get("viewingPlayback")) ||
+            controller.editor.viewing_playback ||
             timing.type_ is Cut,
           ),
           "disabledReason": if timing.type_ is Cut {
@@ -247,7 +247,7 @@ fn transition_inspector(
     ),
   )
   if timing.type_ is Move && from_visible && to_visible {
-    let editing = truthy(controller.editor._get("pathEditing"))
+    let editing = controller.editor.path_editing
     let path_fields : Array[&@react.ReactNode] = [
       inspector_button(
         if editing {
@@ -276,10 +276,7 @@ fn transition_inspector(
               true,
             )
           }
-          controller.editor
-          ._get("setPathEditing")
-          ._invoke([@core.any(!editing)])
-          |> ignore
+          (controller.editor.actions.set_path_editing)(!editing)
         },
         class_name="subtle-button full-width " +
           (if editing { "active" } else { "" }),
@@ -292,8 +289,7 @@ fn transition_inspector(
           "",
           fn() {
             set_track({ "path": @core.null() }, true)
-            controller.editor._get("setPathEditing")._invoke([@core.any(false)])
-            |> ignore
+            (controller.editor.actions.set_path_editing)(false)
           },
           class_name="text-button",
         ),

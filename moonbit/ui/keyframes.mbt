@@ -15,8 +15,8 @@ fn keyframe_label(property : @scene.CurveProperty) -> String {
 ///|
 fn keyframe_inspector(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
+  let scene = editor.scene
+  let store = editor.store
   let transition = input._get("transition")
   let object = input._get("object")
   let track = @boundary.read_track(input._get("track"))
@@ -116,7 +116,7 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
     )
   }
   let curve = @boundary.keyframe_curve(scene, transition, oid, property)
-  let kernel = @boundary.read_kernel(editor._get("kernel"))
+  let kernel = @boundary.read_kernel(editor.kernel)
   if curve is Some(curve) &&
     !(property is ObjectFill || property is ObjectStroke) {
     let values : Array[Double] = []
@@ -286,7 +286,7 @@ fn keyframe_inspector(input : @core.Any) -> @react.Element {
               scene,
               transition,
               timing.start + at * timing.duration,
-              editor._get("kernel"),
+              editor.kernel,
               @core.undefined(),
             )
             let objects : FixedArray[@core.Any] = frame._get("objects").cast()

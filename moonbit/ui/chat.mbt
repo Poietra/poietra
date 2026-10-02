@@ -2,11 +2,10 @@
 pub fn assistant_panel(input : @core.Any) -> @react.Element {
   let state = use_editor_state()
   let peers = use_editor_peers(state)
-  let editor = ui_shallow_copy(state)
-  editor._set("peers", peers)
-  let store = editor._get("store")
+  let editor = { ..state, peers, }
+  let store = editor.store
   let chat = store._get("chat")
-  let scene_id : String = editor._get("scene")._get("id").cast()
+  let scene_id : String = editor.scene._get("id").cast()
   let messages : FixedArray[@core.Any] = @react.use_sync_external_store(
     chat._get("subscribe").cast(),
     chat._get("snapshot").cast(),
@@ -120,7 +119,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
   @react.use_effect(
     fn() {
       if truthy(store._call("snapshot", [])._get("synced")) {
-        let peers : FixedArray[@core.Any] = editor._get("peers").cast()
+        let peers : FixedArray[@core.Any] = editor.peers
         for value in messages {
           let message = @boundary.read_chat_message(value)
           if message.author_id != controller.author_id ||
@@ -146,7 +145,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
       }
       fn() { () }
     },
-    [@core.any(messages), chat, store, editor._get("peers")],
+    [@core.any(messages), chat, store, @core.any(editor.peers)],
   )
   @react.use_layout_effect(
     fn() {
@@ -190,12 +189,12 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
 }
 
 ///|
-fn chat_suggestions(editor : @core.Any) -> Array[String] {
-  let scene = editor._get("scene")
+fn chat_suggestions(editor : EditorView) -> Array[String] {
+  let scene = editor.scene
   let compositions = scene._get("compositions")
   let order : FixedArray[String] = scene._get("compositionOrder").cast()
-  let ids : FixedArray[String] = editor._get("selectedIds").cast()
-  let selection = @boundary.read_chat_selection(editor._get("selection"))
+  let ids : FixedArray[String] = editor.selected_ids
+  let selection = editor.selection.chat()
   let transition = selection is @editor.Transition(_)
   if order.length() == 1 && @core.object_keys(scene._get("objects")).is_empty() {
     return [

@@ -1,9 +1,9 @@
 ///|
 pub fn group_controls(_input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
-  let store = editor._get("store")
-  let ids : FixedArray[String] = editor._get("selectedIds").cast()
+  let scene = editor.scene
+  let store = editor.store
+  let ids : FixedArray[String] = editor.selected_ids
   let selected = ids
     .iter()
     .map(fn(id) { scene._get("objects")._get(id) })
@@ -25,7 +25,7 @@ pub fn group_controls(_input : @core.Any) -> @react.Element {
   } else {
     []
   }
-  let playback = truthy(editor._get("viewingPlayback"))
+  let playback = editor.viewing_playback
   let content : Array[&@react.ReactNode] = [
     h("div", { "className": @core.any("group-control-actions") }, [
       h(
@@ -38,14 +38,9 @@ pub fn group_controls(_input : @core.Any) -> @react.Element {
           ),
           "onClick": @core.any(fn() {
             store._call("link", [scene._get("id"), @core.any(ids)]) |> ignore
-            editor
-            ._get("notify")
-            ._invoke([
-              @core.any(
-                "グループ化しました。メンバーのドラッグで一緒に移動できます。",
-              ),
-            ])
-            |> ignore
+            (editor.actions.notify)(
+              "グループ化しました。メンバーのドラッグで一緒に移動できます。",
+            )
           }),
         },
         [
@@ -64,14 +59,9 @@ pub fn group_controls(_input : @core.Any) -> @react.Element {
           ),
           "onClick": @core.any(fn() {
             store._call("unlink", [scene._get("id"), @core.any(ids)]) |> ignore
-            editor
-            ._get("notify")
-            ._invoke([
-              @core.any(
-                "グループを解除しました。Undo で戻せます。",
-              ),
-            ])
-            |> ignore
+            (editor.actions.notify)(
+              "グループを解除しました。Undo で戻せます。",
+            )
           }),
         },
         [icon("Ungroup", 14), "Ungroup"],
@@ -91,10 +81,9 @@ pub fn group_controls(_input : @core.Any) -> @react.Element {
           "className": @core.any("text-button group-select-all"),
           "onClick": @core.any(fn() {
             let selected = FixedArray::makei(members.length(), fn(index) {
-              members[index]._get("id")
+              (members[index]._get("id").cast() : String)
             })
-            editor._get("setSelectedIds")._invoke([@core.any(selected)])
-            |> ignore
+            (editor.actions.select_objects)(selected)
           }),
         },
         [icon("MousePointer2", 12), "Select group · \{members.length()}"],

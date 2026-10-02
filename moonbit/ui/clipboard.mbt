@@ -1,12 +1,12 @@
 ///|
 priv struct PasteJob {
-  input : @core.Any
+  input : ClipboardInput
   request : @core.Any
 }
 
 ///|
 priv struct ClipboardController {
-  mut input : @core.Any
+  mut input : ClipboardInput
   mut mounted : Bool
   mut history : @editor.PasteHistory?
   mut job : PasteJob?
@@ -16,9 +16,9 @@ priv struct ClipboardController {
 let object_clipboard_mime : String = "application/x-poietra-objects+json"
 
 ///|
-fn clipboard_allowed(input : @core.Any, event : @core.Any) -> Bool {
-  !@core.is_nullish(input._get("scene")) &&
-  !truthy(input._get("composing")._get("current")) &&
+fn clipboard_allowed(input : ClipboardInput, event : @core.Any) -> Bool {
+  !@core.is_nullish(input.controls.scene) &&
+  !(input.controls.composing.get_current() == Some(true)) &&
   !shortcut_text_target(event._get("target")) &&
   !selected_page_text() &&
   !@core.is_nullish(event._get("clipboardData"))
@@ -27,15 +27,21 @@ fn clipboard_allowed(input : @core.Any, event : @core.Any) -> Bool {
 ///|
 fn ClipboardController::same_target(
   self : ClipboardController,
-  input : @core.Any,
+  input : ClipboardInput,
 ) -> Bool {
   let current = self.input
   self.mounted &&
-  @core.equal(current._get("store"), input._get("store")) &&
-  !@core.is_nullish(current._get("scene")) &&
-  @core.equal(current._get("scene")._get("id"), input._get("scene")._get("id")) &&
-  @core.equal(current._get("compositionId"), input._get("compositionId")) &&
-  !truthy(current._get("transportView"))
+  @core.equal(current.controls.store, input.controls.store) &&
+  !@core.is_nullish(current.controls.scene) &&
+  @core.equal(
+    current.controls.scene._get("id"),
+    input.controls.scene._get("id"),
+  ) &&
+  @core.equal(
+    @core.any(current.controls.composition_id),
+    @core.any(input.controls.composition_id),
+  ) &&
+  !current.controls.viewing_playback
 }
 
 ///|
@@ -43,10 +49,13 @@ fn ClipboardController::release(
   self : ClipboardController,
   job : PasteJob,
 ) -> Unit {
-  if @core.equal(job.input._get("imageRequest")._get("current"), job.request) {
-    job.input._get("imageRequest")._set("current", @core.null())
+  if job.input.image_request
+    .get_current()
+    .map(fn(request) { @core.equal(request, job.request) })
+    .unwrap_or(false) {
+    job.input.image_request.set_current(None)
     if self.mounted {
-      key_callback(job.input, "setImportingImage", [@core.any(false)])
+      (job.input.set_importing_image)(false)
     }
   }
   if self.job is Some(current) && physical_equal(current, job) {
@@ -63,21 +72,19 @@ fn ClipboardController::copy(
   if !clipboard_allowed(input, event) {
     return
   }
-  let active : FixedArray[String] = input._get("activeIds").cast()
+  let active : FixedArray[String] = input.controls.active_ids
   if active.is_empty() {
     return
   }
-  if truthy(input._get("transportView")) {
+  if input.controls.viewing_playback {
     prevent_default(event)
-    key_callback(input, "notify", [
-      @core.any(
-        "編集する場面を開いてからコピーしてください。",
-      ),
-    ])
+    (input.controls.actions.notify)(
+      "編集する場面を開いてからコピーしてください。",
+    )
     return
   }
-  let store = input._get("store")
-  let scene_id = input._get("scene")._get("id")
+  let store = input.controls.store
+  let scene_id = input.controls.scene._get("id")
   let current = store._call("scene", [scene_id])
   let cut = @core.equal(event._get("type"), @core.any("cut"))
   let ids = active
@@ -88,11 +95,7 @@ fn ClipboardController::copy(
     })
     .to_array()
   let ids = FixedArray::from_array(ids[:])
-  let data = @boundary.copy_objects(
-    current,
-    input._get("compositionId").cast(),
-    ids,
-  )
+  let data = @boundary.copy_objects(current, input.controls.composition_id, ids)
   let objects : FixedArray[@core.Any] = data._get("objects").cast()
   if objects.is_empty() {
     return
@@ -112,31 +115,25 @@ fn ClipboardController::copy(
     if cut {
       store._call("hide", [
         scene_id,
-        input._get("compositionId"),
+        @core.any(input.controls.composition_id),
         @core.any(ids),
       ])
       |> ignore
-      key_callback(input, "setSelectedIds", [
-        @core.any(([] : FixedArray[String])),
-      ])
+      (input.controls.actions.set_selected_ids)(([] : FixedArray[String]))
     }
-    key_callback(input, "notify", [
-      @core.any(
-        "\{objects.length()} 個のオブジェクトを" +
-        (if cut { "切り取りました" } else { "コピーしました" }),
-      ),
-    ])
+    (input.controls.actions.notify)(
+      "\{objects.length()} 個のオブジェクトを" +
+      (if cut { "切り取りました" } else { "コピーしました" }),
+    )
   }) catch {
     error => {
       prevent_default(event)
-      key_callback(input, "notify", [
-        @core.any(
-          error_message(
-            ui_native_error(error),
-            "コピーできませんでした",
-          ),
+      (input.controls.actions.notify)(
+        error_message(
+          ui_native_error(error),
+          "コピーできませんでした",
         ),
-      ])
+      )
     }
   }
 }
@@ -144,37 +141,34 @@ fn ClipboardController::copy(
 ///|
 async fn ClipboardController::prepare_paste(
   self : ClipboardController,
-  input : @core.Any,
+  input : ClipboardInput,
   objects : FixedArray[@core.Any],
 ) -> Bool {
-  if !@core.is_nullish(input._get("imageRequest")._get("current")) ||
-    !@core.is_nullish(input._get("mediaRequest")._get("current")) {
-    key_callback(input, "notify", [
-      @core.any(
-        "素材の保存が終わってから貼り付けてください。",
-      ),
-    ])
+  if input.image_request.get_current() is Some(_) ||
+    input.media_request.get_current() is Some(_) {
+    (input.controls.actions.notify)(
+      "素材の保存が終わってから貼り付けてください。",
+    )
     return false
   }
   let controller = new_controller()
   let signal = controller._get("signal")
   let request = host_record({
-    "sceneId": input._get("scene")._get("id"),
-    "compositionId": input._get("compositionId"),
+    "sceneId": input.controls.scene._get("id"),
+    "compositionId": @core.any(input.controls.composition_id),
     "controller": controller,
   })
   let job : PasteJob = { input, request, }
   self.job = Some(job)
-  input._get("imageRequest")._set("current", request)
-  key_callback(input, "setImportingImage", [@core.any(true)])
+  input.image_request.set_current(Some(request))
+  (input.set_importing_image)(true)
   defer self.release(job)
   let completed = try {
-    ui_call(input, "rehostImageAssets", [
-      @core.any(objects),
-      input._get("store")._get("roomId"),
+    (input.rehost_images)(
+      objects,
+      input.controls.store._get("roomId").cast(),
       signal,
-    ])
-    |> ignore
+    )
     Ok(())
   } catch {
     error => Err(error)
@@ -187,7 +181,10 @@ async fn ClipboardController::prepare_paste(
   }
   !ui_aborted(signal) &&
   self.same_target(input) &&
-  @core.equal(input._get("imageRequest")._get("current"), request)
+  input.image_request
+  .get_current()
+  .map(fn(current) { @core.equal(current, request) })
+  .unwrap_or(false)
 }
 
 ///|
@@ -206,7 +203,7 @@ fn ClipboardController::paste(
     .cast()
   if !files.is_empty() {
     prevent_default(event)
-    key_callback(input, "importFiles", [@core.any(files)])
+    (input.import_files)(files, None)
     return
   }
   let text : String = clipboard
@@ -217,8 +214,8 @@ fn ClipboardController::paste(
   } else {
     text
   }
-  let in_place = truthy(input._get("pasteInPlace")._get("current"))
-  input._get("pasteInPlace")._set("current", @core.any(false))
+  let in_place = input.controls.paste_in_place.get_current() == Some(true)
+  input.controls.paste_in_place.set_current(Some(false))
   @core.from_async(async fn() {
     try {
       let data = @core.throwable(fn() { @boundary.parse_objects(text) })
@@ -226,12 +223,10 @@ fn ClipboardController::paste(
         return
       }
       prevent_default(event)
-      if truthy(input._get("transportView")) {
-        key_callback(input, "notify", [
-          @core.any(
-            "編集する場面を開いてから貼り付けてください。",
-          ),
-        ])
+      if input.controls.viewing_playback {
+        (input.controls.actions.notify)(
+          "編集する場面を開いてから貼り付けてください。",
+        )
         return
       }
       let objects : FixedArray[@core.Any] = data._get("objects").cast()
@@ -247,8 +242,8 @@ fn ClipboardController::paste(
       if !self.same_target(input) {
         return
       }
-      let scene : String = input._get("scene")._get("id").cast()
-      let composition : String = input._get("compositionId").cast()
+      let scene : String = input.controls.scene._get("id").cast()
+      let composition : String = input.controls.composition_id
       let (history, offset) = @editor.next_paste(
         self.history,
         text,
@@ -257,8 +252,7 @@ fn ClipboardController::paste(
         in_place,
       )
       let ids : FixedArray[String] = @core.throwable(fn() {
-        input
-        ._get("store")
+        input.controls.store
         ._call("paste", [
           @core.any(scene),
           @core.any(composition),
@@ -269,26 +263,22 @@ fn ClipboardController::paste(
       })
       self.history = Some(history)
       let current = self.input
-      key_callback(current, "setSelectedIds", [@core.any(ids)])
-      key_callback(current, "setTool", [@core.any("select")])
-      key_select_composition(current, composition)
-      key_callback(current, "notify", [
-        @core.any(
-          "\{ids.length()} 個のオブジェクトを貼り付けました",
-        ),
-      ])
+      (current.controls.actions.set_selected_ids)(ids)
+      (current.controls.actions.set_tool)(@editor.SelectTool)
+      key_select_composition(current.controls, composition)
+      (current.controls.actions.notify)(
+        "\{ids.length()} 個のオブジェクトを貼り付けました",
+      )
     } catch {
       error => {
         prevent_default(event)
         if self.same_target(input) {
-          key_callback(self.input, "notify", [
-            @core.any(
-              error_message(
-                ui_native_error(error),
-                "貼り付けできませんでした",
-              ),
+          (self.input.controls.actions.notify)(
+            error_message(
+              ui_native_error(error),
+              "貼り付けできませんでした",
             ),
-          ])
+          )
         }
       }
     }
@@ -297,7 +287,7 @@ fn ClipboardController::paste(
 }
 
 ///|
-pub fn use_editor_clipboard(input : @core.Any) -> Unit {
+fn use_clipboard_controls(input : ClipboardInput) -> Unit {
   let owner = @react.use_ref((None : ClipboardController?))
   let controller = match owner.get_current() {
     Some(controller) => controller
@@ -341,6 +331,11 @@ pub fn use_editor_clipboard(input : @core.Any) -> Unit {
         }
       }
     },
-    [input._get("store")],
+    [input.controls.store],
   )
+}
+
+///|
+pub fn use_editor_clipboard(input : @core.Any) -> Unit {
+  use_clipboard_controls(read_native_clipboard(input))
 }

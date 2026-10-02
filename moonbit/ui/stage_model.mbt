@@ -44,7 +44,7 @@ priv struct StageGesture {
 
 ///|
 priv struct StageController {
-  editor : @core.Any
+  editor : EditorView
   scene : @core.Any
   store : @core.Any
   renderer : @core.Any
@@ -96,7 +96,7 @@ fn StageController::select(
   self : StageController,
   ids : FixedArray[String],
 ) -> Unit {
-  self.editor._get("setSelectedIds")._invoke([@core.any(ids)]) |> ignore
+  (self.editor.actions.select_objects)(ids)
 }
 
 ///|

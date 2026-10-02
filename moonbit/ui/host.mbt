@@ -159,6 +159,25 @@ fn component(
 }
 
 ///|
+#external
+priv type TypedComponent[T]
+
+///|
+/// The React props object is confined to this adapter. The component and every
+/// caller agree on T, including callbacks, before anything crosses into JS.
+fn[T] memo_typed_component(render : (T) -> @react.Element) -> TypedComponent[T] {
+  memo_component(fn(input) { render(input._get("view").cast()) }).cast()
+}
+
+///|
+fn[T] typed_component(
+  component : TypedComponent[T],
+  view : T,
+) -> @react.Element {
+  keyed_element(@core.any(component), { "view": @core.any(view) }, [])
+}
+
+///|
 fn prevent_default(event : @core.Any) -> Unit {
   event._call("preventDefault", []) |> ignore
 }

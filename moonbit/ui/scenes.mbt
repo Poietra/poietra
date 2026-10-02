@@ -39,6 +39,16 @@ fn scene_menu_item(
 }
 
 ///|
+priv struct SceneTabsView {
+  project : @core.Any
+  scene_id : String
+  store : @core.Any
+  change : (String) -> Unit
+  notify : (String) -> Unit
+  create : () -> Unit
+}
+
+///|
 pub fn scene_tabs(input : @core.Any) -> @react.Element {
   let project = input._get("project")
   let order : FixedArray[String] = project._get("sceneOrder").cast()
@@ -54,33 +64,34 @@ pub fn scene_tabs(input : @core.Any) -> @react.Element {
       },
     ])
   }
-  let change = use_latest_action(input._get("onChange"))
-  let notify = use_latest_action(input._get("notify"))
-  let create = use_latest_action(input._get("onNew"))
-  let props = use_presentation_props(dependencies, fn() {
-    host_record({
-      "project": project,
-      "sceneId": input._get("sceneId"),
-      "store": input._get("store"),
-      "onChange": change,
-      "notify": notify,
-      "onNew": create,
-    })
+  let change = use_latest_callback(input._get("onChange").cast())
+  let notify = use_latest_callback(input._get("notify").cast())
+  let create = use_latest_procedure(input._get("onNew").cast())
+  let props : SceneTabsView = use_presentation_props(dependencies, fn() {
+    {
+      project,
+      scene_id: input._get("sceneId").cast(),
+      store: input._get("store"),
+      change,
+      notify,
+      create,
+    }
   })
-  keyed_element(cached_scene_tabs_content, { "view": props }, [])
+  typed_component(cached_scene_tabs_content, props)
 }
 
 ///|
-let cached_scene_tabs_content : @core.Any = memo_component(scene_tabs_content)
+let cached_scene_tabs_content : TypedComponent[SceneTabsView] = memo_typed_component(
+  scene_tabs_content,
+)
 
 ///|
-fn scene_tabs_content(input : @core.Any) -> @react.Element {
-  let input = input._get("view")
-  let project = input._get("project")
-  let selected : String = input._get("sceneId").cast()
-  let store = input._get("store")
-  let on_change : (String) -> Unit = input._get("onChange").cast()
-  let notify : (String) -> Unit = input._get("notify").cast()
+fn scene_tabs_content(input : SceneTabsView) -> @react.Element {
+  let project = input.project
+  let selected = input.scene_id
+  let store = input.store
+  let on_change = input.change
+  let notify = input.notify
   let (draft, set_draft) = @react.use_state((None : SceneNameDraft?))
   let (error, set_error) = @react.use_state("")
   let order : FixedArray[String] = project._get("sceneOrder").cast()
@@ -338,7 +349,7 @@ fn scene_tabs_content(input : @core.Any) -> @react.Element {
         icon_button,
         {
           "label": @core.any("Scene を追加"),
-          "onClick": input._get("onNew"),
+          "onClick": @core.any(input.create),
           "disabled": @core.any(order.length() >= 100),
         },
         [icon("Plus", 14)],

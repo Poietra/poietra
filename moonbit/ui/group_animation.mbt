@@ -15,22 +15,22 @@ fn animation_label(value : @core.Any) -> String {
 ///|
 pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let selection = editor._get("selection")
-  if selection._get("kind").cast() != "transition" {
+  let selection = editor.selection
+  if !(selection is TransitionSelection(_)) {
     return @react.fragment([])
   }
-  let scene = editor._get("scene")
+  let scene = editor.scene
   let scene_id : String = scene._get("id").cast()
-  let transition_id : String = selection._get("id").cast()
+  let transition_id : String = selection.id()
   let transition = scene._get("transitions")._get(transition_id)
   if !truthy(transition) {
     return @react.fragment([])
   }
-  let store = editor._get("store")
+  let store = editor.store
   let result = @boundary.group_animation_targets(
     scene,
     transition_id,
-    editor._get("selectedIds").cast(),
+    editor.selected_ids,
   )
   let targets : FixedArray[@core.Any] = result._get("targets").cast()
   let excluded : FixedArray[@core.Any] = result._get("excluded").cast()
@@ -58,8 +58,8 @@ pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
   } else {
     @scene.animation_kind(common_type.cast())
   }
-  let viewing = truthy(editor._get("viewingPlayback"))
-  let playing = truthy(editor._get("playing"))
+  let viewing = editor.viewing_playback
+  let playing = editor.playing
   let apply = fn(key : String, value : @core.Any, separate : Bool) {
     if viewing {
       return
@@ -79,9 +79,7 @@ pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
           |> ignore
         }
       },
-      fn(message) {
-        editor._get("notify")._invoke([@core.any(message)]) |> ignore
-      },
+      fn(message) { (editor.actions.notify)(message) },
       "アニメーションを変更できませんでした。",
     )
   }

@@ -1,7 +1,14 @@
 ///|
+priv struct MediaTimelineView {
+  editor : EditorView
+  disabled : Bool
+  add : (String) -> Unit
+}
+
+///|
 pub fn media_timeline(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let scene = editor._get("scene")
+  let scene = editor.scene
   let dependencies = editor_presentation_inputs(editor)
   dependencies.append([
     scene._get("objects"),
@@ -9,31 +16,26 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
     @core.any(@boundary.scene_duration(scene)),
     input._get("disabled"),
   ])
-  let add = use_latest_action(input._get("onAdd"))
-  let props = use_presentation_props(dependencies, fn() {
-    host_record({
-      "editor": editor,
-      "disabled": input._get("disabled"),
-      "onAdd": add,
-    })
+  let add = use_latest_callback(input._get("onAdd").cast())
+  let props : MediaTimelineView = use_presentation_props(dependencies, fn() {
+    { editor, disabled: truthy(input._get("disabled")), add, }
   })
-  keyed_element(cached_media_timeline_content, { "view": props }, [])
+  typed_component(cached_media_timeline_content, props)
 }
 
 ///|
-let cached_media_timeline_content : @core.Any = memo_component(
+let cached_media_timeline_content : TypedComponent[MediaTimelineView] = memo_typed_component(
   media_timeline_content,
 )
 
 ///|
-fn media_timeline_content(input : @core.Any) -> @react.Element {
-  let input = input._get("view")
-  let editor = input._get("editor")
-  let scene = editor._get("scene")
+fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
+  let editor = input.editor
+  let scene = editor.scene
   let scene_id : String = scene._get("id").cast()
-  let store = editor._get("store")
-  let playing = truthy(editor._get("playing"))
-  let disabled = truthy(input._get("disabled"))
+  let store = editor.store
+  let playing = editor.playing
+  let disabled = input.disabled
   let busy = playing || disabled
   let (selected, set_selected) = @react.use_state((None : String?))
   let (draft, set_draft) = @react.use_state((None : @scene.MediaPlayback?))
@@ -46,8 +48,8 @@ fn media_timeline_content(input : @core.Any) -> @react.Element {
         select: set_selected,
         draft: set_draft,
         message: set_message,
-        notify: editor._get("notify").cast(),
-        selected_ids: editor._get("setSelectedIds").cast(),
+        notify: editor.actions.notify,
+        selected_ids: editor.actions.select_objects,
         drag: None,
         busy,
       }
@@ -117,14 +119,14 @@ fn media_timeline_content(input : @core.Any) -> @react.Element {
         inspector_button(
           "音声を追加",
           "Plus",
-          fn() { input._get("onAdd")._invoke([@core.any("audio")]) |> ignore },
+          fn() { (input.add)("audio") },
           class_name="text-button",
           disabled=busy,
         ),
         inspector_button(
           "動画を追加",
           "Film",
-          fn() { input._get("onAdd")._invoke([@core.any("video")]) |> ignore },
+          fn() { (input.add)("video") },
           class_name="text-button",
           disabled=busy,
         ),
@@ -230,13 +232,10 @@ fn media_seek(input : @core.Any) -> @react.Element {
       "value": @core.any(playhead.min(total)),
       "step": @core.any(1),
       "onChange": @core.any(fn(event : @core.Any) {
-        editor
-        ._get("seek")
-        ._invoke([
-          @core.any(number_value(event._get("target")._get("value").cast())),
-          @core.any("scene"),
-        ])
-        |> ignore
+        (editor.actions.seek)(
+          number_value(event._get("target")._get("value").cast()),
+          Some(WholeScene),
+        )
       }),
     },
     [],

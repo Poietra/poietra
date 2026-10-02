@@ -67,8 +67,8 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
   let ignore_click = @react.use_ref(Some(false))
   let description = @react.use_id()
   let controller : CurveController = {
-    store: editor._get("store"),
-    notify: editor._get("notify"),
+    store: editor.store,
+    notify: editor.actions.notify,
     latest,
     plot,
     gesture,
@@ -118,7 +118,7 @@ pub fn easing_editor(input : @core.Any) -> @react.Element {
         cancel()
       }
     },
-    [editor._get("store"), @core.any(disabled), @core.any(custom)],
+    [editor.store, @core.any(disabled), @core.any(custom)],
   )
   let options : Array[&@react.ReactNode] = []
   if curve is None {
