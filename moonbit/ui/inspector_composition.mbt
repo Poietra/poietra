@@ -313,14 +313,7 @@ fn composition_inspector(
     )
     content.push(
       inspector_section("Canvas", [
-        h("div", { "className": @core.any("canvas-dimensions") }, [
-          h("span", Map([]), [
-            string_value(controller.scene._get("width")) +
-            " × " +
-            string_value(controller.scene._get("height")),
-          ]),
-          h("span", { "className": @core.any("muted") }, ["16:9"]),
-        ]),
+        canvas_settings(controller),
         component(
           color_input,
           {

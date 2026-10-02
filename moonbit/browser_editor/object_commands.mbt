@@ -11,6 +11,18 @@ pub fn set_project_name(store : @core.Any, name : String) -> Unit {
 
 ///|
 pub fn set_scene(store : @core.Any, scene : String, patch : @core.Any) -> Unit {
+  for key in @core.object_keys(patch) {
+    if key == "width" || key == "height" {
+      let value = patch._get(key)
+      if @core.typeof_(value) != "number" ||
+        !@scene.valid_canvas_dimension(value.cast()) {
+        @core.throw_error(
+          "キャンバスの幅と高さは 1〜8192 ピクセルの整数にしてください。",
+        )
+        return
+      }
+    }
+  }
   edit(store, changes_for(["scenes", scene], patch))
 }
 

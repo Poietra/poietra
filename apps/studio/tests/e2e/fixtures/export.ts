@@ -1,5 +1,5 @@
 import { ALL_FORMATS, BlobSource, EncodedPacketSink, Input, VideoSampleSink } from 'mediabunny';
-import { makeDemoProject } from '../../../shared/demo';
+import { makeBlankScene, makeDemoProject } from '../../../shared/demo';
 import { defaultState, type Scene } from '../../../shared/model';
 import { evaluateScene, type Frame } from '../../../src/engine/evaluate';
 import { createFramePainter } from '../../../src/engine/painter';
@@ -99,6 +99,36 @@ showPreview(initialScene);
 
 const fixture = {
   capabilities: getExportCapabilities,
+  async sized(format: 'mp4' | 'webm', width: number, height: number) {
+    const scene = makeBlankScene('resolution', 'Resolution');
+    if (height > width) { scene.width = 720; scene.height = 1280; }
+    scene.background = '#102030';
+    scene.objects.box = { id: 'box', name: 'Box', kind: 'rectangle', order: 0, groupId: null, locked: false };
+    const composition = scene.compositions[scene.compositionOrder[0]];
+    composition.duration = 200;
+    composition.states.box = defaultState('rectangle', {
+      x: scene.width / 2, y: scene.height / 2, width: scene.width / 2, height: scene.height / 2,
+      fill: '#f05078', strokeWidth: 0,
+    });
+    const result = await exportScene(scene, kernel, { format, fps: 30, width, height });
+    const input = new Input({ source: new BlobSource(result.blob), formats: ALL_FORMATS });
+    try {
+      const track = (await input.getPrimaryVideoTrack())!;
+      let packets = 0;
+      for await (const _ of new EncodedPacketSink(track).packets()) packets++;
+      const sample = await new VideoSampleSink(track).getSample(0);
+      if (!sample) throw new Error('The resized export has no decodable frame');
+      const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
+      const context = canvas.getContext('2d')!;
+      try { sample.draw(context, 0, 0, 64, 64); } finally { sample.close(); }
+      return {
+        width: track.displayWidth, height: track.displayHeight, packets,
+        duration: await input.computeDuration(), bytes: result.blob.size,
+        center: Array.from(context.getImageData(32, 32, 1, 1).data),
+        corner: Array.from(context.getImageData(2, 2, 1, 1).data),
+      };
+    } finally { input.dispose(); }
+  },
   async export(format: 'mp4' | 'webm', mutateSource = false) {
     const scene = makeScene();
     const original = structuredClone(scene);

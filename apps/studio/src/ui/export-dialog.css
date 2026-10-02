@@ -14,3 +14,5 @@
 .export-dialog .export-dialog-result small{overflow-wrap:anywhere;color:#88879c;font-size:10px}
 .export-dialog .export-dialog-actions{flex-wrap:wrap}
 @media(max-width:520px){.export-dialog .export-dialog-actions .primary-button{flex:1}.export-dialog .export-dialog-settings select{width:200px}}
+
+.export-dialog .export-custom-size{align-self:flex-end;width:225px;max-width:100%;margin:0}.export-dialog .export-custom-size .property-field{min-width:0}.export-dialog .export-dialog-settings .export-dialog-note{margin:0}

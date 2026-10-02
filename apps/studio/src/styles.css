@@ -63,3 +63,5 @@
 .property-grid-stacked .number-input input{padding-left:8px}
 
 .participant-overflow{font-size:11px;color:var(--muted);padding:0 3px;white-space:nowrap;align-self:center}
+
+.canvas-settings{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}.canvas-settings .canvas-dimensions{margin:0}.canvas-settings .muted.small{margin:0;line-height:1.7}

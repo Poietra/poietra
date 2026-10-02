@@ -7,6 +7,19 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => Boolean(window.exportFixture));
 });
 
+for (const [format, width, height] of [
+  ['mp4', 3840, 2160], ['mp4', 2160, 3840], ['webm', 3840, 2160], ['mp4', 1536, 864],
+] as const) test(`encodes and independently decodes ${width} × ${height} ${format}`, async ({ page }) => {
+  const result = await page.evaluate(({ format, width, height }) => window.exportFixture.sized(format, width, height), { format, width, height });
+  expect(result).toMatchObject({ width, height, packets: 6 });
+  expect(result.duration).toBeCloseTo(.2, 3);
+  expect(result.bytes).toBeGreaterThan(100);
+  for (const [actual, expected] of [[result.center, [240, 80, 120]], [result.corner, [16, 32, 48]]] as const) {
+    expected.forEach((channel, index) => expect(Math.abs(actual[index] - channel)).toBeLessThan(12));
+    expect(actual[3]).toBe(255);
+  }
+});
+
 for (const format of ['mp4', 'webm'] as const) {
   test(`downloads and decodes a 102-frame ${format.toUpperCase()} with Japanese text and mathematics`, async ({ page }, testInfo) => {
     const capabilities = await page.evaluate(() => window.exportFixture.capabilities());

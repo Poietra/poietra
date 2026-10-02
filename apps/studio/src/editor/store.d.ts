@@ -71,7 +71,8 @@ export declare class EditorStore {
     project(): Project;
     scene(id: string): Scene;
     setProjectName(name: string): undefined;
-    setScene(sceneId: string, patch: Partial<Pick<Scene, 'name' | 'background'>>): undefined;
+    /** Canvas dimensions use whole pixels (1–8192); resizing preserves object states. */
+    setScene(sceneId: string, patch: Partial<Pick<Scene, 'name' | 'background' | 'width' | 'height'>>): undefined;
     setObject(sceneId: string, id: string, patch: Partial<SceneObject>): undefined;
     updateState(sceneId: string, compositionId: string, objectId: string, patch: Partial<ObjectState>, separate?: boolean): undefined;
     translate(sceneId: string, compositionId: string, starts: Record<string, {

@@ -51,6 +51,13 @@ The boundaries to preserve are:
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.
+- Canvas and export sizing are separate (2026-10-03): canvas controls edit only
+  Scene width/height leaves, preserving poses, motion and peer edits through Undo.
+  A size change cancels gestures using the old coordinate mapping. Export's pure
+  `exporting.Resolution` derives an aspect-preserving output size from the current
+  source before capture; `exporting.plan` validates it and the browser probes codec
+  support at that size. This permits custom/4K output without scaling document
+  objects or changing the Node renderer's published resource limits.
 - `render_job` owns host-independent orchestration; `headless_render` owns native
   conversion. `media_pipeline` has no project or host dependency: producers own
   frame/sample buffers until the awaited consumer returns. It is not published.

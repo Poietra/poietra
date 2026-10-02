@@ -56,7 +56,9 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
   )
   let (format, set_format) = @react.use_state(@exporting.Container::Mp4)
   let (fps, set_fps) = @react.use_state(30.0)
-  let (resolution, set_resolution) = @react.use_state(ExportResolution::Source)
+  let (resolution, set_resolution) = @react.use_state(
+    @exporting.Resolution::Source,
+  )
   let (range, set_range) = @react.use_state(ExportRange::CurrentScene)
   let (view, set_view) = @react.use_state(ExportView::Checking)
   let session = @react.use_ref((None : ExportSession?))
@@ -197,6 +199,23 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
     .map(fn(value) { value.format })
     .unwrap_or(format)
   let displayed_fps = frozen.map(fn(value) { value.fps }).unwrap_or(fps)
+  let output_size = frozen
+    .map(fn(value) { value.size })
+    .unwrap_or_else(fn() {
+      @exporting.dimensions(displayed, resolution, displayed_format)
+    })
+  let configuration_error = match
+    @exporting.plan(
+      displayed_format.extension(),
+      displayed_fps,
+      displayed,
+      Some(output_size.width),
+      Some(output_size.height),
+      [duration],
+    ) {
+    Ok(_) => None
+    Err(message) => Some(message)
+  }
   let title = frozen
     .map(fn(value) { value.title })
     .unwrap_or_else(fn() {
@@ -257,26 +276,36 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
     ),
   )
   let resolutions : Array[&@react.ReactNode] = []
-  for choice in [ExportResolution::Source, HD, FullHD] {
-    let size = export_dimensions(displayed, choice, displayed_format)
-    let label = if choice == Source { "Source" } else { choice.value() + "p" }
+  for
+    (choice, label) in [
+      (@exporting.Source, "Source"),
+      (ShortEdge(720.0), "720p"),
+      (ShortEdge(1080.0), "1080p"),
+      (ShortEdge(1440.0), "1440p"),
+      (ShortEdge(2160.0), "4K (2160p)"),
+    ] {
+    let size = @exporting.dimensions(displayed, choice, displayed_format)
     resolutions.push(
       export_choice(
-        choice.value(),
+        export_resolution_value(choice),
         label + " · \{size.width} × \{size.height}",
       ),
     )
   }
+  resolutions.push(export_choice("custom", "Custom"))
   settings.push(
     export_select(
       "Resolution",
       "Export resolution",
-      @core.any(resolution.value()),
+      @core.any(export_resolution_value(resolution)),
       fn(value) {
         set_resolution(
           match value {
-            "720" => HD
-            "1080" => FullHD
+            "720" => ShortEdge(720.0)
+            "1080" => ShortEdge(1080.0)
+            "1440" => ShortEdge(1440.0)
+            "2160" => ShortEdge(2160.0)
+            "custom" => Width(output_size.width)
             _ => Source
           },
         )
@@ -284,6 +313,35 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
       resolutions,
     ),
   )
+  if resolution is Width(_) || resolution is Height(_) {
+    settings.push(
+      h("div", { "className": @core.any("property-grid export-custom-size") }, [
+        number_field(
+          "W",
+          "Export width",
+          output_size.width,
+          fn(value) { set_resolution(Width(round_number(value))) },
+          min=1.0,
+          max=8192.0,
+          suffix="px",
+        ),
+        number_field(
+          "H",
+          "Export height",
+          output_size.height,
+          fn(value) { set_resolution(Height(round_number(value))) },
+          min=1.0,
+          max=8192.0,
+          suffix="px",
+        ),
+      ]),
+    )
+    settings.push(
+      h("p", { "className": @core.any("export-dialog-note") }, [
+        "縦横比を維持します。幅か高さを指定してください（各辺 1〜8192 px）。",
+      ]),
+    )
+  }
   settings.push(
     export_select(
       "Frame rate",
@@ -316,9 +374,15 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
   }
   let source_width = displayed.width
   let source_height = displayed.height
-  if resolution == Source &&
-    displayed_format == Mp4 &&
-    (source_width % 2.0 != 0.0 || source_height % 2.0 != 0.0) {
+  if displayed_format == Mp4 &&
+    (
+      (
+        resolution == Source &&
+        (source_width % 2.0 != 0.0 || source_height % 2.0 != 0.0)
+      ) ||
+      resolution is Width(_) ||
+      resolution is Height(_)
+    ) {
     content.push(
       h("p", { "className": @core.any("export-dialog-note") }, [
         "MP4 に合わせて、幅と高さを偶数ピクセルに調整します。",
@@ -340,7 +404,16 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
       ),
     )
   }
-  if !view.error().is_empty() {
+  if configuration_error is Some(message) {
+    content.push(
+      h(
+        "p",
+        { "className": @core.any("inline-error"), "role": @core.any("alert") },
+        [message],
+      ),
+    )
+  }
+  if !view.error().is_empty() && configuration_error is None {
     content.push(
       h(
         "p",
@@ -453,6 +526,7 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
           "onClick": @core.any(render),
           "disabled": @core.any(
             busy ||
+            configuration_error is Some(_) ||
             view is Checking ||
             !capabilities
             .map(fn(value) { value.supports(format) })

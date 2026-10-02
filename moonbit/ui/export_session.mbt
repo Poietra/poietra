@@ -1,16 +1,9 @@
 ///|
-priv enum ExportResolution {
-  Source
-  HD
-  FullHD
-} derive(Eq)
-
-///|
-fn ExportResolution::value(self : ExportResolution) -> String {
-  match self {
+fn export_resolution_value(resolution : @exporting.Resolution) -> String {
+  match resolution {
     Source => "source"
-    HD => "720"
-    FullHD => "1080"
+    ShortEdge(pixels) => "\{pixels}"
+    Width(_) | Height(_) => "custom"
   }
 }
 
@@ -87,29 +80,6 @@ fn ExportCapabilities::supports(
     Mp4 => self.mp4
     Webm => self.webm
   }
-}
-
-///|
-fn export_dimensions(
-  source : @exporting.Size,
-  resolution : ExportResolution,
-  format : @exporting.Container,
-) -> @exporting.Size {
-  let width = source.width
-  let height = source.height
-  let scale = match resolution {
-    Source => 1.0
-    HD => 720.0 / width.min(height)
-    FullHD => 1080.0 / width.min(height)
-  }
-  let unit = match format {
-    Mp4 => 2.0
-    Webm => 1.0
-  }
-  let size = fn(value : Double) {
-    (round_number(value * scale / unit) * unit).max(unit)
-  }
-  { width: size(width), height: size(height), }
 }
 
 ///|
@@ -205,7 +175,7 @@ fn begin_export(
   input : @core.Any,
   format : @exporting.Container,
   fps : Double,
-  resolution : ExportResolution,
+  resolution : @exporting.Resolution,
   range : ExportRange,
   session : ExportSession,
   active : @react.ReactRef[ExportJob],
@@ -228,6 +198,24 @@ fn begin_export(
     }
     let source_size = export_source_size(scene)
     let scene_name = string_value(scene._get("name"))
+    let duration = if is_project {
+      @boundary.project_duration(project)
+    } else {
+      @boundary.scene_duration(scene)
+    }
+    let size = @exporting.dimensions(source_size, resolution, format)
+    match
+      @exporting.plan(
+        format.extension(),
+        fps,
+        source_size,
+        Some(size.width),
+        Some(size.height),
+        [duration],
+      ) {
+      Err(message) => @core.throw_error(message)
+      Ok(_) => ()
+    }
     let frozen : ExportSnapshot = {
       range: if is_project {
         EntireProject
@@ -240,17 +228,13 @@ fn begin_export(
       } else {
         scene_name
       },
-      duration: if is_project {
-        @boundary.project_duration(project)
-      } else {
-        @boundary.scene_duration(scene)
-      },
+      duration,
       source_size,
       scene_name,
       name: input._get("name").cast(),
       format,
       fps,
-      size: export_dimensions(source_size, resolution, format),
+      size,
     }
     (if is_project { ProjectInput(project) } else { SceneInput(scene) }, frozen)
   }) catch {

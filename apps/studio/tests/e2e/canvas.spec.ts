@@ -44,6 +44,69 @@ async function peer(page: Page) {
   return { doc, scene: () => readProject(doc)!.scenes['scene-1'], close };
 }
 
+test('canvas presets, custom dimensions and swapping preserve artwork, peer edits and saved size', async ({ page }, testInfo) => {
+  await open(page);
+  const data = await peer(page);
+  try {
+    const initial = structuredClone(data.scene());
+    const stage = page.getByTestId('stage-main');
+    await stage.click({ position: { x: 10, y: 10 } });
+    await page.getByRole('combobox', { name: 'Canvas preset' }).selectOption('9:16');
+    await expect.poll(() => [data.scene().width, data.scene().height]).toEqual([720, 1280]);
+    await expect.poll(async () => { const box = (await stage.boundingBox())!; return box.width / box.height; }).toBeCloseTo(9 / 16, 2);
+    expect(data.scene()).toEqual({ ...initial, width: 720, height: 1280 });
+    await page.screenshot({ path: testInfo.outputPath('portrait-canvas-settings.png') });
+    const width = page.getByRole('spinbutton', { name: 'Canvas width' });
+    const height = page.getByRole('spinbutton', { name: 'Canvas height' });
+    await width.fill('600'); await width.press('Tab');
+    await width.fill('900');
+    applyChanges(data.doc, [{ path: ['scenes', 'scene-1', 'height'], value: 1400 }], 'peer');
+    await expect(height).toHaveValue('1400');
+    await width.press('Tab');
+    await expect.poll(() => [data.scene().width, data.scene().height]).toEqual([900, 1400]);
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect(width).toHaveValue('600'); await expect(height).toHaveValue('1400');
+    await page.getByRole('button', { name: '幅と高さを入れ替え', exact: true }).click();
+    await expect.poll(() => [data.scene().width, data.scene().height]).toEqual([1400, 600]);
+    expect(data.scene().compositions).toEqual(initial.compositions);
+    expect(data.scene().transitions).toEqual(initial.transitions);
+    await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+    await expect(width).toHaveValue('1400'); await expect(height).toHaveValue('600');
+    await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();
+    const downloading = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Save project', exact: true }).click();
+    const download = await downloading;
+    const { readFile } = await import('node:fs/promises');
+    const saved = JSON.parse(await readFile((await download.path())!, 'utf8'));
+    expect(saved.scenes['scene-1']).toMatchObject({ width: 1400, height: 600 });
+  } finally { data.close(); }
+});
+
+test('a peer canvas resize cancels a captured drag without undoing the peer dimensions', async ({ page }) => {
+  await open(page); await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  const data = await peer(page);
+  try {
+    await field(page, 'Position X', 330);
+    const composition = data.scene().compositionOrder[0];
+    const state = () => data.scene().compositions[composition].states.circle;
+    await expect.poll(() => state().x).toBe(330);
+    const at = await center(shape(page));
+    await page.mouse.move(at.x, at.y); await page.mouse.down();
+    await page.mouse.move(at.x + 35, at.y, { steps: 3 });
+    await expect.poll(() => state().x).toBeGreaterThan(330);
+    applyChanges(data.doc, [
+      { path: ['scenes', 'scene-1', 'width'], value: 1000 },
+      { path: ['scenes', 'scene-1', 'height'], value: 1000 },
+    ], 'peer');
+    await expect.poll(() => state().x).toBe(330);
+    await page.mouse.up();
+    expect([data.scene().width, data.scene().height]).toEqual([1000, 1000]);
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect.poll(() => state().x).toBe(245);
+    expect([data.scene().width, data.scene().height]).toEqual([1000, 1000]);
+  } finally { data.close(); }
+});
+
 test('resize starts from a committed draft and preserves peer fields through Undo and lock cancellation', async ({ page }) => {
   await open(page); await page.getByRole('button', { name: 'Circle', exact: true }).click();
   const data = await peer(page);

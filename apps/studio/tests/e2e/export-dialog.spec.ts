@@ -9,6 +9,53 @@ async function ready(page: Page, index = 0) {
 async function start(page: Page) { await page.getByRole('button', { name: 'Export video', exact: true }).click(); }
 test.beforeEach(async ({ page }) => { await page.goto('/tests/e2e/fixtures/export-dialog.html'); });
 
+test('4K follows the current source orientation and freezes the chosen dimensions', async ({ page }) => {
+  await open(page); await ready(page);
+  const resolution = page.getByRole('combobox', { name: 'Export resolution' });
+  await expect(resolution).toContainText('4K (2160p) · 3840 × 2160');
+  await resolution.selectOption('2160');
+  await page.evaluate(() => window.exportDialogProbe.changeSource(720, 1280, 'Vertical', 'Portrait movie'));
+  await expect(resolution).toContainText('4K (2160p) · 2160 × 3840');
+  await start(page);
+  await page.evaluate(() => window.exportDialogProbe.changeSource(1000, 1000, 'Peer scene', 'Peer project'));
+  await expect(resolution).toBeDisabled();
+  await expect(resolution).toContainText('4K (2160p) · 2160 × 3840');
+  expect((await page.evaluate(() => window.exportDialogProbe.state())).exports[0]).toMatchObject({ width: 2160, height: 3840 });
+});
+
+test('custom width and height stay linked and clicking Export commits a pending numeric draft', async ({ page }, testInfo) => {
+  await open(page); await ready(page);
+  await page.getByRole('combobox', { name: 'Export resolution' }).selectOption('custom');
+  const width = page.getByRole('spinbutton', { name: 'Export width' });
+  const height = page.getByRole('spinbutton', { name: 'Export height' });
+  await width.fill('2048'); await width.press('Tab');
+  await expect(height).toHaveValue('1152');
+  await height.fill('900'); await height.press('Tab');
+  await expect(width).toHaveValue('1600');
+  await page.screenshot({ path: testInfo.outputPath('custom-export-settings.png') });
+  await page.getByRole('combobox', { name: 'Export format' }).selectOption('webm');
+  await width.fill('1001'); await start(page);
+  expect((await page.evaluate(() => window.exportDialogProbe.state())).exports[0]).toMatchObject({ format: 'webm', width: 1001, height: 563 });
+  await expect(width).toBeDisabled();
+  await expect(height).toBeDisabled();
+});
+
+test('oversized panoramic presets explain the limit and a smaller custom edge recovers', async ({ page }) => {
+  await page.evaluate(() => window.exportDialogProbe.changeSource(8192, 100, 'Panorama', 'Wide'));
+  await open(page); await ready(page);
+  const resolution = page.getByRole('combobox', { name: 'Export resolution' });
+  await resolution.selectOption('2160');
+  await expect(page.getByRole('alert')).toContainText('1〜8192');
+  await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeDisabled();
+  expect((await page.evaluate(() => window.exportDialogProbe.state())).exports).toHaveLength(0);
+  await resolution.selectOption('custom');
+  const width = page.getByRole('spinbutton', { name: 'Export width' });
+  await width.fill('4096'); await width.press('Tab');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await start(page);
+  expect((await page.evaluate(() => window.exportDialogProbe.state())).exports[0]).toMatchObject({ width: 4096, height: 50 });
+});
+
 test('freezes the scene, filename and aspect-preserving settings, and downloads the same result again', async ({ page }) => {
   await page.evaluate(() => window.exportDialogProbe.changeSource(900, 1600, 'Portrait', 'My movie'));
   await open(page); await ready(page);

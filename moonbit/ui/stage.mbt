@@ -214,6 +214,8 @@ pub fn stage(input : @core.Any) -> @react.Element {
       @core.any(interactive),
       @core.any(state_editing),
       @core.any(playing),
+      @core.any(width),
+      @core.any(height),
       store,
     ],
   )
