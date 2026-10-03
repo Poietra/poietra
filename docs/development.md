@@ -183,12 +183,20 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-09-22 12:58 JST**, application `2d76eed`, Worker
-version `dcd24d3d-45b7-4abe-b4eb-3a274955c841`. Smoke checks covered persistence,
-two-browser edits, Undo/reload, playback and a decoded 102-frame 720p MP4. Full
-provider login, paid AI calls and 500 production clients were outside that check.
-[The full record](https://github.com/Poietra/poietra/blob/99c2dbdb5c35361eec5b505bd369bd81b43fe430/docs/development.md#deployment-and-limits)
-includes the predecessor. Confirm the active version before deploying again.
+Last recorded deployment: **2026-10-03 09:09 JST**, application `56c7abd`, Worker
+version `fac69df0-5b49-482e-8c79-9a618e9338da` at 100% on `poietra.com`.
+Its predecessor was `c4d3ff30-df07-4df1-9dc5-b1a7ebb79443` (`6d74c5a`).
+Durable Object namespaces, R2, secrets, migration tags and routing were preserved.
+[CI](https://github.com/Poietra/poietra/actions/runs/37080115829) passed after one
+rerun of a timing-sensitive Canvas test; both rendering modes also passed three
+local repetitions. A regression test covers notification expiry during export.
+
+Production smoke checks covered public HTML/Markdown/API documents, room/image
+persistence, two-browser canvas edits, peer-preserving Undo/reload and an actual
+3840 × 2160 H.264 MP4 download: 24 frames, 0.8 seconds, independently decoded
+with FFmpeg. Full provider login, paid AI calls and 500 production clients were
+outside that check. [Earlier deployment record](https://github.com/Poietra/poietra/blob/6d74c5ac6f8ab1667fdebd6b6e36d446f66eb2b9/docs/development.md#deployment-and-limits).
+Confirm the active version before deploying again.
 
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
 The default Wrangler config uses isolated storage; only explicit `production`
