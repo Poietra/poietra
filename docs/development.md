@@ -293,29 +293,32 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-11 00:40 JST**, Worker version
-`48ed35af-d697-4196-90c3-57c989ca3051` at 100% on `poietra.com`.
-The uploaded source was clean commit `3038872713c518c8339ab19bd4a93d6ce8b2336c`,
-tagged `graph-hit-3038872`. Its predecessor was
-`6a735b7a-315e-4a78-8027-8b1a311778a0`, which delivered function graphs from the
-`e19bc49` working tree; that feature is now committed as `044029e`.
+Last recorded deployment: **2026-10-11 01:36 JST**, Worker version
+`2e687256-c2d4-4afe-a03f-cd74761230bd` at 100% on `poietra.com`.
+The uploaded source was clean commit `39fc28aeaa7c780f54ec77c8e366d44cd08a9cfa`,
+tagged `implicit-39fc28a`. Its predecessor was
+`48ed35af-d697-4196-90c3-57c989ca3051` (`graph-hit-3038872`).
 Version metadata confirmed identical bindings, Durable Object namespaces,
-migration tags, runtime settings, exported classes and Worker script hash;
-R2, secrets and routing were preserved. Upload rebuilt the release artifacts
-and passed the captured public API/type checks.
+migration tags, runtime settings and exported classes; R2, secrets and routing
+were preserved. The Worker code changed for equation validation and AI guidance.
+Upload rebuilt the release artifacts and passed the captured public API/type
+checks; the tracked working tree remained clean after the build.
 
-Six production browser checks passed: graph pointer acquisition, empty-viewport
-dragging, zoom/affine transforms, changed coefficients, zero-width strokes,
-nested clips and overlapping objects, alongside graph authoring, two-browser
-edits, Undo, Escape cancellation, save/import and reload. A room and image from
-before the preceding cutover remained readable with identical image bytes;
-an existing graph retained its definition and identical curve through reload.
-The served client runtime matched the uploaded local build and health returned
-success. Full provider login, paid AI calls, video export and 500 production
-clients were outside this UI-fix check.
+Seven production browser checks passed: implicit equation authoring, invalid
+drafts, picking/dragging, two-browser edits, Undo, save/import and reload,
+alongside the existing function graph and clipping/affine interaction checks.
+A room and image from before the earlier cutovers remained readable with
+identical image bytes; an existing function graph retained its definition and
+identical curve through reload. The served client runtime and generated schema
+matched the uploaded local build, and health returned success. Production export
+downloaded a 320 × 180 H.264 implicit-curve MP4 with 24 frames over 0.8 seconds.
+FFmpeg independently decoded every frame; sampled pixels confirmed the equation's
+animated radius at the initial and middle frames, matching preview coefficient
+changes. No browser errors were observed. Full provider login, paid AI calls and
+500 production clients were outside these checks.
 
 ```sh
-POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test graphs.spec.ts --grep 'picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
+POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test graphs.spec.ts --grep 'authors a closed implicit|picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
 ```
 
 [Earlier deployment record](https://github.com/Poietra/poietra/blob/e19bc495e1798954961990487b1886ed3c22adff/docs/development.md#deployment-and-limits).
@@ -325,5 +328,5 @@ Follow the [studio deployment procedure](../apps/studio/README.md#実行と配�
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
 A Worker rollback restores code/assets, not room data; it must understand version
-4 documents after deploying function graph support, as well as persistent account
-dismissals. See [current limits](../apps/studio/README.md#現在の制限).
+4 documents and graph grammar v2 equations after deploying implicit curve support,
+as well as persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).
