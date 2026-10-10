@@ -17,6 +17,8 @@ export interface AiRequest {
     prompt: string;
     history?: z.infer<typeof AiHistorySchema>;
     supportsCompositionAppends?: boolean;
+    /** Pasted figures as `data:image/(png|jpeg|webp);base64,` URLs, at most two of 1 MiB each. */
+    images?: string[];
 }
 export declare const AiRequestSchema: z.ZodType<AiRequest>;
 export interface ImageGeneration {

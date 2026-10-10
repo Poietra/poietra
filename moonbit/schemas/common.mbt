@@ -72,7 +72,7 @@ let image_source_cache : Ref[@zod.ZodSchema?] = Ref(None)
 fn image_source() -> @zod.ZodSchema {
   cached_schema(image_source_cache, fn() {
     @zod.string()
-    .max(1398166)
+    .max(@assets.image_data_limit)
     .refine(fn(value) { @assets.valid_source(value.cast(), Image) })
   })
 }
@@ -261,6 +261,16 @@ fn ai_request() -> @zod.ZodSchema {
       "prompt": @zod.string().trim().min(1).max(3000),
       "history": ai_history().optional(),
       "supportsCompositionAppends": @zod.boolean().optional(),
+      "images": @zod.array(
+        @zod.string()
+        .max(@assets.image_data_limit)
+        .refine(
+          fn(value) { @assets.figure_mime(value.cast()) is Some(_) },
+          message="PNG・JPEG・WebP の画像を 1 MB 以内で添付してください。",
+        ),
+      )
+      .max(@assets.figure_limit)
+      .optional(),
     })
   })
 }

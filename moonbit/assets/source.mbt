@@ -100,7 +100,7 @@ pub fn valid_image_fields(
   width : Double,
   height : Double,
 ) -> Bool {
-  source.length() <= 1398166 &&
+  source.length() <= image_data_limit &&
   [width, height]
   .iter()
   .all(fn(size) {
@@ -115,4 +115,64 @@ pub fn valid_image_fields(
 ///|
 pub fn video_seconds(time : Double, duration : Double) -> Double {
   @scene.maximum(0.0, @scene.minimum(time, duration - 0.001)) / 1000.0
+}
+
+///|
+/// The longest inline image reference: a 1 MiB file as a base64 data URL.
+pub let image_data_limit : Int = 1398166
+
+///|
+/// Figures pasted into one Codex request.
+pub let figure_limit : Int = 2
+
+///|
+fn base64_value(c : Int) -> Int {
+  if c >= 65 && c <= 90 {
+    c - 65
+  } else if c >= 97 && c <= 122 {
+    c - 71
+  } else if c >= 48 && c <= 57 {
+    c + 4
+  } else if c == 43 {
+    62
+  } else {
+    63
+  }
+}
+
+///|
+/// A pasted figure travels inline to the model only. Its declared type must
+/// match the decoded signature and its bytes must fit one stored image.
+pub fn figure_mime(source : String) -> String? {
+  guard source.length() <= image_data_limit &&
+    data_source(source, Image) &&
+    source.find(";base64,") is Some(separator) else {
+    return None
+  }
+  let start = separator + 8
+  let mut padding = 0
+  while padding < 2 && source.code_unit_at(source.length() - 1 - padding) == 61 {
+    padding += 1
+  }
+  let encoded = source.length() - start
+  if encoded % 4 != 0 || encoded / 4 * 3 - padding > image_limit || encoded < 32 {
+    return None
+  }
+  // 32 characters decode to the 24 bytes the image signatures need.
+  let header = Array::make(24, b'\x00')
+  for group = 0; group < 8; group = group + 1 {
+    let mut bits = 0
+    for i = 0; i < 4; i = i + 1 {
+      bits = (bits << 6) |
+        base64_value(source.code_unit_at(start + group * 4 + i).to_int())
+    }
+    header[group * 3] = (bits >> 16).to_byte()
+    header[group * 3 + 1] = ((bits >> 8) & 255).to_byte()
+    header[group * 3 + 2] = (bits & 255).to_byte()
+  }
+  let declared = source[5:separator].to_owned()
+  match image_mime(Bytes::from_array(header)[:]) {
+    Some(mime) if mime == declared => Some(mime)
+    _ => None
+  }
 }

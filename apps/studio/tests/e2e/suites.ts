@@ -5,6 +5,7 @@ export const suites = {
     'ai-compositions.spec.ts',
     'ai-create.spec.ts',
     'ai-dogfood.spec.ts',
+    'ai-figures.spec.ts',
     'ai-paths.spec.ts',
     'ai.spec.ts',
     'canvas.spec.ts',

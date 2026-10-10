@@ -9,6 +9,8 @@ priv enum Role {
 priv struct Message {
   role : Role
   content : String
+  // Pasted figures as data URLs; only the current request carries them.
+  images : Array[String]
 }
 
 ///|
@@ -20,6 +22,7 @@ priv struct EditRequest {
   prompt : String
   history : Array[Message]
   supports_append : Bool
+  images : Array[String]
 }
 
 ///|
@@ -60,6 +63,8 @@ priv struct Generation {
   messages : Array[Message]
   tuning : Tuning?
   usage : Usage
+  // Reconstructing a pasted figure needs many more operations than an edit.
+  max_output : Int
   mut attempts : Int
 }
 
@@ -91,7 +96,29 @@ fn encode_message(value : Message) -> @core.Any {
         },
       ),
     ),
-    ("content", @core.any(value.content)),
+    (
+      "content",
+      if value.images.is_empty() {
+        @core.any(value.content)
+      } else {
+        let parts = [
+          @core.from_entries([
+            ("type", @core.any("input_text")),
+            ("text", @core.any(value.content)),
+          ]),
+        ]
+        for image in value.images {
+          parts.push(
+            @core.from_entries([
+              ("type", @core.any("input_image")),
+              ("image_url", @core.any(image)),
+              ("detail", @core.any("high")),
+            ]),
+          )
+        }
+        @core.any(FixedArray::from_array(parts[:]))
+      },
+    ),
   ])
 }
 
@@ -128,12 +155,14 @@ fn read_request(value : @core.Any) -> EditRequest {
         } else {
           string(turn, "content")
         },
+        images: [],
       }
     }),
     supports_append: @core.equal(
       value._get("supportsCompositionAppends"),
       @core.any(true),
     ),
+    images: array(value._get("images")).map(fn(image) { image.cast() }),
   }
 }
 

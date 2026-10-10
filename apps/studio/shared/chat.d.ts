@@ -10,6 +10,12 @@ export interface ChatScope {
     selectedIds: string[];
     label: string;
 }
+/** A figure pasted into a Codex request, stored as a room image reference. */
+export interface ChatAttachment {
+    src: string;
+    width: number;
+    height: number;
+}
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant';
@@ -26,6 +32,7 @@ export interface ChatMessage {
     proposal?: EditProposal;
     applied?: boolean;
     dismissed?: boolean;
+    attachments?: ChatAttachment[];
 }
 export declare const codexPrompt: (text: string) => string | null;
 export declare const chatHistory: (messages: readonly ChatMessage[], sceneId: string, authorId: string) => AiConversationTurn[];

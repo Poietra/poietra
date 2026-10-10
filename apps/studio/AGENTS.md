@@ -78,6 +78,13 @@ files or flatten AI edits into an uneditable generated video.
 - Generate at most two images per proposal. Validate placeholder edits before
   generation; publish stored image references afterward. Images remain objects
   with editable transforms; pixel editing is outside scope.
+- 2026-10-11: Creators wanted to turn existing figures into editable motion
+  without redrawing them. Images pasted, dropped or picked in the composer are
+  `@codex` figures (at most two, normalized to 1 MiB). Store them as room image
+  references in the shared message and send the bytes inline to the model only
+  for that request; history notes earlier figures without resending them. Codex
+  rebuilds a figure as separately named paths, text, equations and shapes, never
+  as a generated or placed raster. Figures stay out of portable files.
 - API credentials stay on the server. Automated provider simulations must not be
   described as paid API or live OAuth verification.
 - Google and GitHub logins are optional, independent identities. Do not merge by

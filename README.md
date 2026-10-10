@@ -22,7 +22,8 @@ the same structured objects, so positions, colors and timings remain editable.
   portable project files containing their media.
 - Choose landscape, portrait or custom canvas dimensions, and export browser
   videos at 4K or a custom resolution while preserving the aspect ratio.
-- Ask `@codex` in shared chat for structured edits or generated image assets.
+- Ask `@codex` in shared chat for structured edits or generated image assets,
+  or paste a figure for Codex to rebuild as editable paths, text and equations.
   Optional Google/GitHub login keeps a private list of project shortcuts.
 
 Video codec support varies by browser and device.

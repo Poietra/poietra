@@ -47,7 +47,7 @@ test('saving embeds pixels and opening the file uploads them into a new room', a
   finally { watch.close(); }
 });
 
-test('file drop and clipboard paste create image objects while text fields keep their paste behavior', async ({ page }) => {
+test('file drop and clipboard paste create image objects while the chat composer keeps pasted images as Codex figures', async ({ page }) => {
   await open(page); const file = await fixture(page, 'Dropped.png');
   await page.locator('[data-testid="stage-main"]').evaluate((element, base64) => {
     const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0)), transfer = new DataTransfer();
@@ -67,7 +67,9 @@ test('file drop and clipboard paste create image objects while text fields keep 
     const clipboardData = new DataTransfer(); clipboardData.items.add(new File([Uint8Array.from(atob(base64), c => c.charCodeAt(0))], 'In chat.png', { type: 'image/png' }));
     const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData }); element.dispatchEvent(event); return event.defaultPrevented;
   }, file.buffer.toString('base64'));
-  expect(consumed).toBe(false); await expect(page.getByRole('button', { name: 'In chat', exact: true })).toHaveCount(0);
+  // The chat composer keeps the image as a Codex figure instead of adding it to the canvas.
+  expect(consumed).toBe(true); await expect(page.getByRole('button', { name: 'In chat', exact: true })).toHaveCount(0);
+  await expect(page.locator('.assistant-composer').getByRole('img', { name: '添付画像 1', exact: true })).toBeVisible();
 });
 
 test('an uploaded image receives AI Move and Write tracks and previews the right path and reveal', async ({ page }) => {

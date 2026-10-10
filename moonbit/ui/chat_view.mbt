@@ -126,7 +126,12 @@ fn chat_view(
           {
             "className": @core.any("text-button"),
             "onClick": @core.any(fn() {
-              controller.send(retry.prompt, Some(retry.message_id), false)
+              controller.send(
+                retry.prompt,
+                retry.figures,
+                Some(retry.message_id),
+                false,
+              )
             }),
           },
           ["再試行"],
@@ -180,6 +185,10 @@ fn chat_view(
     )
   }
   let addressing = @boundary.codex_mention(controller.prompt) is Some(_)
+  let fields : Array[&@react.ReactNode] = []
+  if !controller.figures.is_empty() {
+    fields.push(composer_figures(controller))
+  }
   composer.push(
     h(
       "form",
@@ -187,9 +196,26 @@ fn chat_view(
         "key": @core.any("form"),
         "onSubmit": @core.any(fn(event : @core.Any) {
           prevent_default(event)
-          controller.send(controller.prompt, None, false)
+          controller.send(controller.prompt, controller.figures, None, false)
+        }),
+        "onDragOver": @core.any(fn(event : @core.Any) {
+          let types : FixedArray[String] = @core.global_this()
+            ._get("Array")
+            ._call("from", [event._get("dataTransfer")._get("types")])
+            .cast()
+          if types.contains("Files") {
+            prevent_default(event)
+          }
+        }),
+        "onDrop": @core.any(fn(event : @core.Any) {
+          let files = image_files(event._get("dataTransfer")._get("files"))
+          if !files.is_empty() {
+            prevent_default(event)
+            controller.attach(files)
+          }
         }),
       },
+      fields +
       [
         h(
           "textarea",
@@ -207,6 +233,14 @@ fn chat_view(
                 event._get("target")._get("value").cast(),
               )
             }),
+            "onPaste": @core.any(fn(event : @core.Any) {
+              // Text pastes stay native; only pasted image files become figures.
+              let files = image_files(event._get("clipboardData")._get("files"))
+              if !files.is_empty() {
+                prevent_default(event)
+                controller.attach(files)
+              }
+            }),
             "onKeyDown": @core.any(fn(event : @core.Any) {
               if @core.equal(event._get("key"), @core.any("Enter")) &&
                 !truthy(event._get("shiftKey")) &&
@@ -214,6 +248,7 @@ fn chat_view(
                 prevent_default(event)
                 controller.send(
                   controller.prompt,
+                  controller.figures,
                   None,
                   truthy(event._get("metaKey")) || truthy(event._get("ctrlKey")),
                 )
@@ -224,22 +259,30 @@ fn chat_view(
         ),
         h("div", { "className": @core.any("composer-bottom") }, [
           h(
-            "button",
-            {
-              "className": @core.any("mention-button"),
-              "type": @core.any("button"),
-              "onClick": @core.any(fn() {
-                controller.update_prompt(
-                  if addressing {
-                    controller.prompt
-                  } else {
-                    "@codex " + controller.prompt
-                  },
-                )
-                controller.focus()
-              }),
-            },
-            ["@codex"],
+            "div",
+            { "className": @core.any("composer-actions") },
+            [
+              h(
+                "button",
+                {
+                  "key": @core.any("mention"),
+                  "className": @core.any("mention-button"),
+                  "type": @core.any("button"),
+                  "onClick": @core.any(fn() {
+                    controller.update_prompt(
+                      if addressing {
+                        controller.prompt
+                      } else {
+                        "@codex " + controller.prompt
+                      },
+                    )
+                    controller.focus()
+                  }),
+                },
+                ["@codex"],
+              ),
+            ] +
+            figure_picker(controller),
           ),
           h("span", Map([]), [
             if addressing {
@@ -255,7 +298,10 @@ fn chat_view(
               "aria-label": @core.any("送信"),
               "type": @core.any("submit"),
               "disabled": @core.any(
-                controller.prompt.trim().is_empty() ||
+                (
+                  controller.prompt.trim().is_empty() &&
+                  controller.figures.is_empty()
+                ) ||
                 (
                   addressing &&
                   (
@@ -274,7 +320,7 @@ fn chat_view(
   )
   composer.push(
     h("small", { "key": @core.any("help") }, [
-      "Enter で送信 · Shift + Enter で改行 · ⌘/Ctrl + Enter で @codex の編集案を即適用",
+      "Enter で送信 · Shift + Enter で改行 · ⌘/Ctrl + Enter で @codex の編集案を即適用 · 図は貼り付けで @codex に添付",
     ]),
   )
   nodes.push(

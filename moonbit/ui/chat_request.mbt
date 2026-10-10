@@ -12,28 +12,46 @@ fn chat_error(message : String) -> Unit raise {
 fn ChatController::send(
   self : ChatController,
   value : String,
+  figures : Array[ChatFigure],
   retry_id : String?,
   automatic : Bool,
 ) -> Unit {
-  @core.from_async(async fn() { self.send_async(value, retry_id, automatic) })
+  @core.from_async(async fn() {
+    self.send_async(value, figures, retry_id, automatic)
+  })
   |> ignore
 }
+
+///|
+/// The request a bare `@codex` with a pasted figure stands for.
+let figure_prompt : String = "添付した図を、編集できるオブジェクトで再現して。"
 
 ///|
 async fn ChatController::send_async(
   self : ChatController,
   value : String,
+  figures : Array[ChatFigure],
   retry_id : String?,
   automatic : Bool,
 ) -> Unit {
   let text = value.trim().to_owned()
+  let text = if text.is_empty() && !figures.is_empty() {
+    "@codex"
+  } else {
+    text
+  }
   if text.is_empty() {
     return
   }
-  let mention = @boundary.codex_mention(text)
+  let mention = match @boundary.codex_mention(text) {
+    Some("") if !figures.is_empty() => Some(figure_prompt)
+    mention => mention
+  }
   let selected : FixedArray[String] = self.editor.selected_ids
   let error = if text.length() > 3000 {
     "メッセージは 3,000 文字以内で入力してください。"
+  } else if mention is None && !figures.is_empty() {
+    "図は @codex への依頼に添付できます。"
   } else if mention is Some(_) && self.editor.viewing_playback {
     "「この場面を編集」で編集に戻ってから Codex に依頼してください。"
   } else if mention is Some(_) && self.request.get_current() is Some(_) {
@@ -130,11 +148,13 @@ async fn ChatController::send_async(
     proposal: None,
     applied: None,
     dismissed: None,
+    attachments: None,
   }
   let request : ChatRequest = {
     controller: new_controller(),
     scope,
     prompt: text,
+    figures,
     message_id: id,
   }
   if mention is Some(_) {
@@ -143,8 +163,12 @@ async fn ChatController::send_async(
   }
   (self.set_error)("")
   (self.set_retry)(None)
-  if self.prompt.trim().to_owned() == text {
+  if self.prompt.trim().to_owned() == text ||
+    (self.prompt.trim().is_empty() && text == "@codex") {
     self.update_prompt("")
+  }
+  if physical_equal(self.figures, figures) {
+    self.update_figures([])
   }
   self.follow.val = true
   defer (if self.owns(request) {
@@ -170,11 +194,40 @@ async fn ChatController::send_async(
     |> ignore
   })
   try {
+    // Store figures before the message names them; the room deduplicates bytes.
+    let attachments : Array[@editor.ChatAttachment] = []
+    if previous is None {
+      for figure in figures {
+        attachments.push({
+          src: @browser_media.upload_image(
+            self.store._get("roomId").cast(),
+            figure.blob,
+            request.controller._get("signal"),
+          ).wait(),
+          width: figure.width,
+          height: figure.height,
+        })
+      }
+      // Only Codex requests carry figures, and only they can be stopped while uploading.
+      if !figures.is_empty() &&
+        (!self.owns(request) || ui_aborted(request.controller._get("signal"))) {
+        return
+      }
+    }
     @core.throwable(fn() {
       if previous is Some(_) {
         self.status(id, message.status.unwrap())
       } else {
-        self.chat._call("append", [@boundary.write_chat_message(message)])
+        self.chat._call("append", [
+          @boundary.write_chat_message({
+            ..message,
+            attachments: if attachments.is_empty() {
+              None
+            } else {
+              Some(attachments)
+            },
+          }),
+        ])
         |> ignore
       }
     })
@@ -192,6 +245,14 @@ async fn ChatController::send_async(
       "history": @core.any(history),
       "supportsCompositionAppends": @core.any(true),
     })
+    if !figures.is_empty() {
+      body._set(
+        "images",
+        @core.any(
+          FixedArray::makei(figures.length(), fn(i) { figures[i].data }),
+        ),
+      )
+    }
     let response = ui_call(@core.global_this(), "fetch", [
       @core.any("/api/ai/propose"),
       host_record({
@@ -255,6 +316,7 @@ async fn ChatController::send_async(
               status: None,
               mentions_codex: None,
               request_client_id: None,
+              attachments: None,
             }),
           ])
           |> ignore
@@ -282,7 +344,7 @@ async fn ChatController::send_async(
             "接続に失敗しました。",
           ),
         )
-        (self.set_retry)(Some({ prompt: text, message_id: id, }))
+        (self.set_retry)(Some({ prompt: text, figures, message_id: id, }))
       }
     }
   }

@@ -9,6 +9,7 @@ import {
   "poietra/poietra/geometry",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",
+  "poietra/poietra/assets",
 }
 
 supported_targets = "js"

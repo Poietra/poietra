@@ -11,6 +11,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
     chat._get("snapshot").cast(),
   )
   let (prompt, set_prompt) = @react.use_state("")
+  let (figures, set_figures) = @react.use_state(([] : Array[ChatFigure]))
   let (pending, set_pending) = @react.use_state((None : ChatRequest?))
   let (available, set_available) = @react.use_state((None : Bool?))
   let (error, set_error) = @react.use_state("")
@@ -25,6 +26,12 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
   let drafts = @react.use_ref(Some((Map([]) : Map[String, String])))
     .get_current()
     .unwrap()
+  let figure_drafts = @react.use_ref(
+      Some((Map([]) : Map[String, Array[ChatFigure]])),
+    )
+    .get_current()
+    .unwrap()
+  let figure_input = @react.use_ref((None : @core.Any?))
   let applied = @react.use_ref(Some((Set([]) : Set[String])))
     .get_current()
     .unwrap()
@@ -45,9 +52,13 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
     composer,
     list,
     drafts,
+    figures,
+    figure_drafts,
+    figure_input,
     applied,
     follow,
     set_prompt,
+    set_figures,
     set_pending,
     set_error,
     set_retry,
@@ -180,6 +191,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
         set_error("")
       }
       set_prompt(drafts.get(scene_id).unwrap_or(""))
+      set_figures(figure_drafts.get(scene_id).unwrap_or([]))
       set_retry(None)
       fn() { () }
     },
