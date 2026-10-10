@@ -32,6 +32,13 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-10-10: MathJax delivers stretched delimiters and rules as nested `<svg>`
+  viewports; dropping them silently discarded the glyph. Keep the viewport in the
+  render tree without counting it as a glyph. SVG nests it natively; canvas folds
+  it into the glyph matrix under `xMidYMid meet` and clips to the same region,
+  because stretched rules overflow their viewport. Both renderers must keep
+  agreeing, and a viewport canvas cannot map falls back to SVG.
+
 - 2026-09-27: The founder requested reusable motions and rectangle clipping.
   Rectangle parents opt into Scene-wide `clipChildren`; hidden/transparent
   parents still clip descendants, nested clips intersect, and corner radius does
