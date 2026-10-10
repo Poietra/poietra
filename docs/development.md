@@ -342,32 +342,34 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-11 01:36 JST**, Worker version
-`2e687256-c2d4-4afe-a03f-cd74761230bd` at 100% on `poietra.com`.
-The uploaded source was clean commit `39fc28aeaa7c780f54ec77c8e366d44cd08a9cfa`,
-tagged `implicit-39fc28a`. Its predecessor was
-`48ed35af-d697-4196-90c3-57c989ca3051` (`graph-hit-3038872`).
+Last recorded deployment: **2026-10-11 03:03 JST**, Worker version
+`b14c0aa5-a9b7-4fa3-b0de-e8060163c77b` at 100% on `poietra.com`.
+The uploaded source was clean commit `92de518fe88ac2a84e0490e6bef9b60f4fac40b4`,
+tagged `math-92de518`. Its predecessor was
+`2e687256-c2d4-4afe-a03f-cd74761230bd` (`implicit-39fc28a`).
 Version metadata confirmed identical bindings, Durable Object namespaces,
 migration tags, runtime settings and exported classes; R2, secrets and routing
-were preserved. The Worker code changed for equation validation and AI guidance.
+were preserved. The Worker code changed for geometry validation and AI guidance.
 Upload rebuilt the release artifacts and passed the captured public API/type
 checks; the tracked working tree remained clean after the build.
 
-Seven production browser checks passed: implicit equation authoring, invalid
-drafts, picking/dragging, two-browser edits, Undo, save/import and reload,
-alongside the existing function graph and clipping/affine interaction checks.
+Ten production browser checks passed: palette search/creation, point gestures
+with dependent elements, reference validation, two-browser edits, selective
+Undo/cancellation, geometry save/import/reload, affine/clipped/locked handles,
+and existing function/implicit graph authoring and interaction.
 A room and image from before the earlier cutovers remained readable with
-identical image bytes; an existing function graph retained its definition and
-identical curve through reload. The served client runtime and generated schema
-matched the uploaded local build, and health returned success. Production export
-downloaded a 320 × 180 H.264 implicit-curve MP4 with 24 frames over 0.8 seconds.
-FFmpeg independently decoded every frame; sampled pixels confirmed the equation's
-animated radius at the initial and middle frames, matching preview coefficient
-changes. No browser errors were observed. Full provider login, paid AI calls and
-500 production clients were outside these checks.
+identical image bytes; existing function and implicit graphs retained their
+definitions and identical curves through reload. A new geometry room retained
+its semantic data and curves after reload and portable save. The served client
+runtime and generated schema matched the uploaded local build, and health
+returned success. Production export downloaded a 320 × 180 H.264 geometry MP4
+with 25 frames over 0.82 seconds. FFmpeg independently decoded every frame;
+initial/middle-frame pixels confirmed the moving vector/midpoint geometry.
+No browser errors were observed. Full provider login, paid AI calls and 500
+production clients were outside these checks.
 
 ```sh
-POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test graphs.spec.ts --grep 'authors a closed implicit|picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
+POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test math-geometry.spec.ts graphs.spec.ts --grep 'one searchable|point gestures|authors a closed implicit|picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
 ```
 
 [Earlier deployment record](https://github.com/Poietra/poietra/blob/e19bc495e1798954961990487b1886ed3c22adff/docs/development.md#deployment-and-limits).
@@ -377,5 +379,5 @@ Follow the [studio deployment procedure](../apps/studio/README.md#実行と配�
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
 A Worker rollback restores code/assets, not room data; it must understand version
-4 documents and graph grammar v2 equations after deploying implicit curve support,
+5 diagrams and graph grammar v2 equations after deploying geometry support,
 as well as persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).
