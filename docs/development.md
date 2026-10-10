@@ -11,7 +11,7 @@ rejects executable application TS/TSX. It does not measure runtime dependencies.
 
 | Layer | Main packages | Responsibility |
 | --- | --- | --- |
-| Model and engine | `scene`, `motion`, `math_plot`, `math_geometry`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, mathematical evaluation, pure edit plans, prepared evaluation and shared rendering |
+| Model and engine | `scene`, `motion`, `math_plot`, `math_geometry`, `math_network`, `math_surface`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, mathematical evaluation, pure edit plans, prepared evaluation and shared rendering |
 | Collaboration | `collaboration`, `boundary`, `browser_editor`, `browser_undo`, `browser_chat` | Yjs leaf edits, immutable snapshots, selective Undo and chat |
 | Browser | `ui`, `browser_render`, `browser_media`, `browser_export`, `browser_projects`, `browser_kernel` | React UI, drawing, resources, media and portable files |
 | Portable files | `project_codec` | Bounded parsing, validation and generated record adapters |
@@ -106,9 +106,37 @@ The boundaries to preserve are:
   Portable geometry uses monotonic, non-Undo format v5 with v1–v4 reads.
   This family avoids turning each point into a Scene object or adding point
   fields to every global animation channel. Internal-point keyframes, global
-  constraints and 3D meshes are deferred. A future network family should retain
-  node/edge topology with its own layout evaluator, joining this palette and
-  shared render boundary; a layout-derived line is never its document source.
+  constraints remain deferred; additional families join this palette and shared
+  render boundary without turning derived paths into document source.
+- Networks and 3D surfaces (2026-10-11) extend the same palette and render adapter.
+  `scene.NetworkDefinition` retains diagram-local nodes, labelled directed/undirected
+  edges, optional weights, bends and tombstones; `math_network` supplies degree
+  and deterministic circular arrangement. Limits are 128 stored nodes/256 edges,
+  including tombstones. Self-loops and parallel edges are valid; endpoint
+  references must resolve. Nodes use the existing affine-aware point gestures.
+  `scene.SurfaceDefinition` retains heightfield or parametric expressions,
+  ranges, a/b/c, yaw/pitch/zoom, subdivision count and display modes.
+  `math_surface` reuses the bounded parser with u/v aliases and triangulates a
+  4–48 square grid: at most 14115 expression evaluations and 4608 triangles.
+  Invalid vertices and cell-center probes omit undefined/pole-spanning cells;
+  this finite heuristic can miss narrow/high-frequency features and is not
+  certified topology. `render` uses orthographic projection, viewport clipping,
+  face shading and stable mean-depth sorting. Intersecting/folded triangles can
+  have occlusion artifacts; this is an object-local surface renderer, not a
+  general 3D scene, perspective engine, mesh importer or implicit isosurface.
+  Per-curve fills/strokes share ordering and Write behavior across SVG,
+  Canvas/GPU and Node, with bounded source/geometry caches outside documents.
+  Node coordinates and surface a/b/c/yaw/pitch/zoom use Position timing;
+  topology, weights, formulas and grid settings switch at half base progress.
+  Internal element keyframes and force layout are deferred. Typed AI operations
+  `setNetworkElement`/`setSurface` validate the final definitions, emit only changed
+  leaves and guard structural/coupled constraints while permitting unrelated peer
+  edits. Selective Undo retains peer-used nodes/edges, valid surface ranges,
+  display modes and necessary formula/mode dependencies. Concurrent incompatible
+  endpoint/range edits report errors for correction, as existing mathematical
+  families do. Both families use monotonic, non-Undo format v6 with v1–v5 reads;
+  clipboard and reusable motions keep semantic scopes with fresh root identities.
+  No new runtime dependency or global animation-property enumeration is needed.
 - Graph and diagram picking (2026-10-11) use the presented SVG curves with a 12 CSS-pixel
   interaction stroke, independent of zoom and affine transforms. Selected graphs
   also accept dragging within their transformed bounds. Both supplemental hits
@@ -130,8 +158,8 @@ The boundaries to preserve are:
   portions and reports it in the inspector. This is a drawing heuristic, not a
   certified global error bound or proof of continuity; extreme oscillation and
   narrow features can be missed. `render` owns bounded expression/geometry caches,
-  which are never serialized into documents. Symbolic algebra and 3D
-  tessellation are deferred; new mathematical kinds can use the same boundary.
+  which are never serialized into documents. Symbolic algebra is deferred;
+  additional mathematical kinds can use the same boundary.
 - Canvas and export sizing are separate (2026-10-03): canvas controls edit only
   Scene width/height leaves, preserving poses, motion and peer edits through Undo.
   A size change cancels gestures using the old coordinate mapping. Export's pure
@@ -225,7 +253,7 @@ Run pure MoonBit tests from the root:
 ```sh
 node scripts/moon.mjs check --target js --deny-warn
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/math_geometry moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/math_geometry moonbit/math_network moonbit/math_surface moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
 ```
 
 Install Chromium with `pnpm --dir apps/studio exec playwright install --with-deps chromium`.
@@ -318,6 +346,30 @@ rendering or production capacity, and live provider calls were not exercised.
 POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test math-geometry.spec.ts graphs.spec.ts primitives.spec.ts clipping.spec.ts text-editing.spec.ts marquee.spec.ts painter-preview.spec.ts undo-objects.spec.ts ai-create.spec.ts --workers=2
 ```
 
+Network and 3D surface verification (2026-10-11, working tree based on `fe72e65`)
+used the pinned MoonBit 2026-09-15 compiler, Node 24.13.0 and Chromium
+153.0.8010.12 with isolated Node/workerd storage. The release build, captured
+API/type checks, source/suite audits and 5 isolated extension checks passed.
+MoonBit JS passed 104 cases; the targeted math, scene, editor, render and proposal
+packages passed 93 WASM cases. Studio passed 865 tests and headless rendering
+passed 26, including independently decoded animated network/surface MP4 output,
+Japanese labels, sphere/torus meshes and undefined-cell omission.
+The browser selection below passed 63 tests, covering both palette entries,
+node gestures, self-loops/parallel edges/weights, surface formulas and view edits,
+invalid drafts, peer edits, selective Undo/cancellation, portable v6 save/import,
+affine parents/clipping, reusable motions, existing graphs/text/AI proposals and
+SVG/Canvas/GPU agreement with Write, opacity and sphere/torus occlusion.
+The isolated workerd integration passed offline editing, hibernation, pending
+dependencies, forced process restart and 500 local sockets. New v6 node/edge
+leaves, deletion tombstones, formulas and camera settings restored without any
+previous client repopulating the server. These are correctness checks, not
+performance or production-capacity measurements; provider HTTP was mocked.
+
+```sh
+POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test spatial-math.spec.ts math-geometry.spec.ts graphs.spec.ts clipping.spec.ts canvas.spec.ts motion-template.spec.ts text-editing.spec.ts undo-objects.spec.ts undo-tracks.spec.ts ai-create.spec.ts ai.spec.ts ai-dogfood.spec.ts --workers=2
+node apps/studio/tests/collaboration-worker.integration.mjs --port 8790
+```
+
 ## API documentation
 
 The bilingual [developer pages](https://poietra.com/developers/) contain CLI,
@@ -379,5 +431,5 @@ Follow the [studio deployment procedure](../apps/studio/README.md#実行と配�
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
 A Worker rollback restores code/assets, not room data; it must understand version
-5 diagrams and graph grammar v2 equations after deploying geometry support,
+6 networks/surfaces, version 5 diagrams and graph grammar v2 equations,
 as well as persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).

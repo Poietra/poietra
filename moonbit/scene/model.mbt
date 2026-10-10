@@ -115,6 +115,55 @@ pub(all) struct GeometryDefinition {
 } derive(Eq, FromJson, ToJson)
 
 ///|
+pub(all) struct NetworkNode {
+  x : Double
+  y : Double
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct NetworkEdge {
+  from : String
+  to : String
+  label : String
+  directed : Bool
+  weight : Double?
+  bend : Double
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct NetworkDefinition {
+  version : Int
+  nodes : Map[String, NetworkNode]
+  edges : Map[String, NetworkEdge]
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct SurfaceDefinition {
+  version : Int
+  kind : SurfaceKind
+  xExpression : String
+  yExpression : String
+  zExpression : String
+  uMin : Double
+  uMax : Double
+  vMin : Double
+  vMax : Double
+  a : Double
+  b : Double
+  c : Double
+  yaw : Double
+  pitch : Double
+  zoom : Double
+  steps : Int
+  filled : Bool
+  wireframe : Bool
+  axes : Bool
+} derive(Eq, FromJson, ToJson)
+
+///|
 pub(all) struct ObjectState {
   x : Double
   y : Double
@@ -138,6 +187,8 @@ pub(all) struct ObjectState {
   path : Bezier
   graph : GraphDefinition?
   geometry : GeometryDefinition?
+  network : NetworkDefinition?
+  surface : SurfaceDefinition?
 } derive(Eq, FromJson, ToJson)
 
 ///|

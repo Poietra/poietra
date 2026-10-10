@@ -148,14 +148,20 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
   {
     x: 640.0,
     y: 360.0,
-    width: if kind == Graph || kind == Geometry {
+    width: if kind == Graph ||
+      kind == Geometry ||
+      kind == Network ||
+      kind == Surface {
       560.0
     } else if line {
       400.0
     } else {
       100.0
     },
-    height: if kind == Graph || kind == Geometry {
+    height: if kind == Graph ||
+      kind == Geometry ||
+      kind == Network ||
+      kind == Surface {
       360.0
     } else if kind == Path {
       -180.0
@@ -174,7 +180,9 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     visible: true,
     fill: "#d7d8e4",
     stroke: "#67c4d9",
-    strokeWidth: if line || kind == Graph || kind == Geometry {
+    strokeWidth: if kind == Surface {
+      0.5
+    } else if line || kind == Graph || kind == Geometry || kind == Network {
       2.0
     } else {
       0.0
@@ -198,6 +206,16 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     },
     geometry: if kind == Geometry {
       Some(default_geometry())
+    } else {
+      None
+    },
+    network: if kind == Network {
+      Some(default_network())
+    } else {
+      None
+    },
+    surface: if kind == Surface {
+      Some(default_surface())
     } else {
       None
     },

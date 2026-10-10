@@ -85,6 +85,12 @@ pub fn svg_frame(
   let objects : Array[SvgObject] = []
   let sources = []
   for index, item in frame.objects {
+    if item.kind == @scene.Network && item.state.network is Some(value) {
+      sources.append(@scene.network_texts(value))
+    }
+    if item.kind == @scene.Surface {
+      sources.push("xyz")
+    }
     if item.kind == @scene.Geometry && item.state.geometry is Some(definition) {
       sources.append(@scene.geometry_texts(definition))
     }

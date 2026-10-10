@@ -137,6 +137,10 @@ fn Compiler::execute(
     Parent(oid, parent) => self.reparent(oid, parent)
     GeometryElement(cid, oid, collection, id, value) =>
       self.edit_geometry(cid, oid, collection, id, value)
+    NetworkElement(cid, oid, collection, id, value) =>
+      self.edit_network(cid, oid, collection, id, value)
+    SurfaceDefinition(cid, oid, definition) =>
+      self.edit_surface(cid, oid, definition)
     Anchor(cid, oid, x, y) => self.anchor(cid, oid, x, y)
     Track(tid, oid, edit) => self.edit_track(tid, oid, edit)
     CompositionDuration(cid, duration) => {

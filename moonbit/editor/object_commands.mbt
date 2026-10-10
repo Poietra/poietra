@@ -29,6 +29,8 @@ pub fn object_kind_label(kind : @scene.ObjectKind) -> String {
     Equation => "Equation"
     Graph => "Function graph"
     Geometry => "Mathematical diagram"
+    Network => "Graph network"
+    Surface => "3D surface"
     Path => "Path"
     Arrow => "Arrow"
     NumberLine => "Number line"

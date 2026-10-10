@@ -5,6 +5,7 @@ import {
   "poietra/poietra/boundary",
   "poietra/poietra/collaboration",
   "poietra/poietra/math_geometry",
+  "poietra/poietra/math_plot",
 }
 
 supported_targets = "js"

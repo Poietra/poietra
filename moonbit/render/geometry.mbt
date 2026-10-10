@@ -40,6 +40,8 @@ pub fn shape_geometry(
       )
     Graph => Some(Graph(graph_geometry(state, progress)))
     Geometry => Some(Diagram(diagram_geometry(state, progress)))
+    Network => Some(Diagram(network_geometry(state, progress)))
+    Surface => Some(Diagram(surface_geometry(state, progress)))
     Path =>
       Some(
         Path(
@@ -145,21 +147,45 @@ pub fn object_bounds(item : Drawable, resources : Resources) -> Bounds {
   }
   let stroke = finite(s.strokeWidth).max(0.0).max(write_stroke) / 2.0
   let bounds : Bounds = match item.kind {
-    Geometry => {
-      let diagram = diagram_geometry(s, 1.0)
-      let points = @scene.geometry_points(
-        s.geometry.unwrap_or(@scene.default_geometry()),
-      )
+    Surface =>
+      {
+        x: x - width.abs() / 2.0,
+        y: y - height.abs() / 2.0,
+        width: width.abs(),
+        height: height.abs(),
+      }
+    Geometry | Network => {
+      let diagram = if item.kind == @scene.Network {
+        network_geometry(s, 1.0)
+      } else {
+        diagram_geometry(s, 1.0)
+      }
+      let points = if item.kind == @scene.Network {
+        let result : Map[String, @scene.Point] = Map([])
+        for id, n in s.network.unwrap_or(@scene.default_network()).nodes {
+          if n.deleted != Some(true) {
+            result[id] = { x: n.x, y: n.y, }
+          }
+        }
+        result
+      } else {
+        @scene.geometry_points(s.geometry.unwrap_or(@scene.default_geometry()))
+      }
       let unit = @scene.geometry_unit(s)
       let mut low_x = 0.0
       let mut high_x = 0.0
       let mut low_y = 0.0
       let mut high_y = 0.0
       for _, p in points {
-        low_x = low_x.min(p.x * unit - 32.0)
-        high_x = high_x.max(p.x * unit + 32.0)
-        low_y = low_y.min(-p.y * unit - 32.0)
-        high_y = high_y.max(-p.y * unit + 32.0)
+        let padding = if item.kind == @scene.Network {
+          500.0 + 10.0 * unit
+        } else {
+          32.0
+        }
+        low_x = low_x.min(p.x * unit - padding)
+        high_x = high_x.max(p.x * unit + padding)
+        low_y = low_y.min(-p.y * unit - padding)
+        high_y = high_y.max(-p.y * unit + padding)
       }
       for label in diagram.labels {
         let metrics = (resources.measure_text)(label.text, 12.0)

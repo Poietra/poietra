@@ -28,6 +28,9 @@ fn write_value(value : @plan.Value) -> @core.Any {
     GeometryPointValue(value) => @boundary.write_geometry_point(value)
     GeometryVectorValue(value) => @boundary.write_geometry_vector(value)
     GeometryAngleValue(value) => @boundary.write_geometry_angle(value)
+    NetworkNodeValue(value) => @boundary.write_network_node(value)
+    NetworkEdgeValue(value) => @boundary.write_network_edge(value)
+    OptionalNumberValue(value) => value.map(@core.any).unwrap_or(@core.null())
     ParentValue(value) =>
       match value {
         Some(id) => @core.any(id)

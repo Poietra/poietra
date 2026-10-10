@@ -119,7 +119,8 @@ fn StageController::pointer_move(
     self.scale
   match current.mode {
     EditGeometryPoint(id, point_id, offset) => {
-      if object.unwrap().kind != @scene.Geometry {
+      if object.unwrap().kind != @scene.Geometry &&
+        object.unwrap().kind != @scene.Network {
         self.finish(true)
         return
       }
@@ -133,7 +134,12 @@ fn StageController::pointer_move(
         x: (local_point.x / unit + offset.x).max(-100000.0).min(100000.0),
         y: (-local_point.y / unit + offset.y).max(-100000.0).min(100000.0),
       }
-      binding.set_geometry_point(id, point_id, point)
+      binding.set_geometry_point(
+        id,
+        point_id,
+        point,
+        object.unwrap().kind == @scene.Network,
+      )
       self.feedback(current, point, None)
     }
     EditPath(id, handle, transition_id) => {

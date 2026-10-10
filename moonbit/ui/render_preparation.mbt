@@ -41,14 +41,21 @@ fn render_preparation(scene : @core.Any) -> RenderPreparation {
           object._get("name"),
         ])
       }
-    } else if kind == "geometry" {
+    } else if kind == "surface" {
+      inputs.push(@core.any("xyz"))
+    } else if kind == "geometry" || kind == "network" {
       for cid in composition_ids {
         let state = compositions._get(cid)._get("states")._get(id)
-        if !truthy(state) || !truthy(state._get("geometry")) {
+        if !truthy(state) || !truthy(state._get(kind)) {
           continue
         }
-        for collection in ["points", "vectors", "angles"] {
-          let values = state._get("geometry")._get(collection)
+        for
+          collection in (if kind == "network" {
+            ["nodes", "edges"]
+          } else {
+            ["points", "vectors", "angles"]
+          }) {
+          let values = state._get(kind)._get(collection)
           for key in @core.object_keys(values) {
             let value = values._get(key)
             if !truthy(value._get("deleted")) {

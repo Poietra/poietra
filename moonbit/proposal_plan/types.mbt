@@ -80,6 +80,8 @@ pub(all) enum Operation {
   State(String, String, StateField, Scalar)
   ShapePath(String, String, @scene.Bezier)
   GeometryElement(String, String, String, String, DiagramElement?)
+  NetworkElement(String, String, String, String, NetworkElement?)
+  SurfaceDefinition(String, String, @scene.SurfaceDefinition)
   Parent(String, String?)
   Anchor(String, String, Double, Double)
   Track(String, String, TrackEdit)
@@ -92,6 +94,12 @@ pub(all) enum DiagramElement {
   PointElement(@scene.GeometryPoint)
   VectorElement(@scene.GeometryVector)
   AngleElement(@scene.GeometryAngle)
+}
+
+///|
+pub(all) enum NetworkElement {
+  NodeElement(@scene.NetworkNode)
+  EdgeElement(@scene.NetworkEdge)
 }
 
 ///|
@@ -137,6 +145,9 @@ pub(all) enum Value {
   GeometryPointValue(@scene.GeometryPoint)
   GeometryVectorValue(@scene.GeometryVector)
   GeometryAngleValue(@scene.GeometryAngle)
+  NetworkNodeValue(@scene.NetworkNode)
+  NetworkEdgeValue(@scene.NetworkEdge)
+  OptionalNumberValue(Double?)
   ParentValue(String?)
   StateValue(@scene.ObjectState)
   ObjectValue(@scene.SceneObject)

@@ -110,3 +110,41 @@ test "two-variable equations evaluate their residual without changing explicit s
     assert_true(rejected)
   }
 }
+
+///|
+test "surface u/v aliases remain unavailable to the existing 2D grammar" {
+  close(
+    prepare_surface("a*u+b*v+c").evaluate_at(2.0, 3.0, 4.0, 5.0, 6.0).unwrap(),
+    29.0,
+  )
+  close(
+    prepare_surface("x+y").evaluate_at(2.0, 3.0, 0.0, 0.0, 0.0).unwrap(),
+    5.0,
+  )
+  for source in ["u", "v", "sin(u)", "u+v=1"] {
+    assert_true(
+      try {
+        prepare(source) |> ignore
+        false
+      } catch {
+        InvalidExpression(_) => true
+      },
+    )
+    assert_true(
+      try {
+        prepare_implicit(source) |> ignore
+        false
+      } catch {
+        InvalidExpression(_) => true
+      },
+    )
+  }
+  assert_true(
+    try {
+      prepare_surface("z=x+y") |> ignore
+      false
+    } catch {
+      InvalidExpression(_) => true
+    },
+  )
+}

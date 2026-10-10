@@ -111,6 +111,20 @@ pub fn default_state(kind : @core.Any, overrides : @core.Any) -> @core.Any {
     @scene.default_state(@project_codec.decode_ObjectKind(kind)),
   )
   let result = merge_values(base, overrides)
+  if !@core.is_nullish(overrides) &&
+    !@core.is_nullish(overrides._get("network")) {
+    result._set(
+      "network",
+      merge_network_patch(base._get("network"), overrides._get("network")),
+    )
+  }
+  if !@core.is_nullish(overrides) &&
+    !@core.is_nullish(overrides._get("surface")) {
+    result._set(
+      "surface",
+      merge_surface_patch(base._get("surface"), overrides._get("surface")),
+    )
+  }
   if !@core.is_nullish(overrides) && !@core.is_nullish(overrides._get("graph")) {
     result._set(
       "graph",

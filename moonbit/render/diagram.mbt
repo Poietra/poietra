@@ -2,6 +2,8 @@
 pub(all) struct DiagramCurve {
   id : String
   path : String
+  fill : String?
+  stroke : String?
 } derive(Eq)
 
 ///|
@@ -154,7 +156,9 @@ pub fn diagram_geometry(
     }
   }
   {
-    curves: paths.map(fn(pair) { { id: pair.0, path: pair.1, } }),
+    curves: paths.map(fn(pair) {
+      { id: pair.0, path: pair.1, fill: None, stroke: None, }
+    }),
     labels,
     limited: @scene.geometry_validation_error(definition) is Some(_),
   }
@@ -173,8 +177,14 @@ fn diagram_markup(
     ""
   }
   for curve in geometry.curves {
+    let fill = color(curve.fill.unwrap_or("none"))
     body.write_string(
-      "<path data-geometry-element=\"\{escape_xml(curve.id)}\" d=\"\{curve.path}\" fill=\"none\"\{reveal}/>",
+      "<path data-geometry-element=\"\{escape_xml(curve.id)}\" d=\"\{curve.path}\" fill=\"\{fill}\" fill-opacity=\"\{number(progress)}\"" +
+      curve.stroke
+      .map(fn(stroke) { " stroke=\"" + color(stroke) + "\"" })
+      .unwrap_or("") +
+      reveal +
+      "/>",
     )
   }
   body.write_string(

@@ -59,6 +59,7 @@ pub struct Program {
 priv struct Parser {
   source : String
   allow_y : Bool
+  allow_uv : Bool
   mut at : Int
   mut nodes : Int
 }
@@ -182,6 +183,8 @@ fn Parser::primary(self : Parser) -> Expression raise InvalidExpression {
     let variable = match name {
       "x" => Some(X)
       "y" if self.allow_y => Some(Y)
+      "u" if self.allow_uv => Some(X)
+      "v" if self.allow_uv => Some(Y)
       "a" => Some(A)
       "b" => Some(B)
       "c" => Some(C)
@@ -315,13 +318,23 @@ fn Parser::sum(self : Parser) -> Expression raise InvalidExpression {
 }
 
 ///|
-fn parse(source : String, implicit : Bool) -> Program raise InvalidExpression {
+fn parse(
+  source : String,
+  implicit : Bool,
+  surface? : Bool = false,
+) -> Program raise InvalidExpression {
   if source.is_empty() || source.length() > 512 {
     raise InvalidExpression(
       "数式は 1〜512 文字で指定してください。",
     )
   }
-  let parser : Parser = { source, allow_y: implicit, at: 0, nodes: 0, }
+  let parser : Parser = {
+    source,
+    allow_y: implicit || surface,
+    allow_uv: surface,
+    at: 0,
+    nodes: 0,
+  }
   let left = parser.sum()
   let expression = if implicit {
     if !parser.take(61) {
@@ -343,6 +356,12 @@ fn parse(source : String, implicit : Bool) -> Program raise InvalidExpression {
 ///|
 pub fn prepare(source : String) -> Program raise InvalidExpression {
   parse(source, false)
+}
+
+///|
+/// Two independent coordinates, with u/v aliases confined to surface syntax.
+pub fn prepare_surface(source : String) -> Program raise InvalidExpression {
+  parse(source, false, surface=true)
 }
 
 ///|

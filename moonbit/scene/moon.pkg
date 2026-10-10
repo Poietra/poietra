@@ -4,6 +4,8 @@ import {
   "moonbitlang/core/math",
   "poietra/poietra/math_plot",
   "poietra/poietra/math_geometry",
+  "poietra/poietra/math_network",
+  "poietra/poietra/math_surface",
 }
 
 import {

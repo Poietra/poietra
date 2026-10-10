@@ -140,14 +140,14 @@ pub fn apply_proposal(
   let appends = validated.appends.map(fn(append) {
     (append.order, FixedArray::from_array(append.ids[:]))
   })
-  if validated.changes.any(fn(change) {
-      @boundary.change_requires_v4(change.path, change.value)
-    }) {
-    @boundary.upgrade_graph_format(doc)
-  } else if validated.changes.any(fn(change) {
-      @boundary.change_requires_v2(change.path, change.value)
-    }) {
-    @boundary.upgrade_document_format(doc)
+  let mut format = 1
+  for change in validated.changes {
+    format = format.max(
+      @boundary.required_format_for_change(change.path, change.value),
+    )
+  }
+  if format > 1 {
+    @boundary.upgrade_format_to(doc, format)
   }
   doc._call("transact", [
     @core.any(fn() {

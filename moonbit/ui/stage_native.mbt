@@ -173,14 +173,20 @@ fn StageSnapshot::geometry_point(
   if !truthy(state) || !truthy(state._get("visible")) {
     return None
   }
-  let geometry = state._get("geometry")
+  let network = self
+    .object(id)
+    .map(fn(o) { o.kind == @scene.Network })
+    .unwrap_or(false)
+  let geometry = state._get(if network { "network" } else { "geometry" })
   if !truthy(geometry) {
     return None
   }
-  let point = geometry._get("points")._get(point_id)
+  let point = geometry
+    ._get(if network { "nodes" } else { "points" })
+    ._get(point_id)
   if !truthy(point) ||
     truthy(point._get("deleted")) ||
-    !@core.equal(point._get("kind"), @core.any("free")) {
+    (!network && !@core.equal(point._get("kind"), @core.any("free"))) {
     return None
   }
   let width : Double = state._get("width").cast()
@@ -198,14 +204,33 @@ fn StageBinding::set_geometry_point(
   id : String,
   point_id : String,
   point : @scene.Point,
+  network : Bool,
 ) -> Unit {
   self.update_state(
     id,
-    host_record({
-      "geometry": host_record({
-        "points": host_record(Map([(point_id, stage_point(point))])),
-      }),
-    }),
+    host_record(
+      Map([
+        (
+          if network {
+            "network"
+          } else {
+            "geometry"
+          },
+          host_record(
+            Map([
+              (
+                if network {
+                  "nodes"
+                } else {
+                  "points"
+                },
+                host_record(Map([(point_id, stage_point(point))])),
+              ),
+            ]),
+          ),
+        ),
+      ]),
+    ),
   )
 }
 

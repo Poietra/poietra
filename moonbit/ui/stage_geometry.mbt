@@ -12,15 +12,29 @@ fn stage_geometry_handles(
   let id = controller.selected[0]
   guard controller.frame_item(id) is Some(item) else { return nodes }
   let object = item._get("object")
-  guard @boundary.read_object_kind(object._get("kind")) == @scene.Geometry &&
+  let kind = @boundary.read_object_kind(object._get("kind"))
+  guard (kind == @scene.Geometry || kind == @scene.Network) &&
     !stage_object_locked(controller.scene, id) else {
     return nodes
   }
   let state = @boundary.read_object_state(item._get("state"))
-  guard state.visible &&
-    state.opacity > 0.0 &&
-    state.geometry is Some(definition) else {
-    return nodes
+  guard state.visible && state.opacity > 0.0 else { return nodes }
+  let points : Map[String, @scene.GeometryPoint] = if kind == @scene.Network {
+    let points : Map[String, @scene.GeometryPoint] = Map([])
+    for id, p in state.network.unwrap_or(@scene.default_network()).nodes {
+      points[id] = {
+        kind: @scene.FreePoint,
+        x: p.x,
+        y: p.y,
+        label: p.label,
+        deleted: p.deleted,
+        from: None,
+        to: None,
+      }
+    }
+    points
+  } else {
+    state.geometry.unwrap_or(@scene.default_geometry()).points
   }
   let progress : Double = item._get("writeProgress").cast()
   let unit = @scene.geometry_unit(state)
@@ -28,10 +42,10 @@ fn stage_geometry_handles(
     return nodes
   }
   let world = stage_item_matrix(item)
-  let ids = definition.points.keys().to_array()
+  let ids = points.keys().to_array()
   ids.sort()
   for point_id in ids {
-    let point = definition.points[point_id]
+    let point = points[point_id]
     if point.kind != @scene.FreePoint || point.deleted == Some(true) {
       continue
     }

@@ -6,6 +6,7 @@ import {
   "poietra/poietra/editor",
   "poietra/poietra/proposal_plan" @plan,
   "poietra/poietra/schemas",
+  "poietra/poietra/project_codec",
 }
 
 supported_targets = "js"

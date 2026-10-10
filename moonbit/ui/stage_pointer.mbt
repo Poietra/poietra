@@ -42,7 +42,7 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
       self.state_editing &&
       snapshot.object(id) is Some(object) &&
       !object.locked &&
-      object.kind == @scene.Geometry &&
+      (object.kind == @scene.Geometry || object.kind == @scene.Network) &&
       snapshot.geometry_point(id, point_id) is Some((point, unit)) &&
       snapshot.object_matrix(id).inverse() is Some(inverse) else {
       return

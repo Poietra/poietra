@@ -46,6 +46,19 @@ export function geometryProject() {
   return p;
 }
 
+export function spatialMathProject(kind) {
+  const p = project(); p.version = 6;
+  addObject(p, 'diagram', kind, { x: 160, y: 90, width: 240, height: 120, stroke: '#ffffff', fill: '#ffffff', strokeWidth: 2 });
+  const scene = p.scenes.scene;
+  for (const c of Object.values(scene.compositions)) {
+    c.states.box.visible = false;
+    if (kind === 'surface') Object.assign(c.states.diagram.surface, { zExpression: 'a', a: c.id === 'a' ? 0 : 2, yaw: 0, pitch: 45, steps: 8, uMin: -2, uMax: 2, vMin: -2, vMax: 2, axes: false, wireframe: false });
+  }
+  if (kind === 'network') Object.assign(scene.compositions.b.states.diagram.network.nodes.a, { x: 2, y: 3 });
+  scene.transitions.transition.tracks.diagram = { objectId: 'diagram', type: 'move', start: 0, duration: 400, easing: 'linear', order: 'together', path: null, keyframes: {} };
+  return p;
+}
+
 export function addImage(p) {
   const png = new PNG({ width: 8, height: 8 });
   for (let i = 0; i < png.data.length; i += 4) { png.data[i] = 255; png.data[i + 1] = 128; png.data[i + 3] = 255; }

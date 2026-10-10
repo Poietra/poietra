@@ -7,6 +7,8 @@ pub(all) enum ObjectKind {
   Equation
   Graph
   Geometry
+  Network
+  Surface
   Path
   Arrow
   NumberLine
@@ -103,6 +105,8 @@ pub fn object_kind(value : String) -> ObjectKind? {
     "text" => Some(Text)
     "graph" => Some(Graph)
     "geometry" => Some(Geometry)
+    "network" => Some(Network)
+    "surface" => Some(Surface)
     "equation" => Some(Equation)
     "path" => Some(Path)
     "arrow" => Some(Arrow)
@@ -121,6 +125,8 @@ pub fn object_kind_name(kind : ObjectKind) -> String {
     Text => "text"
     Graph => "graph"
     Geometry => "geometry"
+    Network => "network"
+    Surface => "surface"
     Equation => "equation"
     Path => "path"
     Arrow => "arrow"
@@ -172,19 +178,7 @@ pub fn animation_name(value : AnimationKind) -> String {
 
 ///|
 pub impl ToJson for ObjectKind with fn to_json(self) {
-  match self {
-    Circle => "circle"
-    Rectangle => "rectangle"
-    Text => "text"
-    Graph => "graph"
-    Geometry => "geometry"
-    Equation => "equation"
-    Path => "path"
-    Arrow => "arrow"
-    NumberLine => "numberline"
-    Image => "image"
-    Video => "video"
-  }
+  object_kind_name(self).to_json()
 }
 
 ///|

@@ -29,7 +29,7 @@ export type ShapeGeometry = {
     limited: boolean;
 } | {
     kind: 'diagram';
-    curves: { id: string; path: string }[];
+    curves: { id: string; path: string; fill?: string; stroke?: string }[];
     labels: { x: number; y: number; text: string }[];
     limited: boolean;
 } | {

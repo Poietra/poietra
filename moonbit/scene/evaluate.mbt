@@ -448,6 +448,20 @@ pub fn evaluate_transition(
       }
     }
     let mut state : ObjectState = {
+      network: interpolate_network(
+        a.network,
+        b.network,
+        position,
+        base,
+        interpolate,
+      ),
+      surface: interpolate_surface(
+        a.surface,
+        b.surface,
+        position,
+        base,
+        interpolate,
+      ),
       geometry: interpolate_geometry(
         a.geometry,
         b.geometry,

@@ -13,6 +13,20 @@ pub(all) struct MathTool {
 pub fn math_tools() -> Array[MathTool] {
   [
     {
+      kind: Network,
+      category: "グラフ理論",
+      label: "グラフ理論の図",
+      description: "ノード・有向／無向の辺・重みを編集",
+      icon: "Triangle",
+    },
+    {
+      kind: Surface,
+      category: "3D",
+      label: "3D曲面",
+      description: "関数・媒介変数式から球や曲面を描画",
+      icon: "ChartSpline",
+    },
+    {
       kind: Equation,
       category: "数式",
       label: "数式",

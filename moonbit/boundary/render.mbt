@@ -144,6 +144,8 @@ pub fn prepare_render_scene(
       let kind = objects._get(id)._get("kind")
       strict_equal(kind, @core.any("text")) ||
       strict_equal(kind, @core.any("geometry")) ||
+      strict_equal(kind, @core.any("network")) ||
+      strict_equal(kind, @core.any("surface")) ||
       strict_equal(kind, @core.any("equation"))
     })
     let sources = []
@@ -152,6 +154,21 @@ pub fn prepare_render_scene(
       for id in text_ids {
         let state = states._get(id)
         if @core.is_nullish(state) {
+          continue
+        }
+        if strict_equal(objects._get(id)._get("kind"), @core.any("surface")) {
+          sources.push(@core.any("xyz"))
+          continue
+        }
+        if strict_equal(objects._get(id)._get("kind"), @core.any("network")) {
+          let value = state._get("network")
+          if !@core.is_nullish(value) {
+            sources.append(
+              @scene.network_texts(
+                @project_codec.decode_NetworkDefinition(value),
+              ).map(@core.any),
+            )
+          }
           continue
         }
         if strict_equal(objects._get(id)._get("kind"), @core.any("geometry")) {
@@ -507,6 +524,14 @@ pub fn encode_diagram_geometry(diagram : @render.DiagramGeometry) -> @core.Any {
     @core.from_entries([
       ("id", @core.any(curve.id)),
       ("path", @core.any(curve.path)),
+      (
+        "fill",
+        curve.fill.map(fn(v) { @core.any(v) }).unwrap_or(@core.undefined()),
+      ),
+      (
+        "stroke",
+        curve.stroke.map(fn(v) { @core.any(v) }).unwrap_or(@core.undefined()),
+      ),
     ])
   })
   let labels = FixedArray::makei(diagram.labels.length(), fn(i) {
@@ -525,7 +550,12 @@ pub fn encode_diagram_geometry(diagram : @render.DiagramGeometry) -> @core.Any {
 pub fn decode_diagram_geometry(value : @core.Any) -> @render.DiagramGeometry {
   {
     curves: @project_codec.decode_array(value._get("curves"), fn(curve) {
-      { id: curve._get("id").cast(), path: curve._get("path").cast(), }
+      {
+        id: curve._get("id").cast(),
+        path: curve._get("path").cast(),
+        fill: @project_codec.optional(curve._get("fill"), fn(v) { v.cast() }),
+        stroke: @project_codec.optional(curve._get("stroke"), fn(v) { v.cast() }),
+      }
     }),
     labels: @project_codec.decode_array(value._get("labels"), fn(label) {
       {

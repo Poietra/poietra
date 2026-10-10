@@ -316,7 +316,7 @@ fn StudioController::undo(self : StudioController) -> Unit {
         } else if durations > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
         } else if geometry_elements > 0 {
-          "共同編集者が使っている数学図の要素と参照関係を保持しました。"
+          "共同編集者が使っている数学オブジェクトの要素と定義を保持しました。"
         } else if graph_definitions > 0 {
           "共同編集者が変更したグラフの数式を保持しました。"
         } else if graph_ranges > 0 {
@@ -348,7 +348,7 @@ fn StudioController::redo(self : StudioController) -> Unit {
         if retained > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
         } else if geometry_elements > 0 {
-          "共同編集者が使っている数学図の要素と参照関係を保持しました。"
+          "共同編集者が使っている数学オブジェクトの要素と定義を保持しました。"
         } else if graph_definitions > 0 {
           "共同編集者が変更したグラフの数式を保持しました。"
         } else if graph_ranges > 0 {

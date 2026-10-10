@@ -68,13 +68,16 @@ fn StageController::graph_hit(
     let item = objects[index]
     let object = item._get("object")
     let kind = @boundary.read_object_kind(object._get("kind"))
-    if kind != @scene.Graph && kind != @scene.Geometry {
+    if kind != @scene.Graph &&
+      kind != @scene.Geometry &&
+      kind != @scene.Network &&
+      kind != @scene.Surface {
       continue
     }
     let state = item._get("state")
     let opacity : Double = state._get("opacity").cast()
     let progress : Double = item._get("writeProgress").cast()
-    if kind == @scene.Geometry && progress < 1.0 {
+    if kind != @scene.Graph && progress < 1.0 {
       continue
     }
     if !truthy(state._get("visible")) ||

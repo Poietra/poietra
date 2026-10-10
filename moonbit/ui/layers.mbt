@@ -137,6 +137,8 @@ pub fn object_icon(input : @core.Any) -> @react.Element {
     Equation => "Sigma"
     Graph => "ChartSpline"
     Geometry => "Triangle"
+    Network => "Triangle"
+    Surface => "ChartSpline"
     Path => "Spline"
     Arrow => "ArrowUpRight"
     NumberLine => "Minus"

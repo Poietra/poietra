@@ -11,7 +11,7 @@ fn math_palette(input : @core.Any) -> @react.Element {
         "type": @core.any("search"),
         "className": @core.any("content-input"),
         "placeholder": @core.any(
-          "数式、陰関数、ベクトル、角度…",
+          "数式、ベクトル、グラフ理論、3D…",
         ),
         "value": @core.any(query),
         "onChange": @core.any(fn(event : @core.Any) {

@@ -87,7 +87,29 @@ pub fn update_state(
   if truthy(composition._get("states")._get(id)) {
     let changes : Array[@core.Any] = []
     for key in @core.object_keys(patch) {
-      if key == "geometry" {
+      if key == "network" || key == "surface" {
+        if !@core.equal(object._get("kind"), @core.any(key)) {
+          @core.throw_error(
+            "編集する数学オブジェクトを選択してください。",
+          )
+        }
+        let current = composition._get("states")._get(id)._get(key)
+        if key == "network" {
+          let path = FixedArray::makei(base.length() + 1, fn(i) {
+            if i < base.length() {
+              base[i]
+            } else {
+              key
+            }
+          })
+          changes.append(
+            @boundary.network_patch_changes(current, patch._get(key), path),
+          )
+        } else {
+          @boundary.merge_surface_patch(current, patch._get(key)) |> ignore
+          changes.append(changes_for(base + [key], patch._get(key)))
+        }
+      } else if key == "geometry" {
         if !@core.equal(object._get("kind"), @core.any("geometry")) {
           @core.throw_error("数学図を選択してください。")
         }
@@ -145,6 +167,23 @@ pub fn update_state(
     @boundary.default_state(object._get("kind"), @core.undefined())
   }
   let next = merge(state, patch)
+  for key in ["network", "surface"] {
+    if @core.object_keys(patch).contains(key) {
+      if !@core.equal(object._get("kind"), @core.any(key)) {
+        @core.throw_error(
+          "編集する数学オブジェクトを選択してください。",
+        )
+      }
+      next._set(
+        key,
+        if key == "network" {
+          @boundary.merge_network_patch(state._get(key), patch._get(key))
+        } else {
+          @boundary.merge_surface_patch(state._get(key), patch._get(key))
+        },
+      )
+    }
+  }
   if @core.object_keys(patch).contains("geometry") {
     if !@core.equal(object._get("kind"), @core.any("geometry")) {
       @core.throw_error("数学図を選択してください。")
@@ -289,6 +328,14 @@ pub fn add_object(
   }
   if kind == "geometry" {
     @boundary.merge_geometry_patch(initial._get("geometry"), @core.new_object())
+    |> ignore
+  }
+  if kind == "network" {
+    @boundary.merge_network_patch(initial._get("network"), @core.new_object())
+    |> ignore
+  }
+  if kind == "surface" {
+    @boundary.merge_surface_patch(initial._get("surface"), @core.new_object())
     |> ignore
   }
   let result = @editor.create_object(

@@ -29,6 +29,7 @@ for name, body in re.findall(r'pub\(all\) struct (\w+)\s*\{([^}]+)\}', model):
 wire_enums = {
     'ObjectKind': ('object_kind', 'object_kind_name'),
     'GeometryPointKind': ('geometry_point_kind', 'geometry_point_kind_name'),
+    'SurfaceKind': ('surface_kind', 'surface_kind_name'),
     'AnimationKind': ('animation_kind', 'animation_name'),
     'Effect': ('effect_kind', 'effect_name'),
     'CurveProperty': ('curve_property', 'curve_property_name'),
@@ -262,9 +263,11 @@ for name, fields in structs.items():
             value += ' | null'
         elif name == 'GeometryPoint' and field in ['from', 'to']:
             value += ' | null'
+        elif name == 'NetworkEdge' and field == 'weight':
+            value += ' | null'
         elif name == 'Track' and kind == 'Timing?':
             value += ' | null'
-        if name == 'Project' and field == 'version': value = '1 | 2 | 3 | 4 | 5'
+        if name == 'Project' and field == 'version': value = '1 | 2 | 3 | 4 | 5 | 6'
         types += '  ' + key + ('?' if optional else '') + ': ' + value + ';\n'
     if name == 'RenderObject': types += '  videoFrame?: string; // Portable SVG preparation only; not stored in a project.\n'
     types += '}\n'

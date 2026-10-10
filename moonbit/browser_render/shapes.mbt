@@ -111,11 +111,19 @@ fn paint_shape(
       return
     }
     if shape is Diagram(diagram) {
-      if stroke.to_lower() != "none" && stroke_width > 0.0 {
-        context.globalAlpha = opacity
-        context.strokeStyle = stroke
-        context.lineWidth = stroke_width
-        for drawing in diagrams {
+      for index, curve in diagram.curves {
+        let drawing = diagrams[index]
+        let curve_fill = @render.color(curve.fill.unwrap_or("none"))
+        let curve_stroke = @render.color(curve.stroke.unwrap_or(stroke))
+        if curve_fill.to_lower() != "none" {
+          context.globalAlpha = opacity * progress
+          context.fillStyle = curve_fill
+          fill_path(context, drawing.path)
+        }
+        if curve_stroke.to_lower() != "none" && stroke_width > 0.0 {
+          context.globalAlpha = opacity
+          context.strokeStyle = curve_stroke
+          context.lineWidth = stroke_width
           canvas_dash(
             context,
             if progress < 1.0 && drawing.length > 0.0 {
@@ -127,8 +135,9 @@ fn paint_shape(
           )
           stroke_path(context, drawing.path)
         }
-        canvas_dash(context, [], 0.0)
       }
+      canvas_dash(context, [], 0.0)
+      context.fillStyle = fill
       context.globalAlpha = opacity * progress * 0.75
       context.font = "12px 'Poietra Inter', 'Poietra Noto Sans JP', sans-serif"
       context.textAlign = "left"

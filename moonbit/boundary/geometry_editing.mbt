@@ -14,9 +14,10 @@ pub fn write_geometry_angle(value : @scene.GeometryAngle) -> @core.Any {
 }
 
 ///|
-pub fn merge_geometry_patch(
+fn merge_element_patch(
   current : @core.Any,
   patch : @core.Any,
+  family : String,
 ) -> @core.Any {
   if @core.is_nullish(patch) ||
     @core.typeof_(patch) != "object" ||
@@ -32,7 +33,12 @@ pub fn merge_geometry_patch(
       next._set(field, patch._get(field))
       continue
     }
-    if !["points", "vectors", "angles"].contains(field) {
+    let collections = if family == "network" {
+      ["nodes", "edges"]
+    } else {
+      ["points", "vectors", "angles"]
+    }
+    if !collections.contains(field) {
       @core.throw_error("対応していない幾何の項目です。")
     }
     let entries = patch._get(field)
@@ -56,6 +62,9 @@ pub fn merge_geometry_patch(
         )
       }
       let fields = match field {
+        "nodes" => ["x", "y", "label", "deleted"]
+        "edges" =>
+          ["from", "to", "label", "directed", "weight", "bend", "deleted"]
         "points" => ["kind", "x", "y", "from", "to", "label", "deleted"]
         "vectors" => ["from", "to", "label", "deleted"]
         _ => ["from", "vertex", "to", "label", "deleted"]
@@ -72,18 +81,23 @@ pub fn merge_geometry_patch(
     }
     next._set(field, values)
   }
-  @project_codec.read_geometry_definition(next) |> ignore
+  if family == "network" {
+    @project_codec.read_network_definition(next) |> ignore
+  } else {
+    @project_codec.read_geometry_definition(next) |> ignore
+  }
   next
 }
 
 ///|
 /// Validate the complete immutable candidate, then publish only intended leaves.
-pub fn geometry_patch_changes(
+fn element_patch_changes(
   current : @core.Any,
   patch : @core.Any,
   base : FixedArray[String],
+  family : String,
 ) -> Array[@core.Any] {
-  let next = merge_geometry_patch(current, patch)
+  let next = merge_element_patch(current, patch, family)
   let changes : Array[@core.Any] = []
   for field in @core.object_keys(patch) {
     if field == "version" {
@@ -116,4 +130,67 @@ pub fn geometry_patch_changes(
     }
   }
   changes
+}
+
+///|
+pub fn merge_geometry_patch(
+  current : @core.Any,
+  patch : @core.Any,
+) -> @core.Any {
+  merge_element_patch(current, patch, "geometry")
+}
+
+///|
+pub fn merge_network_patch(current : @core.Any, patch : @core.Any) -> @core.Any {
+  merge_element_patch(current, patch, "network")
+}
+
+///|
+pub fn geometry_patch_changes(
+  current : @core.Any,
+  patch : @core.Any,
+  base : FixedArray[String],
+) -> Array[@core.Any] {
+  element_patch_changes(current, patch, base, "geometry")
+}
+
+///|
+pub fn network_patch_changes(
+  current : @core.Any,
+  patch : @core.Any,
+  base : FixedArray[String],
+) -> Array[@core.Any] {
+  element_patch_changes(current, patch, base, "network")
+}
+
+///|
+pub fn write_network_node(value : @scene.NetworkNode) -> @core.Any {
+  @project_codec.encode_NetworkNode(value)
+}
+
+///|
+pub fn write_network_edge(value : @scene.NetworkEdge) -> @core.Any {
+  @project_codec.encode_NetworkEdge(value)
+}
+
+///|
+pub fn write_surface(value : @scene.SurfaceDefinition) -> @core.Any {
+  @project_codec.encode_SurfaceDefinition(value)
+}
+
+///|
+pub fn merge_surface_patch(current : @core.Any, patch : @core.Any) -> @core.Any {
+  if @core.is_nullish(current) ||
+    @core.is_nullish(patch) ||
+    @core.typeof_(patch) != "object" ||
+    @core.is_array(patch) {
+    @core.throw_error("3D曲面の編集内容が不正です。")
+  }
+  let fields = @core.object_keys(write_surface(@scene.default_surface()))
+  if @core.object_keys(patch).iter().any(fn(key) { !fields.contains(key) }) {
+    @core.throw_error("対応していない曲面の項目です。")
+  }
+  let next = merge_values(current, patch)
+  @project_codec.read_surface_definition(next) |> ignore
+  next
 }

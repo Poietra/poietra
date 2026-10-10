@@ -24,6 +24,7 @@ export const suites = {
     'groups.spec.ts',
     'graphs.spec.ts',
     'math-geometry.spec.ts',
+    'spatial-math.spec.ts',
     'images.spec.ts',
     'ime.spec.ts',
     'keyboard.spec.ts',

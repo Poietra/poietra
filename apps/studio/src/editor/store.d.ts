@@ -1,4 +1,4 @@
-import type { Keyframe, GraphDefinition, GeometryDefinition, GeometryPoint, GeometryVector, GeometryAngle } from "../../shared/scene-types";
+import type { Keyframe, GraphDefinition, GeometryDefinition, GeometryPoint, GeometryVector, GeometryAngle, NetworkDefinition, NetworkNode, NetworkEdge, SurfaceDefinition } from "../../shared/scene-types";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -15,7 +15,14 @@ export type GeometryPatch = Partial<Omit<GeometryDefinition, 'points' | 'vectors
     vectors?: Record<string, Partial<GeometryVector>>;
     angles?: Record<string, Partial<GeometryAngle>>;
 };
-export type ObjectStatePatch = Partial<Omit<ObjectState, 'graph' | 'geometry'>> & { graph?: Partial<GraphDefinition>; geometry?: GeometryPatch };
+export type NetworkPatch = Partial<Omit<NetworkDefinition, 'nodes' | 'edges'>> & {
+    nodes?: Record<string, Partial<NetworkNode>>;
+    edges?: Record<string, Partial<NetworkEdge>>;
+};
+export type ObjectStatePatch = Partial<Omit<ObjectState, 'graph' | 'geometry' | 'network' | 'surface'>> & {
+    graph?: Partial<GraphDefinition>; geometry?: GeometryPatch;
+    network?: NetworkPatch; surface?: Partial<SurfaceDefinition>;
+};
 export interface Peer {
     clientId: number;
     name: string;
