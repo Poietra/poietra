@@ -204,6 +204,9 @@ A fresh Chromium context after an actual Node process restart recovered the
 expression, coefficient, identical SVG curve and saved version 4 project.
 Headless checks independently decoded graph PNG/MP4 outputs. These checks ran
 locally without live provider calls; production deployment is recorded below.
+Production export verification on 2026-10-10 downloaded a 320 × 180 H.264 graph
+MP4 with 24 frames over 0.8 seconds. FFmpeg independently decoded every frame
+and confirmed changing graph geometry.
 
 ```sh
 POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test graphs.spec.ts primitives.spec.ts clipping.spec.ts undo-objects.spec.ts painter-preview.spec.ts ai-create.spec.ts --workers=2
@@ -254,24 +257,31 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-10 23:49 JST**, Worker version
-`6a735b7a-315e-4a78-8027-8b1a311778a0` at 100% on `poietra.com`.
-The uploaded source was the `e19bc495e1798954961990487b1886ed3c22adff`
-working tree with uncommitted function graph changes, tagged `graphs-e19bc49-wip`.
-Its predecessor was `fac69df0-5b49-482e-8c79-9a618e9338da` (`56c7abd`).
+Last recorded deployment: **2026-10-11 00:40 JST**, Worker version
+`48ed35af-d697-4196-90c3-57c989ca3051` at 100% on `poietra.com`.
+The uploaded source was clean commit `3038872713c518c8339ab19bd4a93d6ce8b2336c`,
+tagged `graph-hit-3038872`. Its predecessor was
+`6a735b7a-315e-4a78-8027-8b1a311778a0`, which delivered function graphs from the
+`e19bc49` working tree; that feature is now committed as `044029e`.
 Version metadata confirmed identical bindings, Durable Object namespaces,
-migration tags, runtime settings and exported classes; R2, secrets and routing
-were preserved. Production-config dry run and the isolated real workerd
-collaboration/restart integration check passed before upload.
+migration tags, runtime settings, exported classes and Worker script hash;
+R2, secrets and routing were preserved. Upload rebuilt the release artifacts
+and passed the captured public API/type checks.
 
-Production smoke checks covered public HTML/API documents and the version 4
-schema, graph authoring, two-browser coefficient edits, peer-preserving Undo,
-save/import and reload. A room and image created before the cutover remained
-readable afterward with identical image bytes. An actual 320 × 180 H.264 graph
-MP4 download contained 24 frames over 0.8 seconds; FFmpeg independently decoded
-every frame and confirmed changing graph geometry. The served client runtime
-matched the uploaded local build. Full provider login, paid AI calls and 500
-production clients were outside that check.
+Six production browser checks passed: graph pointer acquisition, empty-viewport
+dragging, zoom/affine transforms, changed coefficients, zero-width strokes,
+nested clips and overlapping objects, alongside graph authoring, two-browser
+edits, Undo, Escape cancellation, save/import and reload. A room and image from
+before the preceding cutover remained readable with identical image bytes;
+an existing graph retained its definition and identical curve through reload.
+The served client runtime matched the uploaded local build and health returned
+success. Full provider login, paid AI calls, video export and 500 production
+clients were outside this UI-fix check.
+
+```sh
+POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test graphs.spec.ts --grep 'picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
+```
+
 [Earlier deployment record](https://github.com/Poietra/poietra/blob/e19bc495e1798954961990487b1886ed3c22adff/docs/development.md#deployment-and-limits).
 Confirm the active version before deploying again.
 
