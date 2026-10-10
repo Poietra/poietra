@@ -166,7 +166,7 @@ fn StageController::hit(
       return Some(id)
     }
   }
-  None
+  self.graph_hit(at)
 }
 
 ///|

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { graphProject } from '../graph-fixture';
+import { defaultState } from '../../shared/model';
 
 const select = (page: Page, name: string) => page.getByRole('button', { name, exact: true }).click();
 const expression = (page: Page) => page.getByRole('textbox', { name: 'Graph expression' });
@@ -17,12 +18,124 @@ async function saved(page: Page) {
   const downloading = page.waitForEvent('download'); await select(page, 'Save project');
   return readFile((await (await downloading).path())!);
 }
-async function importGraph(page: Page) {
+async function importGraph(page: Page, project = graphProject()) {
   await live(page); await select(page, 'プロジェクトを開く');
-  await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'graph.poietra.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graphProject())) });
+  await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'graph.poietra.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(project)) });
   await expect(page.getByText('Live', { exact: true })).toBeVisible();
   await select(page, 'Function graph'); await expect(expression(page)).toHaveValue('x^3 - a*x');
 }
+
+const graphSelection = (page: Page) => page.locator('[data-testid="stage-main"] [data-selection-id="graph"]');
+async function graphPoint(page: Page, x: number, y: number) {
+  return curve(page).evaluate((path, { x, y }) => {
+    const matrix = (path as SVGGraphicsElement).getScreenCTM()!;
+    const point = new DOMPoint(x, y).matrixTransform(matrix);
+    return { x: point.x, y: point.y };
+  }, { x, y });
+}
+async function curvePoint(page: Page, x: number, offset: number) {
+  return curve(page).evaluate((node, { x, offset }) => {
+    const path = node as SVGPathElement, matrix = path.getScreenCTM()!;
+    let low = 0, high = path.getTotalLength();
+    for (let i = 0; i < 40; i++) {
+      const mid = (low + high) / 2;
+      if (path.getPointAtLength(mid).x < x * 560 / 6) low = mid; else high = mid;
+    }
+    const length = (low + high) / 2;
+    const at = path.getPointAtLength(length), before = path.getPointAtLength(length - .25), after = path.getPointAtLength(length + .25);
+    const point = new DOMPoint(at.x, at.y).matrixTransform(matrix);
+    const dx = matrix.a * (after.x - before.x) + matrix.c * (after.y - before.y);
+    const dy = matrix.b * (after.x - before.x) + matrix.d * (after.y - before.y);
+    const magnitude = Math.hypot(dx, dy);
+    return { x: point.x - dy / magnitude * offset, y: point.y + dx / magnitude * offset };
+  }, { x, offset });
+}
+async function clearGraph(page: Page) {
+  if (await graphSelection(page).count()) await page.getByRole('button', { name: 'Function graph', exact: true }).click({ modifiers: ['Shift'] });
+  await expect(graphSelection(page)).toHaveCount(0);
+}
+async function clickAt(page: Page, point: { x: number; y: number }) { await page.mouse.click(point.x, point.y); }
+
+test('picks near a thin graph curve and drags its selected empty viewport with peer sync, Undo and cancellation', async ({ page, browser }) => {
+  await importGraph(page);
+  await page.getByRole('checkbox', { name: 'Show axes', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show grid', exact: true }).uncheck();
+  const original = await curve(page).getAttribute('d');
+  await clearGraph(page); await clickAt(page, await curvePoint(page, 1.4, 8));
+  await expect(graphSelection(page)).toHaveCount(0);
+  const near = await curvePoint(page, 1.4, 4);
+  expect(await page.evaluate(at => document.elementFromPoint(at.x, at.y)?.closest('[data-object-id]')?.getAttribute('data-object-id') ?? null, near)).toBeNull();
+  await clickAt(page, near); await expect(graphSelection(page)).toHaveCount(1);
+  await expect(curve(page)).toHaveAttribute('d', original!);
+  const context = await browser.newContext();
+  try {
+    const peer = await context.newPage(); await live(peer, page.url()); await select(peer, 'Function graph');
+    const empty = await graphPoint(page, 31, -70);
+    await page.mouse.move(empty.x, empty.y); await page.mouse.down();
+    await page.mouse.move(empty.x + 36, empty.y, { steps: 6 }); await page.mouse.up();
+    const x = page.getByRole('spinbutton', { name: 'Position X', exact: true });
+    await expect.poll(async () => Number(await x.inputValue())).toBeGreaterThan(640);
+    const moved = await x.inputValue();
+    await expect(peer.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue(moved);
+    await expect(graphSelection(page)).toHaveCount(1); await expect(curve(page)).toHaveAttribute('d', original!);
+    await select(page, '元に戻す (⌘Z)'); await expect(x).toHaveValue('640');
+    await expect(peer.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('640');
+    await page.mouse.move(empty.x, empty.y); await page.mouse.down();
+    await page.mouse.move(empty.x + 24, empty.y, { steps: 4 });
+    await expect.poll(async () => Number(await x.inputValue())).toBeGreaterThan(640);
+    await page.keyboard.press('Escape'); await page.mouse.up(); await expect(x).toHaveValue('640');
+    await expect(graphSelection(page)).toHaveCount(1);
+  } finally { await context.close(); }
+});
+
+test('keeps graph picking in screen pixels across zoom, affine transforms and coefficient changes', async ({ page }) => {
+  await importGraph(page);
+  await page.getByRole('checkbox', { name: 'Show axes', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show grid', exact: true }).uncheck();
+  await number(page, 'Rotation', 37); await number(page, 'Scale X', 180); await number(page, 'Scale Y', 55);
+  for (const zoom of ['0.5', '1.5']) {
+    await page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }).selectOption(zoom);
+    await clearGraph(page); await clickAt(page, await curvePoint(page, 1.4, 8));
+    await expect(graphSelection(page)).toHaveCount(0);
+    await clickAt(page, await curvePoint(page, 1.4, 4)); await expect(graphSelection(page)).toHaveCount(1);
+  }
+  const old = await curvePoint(page, 1.4, 4), previousCurve = await curve(page).getAttribute('d');
+  await number(page, 'Graph parameter a', 1); await expect(curve(page)).not.toHaveAttribute('d', previousCurve!);
+  await clearGraph(page); await clickAt(page, old); await expect(graphSelection(page)).toHaveCount(0);
+  await clickAt(page, await curvePoint(page, 1.4, 4)); await expect(graphSelection(page)).toHaveCount(1);
+  await number(page, 'Stroke width', 0); await clearGraph(page);
+  await clickAt(page, await curvePoint(page, 1.4, 4)); await expect(graphSelection(page)).toHaveCount(0);
+});
+
+for (const foreground of [false, true]) test(`graph picking respects nested rotated clips and ${foreground ? 'foreground' : 'underlying'} painted objects`, async ({ page }) => {
+  const project = graphProject(), scene = project.scenes['scene-1'];
+  scene.objects = {
+    ...scene.objects,
+    frame: { id: 'frame', name: 'Outer frame', kind: 'rectangle', order: -2, groupId: null, locked: false, clipChildren: true },
+    inner: { id: 'inner', name: 'Inner frame', kind: 'rectangle', order: -1, groupId: null, locked: false, clipChildren: true, parentId: 'frame' },
+    circle: { id: 'circle', name: 'Overlap circle', kind: 'circle', order: foreground ? 2 : 0, groupId: null, locked: false },
+  };
+  scene.objects.graph.order = 1; scene.objects.graph.parentId = 'inner';
+  for (const composition of Object.values(scene.compositions)) {
+    composition.states.frame = defaultState('rectangle', { x: 640, y: 360, width: 300, height: 300, rotation: 23, visible: false, opacity: 0 });
+    composition.states.inner = defaultState('rectangle', { x: 0, y: 0, width: 100, height: 150, rotation: -23, visible: false, opacity: 0 });
+    composition.states.circle = defaultState('circle', { x: 640 + .4 * 560 / 6, y: 360 + (.4 * 3 - .4 ** 3) * 45, strokeWidth: 0 });
+    Object.assign(composition.states.graph, { x: 0, y: 0 });
+    Object.assign(composition.states.graph.graph!, { axes: false, grid: false });
+  }
+  await importGraph(page, project);
+  await clearGraph(page); await clickAt(page, await curvePoint(page, .9, 0));
+  await expect(graphSelection(page)).toHaveCount(0);
+  await select(page, 'Function graph'); await clickAt(page, await graphPoint(page, 60, -40));
+  await expect(graphSelection(page)).toHaveCount(0);
+  await select(page, 'Function graph'); await clickAt(page, await graphPoint(page, -30, -40));
+  await expect(graphSelection(page)).toHaveCount(1);
+  await clearGraph(page); await clickAt(page, await curvePoint(page, .4, 4));
+  await expect(page.locator('[data-testid="stage-main"] [data-selection-id="circle"]')).toHaveCount(1);
+  await expect(graphSelection(page)).toHaveCount(0);
+  await select(page, 'Function graph'); await clickAt(page, await curvePoint(page, .4, 4));
+  await expect(page.locator('[data-testid="stage-main"] [data-selection-id="circle"]')).toHaveCount(1);
+});
 
 test('draws an editable function object, validates local drafts and reopens its version 4 definition', async ({ page }) => {
   await live(page); await select(page, '関数グラフ');

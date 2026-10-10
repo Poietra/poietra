@@ -63,6 +63,15 @@ The boundaries to preserve are:
   bounds if a peer's later edit would otherwise invert a valid range.
   Concurrent conflicting bounds show an error; correct the range before export.
   Portable graph data uses monotonic, non-Undo format v4; v1/v2/v3 remain readable.
+- Graph picking (2026-10-11) uses the presented SVG curve with a 12 CSS-pixel
+  interaction stroke, independent of zoom and affine transforms. Selected graphs
+  also accept dragging within their transformed viewport. Both supplemental hits
+  follow existing painted-object/bounds hits and intersect every evaluated parent
+  clip, so they cannot capture another object's painted area or clipped content.
+  `ui/stage_hit.mbt` uses a native Canvas `isPointInStroke` adapter and a WeakMap
+  of the current path/transform; reusing displayed geometry avoids sampling the
+  expression again or adding invisible hit paths to preview/export. This runtime
+  geometry is never serialized.
 - Numeric graph syntax v1 supports x/a/b/c, pi/e, arithmetic and the functions
   listed in the [studio guide](../apps/studio/README.md#関数のグラフを描く).
   It has no host callbacks or code execution. Input is capped at 512 characters
@@ -200,17 +209,26 @@ locally without live provider calls; production deployment is recorded below.
 POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test graphs.spec.ts primitives.spec.ts clipping.spec.ts undo-objects.spec.ts painter-preview.spec.ts ai-create.spec.ts --workers=2
 ```
 
-Graph pointer investigation (2026-10-11) reproduced difficult picking on
+Graph pointer verification (2026-10-11) reproduced difficult picking on
 production Chromium at 1440 × 900, using an isolated 1280 × 720 graph-only room.
 The default curve's 2-unit stroke occupied 1.19 screen pixels: normal offsets
 of 0.5 px selected the graph, while 0.75 px did not. Axes and grid lines also
 selected it, but the selection outline and empty interior did not; dragging
 the selected empty interior cleared selection without moving the graph.
-`ui/stage_model.mbt` only supplies bounds-based point selection for text,
-equations, images and video. Graphs currently rely on SVG painted geometry,
-and the selection overlay disables pointer events. Existing graph browser
-checks cover creation and layer-list selection, not pointer acquisition.
-This investigation did not change pointer behavior.
+The new pointer regression failed on the previous release and passed with
+supplemental graph picking: a 4 px offset selects, 8 px does not, and selected
+empty-viewport drags move the graph. Local Chromium checks passed 45 representative
+tests covering graph gestures, nested rotated clips, overlapping objects,
+selection, Undo and SVG/Canvas/GPU rendering. The final 8-test graph suite also
+passed after adding zero-width-stroke exclusion, including screen-pixel picking
+at 50%/150% zoom with rotated nonuniform scale, coefficient changes, peer sync,
+Undo and Escape cancellation. The production build, type/API checks, source/suite
+audits and 5 isolated extension checks passed; source audit found no executable
+application TypeScript. These are correctness checks, not performance measurements.
+
+```sh
+POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test graphs.spec.ts clipping.spec.ts primitives.spec.ts marquee.spec.ts undo-objects.spec.ts painter-preview.spec.ts --workers=2
+```
 
 ## API documentation
 
