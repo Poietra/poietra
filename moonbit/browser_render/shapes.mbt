@@ -50,6 +50,7 @@ fn paint_shape(
   stroke : String,
   stroke_width : Double,
   progress : Double,
+  filled : Bool,
   shape : @render.Shape,
   drawing : Outline,
   head : CanvasPath?,
@@ -79,7 +80,7 @@ fn paint_shape(
         )
       _ => ()
     }
-    if (shape is Ellipse(_, _) || shape is Rectangle(_, _, _)) &&
+    if (shape is Ellipse(_, _) || shape is Rectangle(_, _, _) || filled) &&
       fill.to_lower() != "none" {
       context.globalAlpha = opacity * progress
       fill_path(context, drawing.path)
@@ -135,6 +136,7 @@ fn ShapeDrawing::paint(
     item.state.stroke,
     item.state.strokeWidth,
     item.progress,
+    item.state.points is Some(_),
     self.shape,
     self.drawing,
     self.head,
@@ -220,6 +222,7 @@ pub fn prepare_shape_drawing(
           state._get("stroke").cast(),
           state._get("strokeWidth").cast(),
           item._get("writeProgress").cast(),
+          !@core.is_nullish(state._get("points")),
           prepared.shape,
           prepared.drawing,
           prepared.head,

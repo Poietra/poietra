@@ -35,12 +35,29 @@ pub fn shape_geometry(
           .max(0.0),
         ),
       )
+    // Generators bake sampled geometry into `points`; that polyline replaces the
+    // single cubic and ignores `path`, `width` and `height`.
     Path =>
-      Some(
-        Path(
-          "M0 0 C\{number(state.path.c1.x)} \{number(state.path.c1.y)} \{number(state.path.c2.x)} \{number(state.path.c2.y)} \{number(width)} \{number(height)}",
-        ),
-      )
+      match state.points {
+        Some(points) =>
+          if points.length() < 2 {
+            None
+          } else {
+            let d = StringBuilder()
+            for index, point in points {
+              d.write_string(
+                "\{if index == 0 { "M" } else { "L" }}\{number(point.x)} \{number(point.y)}",
+              )
+            }
+            Some(Path(d.to_string()))
+          }
+        None =>
+          Some(
+            Path(
+              "M0 0 C\{number(state.path.c1.x)} \{number(state.path.c1.y)} \{number(state.path.c2.x)} \{number(state.path.c2.y)} \{number(width)} \{number(height)}",
+            ),
+          )
+      }
     Arrow | NumberLine => {
       let length = @math.hypot(width, height)
       let head = length.min(
@@ -140,6 +157,19 @@ pub fn object_bounds(item : Drawable, resources : Resources) -> Bounds {
   }
   let stroke = finite(s.strokeWidth).max(0.0).max(write_stroke) / 2.0
   let bounds : Bounds = match item.kind {
+    Path if s.points is Some(points) && points.length() >= 2 => {
+      let mut left = finite(points[0].x)
+      let mut right = left
+      let mut top = finite(points[0].y)
+      let mut bottom = top
+      for point in points {
+        left = @scene.minimum(left, finite(point.x))
+        right = @scene.maximum(right, finite(point.x))
+        top = @scene.minimum(top, finite(point.y))
+        bottom = @scene.maximum(bottom, finite(point.y))
+      }
+      { x: x + left, y: y + top, width: right - left, height: bottom - top, }
+    }
     Path => {
       let (left, right) = cubic_range(
         finite(s.path.c1.x),

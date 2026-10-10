@@ -32,6 +32,14 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-10-10: `Path` states may carry a bounded sampled polyline in `points`,
+  baked by generators: it replaces the cubic, paints its fill and interpolates
+  per point when both Compositions sample the same count. Only baked geometry
+  fills, because every state carries a fill colour and a legacy single-bezier
+  path must stay stroke-only. The
+  document gains no math vocabulary and no parameter evaluation; an absent
+  `points` keeps the legacy single-bezier read, so the file version is unchanged.
+
 - 2026-09-27: The founder requested reusable motions and rectangle clipping.
   Rectangle parents opt into Scene-wide `clipChildren`; hidden/transparent
   parents still clip descendants, nested clips intersect, and corner radius does

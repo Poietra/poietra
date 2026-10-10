@@ -615,3 +615,57 @@ test "raster magnification follows scale and shear but ignores screen rotation" 
     assert_true(@math.hypot(vector.x, vector.y) <= matrix.max_scale() + 1.0e-8)
   }
 }
+
+///|
+test "baked polylines interpolate per point and switch when the counts differ" {
+  let path = { ..@scene.default_state(Path), x: 0.0, y: 0.0, }
+  let first = {
+    ..@scene.empty_composition("a", "A", 1000.0, "#ffffff"),
+    states: {
+      "p": {
+        ..path,
+        points: Some([{ x: 0.0, y: 0.0, }, { x: 10.0, y: 20.0, }]),
+      },
+    },
+  }
+  let last = {
+    ..@scene.empty_composition("b", "B", 1000.0, "#ffffff"),
+    states: {
+      "p": {
+        ..path,
+        points: Some([{ x: 100.0, y: 0.0, }, { x: 30.0, y: 120.0, }]),
+      },
+    },
+  }
+  let scene = {
+    ..@scene.blank_scene("s", "S"),
+    objects: { "p": { ..object("p", None), kind: Path, } },
+    compositions: { "a": first, "b": last },
+    compositionOrder: ["a", "b"],
+    transitions: {
+      "t": {
+        ..@scene.implicit_transition("t", "a", "b", 1000.0, ["p"]),
+        tracks: {
+          "p": { ..@scene.default_track("p", 1000.0), easing: Linear, },
+        },
+      },
+    },
+  }
+  let at = fn(program : @scene.PreparedScene, time : Double) {
+    program.transition("t", time, None).objects[0].state.points.unwrap()
+  }
+  let blended = at(@scene.prepare_scene(scene, kernel()), 250.0)
+  assert_eq(blended.length(), 2)
+  near(blended[0].x, 25.0)
+  near(blended[1].x, 15.0)
+  near(blended[1].y, 45.0)
+  // Unequal lengths cannot blend pointwise, so the pose switches like `text`.
+  last.states["p"] = {
+    ..path,
+    points: Some([{ x: 1.0, y: 2.0, }, { x: 3.0, y: 4.0, }, { x: 5.0, y: 6.0, }]),
+  }
+  let switching = @scene.prepare_scene(scene, kernel())
+  assert_eq(at(switching, 400.0).length(), 2)
+  assert_eq(at(switching, 600.0).length(), 3)
+  near(at(switching, 600.0)[2].x, 5.0)
+}

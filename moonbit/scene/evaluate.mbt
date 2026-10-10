@@ -501,6 +501,15 @@ pub fn evaluate_transition(
         c1: path_point(a.path.c1, b.path.c1),
         c2: path_point(a.path.c2, b.path.c2),
       },
+      // Baked polylines interpolate per point only when both ends sample the
+      // same count; otherwise they switch like text.
+      points: match (a.points, b.points) {
+        (Some(first), Some(last)) if first.length() == last.length() =>
+          Some(
+            Array::makei(first.length(), fn(i) { path_point(first[i], last[i]) }),
+          )
+        _ => if base < 0.5 { a.points } else { b.points }
+      },
     }
     for curve in curves {
       if curve.property != ObjectReveal {

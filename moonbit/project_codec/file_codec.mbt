@@ -364,6 +364,7 @@ let state_file_field : FileField = Record({
   "cornerRadius": Numeric(0.0, 10000.0, false),
   "effect": Strings(["none", "glow"]),
   "path": file_bezier,
+  "points": Optional(Sequence(file_point, 0, 1024)),
 })
 
 ///|

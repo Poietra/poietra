@@ -182,5 +182,6 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     cornerRadius: 8.0,
     effect: Normal,
     path: { c1: { x: 140.0, y: 0.0, }, c2: { x: 260.0, y: -180.0, }, },
+    points: None,
   }
 }

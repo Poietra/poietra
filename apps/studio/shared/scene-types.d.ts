@@ -38,6 +38,7 @@ export interface ObjectState {
   cornerRadius: number;
   effect: Effect;
   path: Bezier;
+  points?: Point[];
 }
 export interface ImageAsset {
   src: string;

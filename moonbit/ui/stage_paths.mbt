@@ -102,6 +102,9 @@ fn stage_paths(controller : StageController) -> Array[&@react.ReactNode] {
     )
     if truthy(stored) {
       let state = @boundary.read_object_state(stored)
+      // ponytail: baked polylines keep only move; add point handles when a
+      // generated path has to be edited by hand.
+      guard state.points is None else { return result }
       let path = state.path
       let nodes : Array[&@react.ReactNode] = [
         h(

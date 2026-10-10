@@ -53,7 +53,14 @@ fn shape_markup(
       "<ellipse cx=\"0\" cy=\"0\" rx=\"\{number(x)}\" ry=\"\{number(y)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
     Some(Rectangle(width, height, radius)) =>
       "<rect x=\"\{number(-width / 2.0)}\" y=\"\{number(-height / 2.0)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
-    Some(Path(path)) => "<path d=\"\{path}\" fill=\"none\"\{draw}/>"
+    // Only baked geometry paints its implicit closure: every state carries a
+    // fill colour, so a legacy single-bezier path must stay stroke-only.
+    Some(Path(path)) =>
+      if s.points is Some(_) {
+        "<path d=\"\{path}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
+      } else {
+        "<path d=\"\{path}\" fill=\"none\"\{draw}/>"
+      }
     Some(Arrow(geometry) | NumberLine(geometry)) => {
       let ticks = StringBuilder()
       if item.kind == @scene.NumberLine {

@@ -198,6 +198,9 @@ pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     cornerRadius: value._get("cornerRadius").cast(),
     effect: decode_Effect(value._get("effect")),
     path: decode_Bezier(value._get("path")),
+    points: optional(value._get("points"), fn(v) {
+      decode_array(v, fn(v) { decode_Point(v) })
+    }),
   }
 }
 
@@ -447,8 +450,9 @@ extern "js" fn make_ObjectState(
   cornerRadius : Double,
   effect : String,
   path : @core.Any,
+  points : @core.Any,
 ) -> @core.Any =
-  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; return value; }
+  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path, points) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; if (points !== undefined) value.points = points; return value; }
 
 ///|
 pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
@@ -488,6 +492,10 @@ pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     value.cornerRadius,
     @scene.effect_name(value.effect),
     encode_Bezier(value.path),
+    match value.points {
+      Some(item) => encode_array(item, fn(item) { encode_Point(item) })
+      None => @core.undefined()
+    },
   )
 }
 

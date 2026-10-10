@@ -80,6 +80,7 @@ pub(all) struct ObjectState {
   cornerRadius : Double
   effect : Effect
   path : Bezier
+  points : Array[Point]?
 } derive(Eq, FromJson, ToJson)
 
 ///|
