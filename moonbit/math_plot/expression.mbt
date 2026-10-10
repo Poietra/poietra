@@ -6,6 +6,7 @@ pub(all) suberror InvalidExpression {
 ///|
 priv enum Variable {
   X
+  Y
   A
   B
   C
@@ -51,11 +52,13 @@ priv enum Expression {
 /// Prepared, bounded numeric expressions have no host, clock or document access.
 pub struct Program {
   priv expression : Expression
+  priv implicit : Bool
 }
 
 ///|
 priv struct Parser {
   source : String
+  allow_y : Bool
   mut at : Int
   mut nodes : Int
 }
@@ -178,6 +181,7 @@ fn Parser::primary(self : Parser) -> Expression raise InvalidExpression {
     let name = self.source[start:self.at].to_owned()
     let variable = match name {
       "x" => Some(X)
+      "y" if self.allow_y => Some(Y)
       "a" => Some(A)
       "b" => Some(B)
       "c" => Some(C)
@@ -209,7 +213,9 @@ fn Parser::primary(self : Parser) -> Expression raise InvalidExpression {
     }
     if unary is None && !["min", "max", "pow"].contains(name) {
       return self.fail(
-        "使える変数は x・a・b・c です。関数名を確認してください。",
+        "使える変数は " +
+        (if self.allow_y { "x・y・a・b・c" } else { "x・a・b・c" }) +
+        " です。関数名を確認してください。",
       )
     }
     self.node(Number(0.0)) |> ignore
@@ -309,24 +315,72 @@ fn Parser::sum(self : Parser) -> Expression raise InvalidExpression {
 }
 
 ///|
-pub fn prepare(source : String) -> Program raise InvalidExpression {
+fn parse(source : String, implicit : Bool) -> Program raise InvalidExpression {
   if source.is_empty() || source.length() > 512 {
     raise InvalidExpression(
       "数式は 1〜512 文字で指定してください。",
     )
   }
-  let parser : Parser = { source, at: 0, nodes: 0, }
-  let expression = parser.sum()
+  let parser : Parser = { source, allow_y: implicit, at: 0, nodes: 0, }
+  let left = parser.sum()
+  let expression = if implicit {
+    if !parser.take(61) {
+      parser.fail(
+        "陰関数は x^2+y^2=1 のような等式で指定してください。",
+      )
+      |> ignore
+    }
+    parser.node(Combine(Subtract, left, parser.sum()))
+  } else {
+    left
+  }
   if parser.peek() != -1 {
     parser.fail("数式の末尾を読み取れません。") |> ignore
   }
-  { expression, }
+  { expression, implicit, }
+}
+
+///|
+pub fn prepare(source : String) -> Program raise InvalidExpression {
+  parse(source, false)
+}
+
+///|
+/// An equation is evaluated as its left side minus its right side.
+pub fn prepare_implicit(source : String) -> Program raise InvalidExpression {
+  parse(source, true)
+}
+
+///|
+pub fn prepare_graph(
+  source : String,
+  syntax_version : Int,
+) -> Program raise InvalidExpression {
+  match syntax_version {
+    1 => prepare(source)
+    2 =>
+      if source.contains("=") {
+        prepare_implicit(source)
+      } else {
+        prepare(source)
+      }
+    _ =>
+      raise InvalidExpression(
+        "対応していない数式のバージョンです。",
+      )
+  }
+}
+
+///|
+pub fn Program::is_implicit(self : Program) -> Bool {
+  self.implicit
 }
 
 ///|
 fn evaluate(
   expression : Expression,
   x : Double,
+  y : Double,
   a : Double,
   b : Double,
   c : Double,
@@ -336,12 +390,13 @@ fn evaluate(
     Input(variable) =>
       match variable {
         X => x
+        Y => y
         A => a
         B => b
         C => c
       }
     Apply(operation, value) => {
-      let value = evaluate(value, x, a, b, c)
+      let value = evaluate(value, x, y, a, b, c)
       if value.is_nan() || value.is_inf() {
         return 0.0 / 0.0
       }
@@ -362,8 +417,8 @@ fn evaluate(
       }
     }
     Combine(operation, left, right) => {
-      let left = evaluate(left, x, a, b, c)
-      let right = evaluate(right, x, a, b, c)
+      let left = evaluate(left, x, y, a, b, c)
+      let right = evaluate(right, x, y, a, b, c)
       if left.is_nan() || left.is_inf() || right.is_nan() || right.is_inf() {
         return 0.0 / 0.0
       }
@@ -388,7 +443,22 @@ pub fn Program::evaluate(
   b : Double,
   c : Double,
 ) -> Double? {
-  let value = evaluate(self.expression, x, a, b, c)
+  if self.implicit {
+    return None
+  }
+  self.evaluate_at(x, 0.0, a, b, c)
+}
+
+///|
+pub fn Program::evaluate_at(
+  self : Program,
+  x : Double,
+  y : Double,
+  a : Double,
+  b : Double,
+  c : Double,
+) -> Double? {
+  let value = evaluate(self.expression, x, y, a, b, c)
   if value.is_nan() || value.is_inf() {
     None
   } else {

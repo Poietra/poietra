@@ -30,6 +30,30 @@ test('mathematical definitions render the same animated and discontinuous curves
   assert.deepEqual(pixel(pole, 220, 60), [255, 255, 255, 255]);
 });
 
+test('implicit equations keep closed animated contours in PNG, SVG and independently decoded MP4', async () => {
+  const p = functionProject();
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { syntaxVersion: 2, expression: 'x^2+y^2=a^2', a: c.id === 'a' ? .5 : 1.5 });
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 190, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(first, 220, 90), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(middle, 220, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 160, 90), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  const path = svg.match(/data-graph-curve="true" d="([^"]*)"/)[1];
+  assert.equal((path.match(/M/g) ?? []).length, 1);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[90 * 320 + 190] > 220);
+  assert.ok(video.frames[0].pixels[90 * 320 + 220] < 30);
+  assert.ok(video.frames[12].pixels[90 * 320 + 220] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 160] < 30);
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { expression: '1/(x-0.123)=0' });
+  const pole = PNG.sync.read(Buffer.from((await render(p)).bytes));
+  assert.deepEqual(pixel(pole, 160, 90), [0, 0, 0, 255]);
+});
+
 test('hidden rectangle clips animated descendants in SVG, PNG and encoded video', async () => {
   const p = project(); p.version = 3;
   addObject(p, 'clip', 'rectangle', { x: 0, y: 0, width: 160, height: 360, visible: false });

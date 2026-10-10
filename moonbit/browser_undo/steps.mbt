@@ -135,6 +135,7 @@ fn Session::undo_step(self : Session) -> Int raise {
         durations: durations.size(),
         compositions: plan.compositions.size(),
         graph_ranges: plan.graph_ranges.size(),
+        graph_definitions: plan.graph_definitions.size(),
       }
       self.manager._call("stopCapturing", []) |> ignore
       return tracks
@@ -157,8 +158,14 @@ fn Session::redo_step(self : Session) -> Int raise {
     let durations = self.required_durations(plan, action, transitions)
     self.assert_tracks_fit(action, durations, Redo, plan.roots, transitions)
     let changed = self.protected_step(Redo, plan, durations)
-    if durations.size() > 0 || plan.graph_ranges.size() > 0 {
-      self.counts = { ..self.counts, graph_ranges: plan.graph_ranges.size(), }
+    if durations.size() > 0 ||
+      plan.graph_ranges.size() > 0 ||
+      plan.graph_definitions.size() > 0 {
+      self.counts = {
+        ..self.counts,
+        graph_ranges: plan.graph_ranges.size(),
+        graph_definitions: plan.graph_definitions.size(),
+      }
       self.manager._call("stopCapturing", []) |> ignore
       return durations.size()
     }

@@ -83,7 +83,11 @@ pub fn validate_state(
     }
     match (field, value) {
       (GraphExpression, Text(source)) => {
-        let graph = { ..@scene.default_graph(), expression: source, }
+        let graph = {
+          ..@scene.default_graph(),
+          expression: source,
+          syntaxVersion: @scene.graph_expression_version(source),
+        }
         if @scene.graph_validation_error(graph) is Some(message) {
           raise CompileError(message)
         }
@@ -176,7 +180,14 @@ fn change_state(
   if graph_field_key(field) is Some(_) {
     let graph = state.graph.unwrap_or(@scene.default_graph())
     let graph = match (field, value) {
-      (GraphExpression, Text(expression)) => { ..graph, expression, }
+      (GraphExpression, Text(expression)) =>
+        {
+          ..graph,
+          expression,
+          syntaxVersion: graph.syntaxVersion.max(
+            @scene.graph_expression_version(expression),
+          ),
+        }
       (GraphXMin, Number(xMin)) => { ..graph, xMin, }
       (GraphXMax, Number(xMax)) => { ..graph, xMax, }
       (GraphYMin, Number(yMin)) => { ..graph, yMin, }

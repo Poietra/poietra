@@ -8,6 +8,7 @@ export declare class EditorUndoManager extends Y.UndoManager {
     get lastUndoPreservedDurations(): number;
     get lastUndoPreservedCompositions(): number;
     get lastPreservedGraphRanges(): number;
+    get lastPreservedGraphDefinitions(): number;
     destroy(): void;
 }
 export declare function undoPreservingPeerTracks(manager: EditorUndoManager): number;

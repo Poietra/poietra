@@ -70,6 +70,87 @@ it('merges offline expression and coefficient edits in the same map and selectiv
   expect(graph(alice, 'comp-2').a).toBe(3);
 });
 
+it('switches equations atomically, accepts immutable patches and preserves offline coefficients through Undo', () => {
+  const { alice, bob, sync } = replicas();
+  const map = getShared(alice.doc, path);
+  const patch = Object.freeze({ expression: 'x^2+y^2=a^2' });
+  alice.updateState('scene-1', 'comp-1', 'graph', { graph: patch });
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { a: 1.5 } });
+  sync();
+  expect(patch).toEqual({ expression: 'x^2+y^2=a^2' });
+  expect(graph(alice)).toMatchObject({ expression: 'x^2+y^2=a^2', syntaxVersion: 2, a: 1.5 });
+  expect(getShared(alice.doc, path)).toBe(map);
+  expect(parseProjectFile(JSON.stringify(readProject(alice.doc)))).toEqual(readProject(alice.doc));
+  alice.undo(); sync();
+  expect(graph(alice)).toMatchObject({ expression: 'x^3 - a*x', syntaxVersion: 1, a: 1.5 });
+  alice.redo(); sync();
+  expect(graph(alice)).toMatchObject({ expression: 'x^2+y^2=a^2', syntaxVersion: 2, a: 1.5 });
+  expect(getShared(alice.doc, path)).toBe(map);
+});
+
+it('keeps a peer equation and its grammar when undoing the switch that introduced equations', () => {
+  const { alice, bob, sync } = replicas();
+  alice.setProjectName('Earlier edit');
+  alice.updateState('scene-1', 'comp-1', 'graph', { fill: '#ffffff', graph: { expression: 'x^2+y^2=1' } }); sync();
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'x*y=1' } }); sync();
+  alice.undo(); sync();
+  expect(graph(alice)).toMatchObject({ expression: 'x*y=1', syntaxVersion: 2 });
+  expect(alice.lastPreservedGraphDefinitions).toBe(1);
+  expect(readProject(alice.doc)!.name).toBe('Earlier edit');
+  expect(alice.scene('scene-1').compositions['comp-1'].states.graph.fill).not.toBe('#ffffff');
+  expect(parseProjectFile(JSON.stringify(readProject(alice.doc)))).toEqual(readProject(alice.doc));
+  alice.redo(); sync();
+  expect(graph(alice)).toMatchObject({ expression: 'x*y=1', syntaxVersion: 2 });
+  alice.undo(); alice.undo();
+  expect(readProject(alice.doc)!.name).not.toBe('Earlier edit');
+});
+
+it('merges offline equation/function switches with a compatible additive grammar', () => {
+  const { alice, bob, sync } = replicas();
+  alice.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'x^2+y^2=1' } });
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'sin(x)' } });
+  sync();
+  expect(graph(alice).syntaxVersion).toBe(2);
+  expect(['x^2+y^2=1', 'sin(x)']).toContain(graph(alice).expression);
+  expect(parseProjectFile(JSON.stringify(readProject(alice.doc)))).toEqual(readProject(alice.doc));
+  alice.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'cos(x)' } });
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'x*y=1' } });
+  sync();
+  expect(graph(alice).syntaxVersion).toBe(2);
+  expect(parseProjectFile(JSON.stringify(readProject(alice.doc)))).toEqual(readProject(alice.doc));
+});
+
+it('creates, copies and reuses animated equations as mathematical objects', () => {
+  const { alice } = replicas(makeDemoProject());
+  const id = alice.addObject('scene-1', 'comp-1', 'graph', { graph: { expression: 'x^2+y^2=a^2', a: 1 } });
+  alice.updateState('scene-1', 'comp-2', id, { visible: true, graph: { a: 1.5 } });
+  alice.setKeyframe('scene-1', 'transition-1', id, 'radius', { property: 'graphA', at: .5, value: .75, easing: 'linear' });
+  const scene = alice.scene('scene-1');
+  const mid = transitionFrame(scene, scene.transitions['transition-1'], scene.transitions['transition-1'].duration / 2, kernel).objects.find(item => item.object.id === id)!;
+  expect(mid.state.graph).toMatchObject({ expression: 'x^2+y^2=a^2', syntaxVersion: 2, a: .75 });
+  expect(curve(mid).curve).not.toBe('');
+  expect(curve(mid).curve).not.toMatch(/NaN|Infinity/);
+  const clipboard = copyObjects(scene, 'comp-1', [id]);
+  const [copy] = alice.paste('scene-1', 'comp-1', clipboard, 0);
+  expect(graph(alice, 'comp-1', copy)).toEqual(graph(alice, 'comp-1', id));
+  const motion = captureMotion(scene, [id], 'Circle radius');
+  const inserted = alice.insertMotion('scene-1', motion);
+  expect(graph(alice, inserted.compositionId, inserted.ids[0])).toMatchObject({ expression: 'x^2+y^2=a^2', syntaxVersion: 2 });
+  expect(parseProjectFile(JSON.stringify(readProject(alice.doc)))).toEqual(readProject(alice.doc));
+});
+
+it('AI authors equations and paired grammar leaves while guarding a later peer mode change', () => {
+  const { alice, bob, sync } = replicas();
+  const edits = proposal(alice, [operation('graphExpression', 'x^2+y^2=a^2'), operation('graphA', 1)]);
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { b: 5 } }); sync();
+  applyProposal(alice.doc, edits);
+  expect(graph(alice)).toMatchObject({ expression: 'x^2+y^2=a^2', syntaxVersion: 2, a: 1, b: 5 });
+  alice.undo(); expect(graph(alice)).toMatchObject({ expression: 'x^3 - a*x', syntaxVersion: 1, a: 3, b: 5 }); sync();
+  const guarded = proposal(alice, [operation('graphA', 2)]);
+  bob.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'x*y=1' } }); sync();
+  expect(() => applyProposal(alice.doc, guarded)).toThrow('提案後');
+});
+
 it('keeps a newly created graph used by a collaborator and preserves its peer coefficient edits', () => {
   const { alice, bob, sync } = replicas(makeDemoProject());
   const id = alice.addObject('scene-1', 'comp-1', 'graph'); sync();
@@ -110,7 +191,7 @@ it('retains the current axis bounds when Redo would conflict with a later peer e
 it('rejects invalid math edits and creation before publishing other fields or format changes', () => {
   const { alice } = replicas();
   const clock = Y.encodeStateVector(alice.doc);
-  for (const patch of [{ expression: 'x +' }, { expression: 'globalThis.alert(1)' }, { xMin: 3 }, { yMax: -4 }, { a: NaN }, { breaks: [Infinity] }, { syntaxVersion: 2 }]) {
+  for (const patch of [{ expression: 'x +' }, { expression: 'globalThis.alert(1)' }, { xMin: 3 }, { yMax: -4 }, { a: NaN }, { breaks: [Infinity] }, { syntaxVersion: 3 }]) {
     expect(() => alice.updateState('scene-1', 'comp-1', 'graph', { x: 90, graph: patch })).toThrow();
   }
   expect(Y.encodeStateVector(alice.doc)).toEqual(clock);
@@ -175,7 +256,7 @@ it('portable files and reused motions preserve definitions and timings without s
   const loaded = parseProjectFile(text); expect(loaded).toEqual(readProject(alice.doc));
   for (const corrupt of [
     (p: typeof loaded) => { p.version = 3; },
-    (p: typeof loaded) => { p.scenes['scene-1'].compositions['comp-1'].states.graph.graph!.syntaxVersion = 2; },
+    (p: typeof loaded) => { p.scenes['scene-1'].compositions['comp-1'].states.graph.graph!.syntaxVersion = 3; },
     (p: typeof loaded) => { p.scenes['scene-1'].compositions['comp-1'].states.graph.graph!.expression = 'x+'; },
   ]) { const p = structuredClone(loaded); corrupt(p); expect(() => parseProjectFile(JSON.stringify(p))).toThrow(); }
   const clipboard = copyObjects(alice.scene('scene-1'), 'comp-1', ['graph']);

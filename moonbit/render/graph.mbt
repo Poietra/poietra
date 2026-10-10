@@ -38,8 +38,9 @@ let prepared_graphs : Map[String, PreparedGraph] = Map([])
 let graph_sources : Array[String] = []
 
 ///|
-fn graph_program(source : String) -> @math_plot.Program? {
-  if graph_programs.get(source) is Some(program) {
+fn graph_program(source : String, syntax : Int) -> @math_plot.Program? {
+  let key = "\{syntax}:\{source}"
+  if graph_programs.get(key) is Some(program) {
     return program
   }
   if graph_sources.length() >= 64 {
@@ -47,9 +48,11 @@ fn graph_program(source : String) -> @math_plot.Program? {
     graph_programs.remove(oldest)
     prepared_graphs.remove(oldest)
   }
-  let program = Some(@math_plot.prepare(source)) catch { _ => None }
-  graph_sources.push(source)
-  graph_programs[source] = program
+  let program = Some(@math_plot.prepare_graph(source, syntax)) catch {
+    _ => None
+  }
+  graph_sources.push(key)
+  graph_programs[key] = program
   program
 }
 
@@ -94,9 +97,14 @@ fn prepare_graph(
     width,
     height,
   }
-  let plot = match graph_program(definition.expression) {
+  let plot = match
+    graph_program(definition.expression, definition.syntaxVersion) {
     Some(program) =>
-      @math_plot.plot(
+      (if program.is_implicit() {
+        @math_plot.plot_implicit
+      } else {
+        @math_plot.plot
+      })(
         program,
         viewport,
         definition.a,
@@ -214,14 +222,15 @@ pub fn graph_geometry(
     @scene.graph_value_error(definition) is Some(_) {
     return { curve: "", axes: "", grid: "", labels: [], limited: false, }
   }
-  let cached = prepared_graphs.get(definition.expression)
+  let key = "\{definition.syntaxVersion}:\{definition.expression}"
+  let cached = prepared_graphs.get(key)
   let prepared = match cached {
     Some(value) if value.definition == definition &&
       value.width == width &&
       value.height == height => value
     _ => {
       let value = prepare_graph(definition, width, height)
-      prepared_graphs[definition.expression] = value
+      prepared_graphs[key] = value
       value
     }
   }

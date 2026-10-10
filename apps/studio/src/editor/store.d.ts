@@ -66,6 +66,7 @@ export declare class EditorStore {
     get lastUndoPreservedCompositions(): number;
     get lastUndoPreservedDurations(): number;
     get lastPreservedGraphRanges(): number;
+    get lastPreservedGraphDefinitions(): number;
     undo(): number;
     redo(): number;
     rollbackGesture(item: object): boolean;

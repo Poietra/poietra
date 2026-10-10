@@ -75,3 +75,38 @@ test "unrecognized syntax and recursive input are rejected with bounded work" {
     assert_true(rejected)
   }
 }
+
+///|
+test "two-variable equations evaluate their residual without changing explicit syntax" {
+  for
+    (source, x, y, expected) in [
+      ("x^2+y^2=a^2", 3.0, 4.0, 16.0),
+      ("y^2=x^3-x", 2.0, 3.0, 3.0),
+      ("y=a*sin(x)+b", 0.0, 5.0, 1.0),
+      ("x*y=0", 2.0, -3.0, -6.0),
+      ("2(x+y)=c", 1.0, 2.0, 1.0),
+    ] {
+    let program = prepare_implicit(source)
+    close(program.evaluate_at(x, y, 3.0, 4.0, 5.0).unwrap(), expected)
+    assert_true(program.evaluate(x, 3.0, 4.0, 5.0) is None)
+    close(
+      prepare_graph(source, 2).evaluate_at(x, y, 3.0, 4.0, 5.0).unwrap(),
+      expected,
+    )
+  }
+  assert_true(
+    prepare_implicit("1/x=y").evaluate_at(0.0, 2.0, 0.0, 0.0, 0.0) is None,
+  )
+  for
+    source in [
+      "x+y", "x==y", "x=y=1", "x<y", "x=", "=y", "x=(y=1)", "z=1", "x=globalThis.alert(1)",
+    ] {
+    let rejected = try {
+      prepare_implicit(source) |> ignore
+      false
+    } catch {
+      InvalidExpression(_) => true
+    }
+    assert_true(rejected)
+  }
+}

@@ -63,6 +63,24 @@ The boundaries to preserve are:
   bounds if a peer's later edit would otherwise invert a valid range.
   Concurrent conflicting bounds show an error; correct the range before export.
   Portable graph data uses monotonic, non-Undo format v4; v1/v2/v3 remain readable.
+- Implicit curves (2026-10-11) extend the same graph object with one `left=right`
+  equation in x/y/a/b/c. Grammar v2 adds equations to the original functions;
+  authors retain v2 when returning to a function, so offline expression edits
+  cannot conflict with a redundant grammar downgrade. Selective Undo/Redo retains
+  only a grammar leaf needed by a surviving peer equation and reports it to the
+  user. UI, public editor patches and AI operations select grammar automatically;
+  files validate their declared grammar. The existing coefficient channel and
+  discrete expression/range switch also apply to equations.
+  The pure `math_plot` contour sampler uses up to 128 × 128 cells, with center
+  samples dividing each cell into four triangles. Shared edge roots, verified by
+  bounded bisection/residual checks, avoid treating a pole or jump as a solution.
+  Adjacent root identities form continuous components for Write. Evaluations are
+  capped at 65536, segments at 8192, and root refinement at 20 steps. Undefined,
+  unresolved and zero-valued-area regions are omitted; work limits are reported.
+  This is a finite sampling heuristic: narrow components, high frequencies and
+  repeated roots without sign changes can be missed. It is not certified topology
+  or a global error bound. Preview and Node export use the same derived geometry;
+  no new host dependency or serialized path is needed.
 - Graph picking (2026-10-11) uses the presented SVG curve with a 12 CSS-pixel
   interaction stroke, independent of zoom and affine transforms. Selected graphs
   also accept dragging within their transformed viewport. Both supplemental hits
@@ -72,11 +90,12 @@ The boundaries to preserve are:
   of the current path/transform; reusing displayed geometry avoids sampling the
   expression again or adding invisible hit paths to preview/export. This runtime
   geometry is never serialized.
-- Numeric graph syntax v1 supports x/a/b/c, pi/e, arithmetic and the functions
+- Numeric graph syntax supports x/a/b/c, pi/e, arithmetic and the functions
   listed in the [studio guide](../apps/studio/README.md#関数のグラフを描く).
+  Grammar v2 additionally supports y and one equality for implicit curves.
   It has no host callbacks or code execution. Input is capped at 512 characters
   and 128 parser nodes; coefficients/ranges are finite within ±100000 and known
-  discontinuities at most 32. Adaptive midpoint/quarter probes use 0.5 logical
+  discontinuities at most 32. For y=f(x), adaptive midpoint/quarter probes use 0.5 logical
   scene pixels as a subdivision threshold, with depth 10, 16384 evaluations and
   4096 segments per plot. Lines are clipped before generating paths; undefined
   samples and unresolved jumps split branches. Reaching a bound omits unresolved
@@ -232,6 +251,23 @@ application TypeScript. These are correctness checks, not performance measuremen
 ```sh
 POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test graphs.spec.ts clipping.spec.ts primitives.spec.ts marquee.spec.ts undo-objects.spec.ts painter-preview.spec.ts --workers=2
 ```
+
+Implicit curve verification (2026-10-11, working tree based on `9644064`) used
+the pinned MoonBit compiler, Node 24.13.0 and Chromium 153.0.8010.12 with isolated
+Node/workerd storage. The release web build, captured API/type checks,
+source/suite audits and production dry run passed. Targeted pure-package tests
+passed 41 cases on both JS and WASM; studio passed 840 tests, headless rendering
+22 tests and isolated extension checks 5 tests. Contour cases include connected
+circles, an elliptic curve's separate oval/open branch, saddles, poles, undefined
+regions, coefficient scaling and bounded work. Headless checks independently
+decoded animated equation PNG/MP4 outputs and checked SVG geometry.
+The 46-test browser selection above passed, including equation authoring,
+invalid drafts, picking/dragging, peer edits, Undo, portable-file reload,
+clipping and SVG/Canvas/GPU agreement. The isolated workerd integration passed
+real process restart, dependency persistence, offline peer edits and 500 local
+sockets. These correctness checks do not establish production capacity or
+verify live provider calls. Equations remain numerically sampled as described
+above; verification does not establish complete topology for arbitrary inputs.
 
 ## API documentation
 

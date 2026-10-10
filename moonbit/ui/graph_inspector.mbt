@@ -78,12 +78,22 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
             ._get("currentTarget")
             ._get("value")
             .cast()
-          if @scene.graph_validation_error({ ..graph, expression, })
+          let syntaxVersion = graph.syntaxVersion.max(
+            @scene.graph_expression_version(expression),
+          )
+          if @scene.graph_validation_error({
+              ..graph,
+              expression,
+              syntaxVersion,
+            })
             is Some(message) {
             set_error(message)
             return
           }
-          apply({ "expression": @core.any(expression) })
+          apply({
+            "expression": @core.any(expression),
+            "syntaxVersion": @core.any(syntaxVersion),
+          })
         }
         dirty.set_current(Some(false))
         set_draft(None)
@@ -104,9 +114,21 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
     [],
   )
   let content : Array[&@react.ReactNode] = [
-    component(field, { "label": @core.any("y =") }, [expression]),
+    component(
+      field,
+      {
+        "label": @core.any(
+          if draft.unwrap_or(graph.expression).contains("=") {
+            "等式"
+          } else {
+            "y ="
+          },
+        ),
+      },
+      [expression],
+    ),
     h("p", { "className": @core.any("muted small") }, [
-      "x・a・b・c、pi、sin(x)、sqrt(x)、ln(x) など。Enter で反映。",
+      "x^3-a*x、x^2+y^2=a^2 など。等式では x・y、係数 a・b・c が使えます。Enter で反映。",
     ]),
     h("div", { "className": @core.any("property-grid") }, [
       number_field(
@@ -231,7 +253,7 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
         "p",
         { "role": @core.any("status"), "className": @core.any("muted small") },
         [
-          "描画の細分化上限に達しました。範囲を狭めるか、不連続点を指定してください。",
+          "数値近似で描画を省略した領域があります。表示範囲や式、不連続点を確認してください。",
         ],
       ),
     )

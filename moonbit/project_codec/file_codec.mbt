@@ -344,7 +344,7 @@ let file_bezier : FileField = Record({ "c1": file_point, "c2": file_point })
 
 ///|
 let graph_file_field : FileField = Record({
-  "syntaxVersion": Numeric(1.0, 1.0, true),
+  "syntaxVersion": Numeric(1.0, 2.0, true),
   "expression": Text(512),
   "xMin": Numeric(-100000.0, 100000.0, false),
   "xMax": Numeric(-100000.0, 100000.0, false),

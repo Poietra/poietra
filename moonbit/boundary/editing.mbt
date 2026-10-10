@@ -114,10 +114,38 @@ pub fn default_state(kind : @core.Any, overrides : @core.Any) -> @core.Any {
   if !@core.is_nullish(overrides) && !@core.is_nullish(overrides._get("graph")) {
     result._set(
       "graph",
-      merge_values(base._get("graph"), overrides._get("graph")),
+      merge_values(
+        base._get("graph"),
+        graph_expression_patch(base._get("graph"), overrides._get("graph")),
+      ),
     )
   }
   result
+}
+
+///|
+// Grammar follows an authored expression unless the caller explicitly supplies
+// its version. Return a new patch; never mutate a caller's immutable snapshot.
+pub fn graph_expression_patch(
+  current : @core.Any,
+  patch : @core.Any,
+) -> @core.Any {
+  if !@core.is_nullish(patch) &&
+    @core.typeof_(patch._get("expression")) == "string" &&
+    @core.is_undefined(patch._get("syntaxVersion")) {
+    let result = merge_values(patch, @core.new_object())
+    let expression : String = patch._get("expression").cast()
+    let version = if !@core.is_nullish(current) &&
+      @core.equal(current._get("syntaxVersion"), @core.any(2)) {
+      2
+    } else {
+      @scene.graph_expression_version(expression)
+    }
+    result._set("syntaxVersion", @core.any(version))
+    result
+  } else {
+    patch
+  }
 }
 
 ///|

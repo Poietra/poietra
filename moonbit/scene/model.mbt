@@ -60,6 +60,7 @@ pub impl ToJson for Easing with fn to_json(self) {
 
 ///|
 /// Authored mathematics belongs to each Composition; paths and sample points are derived.
+/// Grammar 2 adds two-variable equations (left=right) to grammar 1's y=f(x).
 pub(all) struct GraphDefinition {
   syntaxVersion : Int
   expression : String

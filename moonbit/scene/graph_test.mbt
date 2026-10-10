@@ -92,7 +92,7 @@ test "graph validation rejects incompatible syntax, invalid ranges and code with
   let graph = @scene.default_graph()
   for
     invalid in [
-      { ..graph, syntaxVersion: 2, },
+      { ..graph, syntaxVersion: 3, },
       { ..graph, xMin: graph.xMax, },
       { ..graph, yMax: graph.yMin, },
       { ..graph, a: 1.0 / 0.0, },
@@ -109,4 +109,33 @@ test "graph validation rejects incompatible syntax, invalid ranges and code with
     is None,
   )
   assert_eq(@scene.parse_graph_breaks(" -1, 0.123, 2 "), [-1.0, 0.123, 2.0])
+}
+
+///|
+test "implicit definitions keep an explicit grammar version and portable equation" {
+  let graph = @scene.default_graph()
+  for expression in ["x^2+y^2=a^2", "y^2=x^3-x", "x*y=b", "x=1"] {
+    let definition = {
+      ..graph,
+      expression,
+      syntaxVersion: @scene.graph_expression_version(expression),
+    }
+    assert_eq(definition.syntaxVersion, 2)
+    assert_true(@scene.graph_validation_error(definition) is None)
+    let restored : @scene.GraphDefinition = @json.from_json(
+      definition.to_json(),
+    )
+    assert_true(restored == definition)
+    assert_true(
+      @scene.graph_validation_error({ ..definition, syntaxVersion: 1, })
+      is Some(_),
+    )
+  }
+  for
+    definition in [
+      { ..graph, syntaxVersion: 3, },
+      { ..graph, syntaxVersion: 2, expression: "x==y", },
+    ] {
+    assert_true(@scene.graph_validation_error(definition) is Some(_))
+  }
 }

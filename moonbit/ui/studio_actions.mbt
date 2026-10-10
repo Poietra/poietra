@@ -298,6 +298,9 @@ fn StudioController::undo(self : StudioController) -> Unit {
       let audio : Int = store._get("lastUndoPreservedAudioTracks").cast()
       let durations : Int = store._get("lastUndoPreservedDurations").cast()
       let graph_ranges : Int = store._get("lastPreservedGraphRanges").cast()
+      let graph_definitions : Int = store
+        ._get("lastPreservedGraphDefinitions")
+        .cast()
       self.notify(
         if compositions > 0 {
           "共同編集者が使っている \{compositions} 個の新しい場面と、そのオブジェクト・動きを保持しました。"
@@ -309,6 +312,8 @@ fn StudioController::undo(self : StudioController) -> Unit {
           "共同編集者が変更した \{retained} 個のアニメーションと、その中間点を保持しました。"
         } else if durations > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
+        } else if graph_definitions > 0 {
+          "共同編集者が変更したグラフの数式を保持しました。"
         } else if graph_ranges > 0 {
           "共同編集者の範囲を保つため、グラフの軸の値を保持しました。"
         } else {
@@ -328,9 +333,14 @@ fn StudioController::redo(self : StudioController) -> Unit {
       let store = self.input._get("store")
       let retained : Int = store._call("redo", []).cast()
       let graph_ranges : Int = store._get("lastPreservedGraphRanges").cast()
+      let graph_definitions : Int = store
+        ._get("lastPreservedGraphDefinitions")
+        .cast()
       self.notify(
         if retained > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
+        } else if graph_definitions > 0 {
+          "共同編集者が変更したグラフの数式を保持しました。"
         } else if graph_ranges > 0 {
           "共同編集者の範囲を保つため、グラフの軸の値を保持しました。"
         } else {

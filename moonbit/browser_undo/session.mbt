@@ -26,11 +26,19 @@ struct Preserved {
   durations : Int
   compositions : Int
   graph_ranges : Int
+  graph_definitions : Int
 }
 
 ///|
 fn empty_counts() -> Preserved {
-  { audio: 0, objects: 0, durations: 0, compositions: 0, graph_ranges: 0, }
+  {
+    audio: 0,
+    objects: 0,
+    durations: 0,
+    compositions: 0,
+    graph_ranges: 0,
+    graph_definitions: 0,
+  }
 }
 
 ///|
@@ -85,6 +93,7 @@ pub fn session_counts(session : Session) -> @core.Any {
     ("durations", @core.any(session.counts.durations)),
     ("compositions", @core.any(session.counts.compositions)),
     ("graphRanges", @core.any(session.counts.graph_ranges)),
+    ("graphDefinitions", @core.any(session.counts.graph_definitions)),
   ])
 }
 

@@ -93,8 +93,12 @@ pub fn update_state(
           return
         }
         let current = composition._get("states")._get(id)._get("graph")
-        @boundary.validate_graph_patch(current, patch._get("graph"))
-        changes.append(changes_for(base + ["graph"], patch._get("graph")))
+        let graph_patch = @boundary.graph_expression_patch(
+          current,
+          patch._get("graph"),
+        )
+        @boundary.validate_graph_patch(current, graph_patch)
+        changes.append(changes_for(base + ["graph"], graph_patch))
       } else {
         changes.push(change(base + [key], patch._get(key)))
       }
@@ -129,8 +133,12 @@ pub fn update_state(
       @core.throw_error("関数グラフを選択してください。")
       return
     }
-    @boundary.validate_graph_patch(state._get("graph"), patch._get("graph"))
-    next._set("graph", merge(state._get("graph"), patch._get("graph")))
+    let graph_patch = @boundary.graph_expression_patch(
+      state._get("graph"),
+      patch._get("graph"),
+    )
+    @boundary.validate_graph_patch(state._get("graph"), graph_patch)
+    next._set("graph", merge(state._get("graph"), graph_patch))
   }
   edit(store, [change(base, next)], separate~)
 }

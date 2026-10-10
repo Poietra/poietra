@@ -56,6 +56,69 @@ async function clearGraph(page: Page) {
 }
 async function clickAt(page: Page, point: { x: number; y: number }) { await page.mouse.click(point.x, point.y); }
 
+async function contourPoint(page: Page, fraction: number, offset: number) {
+  return curve(page).evaluate((node, { fraction, offset }) => {
+    const path = node as SVGPathElement, matrix = path.getScreenCTM()!;
+    const length = path.getTotalLength() * fraction;
+    const at = path.getPointAtLength(length), before = path.getPointAtLength(length - .25), after = path.getPointAtLength(length + .25);
+    const point = new DOMPoint(at.x, at.y).matrixTransform(matrix);
+    const dx = matrix.a * (after.x - before.x) + matrix.c * (after.y - before.y);
+    const dy = matrix.b * (after.x - before.x) + matrix.d * (after.y - before.y);
+    const magnitude = Math.hypot(dx, dy);
+    return { x: point.x - dy / magnitude * offset, y: point.y + dx / magnitude * offset };
+  }, { fraction, offset });
+}
+
+test('authors a closed implicit curve, selects and drags it, and preserves its equation through peer Undo, save and reload', async ({ page, browser }) => {
+  test.setTimeout(60000);
+  await importGraph(page);
+  await page.getByRole('checkbox', { name: 'Show axes', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Show grid', exact: true }).uncheck();
+  await number(page, 'Graph parameter a', 1);
+  for (const [label, value] of [['X minimum', -2], ['X maximum', 2], ['Y minimum', -2], ['Y maximum', 2]] as const) await number(page, `Graph ${label}`, value);
+  await expression(page).fill('x^2+y^2=a^2'); await expression(page).press('Enter');
+  const original = await curve(page).getAttribute('d');
+  expect(original?.match(/M/g)).toHaveLength(1);
+  expect(await curve(page).evaluate(node => {
+    const path = node as SVGPathElement, first = path.getPointAtLength(0), last = path.getPointAtLength(path.getTotalLength());
+    return Math.hypot(first.x - last.x, first.y - last.y);
+  })).toBeLessThan(.01);
+  await expression(page).fill('x=y=1'); await expression(page).press('Enter');
+  await expect(page.getByRole('alert')).toContainText('数式');
+  await expect(curve(page)).toHaveAttribute('d', original!);
+  await expression(page).press('Escape'); await expect(expression(page)).toHaveValue('x^2+y^2=a^2');
+  const context = await browser.newContext();
+  try {
+    const peer = await context.newPage(); await live(peer, page.url()); await select(peer, 'Function graph');
+    await expect(expression(peer)).toHaveValue('x^2+y^2=a^2');
+    await number(page, 'Graph parameter a', 1.25);
+    await expect(peer.getByRole('spinbutton', { name: 'Graph parameter a', exact: true })).toHaveValue('1.25');
+    await expect(curve(page)).not.toHaveAttribute('d', original!);
+    await select(page, '元に戻す (⌘Z)'); await expect(curve(page)).toHaveAttribute('d', original!);
+    await clearGraph(page); await clickAt(page, await contourPoint(page, .3, 4));
+    await expect(graphSelection(page)).toHaveCount(1);
+    const empty = await graphPoint(page, 0, 0);
+    await page.mouse.move(empty.x, empty.y); await page.mouse.down();
+    await page.mouse.move(empty.x + 28, empty.y, { steps: 6 }); await page.mouse.up();
+    const position = page.getByRole('spinbutton', { name: 'Position X', exact: true });
+    await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(640);
+    await expect(peer.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue(await position.inputValue());
+    await select(page, '元に戻す (⌘Z)'); await expect(position).toHaveValue('640');
+    const bytes = await saved(page), project = JSON.parse(bytes.toString());
+    expect(project.version).toBe(4);
+    expect(project.scenes['scene-1'].compositions['comp-1'].states.graph.graph).toMatchObject({ syntaxVersion: 2, expression: 'x^2+y^2=a^2', a: 1 });
+    expect(bytes.toString()).not.toMatch(/"(?:curve|segments)":/);
+    await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+    await select(page, 'Function graph'); await expect(expression(page)).toHaveValue('x^2+y^2=a^2');
+    await expect(curve(page)).toHaveAttribute('d', original!);
+    await select(page, 'プロジェクトを開く');
+    await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'implicit.poietra.json', mimeType: 'application/json', buffer: bytes });
+    await expect(page.getByText('Live', { exact: true })).toBeVisible();
+    await select(page, 'Function graph'); await expect(expression(page)).toHaveValue('x^2+y^2=a^2');
+    await expect(curve(page)).toHaveAttribute('d', original!);
+  } finally { await context.close(); }
+});
+
 test('picks near a thin graph curve and drags its selected empty viewport with peer sync, Undo and cancellation', async ({ page, browser }) => {
   await importGraph(page);
   await page.getByRole('checkbox', { name: 'Show axes', exact: true }).uncheck();
@@ -222,7 +285,8 @@ for (const fallback of [false, true]) test(`mathematical curves agree between SV
     const painter = await createFramePainter(canvas);
     const samples: { canvas: number[]; svg: number[]; expected: number }[] = [];
     try {
-      for (const [source, a, progress, opacity, x, y, expected] of [['a*x', 1, 1, 1, 100, 120, 255], ['a*x', 1, .5, 1, 220, 60, 0], ['1/x', 1, 1, 1, 160, 90, 0], ['1/x', 1, 1, 1, 220, 60, 255], ['a*x', 1, 1, .5, 100, 120, 128], ['a*x', 0, 1, .5, 100, 120, 0], ['a*x', 0, 1, .5, 100, 90, 128]] as const) {
+      for (const [source, a, progress, opacity, x, y, expected] of [['a*x', 1, 1, 1, 100, 120, 255], ['a*x', 1, .5, 1, 220, 60, 0], ['1/x', 1, 1, 1, 160, 90, 0], ['1/x', 1, 1, 1, 220, 60, 255], ['a*x', 1, 1, .5, 100, 120, 128], ['a*x', 0, 1, .5, 100, 120, 0], ['a*x', 0, 1, .5, 100, 90, 128], ['x^2+y^2=a^2', 1, 1, 1, 220, 90, 255], ['x^2+y^2=a^2', 1, 1, 1, 160, 90, 0], ['x^2+y^2=a^2', .5, 1, .5, 190, 90, 128], ['x^2+y^2=a^2', 1, 0, 1, 220, 90, 0], ['x*y=0', 1, 1, 1, 100, 90, 255], ['1/(x-0.123)=0', 1, 1, 1, 160, 90, 0]] as const) {
+        state.graph!.syntaxVersion = source.includes('=') ? 2 : 1;
         state.graph!.expression = source; state.graph!.a = a; state.opacity = opacity;
         state.graph!.breaks = source === '1/x' ? [0] : [];
         const frame = compositionFrame(scene, scene.compositions['comp-1']); frame.objects[0].writeProgress = progress;

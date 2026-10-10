@@ -48,7 +48,7 @@ pub fn has_graph_data(scene : Scene) -> Bool {
 
 ///|
 pub fn graph_value_error(graph : GraphDefinition) -> String? {
-  if graph.syntaxVersion != 1 {
+  if graph.syntaxVersion != 1 && graph.syntaxVersion != 2 {
     return Some("対応していない数式のバージョンです。")
   }
   for
@@ -84,10 +84,21 @@ pub fn graph_validation_error(graph : GraphDefinition) -> String? {
   if graph_value_error(graph) is Some(message) {
     return Some(message)
   }
-  try @math_plot.prepare(graph.expression) |> ignore catch {
+  try
+    @math_plot.prepare_graph(graph.expression, graph.syntaxVersion) |> ignore
+  catch {
     @math_plot.InvalidExpression(message) => return Some(message)
   }
   None
+}
+
+///|
+pub fn graph_expression_version(expression : String) -> Int {
+  if expression.contains("=") {
+    2
+  } else {
+    1
+  }
 }
 
 ///|

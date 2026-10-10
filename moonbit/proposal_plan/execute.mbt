@@ -99,6 +99,12 @@ fn Compiler::execute(
               ScalarValue(value)
             },
           )
+          if field == GraphExpression {
+            self.emit(
+              base + ["graph", "syntaxVersion"],
+              ScalarValue(Number(next.graph.unwrap().syntaxVersion.to_double())),
+            )
+          }
         } else {
           self.emit(base + [field_name(field)], ScalarValue(value))
         }
