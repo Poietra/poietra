@@ -1,4 +1,4 @@
-import type { Keyframe } from "../../shared/scene-types";
+import type { Keyframe, GraphDefinition } from "../../shared/scene-types";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -10,6 +10,7 @@ import type { ImageAsset } from '../../shared/images';
 import type { AudioTrack, MediaAsset, MediaPlayback } from '../../shared/media';
 import type { ObjectClipboard } from '../../shared/clipboard';
 import { EditorUndoManager } from './undo';
+export type ObjectStatePatch = Partial<Omit<ObjectState, 'graph'>> & { graph?: Partial<GraphDefinition> };
 export interface Peer {
     clientId: number;
     name: string;
@@ -64,6 +65,7 @@ export declare class EditorStore {
     get lastUndoPreservedAudioTracks(): number;
     get lastUndoPreservedCompositions(): number;
     get lastUndoPreservedDurations(): number;
+    get lastPreservedGraphRanges(): number;
     undo(): number;
     redo(): number;
     rollbackGesture(item: object): boolean;
@@ -74,12 +76,12 @@ export declare class EditorStore {
     /** Canvas dimensions use whole pixels (1–8192); resizing preserves object states. */
     setScene(sceneId: string, patch: Partial<Pick<Scene, 'name' | 'background' | 'width' | 'height'>>): undefined;
     setObject(sceneId: string, id: string, patch: Partial<SceneObject>): undefined;
-    updateState(sceneId: string, compositionId: string, objectId: string, patch: Partial<ObjectState>, separate?: boolean): undefined;
+    updateState(sceneId: string, compositionId: string, objectId: string, patch: ObjectStatePatch, separate?: boolean): undefined;
     translate(sceneId: string, compositionId: string, starts: Record<string, {
         x: number;
         y: number;
     }>, dx: number, dy: number): undefined;
-    addObject(sceneId: string, compositionId: string, kind: ObjectKind, patch?: Partial<ObjectState>, image?: ImageAsset, imageName?: string): string;
+    addObject(sceneId: string, compositionId: string, kind: ObjectKind, patch?: ObjectStatePatch, image?: ImageAsset, imageName?: string): string;
     addMedia(sceneId: string, compositionId: string, asset: MediaAsset, kind: 'audio' | 'video', name: string, start?: number, point?: {
         x: number;
         y: number;

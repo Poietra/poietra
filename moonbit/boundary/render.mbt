@@ -397,6 +397,7 @@ pub fn shape_geometry(item : @core.Any) -> @core.Any {
     @render.shape_geometry(
       kind,
       @project_codec.decode_ObjectState(item._get("state")),
+      progress=item._get("writeProgress").cast(),
     ),
   )
 }
@@ -409,6 +410,7 @@ pub fn encode_shape(shape : @render.Shape?) -> @core.Any {
     Some(Rectangle(width, height, radius)) =>
       shape_rectangle_value(width, height, radius)
     Some(Path(path)) => path_value(path)
+    Some(Graph(graph)) => encode_graph_geometry(graph)
     Some(Arrow(geometry)) =>
       arrow_value(
         "arrow",
@@ -451,4 +453,53 @@ pub fn numberline_tick_path(length : Double, index : Int) -> String {
 ///|
 pub fn numberline_tick_progress(progress : Double, index : Int) -> Double {
   @render.numberline_tick_progress(progress, index)
+}
+
+///|
+extern "js" fn graph_label_value(
+  x : Double,
+  y : Double,
+  text : String,
+) -> @core.Any =
+  #|(x, y, text) => ({x, y, text})
+
+///|
+extern "js" fn graph_geometry_value(
+  curve : String,
+  axes : String,
+  grid : String,
+  labels : FixedArray[@core.Any],
+  limited : Bool,
+) -> @core.Any =
+  #|(curve, axes, grid, labels, limited) => ({kind: 'graph', curve, axes, grid, labels, limited})
+
+///|
+pub fn encode_graph_geometry(graph : @render.GraphGeometry) -> @core.Any {
+  graph_geometry_value(
+    graph.curve,
+    graph.axes,
+    graph.grid,
+    FixedArray::makei(graph.labels.length(), fn(i) {
+      let label = graph.labels[i]
+      graph_label_value(label.x, label.y, label.text)
+    }),
+    graph.limited,
+  )
+}
+
+///|
+pub fn decode_graph_geometry(value : @core.Any) -> @render.GraphGeometry {
+  {
+    curve: value._get("curve").cast(),
+    axes: value._get("axes").cast(),
+    grid: value._get("grid").cast(),
+    labels: @project_codec.decode_array(value._get("labels"), fn(label) {
+      {
+        x: label._get("x").cast(),
+        y: label._get("y").cast(),
+        text: label._get("text").cast(),
+      }
+    }),
+    limited: value._get("limited").cast(),
+  }
 }

@@ -5,6 +5,7 @@ pub fn object_label(kind : @scene.ObjectKind) -> String {
     Rectangle => "Rectangle"
     Text => "Text"
     Equation => "Equation"
+    Graph => "Function graph"
     Path => "Path"
     Arrow => "Arrow"
     NumberLine => "Number line"

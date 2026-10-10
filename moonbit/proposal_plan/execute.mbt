@@ -75,12 +75,33 @@ fn Compiler::execute(
         None =>
           raise CompileError("編集対象の状態が見つかりません。")
       }
-      self.set_state(cid, oid, change_state(state, field, value, object.kind))
+      let next = change_state(state, field, value, object.kind)
+      self.set_state(cid, oid, next)
       if !self.created.contains(oid) && !self.appended.contains(cid) {
-        self.emit(
-          ["compositions", cid, "states", oid, field_name(field)],
-          ScalarValue(value),
-        )
+        let base = ["compositions", cid, "states", oid]
+        if graph_field_key(field) is Some(key) {
+          self.depend(base + ["graph", "syntaxVersion"])
+          let counterpart = match field {
+            GraphXMin => Some("xMax")
+            GraphXMax => Some("xMin")
+            GraphYMin => Some("yMax")
+            GraphYMax => Some("yMin")
+            _ => None
+          }
+          if counterpart is Some(key) {
+            self.depend(base + ["graph", key])
+          }
+          self.emit(
+            base + ["graph", key],
+            if field == GraphBreaks {
+              NumbersValue(next.graph.unwrap().breaks)
+            } else {
+              ScalarValue(value)
+            },
+          )
+        } else {
+          self.emit(base + [field_name(field)], ScalarValue(value))
+        }
       }
     }
     ShapePath(cid, oid, path) => {

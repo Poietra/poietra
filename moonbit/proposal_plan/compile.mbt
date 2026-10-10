@@ -1,5 +1,17 @@
 ///|
 fn Compiler::finish(self : Compiler) -> Plan raise CompileError {
+  for _, states in self.states {
+    for oid, state in states {
+      if self.objects[oid].kind == Graph {
+        guard state.graph is Some(graph) else {
+          raise CompileError("グラフの定義がありません。")
+        }
+        if @scene.graph_validation_error(graph) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+    }
+  }
   for tid, duration in self.durations {
     if !self.new_transitions.contains(tid) {
       self.emit(["transitions", tid, "duration"], ScalarValue(Number(duration)))

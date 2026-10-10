@@ -18,6 +18,8 @@ the same structured objects, so positions, colors and timings remain editable.
   scoped to your own edits. Guests can create and edit projects.
 - Animate shapes, text, LaTeX, paths and media with per-property timing,
   intermediate keyframes and custom easing. Group, parent and clip objects.
+- Plot functions from editable expressions such as `x^3 - a*x`, with coordinate
+  ranges, axes, grids and animated coefficients.
 - Reuse motions with editable text and colors, trim audio/video, and save
   portable project files containing their media.
 - Choose landscape, portrait or custom canvas dimensions, and export browser

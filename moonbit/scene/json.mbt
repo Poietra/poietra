@@ -22,7 +22,8 @@ pub fn normalize_nullable_fields(value : Json) -> Json {
             key == "fontSizeTiming" ||
             key == "cornerRadiusTiming" ||
             key == "pathTiming" ||
-            key == "revealTiming"
+            key == "revealTiming" ||
+            key == "graphTiming"
           ) {
           continue
         }

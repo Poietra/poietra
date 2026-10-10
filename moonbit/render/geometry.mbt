@@ -3,6 +3,7 @@ pub(all) enum Shape {
   Ellipse(Double, Double)
   Rectangle(Double, Double, Double)
   Path(String)
+  Graph(GraphGeometry)
   Arrow(ArrowGeometry)
   NumberLine(ArrowGeometry)
 } derive(Eq)
@@ -19,6 +20,7 @@ pub(all) struct ArrowGeometry {
 pub fn shape_geometry(
   kind : @scene.ObjectKind,
   state : @scene.ObjectState,
+  progress? : Double = 1.0,
 ) -> Shape? {
   let width = finite(state.width)
   let height = finite(state.height)
@@ -35,6 +37,7 @@ pub fn shape_geometry(
           .max(0.0),
         ),
       )
+    Graph => Some(Graph(graph_geometry(state, progress)))
     Path =>
       Some(
         Path(

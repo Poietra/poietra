@@ -4,19 +4,19 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import { openapiJson, projectSchemaJson, exampleJson } from '../../../_build/js/release/build/render_api/render_api.js';
 import { inspectProjectFile, capabilities } from '../index.mjs';
 import { startServer } from '../server.mjs';
-import { project } from './fixtures.mjs';
+import { project, functionProject } from './fixtures.mjs';
 
 test('generated project schema accepts current and legacy projects and rejects invalid structural edits', () => {
   const ajv = new Ajv2020({ allErrors: true });
   const validate = ajv.compile(JSON.parse(projectSchemaJson()));
   const legacy = project(); legacy.version = 1;
   const clipped = project(); clipped.version = 3; clipped.scenes.scene.objects.box.clipChildren = true;
-  for (const value of [project(), legacy, clipped, JSON.parse(exampleJson())]) {
+  for (const value of [project(), legacy, clipped, functionProject(), JSON.parse(exampleJson())]) {
     assert.equal(validate(value), true, JSON.stringify(validate.errors));
     assert.equal(inspectProjectFile(JSON.stringify(value)).issues.length, 0);
   }
   for (const change of [
-    value => { value.version = 4; },
+    value => { value.version = 5; },
     value => { value.scenes.scene.compositions.a.states.box.x = '100'; },
     value => { value.scenes.scene.objects.box.kind = 'unknown'; },
     value => { delete value.sceneOrder; },

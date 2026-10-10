@@ -31,12 +31,12 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
   let duration = @zod.number().finite().min(0).max(120000)
   let legacy_object = object_fields()
   legacy_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "arrow", "numberline",
   ])
   let new_object = object_fields()
   new_object["ref"] = reference
   new_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "path", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "path", "arrow", "numberline",
   ])
   let operations = [
     operation("setState", {
@@ -45,7 +45,9 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "property": @zod.enum_([
         "x", "y", "width", "height", "rotation", "opacity", "visible", "fill", "stroke",
         "strokeWidth", "text", "fontSize", "cornerRadius", "effect", "anchorX", "anchorY",
-        "scaleX", "scaleY", "shear",
+        "scaleX", "scaleY", "shear", "graphExpression", "graphXMin", "graphXMax",
+        "graphYMin", "graphYMax", "graphA", "graphB", "graphC", "graphAxes", "graphGrid",
+        "graphBreaks",
       ]),
       "value": @zod.union([@zod.number(), @zod.string(), @zod.boolean()]),
     }),
@@ -91,7 +93,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "objectId": @zod.string(),
       "channel": @zod.enum_([
         "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-        "fontSize", "cornerRadius", "path", "reveal",
+        "fontSize", "cornerRadius", "path", "reveal", "graph",
       ]),
       "timing": @zod.object({
         "start": @zod.number().finite().min(0),

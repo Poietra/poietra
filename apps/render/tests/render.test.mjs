@@ -2,12 +2,33 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PNG } from 'pngjs';
 import { renderProjectFile, inspectProjectFile } from '../index.mjs';
-import { project, addObject, addImage, addAudio } from './fixtures.mjs';
+import { project, addObject, addImage, addAudio, functionProject } from './fixtures.mjs';
 import { decodeVideo, decodeAudio } from './decode.mjs';
 import { normalizePathLengths } from '../runtime-host.mjs';
 
 const pixel = (png, x, y) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
 const render = (p, options) => renderProjectFile(JSON.stringify(p), options);
+
+test('mathematical definitions render the same animated and discontinuous curves in SVG, PNG and MP4', async () => {
+  const p = functionProject();
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 100, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 100, 105), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 100, 90), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(svg, /data-graph-curve="true" d="M-120 30/);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[90 * 320 + 100] > 220);
+  assert.ok(video.frames[12].pixels[105 * 320 + 100] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 100] < 30);
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { expression: '1/x', breaks: [0] });
+  const pole = PNG.sync.read(Buffer.from((await render(p)).bytes));
+  assert.deepEqual(pixel(pole, 160, 90), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(pole, 220, 60), [255, 255, 255, 255]);
+});
 
 test('hidden rectangle clips animated descendants in SVG, PNG and encoded video', async () => {
   const p = project(); p.version = 3;

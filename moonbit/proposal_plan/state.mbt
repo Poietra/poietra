@@ -20,6 +20,17 @@ pub fn state_field(value : String) -> StateField? {
     "scaleX" => Some(ScaleX)
     "scaleY" => Some(ScaleY)
     "shear" => Some(Shear)
+    "graphExpression" => Some(GraphExpression)
+    "graphXMin" => Some(GraphXMin)
+    "graphXMax" => Some(GraphXMax)
+    "graphYMin" => Some(GraphYMin)
+    "graphYMax" => Some(GraphYMax)
+    "graphA" => Some(GraphA)
+    "graphB" => Some(GraphB)
+    "graphC" => Some(GraphC)
+    "graphAxes" => Some(GraphAxes)
+    "graphGrid" => Some(GraphGrid)
+    "graphBreaks" => Some(GraphBreaks)
     _ => None
   }
 }
@@ -46,6 +57,17 @@ pub fn field_name(value : StateField) -> String {
     ScaleX => "scaleX"
     ScaleY => "scaleY"
     Shear => "shear"
+    GraphExpression => "graphExpression"
+    GraphXMin => "graphXMin"
+    GraphXMax => "graphXMax"
+    GraphYMin => "graphYMin"
+    GraphYMax => "graphYMax"
+    GraphA => "graphA"
+    GraphB => "graphB"
+    GraphC => "graphC"
+    GraphAxes => "graphAxes"
+    GraphGrid => "graphGrid"
+    GraphBreaks => "graphBreaks"
   }
 }
 
@@ -55,6 +77,36 @@ pub fn validate_state(
   value : Scalar,
   kind : @scene.ObjectKind?,
 ) -> Unit raise CompileError {
+  if graph_field_key(field) is Some(_) {
+    if kind is Some(kind) && kind != Graph {
+      raise CompileError("関数グラフを選択してください。")
+    }
+    match (field, value) {
+      (GraphExpression, Text(source)) => {
+        let graph = { ..@scene.default_graph(), expression: source, }
+        if @scene.graph_validation_error(graph) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+      (GraphBreaks, Text(source)) =>
+        try @scene.parse_graph_breaks(source) |> ignore catch {
+          @scene.InvalidGraph(message) => raise CompileError(message)
+        }
+      (GraphAxes | GraphGrid, Boolean(_)) => ()
+      (
+        GraphXMin
+        | GraphXMax
+        | GraphYMin
+        | GraphYMax
+        | GraphA
+        | GraphB
+        | GraphC,
+        Number(value),
+      ) if @assets.bounded_number(value, -100000.0, 100000.0) => ()
+      _ => raise CompileError("グラフの属性の値が無効です。")
+    }
+    return
+  }
   if (kind == Some(Image) || kind == Some(Video)) &&
     (field == Fill || field == TextContent || field == FontSize) {
     let name = if kind == Some(Video) { "動画" } else { "画像" }
@@ -121,6 +173,30 @@ fn change_state(
   kind : @scene.ObjectKind,
 ) -> @scene.ObjectState raise CompileError {
   validate_state(field, value, Some(kind))
+  if graph_field_key(field) is Some(_) {
+    let graph = state.graph.unwrap_or(@scene.default_graph())
+    let graph = match (field, value) {
+      (GraphExpression, Text(expression)) => { ..graph, expression, }
+      (GraphXMin, Number(xMin)) => { ..graph, xMin, }
+      (GraphXMax, Number(xMax)) => { ..graph, xMax, }
+      (GraphYMin, Number(yMin)) => { ..graph, yMin, }
+      (GraphYMax, Number(yMax)) => { ..graph, yMax, }
+      (GraphA, Number(a)) => { ..graph, a, }
+      (GraphB, Number(b)) => { ..graph, b, }
+      (GraphC, Number(c)) => { ..graph, c, }
+      (GraphAxes, Boolean(axes)) => { ..graph, axes, }
+      (GraphGrid, Boolean(grid)) => { ..graph, grid, }
+      (GraphBreaks, Text(source)) =>
+        {
+          ..graph,
+          breaks: @scene.parse_graph_breaks(source) catch {
+            @scene.InvalidGraph(message) => raise CompileError(message)
+          },
+        }
+      _ => raise CompileError("グラフの属性の値が無効です。")
+    }
+    return { ..state, graph: Some(graph), }
+  }
   match (field, value) {
     (AnchorX, Number(value)) => { ..state, anchorX: Some(value), }
     (AnchorY, Number(value)) => { ..state, anchorY: Some(value), }
@@ -155,5 +231,23 @@ fn valid_duration(value : Double) -> Unit raise CompileError {
     raise CompileError(
       "長さは 0〜120000 ms の有限な数値で指定してください。",
     )
+  }
+}
+
+///|
+pub fn graph_field_key(field : StateField) -> String? {
+  match field {
+    GraphExpression => Some("expression")
+    GraphXMin => Some("xMin")
+    GraphXMax => Some("xMax")
+    GraphYMin => Some("yMin")
+    GraphYMax => Some("yMax")
+    GraphA => Some("a")
+    GraphB => Some("b")
+    GraphC => Some("c")
+    GraphAxes => Some("axes")
+    GraphGrid => Some("grid")
+    GraphBreaks => Some("breaks")
+    _ => None
   }
 }

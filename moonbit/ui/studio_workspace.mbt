@@ -406,6 +406,7 @@ fn studio_composition_stage(
     (name, value, label) in [
       ("MousePointer2", "select", "選択 (V)"),
       ("Square", "rectangle", "四角形 (R)"),
+      ("ChartSpline", "graph", "関数グラフ"),
       ("Circle", "circle", "円 (O)"),
       ("Spline", "path", "ベジェ曲線 (P)"),
       ("Sigma", "equation", "数式 (E)"),

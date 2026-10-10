@@ -7,6 +7,24 @@ fn composition_properties(
   let kind = @boundary.read_object_kind(object._get("kind"))
   let media = kind is Image || kind is Video
   let content : Array[&@react.ReactNode] = []
+  if kind is Graph && controller.selected.length() == 1 {
+    content.push(
+      typed_component(
+        graph_inspector_component,
+        {
+          controller,
+          definition: state.graph.unwrap_or(@scene.default_graph()),
+          width: state.width,
+          height: state.height,
+        },
+        key=controller.scene_id +
+          "/" +
+          controller.composition_id +
+          "/" +
+          string_value(object._get("id")),
+      ),
+    )
+  }
   if !(kind is Text || kind is Equation) {
     content.push(
       inspector_section("Size", [
@@ -39,7 +57,7 @@ fn composition_properties(
               }
               controller.update(patch)
             },
-            min=if media { 1.0 } else { -10000.0 },
+            min=if media || kind is Graph { 1.0 } else { -10000.0 },
           ),
         ]),
       ]),

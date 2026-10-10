@@ -31,6 +31,9 @@ pub fn valid_project_references(project : Project) -> Bool {
       return false
     }
     for id, object in scene.objects {
+      if object.kind == Graph && project.version < 4 {
+        return false
+      }
       if object.id != id {
         return false
       }
@@ -47,8 +50,15 @@ pub fn valid_project_references(project : Project) -> Bool {
       }
     }
     for _, comp in scene.compositions {
-      for id, _ in comp.states {
+      for id, state in comp.states {
         if !scene.objects.contains(id) {
+          return false
+        }
+        if scene.objects[id].kind == Graph && state.graph is None {
+          return false
+        }
+        if state.graph is Some(graph) &&
+          (project.version < 4 || graph_validation_error(graph) is Some(_)) {
           return false
         }
       }
@@ -66,6 +76,23 @@ pub fn valid_project_references(project : Project) -> Bool {
       }
       outgoing.add(transition.fromId)
       for object_id, track in transition.tracks {
+        if project.version < 4 &&
+          (
+            track.graphTiming is Some(_) ||
+            track.keyframes
+            .map(fn(keys) {
+              keys
+              .values()
+              .any(fn(k) {
+                k.property is GraphA ||
+                k.property is GraphB ||
+                k.property is GraphC
+              })
+            })
+            .unwrap_or(false)
+          ) {
+          return false
+        }
         if !scene.objects.contains(object_id) ||
           track.objectId != object_id ||
           !valid_file_track(track, transition.duration) {
@@ -105,6 +132,7 @@ fn valid_file_track(track : Track, limit : Double) -> Bool {
       track.cornerRadiusTiming,
       track.pathTiming,
       track.revealTiming,
+      track.graphTiming,
     ] {
     if timing is Some(timing) &&
       (

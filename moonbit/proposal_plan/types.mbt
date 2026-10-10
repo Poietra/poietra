@@ -38,6 +38,17 @@ pub(all) enum StateField {
   ScaleX
   ScaleY
   Shear
+  GraphExpression
+  GraphXMin
+  GraphXMax
+  GraphYMin
+  GraphYMax
+  GraphA
+  GraphB
+  GraphC
+  GraphAxes
+  GraphGrid
+  GraphBreaks
 } derive(Eq)
 
 ///|
@@ -110,6 +121,7 @@ pub(all) struct Source {
 ///|
 pub(all) enum Value {
   ScalarValue(Scalar)
+  NumbersValue(Array[Double])
   EasingValue(@scene.Easing)
   PathValue(@scene.Bezier?)
   TimingValue(@scene.Timing?)

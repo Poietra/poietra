@@ -120,6 +120,15 @@ pub fn parse(text : String) -> @scene.Project raise {
 }
 
 ///|
+pub fn read_graph_definition(value : @core.Any) -> @scene.GraphDefinition raise {
+  let graph = decode_GraphDefinition(parse_file_field(value, graph_file_field))
+  if @scene.graph_validation_error(graph) is Some(message) {
+    raise InvalidProjectFile(message)
+  }
+  graph
+}
+
+///|
 pub fn parse_project_file(text : String) -> @core.Any {
   decode_file(text).0 catch {
     InvalidProjectFile(message) => {

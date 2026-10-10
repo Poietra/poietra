@@ -141,6 +141,10 @@ pub fn apply_proposal(
     (append.order, FixedArray::from_array(append.ids[:]))
   })
   if validated.changes.any(fn(change) {
+      @boundary.change_requires_v4(change.path, change.value)
+    }) {
+    @boundary.upgrade_graph_format(doc)
+  } else if validated.changes.any(fn(change) {
       @boundary.change_requires_v2(change.path, change.value)
     }) {
     @boundary.upgrade_document_format(doc)

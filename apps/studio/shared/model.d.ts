@@ -4,7 +4,7 @@ import type { ImageAsset } from './images';
 import type { AudioTrack, MediaAsset, MediaPlayback } from './media';
 import type { Easing, PresetEasing } from './easing';
 export { DEFAULT_CUSTOM_EASING, isValidEasing, easingsEqual, type PresetEasing, type CubicBezierEasing, type Easing } from './easing';
-export declare const PROPERTY_CHANNELS: readonly ['position', 'opacity', 'size', 'rotation', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'cornerRadius', 'path', 'reveal'];
+export declare const PROPERTY_CHANNELS: readonly ['position', 'opacity', 'size', 'rotation', 'fill', 'stroke', 'strokeWidth', 'fontSize', 'cornerRadius', 'path', 'reveal', 'graph'];
 export type PropertyChannel = typeof PROPERTY_CHANNELS[number];
 export type PropertyTimingKey = `${PropertyChannel}Timing`;
 export declare const PROPERTY_CHANNEL_LABELS: Record<PropertyChannel, string>;

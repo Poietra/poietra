@@ -24,6 +24,18 @@ export function addObject(p, id, kind, values) {
   for (const c of Object.values(scene.compositions)) c.states[id] = defaultState(kind, values);
 }
 
+export function functionProject() {
+  const p = project(); p.version = 4;
+  addObject(p, 'graph', 'graph', { x: 160, y: 90, width: 240, height: 120, stroke: '#ffffff', strokeWidth: 4 });
+  const s = p.scenes.scene;
+  for (const c of Object.values(s.compositions)) {
+    c.states.box.visible = false;
+    Object.assign(c.states.graph.graph, { expression: 'a*x', a: c.id === 'a' ? 0 : 1, xMin: -2, xMax: 2, yMin: -2, yMax: 2, axes: false, grid: false });
+  }
+  s.transitions.transition.tracks.graph = { objectId: 'graph', type: 'move', start: 0, duration: 400, easing: 'linear', order: 'together', path: null, keyframes: {} };
+  return p;
+}
+
 export function addImage(p) {
   const png = new PNG({ width: 8, height: 8 });
   for (let i = 0; i < png.data.length; i += 4) { png.data[i] = 255; png.data[i + 1] = 128; png.data[i + 3] = 255; }

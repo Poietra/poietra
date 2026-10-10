@@ -9,6 +9,7 @@ pub let object_kinds : Array[ObjectKind] = [
   Rectangle,
   Text,
   Equation,
+  Graph,
   Path,
   Arrow,
   NumberLine,
@@ -23,6 +24,7 @@ pub fn object_kind_label(kind : ObjectKind) -> String {
     Rectangle => "Rectangle"
     Text => "Text"
     Equation => "Equation"
+    Graph => "Function graph"
     Path => "Path"
     Arrow => "Arrow"
     NumberLine => "Number line"

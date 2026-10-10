@@ -176,6 +176,24 @@ pub fn decode_Bezier(value : @core.Any) -> @scene.Bezier {
 }
 
 ///|
+pub fn decode_GraphDefinition(value : @core.Any) -> @scene.GraphDefinition {
+  {
+    syntaxVersion: value._get("syntaxVersion").cast(),
+    expression: value._get("expression").cast(),
+    xMin: value._get("xMin").cast(),
+    xMax: value._get("xMax").cast(),
+    yMin: value._get("yMin").cast(),
+    yMax: value._get("yMax").cast(),
+    a: value._get("a").cast(),
+    b: value._get("b").cast(),
+    c: value._get("c").cast(),
+    axes: value._get("axes").cast(),
+    grid: value._get("grid").cast(),
+    breaks: decode_array(value._get("breaks"), fn(v) { v.cast() }),
+  }
+}
+
+///|
 pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
   {
     x: value._get("x").cast(),
@@ -198,6 +216,7 @@ pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     cornerRadius: value._get("cornerRadius").cast(),
     effect: decode_Effect(value._get("effect")),
     path: decode_Bezier(value._get("path")),
+    graph: optional(value._get("graph"), fn(v) { decode_GraphDefinition(v) }),
   }
 }
 
@@ -339,6 +358,7 @@ pub fn decode_Track(value : @core.Any) -> @scene.Track {
     revealTiming: optional(value._get("revealTiming"), fn(v) {
       decode_Timing(v)
     }),
+    graphTiming: optional(value._get("graphTiming"), fn(v) { decode_Timing(v) }),
     keyframes: optional(value._get("keyframes"), fn(v) {
       decode_map(v, fn(v) { decode_Keyframe(v) })
     }),
@@ -447,8 +467,9 @@ extern "js" fn make_ObjectState(
   cornerRadius : Double,
   effect : String,
   path : @core.Any,
+  graph : @core.Any,
 ) -> @core.Any =
-  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; return value; }
+  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path, graph) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; if (graph !== undefined) value.graph = graph; return value; }
 
 ///|
 pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
@@ -488,6 +509,10 @@ pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     value.cornerRadius,
     @scene.effect_name(value.effect),
     encode_Bezier(value.path),
+    match value.graph {
+      Some(item) => encode_GraphDefinition(item)
+      None => @core.undefined()
+    },
   )
 }
 
@@ -583,6 +608,9 @@ pub fn encode_Track(value : @scene.Track) -> @core.Any {
   if value.revealTiming is Some(item) {
     put_own(result, "revealTiming", encode_Timing(item))
   }
+  if value.graphTiming is Some(item) {
+    put_own(result, "graphTiming", encode_Timing(item))
+  }
   if value.keyframes is Some(item) {
     put_own(
       result,
@@ -610,6 +638,28 @@ pub fn[T] encode_map(
   for key, item in value {
     put_own(result, key, convert(item))
   }
+  result
+}
+
+///|
+pub fn encode_GraphDefinition(value : @scene.GraphDefinition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "syntaxVersion", @core.any(value.syntaxVersion))
+  put_own(result, "expression", @core.any(value.expression))
+  put_own(result, "xMin", @core.any(value.xMin))
+  put_own(result, "xMax", @core.any(value.xMax))
+  put_own(result, "yMin", @core.any(value.yMin))
+  put_own(result, "yMax", @core.any(value.yMax))
+  put_own(result, "a", @core.any(value.a))
+  put_own(result, "b", @core.any(value.b))
+  put_own(result, "c", @core.any(value.c))
+  put_own(result, "axes", @core.any(value.axes))
+  put_own(result, "grid", @core.any(value.grid))
+  put_own(
+    result,
+    "breaks",
+    encode_array(value.breaks, fn(item) { @core.any(item) }),
+  )
   result
 }
 

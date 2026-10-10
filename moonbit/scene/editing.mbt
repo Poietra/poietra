@@ -11,6 +11,7 @@ pub(all) enum PropertyChannel {
   CornerRadius
   ShapePath
   Reveal
+  GraphParameters
 } derive(Eq)
 
 ///|
@@ -27,6 +28,7 @@ pub fn property_channels() -> Array[PropertyChannel] {
     CornerRadius,
     ShapePath,
     Reveal,
+    GraphParameters,
   ]
 }
 
@@ -44,6 +46,7 @@ pub fn property_channel(value : String) -> PropertyChannel? {
     "cornerRadius" => Some(CornerRadius)
     "path" => Some(ShapePath)
     "reveal" => Some(Reveal)
+    "graph" => Some(GraphParameters)
     _ => None
   }
 }
@@ -62,6 +65,7 @@ pub fn timing_override(track : Track, channel : PropertyChannel) -> Timing? {
     CornerRadius => track.cornerRadiusTiming
     ShapePath => track.pathTiming
     Reveal => track.revealTiming
+    GraphParameters => track.graphTiming
   }
 }
 
@@ -83,6 +87,7 @@ pub fn with_timing_override(
     CornerRadius => { ..track, cornerRadiusTiming: timing, }
     ShapePath => { ..track, pathTiming: timing, }
     Reveal => { ..track, revealTiming: timing, }
+    GraphParameters => { ..track, graphTiming: timing, }
   }
 }
 
@@ -102,6 +107,7 @@ pub fn track_timing_end(track : Track, include_base : Bool) -> Double {
       track.cornerRadiusTiming,
       track.pathTiming,
       track.revealTiming,
+      track.graphTiming,
     ] {
     if timing is Some(value) {
       end = maximum(end, value.start + value.duration)
@@ -142,12 +148,16 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
   {
     x: 640.0,
     y: 360.0,
-    width: if line {
+    width: if kind == Graph {
+      560.0
+    } else if line {
       400.0
     } else {
       100.0
     },
-    height: if kind == Path {
+    height: if kind == Graph {
+      360.0
+    } else if kind == Path {
       -180.0
     } else if line {
       0.0
@@ -164,7 +174,7 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     visible: true,
     fill: "#d7d8e4",
     stroke: "#67c4d9",
-    strokeWidth: if line {
+    strokeWidth: if line || kind == Graph {
       2.0
     } else {
       0.0
@@ -181,6 +191,29 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     },
     cornerRadius: 8.0,
     effect: Normal,
+    graph: if kind == Graph {
+      Some(default_graph())
+    } else {
+      None
+    },
     path: { c1: { x: 140.0, y: 0.0, }, c2: { x: 260.0, y: -180.0, }, },
+  }
+}
+
+///|
+pub fn property_channel_name(channel : PropertyChannel) -> String {
+  match channel {
+    Position => "position"
+    Opacity => "opacity"
+    Size => "size"
+    Rotation => "rotation"
+    Fill => "fill"
+    Stroke => "stroke"
+    StrokeWidth => "strokeWidth"
+    FontSize => "fontSize"
+    CornerRadius => "cornerRadius"
+    ShapePath => "path"
+    Reveal => "reveal"
+    GraphParameters => "graph"
   }
 }

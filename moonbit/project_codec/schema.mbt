@@ -106,6 +106,7 @@ pub fn project_schema(reference_prefix? : String = "#/$defs/") -> Json {
       ("AudioTrack", audio_file_field),
       ("SceneObject", object_file_field),
       ("Keyframe", keyframe_file_field),
+      ("GraphDefinition", graph_file_field),
     ] {
     definitions[name] = field_schema(field, reference_prefix)
   }
@@ -114,7 +115,7 @@ pub fn project_schema(reference_prefix? : String = "#/$defs/") -> Json {
   }
   root["$schema"] = "https://json-schema.org/draft/2020-12/schema"
   root["title"] = "Poietra portable project"
-  root["description"] = "Version 1 and 2 portable documents. Structural constraints are generated from the decoder. Ingestion also validates UTF-16 string lengths, references, timing, asset contents and rendering compatibility. Use POST /inspect before rendering; successful inspection does not guarantee codec decoding."
+  root["description"] = "Version 1 through 4 portable documents. Structural constraints are generated from the decoder. Ingestion also validates UTF-16 string lengths, references, timing, asset contents and rendering compatibility. Use POST /inspect before rendering; successful inspection does not guarantee codec decoding."
   root["$defs"] = Json(definitions)
   Json::object(root)
 }

@@ -47,12 +47,13 @@ fn shape_markup(
     }
     _ => ()
   }
-  match shape_geometry(item.kind, s) {
+  match shape_geometry(item.kind, s, progress~) {
     None => ""
     Some(Ellipse(x, y)) =>
       "<ellipse cx=\"0\" cy=\"0\" rx=\"\{number(x)}\" ry=\"\{number(y)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
     Some(Rectangle(width, height, radius)) =>
       "<rect x=\"\{number(-width / 2.0)}\" y=\"\{number(-height / 2.0)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
+    Some(Graph(graph)) => graph_markup(graph, s, progress)
     Some(Path(path)) => "<path d=\"\{path}\" fill=\"none\"\{draw}/>"
     Some(Arrow(geometry) | NumberLine(geometry)) => {
       let ticks = StringBuilder()

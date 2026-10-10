@@ -31,6 +31,7 @@ fn decode_shape(value : @core.Any) -> @render.Shape? {
         ),
       )
     "path" => Some(@render.Path(value._get("path").cast()))
+    "graph" => Some(@render.Graph(@boundary.decode_graph_geometry(value)))
     "arrow" => Some(@render.Arrow(decode_arrow(value)))
     "numberline" => Some(@render.NumberLine(decode_arrow(value)))
     _ => None
@@ -78,6 +79,34 @@ fn paint_shape(
           numeric_string(@render.number(geometry.angle)) * @math.PI / 180.0,
         )
       _ => ()
+    }
+    if shape is Graph(graph) {
+      context.lineWidth = 1.0
+      context.strokeStyle = fill
+      if fill.to_lower() != "none" && ticks.length() == 2 {
+        context.globalAlpha = opacity * progress * 0.15
+        stroke_path(context, ticks[0])
+        context.globalAlpha = opacity * progress * 0.65
+        stroke_path(context, ticks[1])
+      }
+      context.globalAlpha = opacity * progress * 0.75
+      context.fillStyle = fill
+      context.font = "12px sans-serif"
+      context.textAlign = "left"
+      context.textBaseline = "alphabetic"
+      if fill.to_lower() != "none" {
+        for label in graph.labels {
+          context.fillText(label.text, label.x, label.y)
+        }
+      }
+      if stroke.to_lower() != "none" && stroke_width > 0.0 {
+        context.globalAlpha = opacity
+        context.strokeStyle = stroke
+        context.lineWidth = stroke_width
+        canvas_dash(context, [], 0.0)
+        stroke_path(context, drawing.path)
+      }
+      return
     }
     if (shape is Ellipse(_, _) || shape is Rectangle(_, _, _)) &&
       fill.to_lower() != "none" {
@@ -162,6 +191,7 @@ fn prepare_shape(
       _ => None
     }
     let ticks = match shape {
+      Graph(graph) => [canvas_path(graph.grid), canvas_path(graph.axes)]
       NumberLine(geometry) =>
         Array::makei(11, fn(index) {
           canvas_path(@render.numberline_tick_path(geometry.length, index))

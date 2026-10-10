@@ -107,7 +107,7 @@ export type ProposalOperation = {
     duration: number;
     transitionDuration: number;
 } | GenerateImageOperation;
-declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear'];
+declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear', 'graphExpression', 'graphXMin', 'graphXMax', 'graphYMin', 'graphYMax', 'graphA', 'graphB', 'graphC', 'graphAxes', 'graphGrid', 'graphBreaks'];
 export declare const GENERATED_IMAGE_SIZES: {
     readonly square: {
         readonly width: 1024;

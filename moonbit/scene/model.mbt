@@ -59,6 +59,23 @@ pub impl ToJson for Easing with fn to_json(self) {
 }
 
 ///|
+/// Authored mathematics belongs to each Composition; paths and sample points are derived.
+pub(all) struct GraphDefinition {
+  syntaxVersion : Int
+  expression : String
+  xMin : Double
+  xMax : Double
+  yMin : Double
+  yMax : Double
+  a : Double
+  b : Double
+  c : Double
+  axes : Bool
+  grid : Bool
+  breaks : Array[Double]
+} derive(Eq, FromJson, ToJson)
+
+///|
 pub(all) struct ObjectState {
   x : Double
   y : Double
@@ -80,6 +97,7 @@ pub(all) struct ObjectState {
   cornerRadius : Double
   effect : Effect
   path : Bezier
+  graph : GraphDefinition?
 } derive(Eq, FromJson, ToJson)
 
 ///|
@@ -180,6 +198,7 @@ pub(all) struct Track {
   cornerRadiusTiming : Timing?
   pathTiming : Timing?
   revealTiming : Timing?
+  graphTiming : Timing?
   keyframes : Map[String, Keyframe]?
 } derive (
   FromJson(fields(type_(rename="type"))),

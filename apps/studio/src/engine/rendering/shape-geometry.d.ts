@@ -21,6 +21,13 @@ export type ShapeGeometry = {
     kind: 'path';
     path: string;
 } | {
+    kind: 'graph';
+    curve: string;
+    axes: string;
+    grid: string;
+    labels: { x: number; y: number; text: string }[];
+    limited: boolean;
+} | {
     kind: 'arrow' | 'numberline';
     length: number;
     angle: number;

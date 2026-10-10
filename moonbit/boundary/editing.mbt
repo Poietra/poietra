@@ -107,12 +107,42 @@ pub fn easings_equal(a : @core.Any, b : @core.Any) -> Bool {
 
 ///|
 pub fn default_state(kind : @core.Any, overrides : @core.Any) -> @core.Any {
-  merge_values(
-    @project_codec.encode_ObjectState(
-      @scene.default_state(@project_codec.decode_ObjectKind(kind)),
-    ),
-    overrides,
+  let base = @project_codec.encode_ObjectState(
+    @scene.default_state(@project_codec.decode_ObjectKind(kind)),
   )
+  let result = merge_values(base, overrides)
+  if !@core.is_nullish(overrides) && !@core.is_nullish(overrides._get("graph")) {
+    result._set(
+      "graph",
+      merge_values(base._get("graph"), overrides._get("graph")),
+    )
+  }
+  result
+}
+
+///|
+pub fn validate_graph_patch(current : @core.Any, patch : @core.Any) -> Unit {
+  if @core.is_nullish(patch) ||
+    @core.typeof_(patch) != "object" ||
+    @core.is_array(patch) {
+    @core.throw_error("グラフの定義が無効です。")
+    return
+  }
+  for key in @core.object_keys(patch) {
+    if ![
+        "syntaxVersion", "expression", "xMin", "xMax", "yMin", "yMax", "a", "b",
+        "c", "axes", "grid", "breaks",
+      ].contains(key) {
+      @core.throw_error("グラフの属性が無効です。")
+      return
+    }
+  }
+  try
+    @project_codec.read_graph_definition(merge_values(current, patch)) |> ignore
+  catch {
+    @project_codec.InvalidProjectFile(message) => @core.throw_error(message)
+    _ => @core.throw_error("グラフの定義が無効です。")
+  }
 }
 
 ///|
@@ -239,7 +269,7 @@ pub fn validate_animation_track(track : @core.Any, duration : Double) -> Unit {
   for
     channel in [
       "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-      "fontSize", "cornerRadius", "path", "reveal",
+      "fontSize", "cornerRadius", "path", "reveal", "graph",
     ] {
     let timing = track._get(property_timing_key(channel))
     if truthy(timing) {

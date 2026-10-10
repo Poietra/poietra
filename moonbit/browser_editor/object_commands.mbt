@@ -85,7 +85,20 @@ pub fn update_state(
   }
   let base = ["scenes", scene_id, "compositions", composition_id, "states", id]
   if truthy(composition._get("states")._get(id)) {
-    let changes = changes_for(base, patch)
+    let changes : Array[@core.Any] = []
+    for key in @core.object_keys(patch) {
+      if key == "graph" {
+        if !@core.equal(object._get("kind"), @core.any("graph")) {
+          @core.throw_error("関数グラフを選択してください。")
+          return
+        }
+        let current = composition._get("states")._get(id)._get("graph")
+        @boundary.validate_graph_patch(current, patch._get("graph"))
+        changes.append(changes_for(base + ["graph"], patch._get("graph")))
+      } else {
+        changes.push(change(base + [key], patch._get(key)))
+      }
+    }
     if @core.object_keys(patch)
       .iter()
       .any(fn(key) {
@@ -110,7 +123,16 @@ pub fn update_state(
   } else {
     @boundary.default_state(object._get("kind"), @core.undefined())
   }
-  edit(store, [change(base, merge(state, patch))], separate~)
+  let next = merge(state, patch)
+  if @core.object_keys(patch).contains("graph") {
+    if !@core.equal(object._get("kind"), @core.any("graph")) {
+      @core.throw_error("関数グラフを選択してください。")
+      return
+    }
+    @boundary.validate_graph_patch(state._get("graph"), patch._get("graph"))
+    next._set("graph", merge(state._get("graph"), patch._get("graph")))
+  }
+  edit(store, [change(base, next)], separate~)
 }
 
 ///|
@@ -224,11 +246,15 @@ pub fn add_object(
   } else {
     None
   }
+  let initial = @boundary.default_state(@core.any(kind), patch)
+  if kind == "graph" {
+    @boundary.validate_graph_patch(initial._get("graph"), @core.new_object())
+  }
   let result = @editor.create_object(
     creation_target(scene),
     composition_id,
     @boundary.read_object_kind(@core.any(kind)),
-    @boundary.read_object_state(@boundary.default_state(@core.any(kind), patch)),
+    @boundary.read_object_state(initial),
     image,
     if @core.is_nullish(image_name) {
       None

@@ -11,7 +11,7 @@ rejects executable application TS/TSX. It does not measure runtime dependencies.
 
 | Layer | Main packages | Responsibility |
 | --- | --- | --- |
-| Model and engine | `scene`, `motion`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, pure edit plans, prepared evaluation and shared rendering |
+| Model and engine | `scene`, `motion`, `math_plot`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, numeric plots, pure edit plans, prepared evaluation and shared rendering |
 | Collaboration | `collaboration`, `boundary`, `browser_editor`, `browser_undo`, `browser_chat` | Yjs leaf edits, immutable snapshots, selective Undo and chat |
 | Browser | `ui`, `browser_render`, `browser_media`, `browser_export`, `browser_projects`, `browser_kernel` | React UI, drawing, resources, media and portable files |
 | Portable files | `project_codec` | Bounded parsing, validation and generated record adapters |
@@ -51,6 +51,31 @@ The boundaries to preserve are:
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.
+- Function graphs (2026-10-10) retain a versioned `scene.GraphDefinition` per
+  Composition. The pure `math_plot` package parses a bounded numeric expression
+  and samples in mathematical coordinates; `render` maps it to centered, y-down
+  viewport paths, axes and labels shared by SVG, Canvas/GPU and Node export.
+  Paths are derived runtime data. This preserves editable mathematical intent
+  without making path editing or host JavaScript the source of the graph.
+  Coefficients a/b/c share a `graph` timing channel and normalized intermediate
+  keys; expressions/ranges switch at half the base animation progress. Graph edits
+  write nested leaves and retain the Yjs graph map. Undo/Redo retains necessary axis
+  bounds if a peer's later edit would otherwise invert a valid range.
+  Concurrent conflicting bounds show an error; correct the range before export.
+  Portable graph data uses monotonic, non-Undo format v4; v1/v2/v3 remain readable.
+- Numeric graph syntax v1 supports x/a/b/c, pi/e, arithmetic and the functions
+  listed in the [studio guide](../apps/studio/README.md#関数のグラフを描く).
+  It has no host callbacks or code execution. Input is capped at 512 characters
+  and 128 parser nodes; coefficients/ranges are finite within ±100000 and known
+  discontinuities at most 32. Adaptive midpoint/quarter probes use 0.5 logical
+  scene pixels as a subdivision threshold, with depth 10, 16384 evaluations and
+  4096 segments per plot. Lines are clipped before generating paths; undefined
+  samples and unresolved jumps split branches. Reaching a bound omits unresolved
+  portions and reports it in the inspector. This is a drawing heuristic, not a
+  certified global error bound or proof of continuity; extreme oscillation and
+  narrow features can be missed. `render` owns bounded expression/geometry caches,
+  which are never serialized into documents. Symbolic algebra and 3D
+  tessellation are deferred; new mathematical kinds can use the same boundary.
 - Canvas and export sizing are separate (2026-10-03): canvas controls edit only
   Scene width/height leaves, preserving poses, motion and peer edits through Undo.
   A size change cancels gestures using the old coordinate mapping. Export's pure
@@ -144,7 +169,7 @@ Run pure MoonBit tests from the root:
 ```sh
 node scripts/moon.mjs check --target js --deny-warn
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
 ```
 
 Install Chromium with `pnpm --dir apps/studio exec playwright install --with-deps chromium`.
@@ -158,6 +183,34 @@ restart checks cover different failure boundaries. Keep them when removing
 redundant scenarios. Provider HTTP is mocked; these checks do not verify live
 OAuth completion or paid AI calls. Timing probes are separate from correctness
 checks; run them using the [measurement guide](../benchmarks/README.md).
+
+Function graph verification (2026-10-10, working tree based on `e19bc49`) used
+the pinned MoonBit compiler, Node 24.13.0 and Chromium 153.0.8010.12 with isolated
+Node room storage. Type/API checks, production web build and source/suite audits
+passed, alongside 78 MoonBit JS tests, 75 WASM tests, 834 studio tests, 21 headless
+tests and 5 extension checks. The browser selection below passed 41 tests,
+including graph authoring, peer edits, Undo, legacy imports, clipping and
+SVG/Canvas/GPU pixel comparisons with Write and coefficient cache invalidation.
+A fresh Chromium context after an actual Node process restart recovered the
+expression, coefficient, identical SVG curve and saved version 4 project.
+Headless checks independently decoded graph PNG/MP4 outputs. These checks ran
+locally without live provider calls; production deployment is recorded below.
+
+```sh
+POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test graphs.spec.ts primitives.spec.ts clipping.spec.ts undo-objects.spec.ts painter-preview.spec.ts ai-create.spec.ts --workers=2
+```
+
+Graph pointer investigation (2026-10-11) reproduced difficult picking on
+production Chromium at 1440 × 900, using an isolated 1280 × 720 graph-only room.
+The default curve's 2-unit stroke occupied 1.19 screen pixels: normal offsets
+of 0.5 px selected the graph, while 0.75 px did not. Axes and grid lines also
+selected it, but the selection outline and empty interior did not; dragging
+the selected empty interior cleared selection without moving the graph.
+`ui/stage_model.mbt` only supplies bounds-based point selection for text,
+equations, images and video. Graphs currently rely on SVG painted geometry,
+and the selection overlay disables pointer events. Existing graph browser
+checks cover creation and layer-list selection, not pointer acquisition.
+This investigation did not change pointer behavior.
 
 ## API documentation
 
@@ -183,23 +236,30 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-03 09:09 JST**, application `56c7abd`, Worker
-version `fac69df0-5b49-482e-8c79-9a618e9338da` at 100% on `poietra.com`.
-Its predecessor was `c4d3ff30-df07-4df1-9dc5-b1a7ebb79443` (`6d74c5a`).
-Durable Object namespaces, R2, secrets, migration tags and routing were preserved.
-[CI](https://github.com/Poietra/poietra/actions/runs/37080115829) passed after one
-rerun of a timing-sensitive Canvas test; both rendering modes also passed three
-local repetitions. A regression test covers notification expiry during export.
+Last recorded deployment: **2026-10-10 23:49 JST**, Worker version
+`6a735b7a-315e-4a78-8027-8b1a311778a0` at 100% on `poietra.com`.
+The uploaded source was the `e19bc495e1798954961990487b1886ed3c22adff`
+working tree with uncommitted function graph changes, tagged `graphs-e19bc49-wip`.
+Its predecessor was `fac69df0-5b49-482e-8c79-9a618e9338da` (`56c7abd`).
+Version metadata confirmed identical bindings, Durable Object namespaces,
+migration tags, runtime settings and exported classes; R2, secrets and routing
+were preserved. Production-config dry run and the isolated real workerd
+collaboration/restart integration check passed before upload.
 
-Production smoke checks covered public HTML/Markdown/API documents, room/image
-persistence, two-browser canvas edits, peer-preserving Undo/reload and an actual
-3840 × 2160 H.264 MP4 download: 24 frames, 0.8 seconds, independently decoded
-with FFmpeg. Full provider login, paid AI calls and 500 production clients were
-outside that check. [Earlier deployment record](https://github.com/Poietra/poietra/blob/6d74c5ac6f8ab1667fdebd6b6e36d446f66eb2b9/docs/development.md#deployment-and-limits).
+Production smoke checks covered public HTML/API documents and the version 4
+schema, graph authoring, two-browser coefficient edits, peer-preserving Undo,
+save/import and reload. A room and image created before the cutover remained
+readable afterward with identical image bytes. An actual 320 × 180 H.264 graph
+MP4 download contained 24 frames over 0.8 seconds; FFmpeg independently decoded
+every frame and confirmed changing graph geometry. The served client runtime
+matched the uploaded local build. Full provider login, paid AI calls and 500
+production clients were outside that check.
+[Earlier deployment record](https://github.com/Poietra/poietra/blob/e19bc495e1798954961990487b1886ed3c22adff/docs/development.md#deployment-and-limits).
 Confirm the active version before deploying again.
 
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
 A Worker rollback restores code/assets, not room data; it must understand version
-3 documents and persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).
+4 documents after deploying function graph support, as well as persistent account
+dismissals. See [current limits](../apps/studio/README.md#現在の制限).

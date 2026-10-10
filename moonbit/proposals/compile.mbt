@@ -10,6 +10,8 @@ fn write_scalar(value : @plan.Scalar) -> @core.Any {
 ///|
 fn write_value(value : @plan.Value) -> @core.Any {
   match value {
+    NumbersValue(values) =>
+      @core.any(FixedArray::makei(values.length(), fn(i) { values[i] }))
     ScalarValue(value) => write_scalar(value)
     EasingValue(value) => @boundary.write_easing(value)
     PathValue(value) =>

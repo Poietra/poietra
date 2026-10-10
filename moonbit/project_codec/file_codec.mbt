@@ -324,7 +324,7 @@ let object_file_field : FileField = Record({
   "name": Text(200),
   "kind": Strings([
     "circle", "rectangle", "text", "equation", "path", "arrow", "numberline", "image",
-    "video",
+    "video", "graph",
   ]),
   "order": file_number,
   "groupId": Nullable(Identifier),
@@ -341,6 +341,22 @@ let file_point : FileField = Record({ "x": file_number, "y": file_number })
 
 ///|
 let file_bezier : FileField = Record({ "c1": file_point, "c2": file_point })
+
+///|
+let graph_file_field : FileField = Record({
+  "syntaxVersion": Numeric(1.0, 1.0, true),
+  "expression": Text(512),
+  "xMin": Numeric(-100000.0, 100000.0, false),
+  "xMax": Numeric(-100000.0, 100000.0, false),
+  "yMin": Numeric(-100000.0, 100000.0, false),
+  "yMax": Numeric(-100000.0, 100000.0, false),
+  "a": Numeric(-100000.0, 100000.0, false),
+  "b": Numeric(-100000.0, 100000.0, false),
+  "c": Numeric(-100000.0, 100000.0, false),
+  "axes": Boolean,
+  "grid": Boolean,
+  "breaks": Sequence(Numeric(-100000.0, 100000.0, false), 0, 32),
+})
 
 ///|
 let state_file_field : FileField = Record({
@@ -364,6 +380,7 @@ let state_file_field : FileField = Record({
   "cornerRadius": Numeric(0.0, 10000.0, false),
   "effect": Strings(["none", "glow"]),
   "path": file_bezier,
+  "graph": Optional(graph_file_field),
 })
 
 ///|
@@ -403,19 +420,17 @@ fn track_file_fields() -> FileField {
     "order": Strings(["together", "sequential"]),
     "path": Nullable(file_bezier),
   }
-  for
-    key in [
-      "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-      "fontSize", "cornerRadius", "path", "reveal",
-    ] {
-    fields[key + "Timing"] = Optional(Nullable(timing_file_field))
+  for channel in @scene.property_channels() {
+    fields[@scene.property_channel_name(channel) + "Timing"] = Optional(
+      Nullable(timing_file_field),
+    )
   }
   Record(fields)
 }
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 3.0, true),
+  "version": Numeric(1.0, 4.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(

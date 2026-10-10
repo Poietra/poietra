@@ -149,7 +149,11 @@ pub fn apply_changes(
       v.cast()
     })
     if path == ["version"] &&
-      (@core.equal(value, @core.any(2)) || @core.equal(value, @core.any(3))) {
+      (
+        @core.equal(value, @core.any(2)) ||
+        @core.equal(value, @core.any(3)) ||
+        @core.equal(value, @core.any(4))
+      ) {
       upgrade = upgrade.max(value.cast())
       continue
     }
@@ -157,7 +161,10 @@ pub fn apply_changes(
       upgrade = upgrade.max(2)
     }
     if change_requires_v3(path, value) {
-      upgrade = 3
+      upgrade = upgrade.max(3)
+    }
+    if change_requires_v4(path, value) {
+      upgrade = 4
     }
     let mutation = if @core.is_undefined(value) {
       @collaboration.Remove
@@ -436,6 +443,46 @@ fn change_requires_v3(path : Array[String], value : @core.Any) -> Bool {
 }
 
 ///|
+pub fn change_requires_v4(path : Array[String], value : @core.Any) -> Bool {
+  if path.contains("graph") ||
+    path.last() == Some("graphTiming") ||
+    (path.last() == Some("kind") && @core.equal(value, @core.any("graph"))) ||
+    (
+      path.last() == Some("property") &&
+      ["graphA", "graphB", "graphC"].any(fn(name) {
+        @core.equal(value, @core.any(name))
+      })
+    ) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if !@core.is_nullish(child) && (key == "graph" || key == "graphTiming") {
+        return true
+      }
+      if (key == "kind" && @core.equal(child, @core.any("graph"))) ||
+        (
+          key == "property" &&
+          ["graphA", "graphB", "graphC"].any(fn(name) {
+            @core.equal(child, @core.any(name))
+          })
+        ) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
 /// Detect format-bearing edits at publication, including AI, clipboard and
 /// structural insertions. Empty keyframe containers remain v1-compatible.
 pub fn change_requires_v2(path : Array[String], value : @core.Any) -> Bool {
@@ -474,4 +521,9 @@ pub fn change_requires_v2(path : Array[String], value : @core.Any) -> Bool {
   last == "keyframes" &&
   @core.typeof_(value) == "object" &&
   @core.object_keys(value).length() > 0
+}
+
+///|
+pub fn upgrade_graph_format(doc : @core.Any) -> Unit {
+  upgrade_format_to(doc, 4)
 }

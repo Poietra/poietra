@@ -187,7 +187,8 @@ fn draw_shape_directly(
     shapes.remove(item.id)
     return false
   }
-  guard @render.shape_geometry(item.kind, item.state) is Some(geometry) else {
+  guard @render.shape_geometry(item.kind, item.state, progress=item.progress)
+    is Some(geometry) else {
     shapes.remove(item.id)
     return false
   }

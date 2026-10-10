@@ -22,6 +22,7 @@ export const suites = {
     'dogfood-workflows.spec.ts',
     'editor.spec.ts',
     'groups.spec.ts',
+    'graphs.spec.ts',
     'images.spec.ts',
     'ime.spec.ts',
     'keyboard.spec.ts',
