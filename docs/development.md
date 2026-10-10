@@ -121,9 +121,10 @@ The boundaries to preserve are:
   Invalid vertices and cell-center probes omit undefined/pole-spanning cells;
   this finite heuristic can miss narrow/high-frequency features and is not
   certified topology. `render` uses orthographic projection, viewport clipping,
-  face shading and stable mean-depth sorting. Intersecting/folded triangles can
-  have occlusion artifacts; this is an object-local surface renderer, not a
-  general 3D scene, perspective engine, mesh importer or implicit isosurface.
+  face shading and stable mean-depth sorting. Per-triangle antialiasing can leave
+  fine seams; intersecting/folded triangles can have occlusion artifacts. This
+  object-local surface renderer does not provide a general 3D scene, perspective,
+  mesh imports or implicit isosurfaces.
   Per-curve fills/strokes share ordering and Write behavior across SVG,
   Canvas/GPU and Node, with bounded source/geometry caches outside documents.
   Node coordinates and surface a/b/c/yaw/pitch/zoom use Position timing;
@@ -394,37 +395,39 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-11 03:03 JST**, Worker version
-`b14c0aa5-a9b7-4fa3-b0de-e8060163c77b` at 100% on `poietra.com`.
-The uploaded source was clean commit `92de518fe88ac2a84e0490e6bef9b60f4fac40b4`,
-tagged `math-92de518`. Its predecessor was
-`2e687256-c2d4-4afe-a03f-cd74761230bd` (`implicit-39fc28a`).
+Last recorded deployment: **2026-10-11 04:20 JST**, Worker version
+`9a901272-73fa-4f75-91a3-61369a0c5409` at 100% on `poietra.com`.
+The uploaded source was clean commit `ef28e07efc84727350babad8cce5b6de4d123e40`,
+tagged `spatial-ef28e07`. Its predecessor was
+`b14c0aa5-a9b7-4fa3-b0de-e8060163c77b` (`math-92de518`).
 Version metadata confirmed identical bindings, Durable Object namespaces,
-migration tags, runtime settings and exported classes; R2, secrets and routing
-were preserved. The Worker code changed for geometry validation and AI guidance.
-Upload rebuilt the release artifacts and passed the captured public API/type
-checks; the tracked working tree remained clean after the build.
+migration tags, runtime settings, asset routing and exported classes; R2,
+secrets, domain and existing workers.dev links were preserved. Upload rebuilt
+the release artifacts and passed the captured public API/type checks; the
+tracked working tree remained clean after the build.
 
-Ten production browser checks passed: palette search/creation, point gestures
-with dependent elements, reference validation, two-browser edits, selective
-Undo/cancellation, geometry save/import/reload, affine/clipped/locked handles,
-and existing function/implicit graph authoring and interaction.
-A room and image from before the earlier cutovers remained readable with
-identical image bytes; existing function and implicit graphs retained their
-definitions and identical curves through reload. A new geometry room retained
-its semantic data and curves after reload and portable save. The served client
-runtime and generated schema matched the uploaded local build, and health
-returned success. Production export downloaded a 320 × 180 H.264 geometry MP4
-with 25 frames over 0.82 seconds. FFmpeg independently decoded every frame;
-initial/middle-frame pixels confirmed the moving vector/midpoint geometry.
-No browser errors were observed. Full provider login, paid AI calls and 500
-production clients were outside these checks.
+Four production browser checks passed: shared-palette creation, network node
+and edge editing, self-loops/parallel edges/weights, surface formulas and
+sphere/torus presets, two-browser edits, selective Undo/cancellation, portable
+v6 save/import and affine/clipped/locked node gestures.
+Rooms from the earlier releases retained their v1 image data, v4 function and
+implicit definitions, and v5 geometry states; image bytes were identical.
+New network and surface rooms retained their semantic definitions and SVG
+curves after reload, and a fresh browser without an IndexedDB copy recovered
+both Compositions. The served client runtime and generated schema matched the
+uploaded local build, and health returned success. Production export downloaded
+a 320 × 180 H.264 MP4 for each new family, each with 25 frames over 0.82 seconds.
+FFmpeg independently decoded every frame; initial/middle-frame pixels confirmed
+moving nodes and changing surface coefficients. No browser errors were observed.
+Full provider login, paid AI calls and 500 production clients were outside these
+checks. Local raw logs, version/deployment metadata, screenshots, portable files
+and MP4s are retained in ignored `apps/studio/test-results/production-spatial/`.
 
 ```sh
-POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test math-geometry.spec.ts graphs.spec.ts --grep 'one searchable|point gestures|authors a closed implicit|picks near|keeps graph picking|graph picking respects|draws an editable|shares coefficients' --workers=1
+POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test spatial-math.spec.ts --grep 'shared mathematics|network node gestures|surface formulas|network gestures invert' --workers=1
 ```
 
-[Earlier deployment record](https://github.com/Poietra/poietra/blob/e19bc495e1798954961990487b1886ed3c22adff/docs/development.md#deployment-and-limits).
+[Previous deployment record](https://github.com/Poietra/poietra/blob/fe72e65/docs/development.md#deployment-and-limits).
 Confirm the active version before deploying again.
 
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
