@@ -1,4 +1,4 @@
-import type { Keyframe } from "./scene-types";
+import type { Keyframe, GeometryPoint, GeometryVector, GeometryAngle } from "./scene-types";
 import type { z } from 'zod';
 import { type Change } from './document';
 import type { ObjectKind, Project } from './model';
@@ -40,6 +40,11 @@ export interface CreateImageOperation {
     height: number;
     image: ImageAsset;
 }
+export type GeometryElementOperation = {
+    action: 'setGeometryElement'; compositionId: string; objectId: string; elementId: string;
+} & ({ collection: 'points'; element: Omit<GeometryPoint, 'deleted'> | null }
+  | { collection: 'vectors'; element: Omit<GeometryVector, 'deleted'> | null }
+  | { collection: 'angles'; element: Omit<GeometryAngle, 'deleted'> | null });
 export type ProposalOperation = {
     action: 'setState';
     compositionId: string;
@@ -106,7 +111,7 @@ export type ProposalOperation = {
     name: string;
     duration: number;
     transitionDuration: number;
-} | GenerateImageOperation;
+} | GenerateImageOperation | GeometryElementOperation;
 declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear', 'graphExpression', 'graphXMin', 'graphXMax', 'graphYMin', 'graphYMax', 'graphA', 'graphB', 'graphC', 'graphAxes', 'graphGrid', 'graphBreaks'];
 export declare const GENERATED_IMAGE_SIZES: {
     readonly square: {

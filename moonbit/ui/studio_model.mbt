@@ -83,6 +83,7 @@ priv struct StudioState {
   export_open : Bool
   share_open : Bool
   shortcuts_open : Bool
+  math_open : Bool
   image_drag : Bool
   text_edit : TextEditTarget?
   user_name : String
@@ -127,6 +128,7 @@ fn studio_initial(store : @core.Any) -> StudioState {
     export_open: false,
     share_open: false,
     shortcuts_open: false,
+    math_open: false,
     image_drag: false,
     text_edit: None,
     user_name: store._get("userName").cast(),

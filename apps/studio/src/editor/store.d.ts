@@ -1,4 +1,4 @@
-import type { Keyframe, GraphDefinition } from "../../shared/scene-types";
+import type { Keyframe, GraphDefinition, GeometryDefinition, GeometryPoint, GeometryVector, GeometryAngle } from "../../shared/scene-types";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -10,7 +10,12 @@ import type { ImageAsset } from '../../shared/images';
 import type { AudioTrack, MediaAsset, MediaPlayback } from '../../shared/media';
 import type { ObjectClipboard } from '../../shared/clipboard';
 import { EditorUndoManager } from './undo';
-export type ObjectStatePatch = Partial<Omit<ObjectState, 'graph'>> & { graph?: Partial<GraphDefinition> };
+export type GeometryPatch = Partial<Omit<GeometryDefinition, 'points' | 'vectors' | 'angles'>> & {
+    points?: Record<string, Partial<GeometryPoint>>;
+    vectors?: Record<string, Partial<GeometryVector>>;
+    angles?: Record<string, Partial<GeometryAngle>>;
+};
+export type ObjectStatePatch = Partial<Omit<ObjectState, 'graph' | 'geometry'>> & { graph?: Partial<GraphDefinition>; geometry?: GeometryPatch };
 export interface Peer {
     clientId: number;
     name: string;
@@ -67,6 +72,7 @@ export declare class EditorStore {
     get lastUndoPreservedDurations(): number;
     get lastPreservedGraphRanges(): number;
     get lastPreservedGraphDefinitions(): number;
+    get lastPreservedGeometryElements(): number;
     undo(): number;
     redo(): number;
     rollbackGesture(item: object): boolean;

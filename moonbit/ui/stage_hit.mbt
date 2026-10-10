@@ -63,16 +63,20 @@ fn StageController::graph_hit(
 ) -> String? {
   guard self.surface.get_current() is Some(surface) else { return None }
   let objects : FixedArray[@core.Any] = self.frame._get("objects").cast()
-  let mut curves : Map[String, @core.Any]? = None
+  let mut curves : Map[String, Array[@core.Any]]? = None
   for index = objects.length() - 1; index >= 0; index = index - 1 {
     let item = objects[index]
     let object = item._get("object")
-    if @boundary.read_object_kind(object._get("kind")) != @scene.Graph {
+    let kind = @boundary.read_object_kind(object._get("kind"))
+    if kind != @scene.Graph && kind != @scene.Geometry {
       continue
     }
     let state = item._get("state")
     let opacity : Double = state._get("opacity").cast()
     let progress : Double = item._get("writeProgress").cast()
+    if kind == @scene.Geometry && progress < 1.0 {
+      continue
+    }
     if !truthy(state._get("visible")) ||
       opacity <= 0.0 ||
       progress <= 0.0 ||
@@ -91,9 +95,13 @@ fn StageController::graph_hit(
       return Some(id)
     }
     if curves is None {
-      let found : Map[String, @core.Any] = Map([])
+      let found : Map[String, Array[@core.Any]] = Map([])
       let paths : FixedArray[@core.Any] = surface
-        ._call("querySelectorAll", [@core.any(".scene-svg [data-graph-curve]")])
+        ._call("querySelectorAll", [
+          @core.any(
+            ".scene-svg [data-graph-curve], .scene-svg [data-geometry-element]",
+          ),
+        ])
         .cast()
       for path in paths {
         let object = path._call("closest", [@core.any("[data-object-id]")])
@@ -101,19 +109,23 @@ fn StageController::graph_hit(
           let id : String = object
             ._call("getAttribute", [@core.any("data-object-id")])
             .cast()
-          found[id] = path
+          let paths = found.get(id).unwrap_or([])
+          paths.push(path)
+          found[id] = paths
         }
       }
       curves = Some(found)
     }
-    if curves.unwrap().get(id) is Some(curve) {
-      let rect = stage_bounds(surface._call("getBoundingClientRect", []))
-      if stage_curve_hit(
-          curve,
-          rect.x + at.x / self.width * rect.width,
-          rect.y + at.y / self.height * rect.height,
-        ) {
-        return Some(id)
+    if curves.unwrap().get(id) is Some(paths) {
+      for curve in paths {
+        let rect = stage_bounds(surface._call("getBoundingClientRect", []))
+        if stage_curve_hit(
+            curve,
+            rect.x + at.x / self.width * rect.width,
+            rect.y + at.y / self.height * rect.height,
+          ) {
+          return Some(id)
+        }
       }
     }
   }

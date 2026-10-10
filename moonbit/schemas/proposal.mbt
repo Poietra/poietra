@@ -31,12 +31,13 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
   let duration = @zod.number().finite().min(0).max(120000)
   let legacy_object = object_fields()
   legacy_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "graph", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "geometry", "arrow", "numberline",
   ])
   let new_object = object_fields()
   new_object["ref"] = reference
   new_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "graph", "path", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "geometry", "path", "arrow",
+    "numberline",
   ])
   let operations = [
     operation("setState", {
@@ -110,6 +111,13 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "compositionId": @zod.string(),
       "objectId": @zod.string(),
       "path": bezier,
+    }),
+    operation("setGeometryElement", {
+      "compositionId": @zod.string(),
+      "objectId": @zod.string(),
+      "collection": @zod.enum_(["points", "vectors", "angles"]),
+      "elementId": @zod.string().regex("^[a-zA-Z0-9_-]{1,80}$"),
+      "element": geometry_element_schema().nullable(),
     }),
     operation("setCompositionDuration", {
       "compositionId": @zod.string(),

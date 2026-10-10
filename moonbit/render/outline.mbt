@@ -40,6 +40,8 @@ pub fn outline_source(shape : Shape) -> OutlineSource {
     }
     Path(path) => Measured(path)
     Graph(graph) => Measured(graph.curve)
+    Diagram(diagram) =>
+      Measured(diagram.curves.map(fn(curve) { curve.path }).join(""))
     Arrow(geometry) | NumberLine(geometry) =>
       Shaft("M0 0 H\{number(geometry.length)}", geometry.length)
   }

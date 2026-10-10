@@ -28,6 +28,11 @@ export type ShapeGeometry = {
     labels: { x: number; y: number; text: string }[];
     limited: boolean;
 } | {
+    kind: 'diagram';
+    curves: { id: string; path: string }[];
+    labels: { x: number; y: number; text: string }[];
+    limited: boolean;
+} | {
     kind: 'arrow' | 'numberline';
     length: number;
     angle: number;

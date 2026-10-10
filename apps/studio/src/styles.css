@@ -57,6 +57,7 @@
 
 /* Full property names need their own row; compact X/Y fields stay inline. */
 .property-grid-stacked{margin-top:10px}
+.math-tools{display:flex;flex-direction:column;gap:8px}.math-tools>input{min-height:36px;line-height:1.4}.math-tool-option{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:6px;text-align:left;background:#262230}.math-tool-option:hover{background:#302a3d}.math-tool-option>span{display:flex;flex-direction:column;gap:4px}.math-tool-option strong{font-size:13px;font-weight:500}.property-field>.content-input{min-height:0;line-height:1.4}
 .property-grid-stacked .property-field{flex-direction:column;align-items:stretch;gap:4px;height:auto;background:transparent}
 .property-grid-stacked .property-field>span:first-child{min-width:0;width:auto;text-align:left;white-space:nowrap;line-height:16px}
 .property-grid-stacked .number-input{flex:none;width:100%;height:28px;background:#2b2733}

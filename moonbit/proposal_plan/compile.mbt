@@ -2,6 +2,14 @@
 fn Compiler::finish(self : Compiler) -> Plan raise CompileError {
   for _, states in self.states {
     for oid, state in states {
+      if self.objects[oid].kind == Geometry {
+        guard state.geometry is Some(definition) else {
+          raise CompileError("数学図の定義がありません。")
+        }
+        if @scene.geometry_validation_error(definition) is Some(message) {
+          raise CompileError(message)
+        }
+      }
       if self.objects[oid].kind == Graph {
         guard state.graph is Some(graph) else {
           raise CompileError("グラフの定義がありません。")

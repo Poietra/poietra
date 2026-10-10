@@ -324,7 +324,7 @@ let object_file_field : FileField = Record({
   "name": Text(200),
   "kind": Strings([
     "circle", "rectangle", "text", "equation", "path", "arrow", "numberline", "image",
-    "video", "graph",
+    "video", "graph", "geometry",
   ]),
   "order": file_number,
   "groupId": Nullable(Identifier),
@@ -359,6 +359,39 @@ let graph_file_field : FileField = Record({
 })
 
 ///|
+let geometry_file_field : FileField = Record({
+  "version": Numeric(1.0, 1.0, true),
+  "points": Dictionary(
+    Record({
+      "kind": Strings(["free", "midpoint"]),
+      "x": Numeric(-100000.0, 100000.0, false),
+      "y": Numeric(-100000.0, 100000.0, false),
+      "from": Optional(Nullable(Identifier)),
+      "to": Optional(Nullable(Identifier)),
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+  "vectors": Dictionary(
+    Record({
+      "from": Identifier,
+      "to": Identifier,
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+  "angles": Dictionary(
+    Record({
+      "from": Identifier,
+      "vertex": Identifier,
+      "to": Identifier,
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+})
+
+///|
 let state_file_field : FileField = Record({
   "x": file_number,
   "y": file_number,
@@ -381,6 +414,7 @@ let state_file_field : FileField = Record({
   "effect": Strings(["none", "glow"]),
   "path": file_bezier,
   "graph": Optional(graph_file_field),
+  "geometry": Optional(geometry_file_field),
 })
 
 ///|
@@ -430,7 +464,7 @@ fn track_file_fields() -> FileField {
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 4.0, true),
+  "version": Numeric(1.0, 5.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(
@@ -468,6 +502,21 @@ let project_file_field : FileField = Record({
 ///|
 pub fn read_keyframe(value : @core.Any) -> @scene.Keyframe {
   decode_Keyframe(value)
+}
+
+///|
+pub fn read_geometry_definition(value : @core.Any) -> @scene.GeometryDefinition {
+  let parsed = parse_file_field(value, geometry_file_field) catch {
+    _ => {
+      @core.throw_error("幾何のデータ形式が不正です。")
+      @core.undefined()
+    }
+  }
+  let definition = decode_GeometryDefinition(parsed)
+  if @scene.geometry_validation_error(definition) is Some(message) {
+    @core.throw_error(message)
+  }
+  definition
 }
 
 ///|

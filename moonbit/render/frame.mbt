@@ -54,6 +54,7 @@ fn shape_markup(
     Some(Rectangle(width, height, radius)) =>
       "<rect x=\"\{number(-width / 2.0)}\" y=\"\{number(-height / 2.0)}\" width=\"\{number(width)}\" height=\"\{number(height)}\" rx=\"\{number(radius)}\" fill-opacity=\"\{number(progress)}\"\{draw}/>"
     Some(Graph(graph)) => graph_markup(graph, s, progress)
+    Some(Diagram(graph)) => diagram_markup(graph, s, progress)
     Some(Path(path)) => "<path d=\"\{path}\" fill=\"none\"\{draw}/>"
     Some(Arrow(geometry) | NumberLine(geometry)) => {
       let ticks = StringBuilder()
@@ -84,6 +85,9 @@ pub fn svg_frame(
   let objects : Array[SvgObject] = []
   let sources = []
   for index, item in frame.objects {
+    if item.kind == @scene.Geometry && item.state.geometry is Some(definition) {
+      sources.append(@scene.geometry_texts(definition))
+    }
     if item.kind == @scene.Text ||
       (
         item.kind == @scene.Equation &&

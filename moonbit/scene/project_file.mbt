@@ -31,6 +31,9 @@ pub fn valid_project_references(project : Project) -> Bool {
       return false
     }
     for id, object in scene.objects {
+      if object.kind == Geometry && project.version < 5 {
+        return false
+      }
       if object.kind == Graph && project.version < 4 {
         return false
       }
@@ -55,6 +58,16 @@ pub fn valid_project_references(project : Project) -> Bool {
           return false
         }
         if scene.objects[id].kind == Graph && state.graph is None {
+          return false
+        }
+        if scene.objects[id].kind == Geometry && state.geometry is None {
+          return false
+        }
+        if state.geometry is Some(geometry) &&
+          (
+            project.version < 5 ||
+            geometry_validation_error(geometry) is Some(_)
+          ) {
           return false
         }
         if state.graph is Some(graph) &&

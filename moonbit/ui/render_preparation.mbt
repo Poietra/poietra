@@ -41,6 +41,22 @@ fn render_preparation(scene : @core.Any) -> RenderPreparation {
           object._get("name"),
         ])
       }
+    } else if kind == "geometry" {
+      for cid in composition_ids {
+        let state = compositions._get(cid)._get("states")._get(id)
+        if !truthy(state) || !truthy(state._get("geometry")) {
+          continue
+        }
+        for collection in ["points", "vectors", "angles"] {
+          let values = state._get("geometry")._get(collection)
+          for key in @core.object_keys(values) {
+            let value = values._get(key)
+            if !truthy(value._get("deleted")) {
+              inputs.push(value._get("label"))
+            }
+          }
+        }
+      }
     } else if kind == "text" || kind == "equation" {
       for cid in composition_ids {
         let state = compositions._get(cid)._get("states")._get(id)

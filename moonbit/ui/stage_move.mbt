@@ -15,7 +15,9 @@ fn StageController::pointer_move(
     (self.hover)(id)
     let handle = truthy(
       target._call("closest", [
-        @core.any("[data-transform-handle], [data-path-handle]"),
+        @core.any(
+          "[data-transform-handle], [data-path-handle], [data-geometry-handle]",
+        ),
       ]),
     )
     let cursor = if handle {
@@ -99,7 +101,9 @@ fn StageController::pointer_move(
     return
   }
   let object_id = match current.mode {
-    EditPath(id, _, _) | TransformObject(id, _, _, _, _) => Some(id)
+    EditPath(id, _, _)
+    | EditGeometryPoint(id, _, _)
+    | TransformObject(id, _, _, _, _) => Some(id)
     _ => None
   }
   let object = match object_id {
@@ -114,6 +118,24 @@ fn StageController::pointer_move(
     pointer_distance(at.x - current.start.x, at.y - current.start.y) >
     self.scale
   match current.mode {
+    EditGeometryPoint(id, point_id, offset) => {
+      if object.unwrap().kind != @scene.Geometry {
+        self.finish(true)
+        return
+      }
+      guard snapshot.geometry_point(id, point_id) is Some((_, unit)) &&
+        snapshot.object_matrix(id).inverse() is Some(inverse) else {
+        self.finish(true)
+        return
+      }
+      let local_point = inverse.point(at)
+      let point : @scene.Point = {
+        x: (local_point.x / unit + offset.x).max(-100000.0).min(100000.0),
+        y: (-local_point.y / unit + offset.y).max(-100000.0).min(100000.0),
+      }
+      binding.set_geometry_point(id, point_id, point)
+      self.feedback(current, point, None)
+    }
     EditPath(id, handle, transition_id) => {
       if snapshot.has_path(id, transition_id) {
         let matrix = match transition_id {

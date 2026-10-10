@@ -32,6 +32,7 @@ fn decode_shape(value : @core.Any) -> @render.Shape? {
       )
     "path" => Some(@render.Path(value._get("path").cast()))
     "graph" => Some(@render.Graph(@boundary.decode_graph_geometry(value)))
+    "diagram" => Some(@render.Diagram(@boundary.decode_diagram_geometry(value)))
     "arrow" => Some(@render.Arrow(decode_arrow(value)))
     "numberline" => Some(@render.NumberLine(decode_arrow(value)))
     _ => None
@@ -55,6 +56,7 @@ fn paint_shape(
   drawing : Outline,
   head : CanvasPath?,
   ticks : Array[CanvasPath],
+  diagrams : Array[Outline],
 ) -> Unit {
   let progress = @render.unit(progress)
   if progress == 0.0 {
@@ -108,6 +110,36 @@ fn paint_shape(
       }
       return
     }
+    if shape is Diagram(diagram) {
+      if stroke.to_lower() != "none" && stroke_width > 0.0 {
+        context.globalAlpha = opacity
+        context.strokeStyle = stroke
+        context.lineWidth = stroke_width
+        for drawing in diagrams {
+          canvas_dash(
+            context,
+            if progress < 1.0 && drawing.length > 0.0 {
+              [drawing.length, drawing.length]
+            } else {
+              []
+            },
+            (1.0 - progress) * drawing.length,
+          )
+          stroke_path(context, drawing.path)
+        }
+        canvas_dash(context, [], 0.0)
+      }
+      context.globalAlpha = opacity * progress * 0.75
+      context.font = "12px 'Poietra Inter', 'Poietra Noto Sans JP', sans-serif"
+      context.textAlign = "left"
+      context.textBaseline = "alphabetic"
+      if fill.to_lower() != "none" {
+        for label in diagram.labels {
+          context.fillText(label.text, label.x, label.y)
+        }
+      }
+      return
+    }
     if (shape is Ellipse(_, _) || shape is Rectangle(_, _, _)) &&
       fill.to_lower() != "none" {
       context.globalAlpha = opacity * progress
@@ -149,6 +181,7 @@ priv struct ShapeDrawing {
   drawing : Outline
   head : CanvasPath?
   ticks : Array[CanvasPath]
+  diagrams : Array[Outline]
   key : String
 }
 
@@ -168,6 +201,7 @@ fn ShapeDrawing::paint(
     self.drawing,
     self.head,
     self.ticks,
+    self.diagrams,
   )
 }
 
@@ -203,6 +237,11 @@ fn prepare_shape(
       drawing,
       head,
       ticks,
+      diagrams: match shape {
+        Diagram(diagram) =>
+          diagram.curves.map(fn(curve) { outline(@render.Path(curve.path)) })
+        _ => []
+      },
       key: @core.json_stringify(@boundary.encode_shape(Some(shape))),
     })
   }) catch {
@@ -254,6 +293,7 @@ pub fn prepare_shape_drawing(
           prepared.drawing,
           prepared.head,
           prepared.ticks,
+          prepared.diagrams,
         )
       }),
     ),

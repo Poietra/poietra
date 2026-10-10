@@ -8,7 +8,7 @@ async function field(page: Page, name: string, value: number) {
   const input = page.getByRole('spinbutton', { name, exact: true }); await input.fill(String(value)); await input.press('Tab');
 }
 async function add(page: Page, tool: string, x: number, y: number, content?: string) {
-  await page.getByRole('button', { name: tool, exact: true }).click();
+  if (tool === '数式 (E)') { await page.getByRole('button', { name: '数学', exact: true }).click(); await page.getByRole('button', { name: '数式', exact: true }).click(); } else await page.getByRole('button', { name: tool, exact: true }).click();
   const at = await world(page, x, y); await page.mouse.click(at.x, at.y);
   const id = await page.locator('.layer-row.selected').getAttribute('data-layer-id');
   if (content) {

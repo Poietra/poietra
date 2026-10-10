@@ -7,6 +7,22 @@ fn composition_properties(
   let kind = @boundary.read_object_kind(object._get("kind"))
   let media = kind is Image || kind is Video
   let content : Array[&@react.ReactNode] = []
+  if kind is Geometry && controller.selected.length() == 1 {
+    content.push(
+      typed_component(
+        geometry_inspector_component,
+        {
+          controller,
+          definition: state.geometry.unwrap_or(@scene.default_geometry()),
+        },
+        key=controller.scene_id +
+          "/" +
+          controller.composition_id +
+          "/" +
+          string_value(object._get("id")),
+      ),
+    )
+  }
   if kind is Graph && controller.selected.length() == 1 {
     content.push(
       typed_component(
@@ -57,7 +73,11 @@ fn composition_properties(
               }
               controller.update(patch)
             },
-            min=if media || kind is Graph { 1.0 } else { -10000.0 },
+            min=if media || kind is Graph || kind is Geometry {
+              1.0
+            } else {
+              -10000.0
+            },
           ),
         ]),
       ]),

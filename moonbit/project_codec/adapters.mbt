@@ -66,6 +66,21 @@ pub fn decode_ObjectKind(value : @core.Any) -> @scene.ObjectKind {
 }
 
 ///|
+pub fn decode_GeometryPointKind(value : @core.Any) -> @scene.GeometryPointKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected GeometryPointKind string")
+    panic()
+  }
+  match @scene.geometry_point_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid GeometryPointKind")
+      panic()
+    }
+  }
+}
+
+///|
 pub fn decode_AnimationKind(value : @core.Any) -> @scene.AnimationKind {
   if @core.typeof_(value) != "string" {
     @core.throw_error("Expected AnimationKind string")
@@ -194,6 +209,54 @@ pub fn decode_GraphDefinition(value : @core.Any) -> @scene.GraphDefinition {
 }
 
 ///|
+pub fn decode_GeometryPoint(value : @core.Any) -> @scene.GeometryPoint {
+  {
+    kind: decode_GeometryPointKind(value._get("kind")),
+    x: value._get("x").cast(),
+    y: value._get("y").cast(),
+    from: optional(value._get("from"), fn(v) { v.cast() }),
+    to: optional(value._get("to"), fn(v) { v.cast() }),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryVector(value : @core.Any) -> @scene.GeometryVector {
+  {
+    from: value._get("from").cast(),
+    to: value._get("to").cast(),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryAngle(value : @core.Any) -> @scene.GeometryAngle {
+  {
+    from: value._get("from").cast(),
+    vertex: value._get("vertex").cast(),
+    to: value._get("to").cast(),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryDefinition(
+  value : @core.Any,
+) -> @scene.GeometryDefinition {
+  {
+    version: value._get("version").cast(),
+    points: decode_map(value._get("points"), fn(v) { decode_GeometryPoint(v) }),
+    vectors: decode_map(value._get("vectors"), fn(v) {
+      decode_GeometryVector(v)
+    }),
+    angles: decode_map(value._get("angles"), fn(v) { decode_GeometryAngle(v) }),
+  }
+}
+
+///|
 pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
   {
     x: value._get("x").cast(),
@@ -217,6 +280,9 @@ pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     effect: decode_Effect(value._get("effect")),
     path: decode_Bezier(value._get("path")),
     graph: optional(value._get("graph"), fn(v) { decode_GraphDefinition(v) }),
+    geometry: optional(value._get("geometry"), fn(v) {
+      decode_GeometryDefinition(v)
+    }),
   }
 }
 
@@ -468,8 +534,9 @@ extern "js" fn make_ObjectState(
   effect : String,
   path : @core.Any,
   graph : @core.Any,
+  geometry : @core.Any,
 ) -> @core.Any =
-  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path, graph) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; if (graph !== undefined) value.graph = graph; return value; }
+  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path, graph, geometry) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; if (graph !== undefined) value.graph = graph; if (geometry !== undefined) value.geometry = geometry; return value; }
 
 ///|
 pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
@@ -511,6 +578,10 @@ pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     encode_Bezier(value.path),
     match value.graph {
       Some(item) => encode_GraphDefinition(item)
+      None => @core.undefined()
+    },
+    match value.geometry {
+      Some(item) => encode_GeometryDefinition(item)
       None => @core.undefined()
     },
   )
@@ -659,6 +730,78 @@ pub fn encode_GraphDefinition(value : @scene.GraphDefinition) -> @core.Any {
     result,
     "breaks",
     encode_array(value.breaks, fn(item) { @core.any(item) }),
+  )
+  result
+}
+
+///|
+pub fn encode_GeometryPoint(value : @scene.GeometryPoint) -> @core.Any {
+  let result = @core.new_object()
+  put_own(
+    result,
+    "kind",
+    @core.any(@scene.geometry_point_kind_name(value.kind)),
+  )
+  put_own(result, "x", @core.any(value.x))
+  put_own(result, "y", @core.any(value.y))
+  if value.from is Some(item) {
+    put_own(result, "from", @core.any(item))
+  }
+  if value.to is Some(item) {
+    put_own(result, "to", @core.any(item))
+  }
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryVector(value : @scene.GeometryVector) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "from", @core.any(value.from))
+  put_own(result, "to", @core.any(value.to))
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryAngle(value : @scene.GeometryAngle) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "from", @core.any(value.from))
+  put_own(result, "vertex", @core.any(value.vertex))
+  put_own(result, "to", @core.any(value.to))
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryDefinition(
+  value : @scene.GeometryDefinition,
+) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "version", @core.any(value.version))
+  put_own(
+    result,
+    "points",
+    encode_map(value.points, fn(item) { encode_GeometryPoint(item) }),
+  )
+  put_own(
+    result,
+    "vectors",
+    encode_map(value.vectors, fn(item) { encode_GeometryVector(item) }),
+  )
+  put_own(
+    result,
+    "angles",
+    encode_map(value.angles, fn(item) { encode_GeometryAngle(item) }),
   )
   result
 }

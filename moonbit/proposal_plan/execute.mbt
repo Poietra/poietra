@@ -135,6 +135,8 @@ fn Compiler::execute(
       }
     }
     Parent(oid, parent) => self.reparent(oid, parent)
+    GeometryElement(cid, oid, collection, id, value) =>
+      self.edit_geometry(cid, oid, collection, id, value)
     Anchor(cid, oid, x, y) => self.anchor(cid, oid, x, y)
     Track(tid, oid, edit) => self.edit_track(tid, oid, edit)
     CompositionDuration(cid, duration) => {

@@ -2,12 +2,45 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PNG } from 'pngjs';
 import { renderProjectFile, inspectProjectFile } from '../index.mjs';
-import { project, addObject, addImage, addAudio, functionProject } from './fixtures.mjs';
+import { project, addObject, addImage, addAudio, functionProject, geometryProject } from './fixtures.mjs';
 import { decodeVideo, decodeAudio } from './decode.mjs';
 import { normalizePathLengths } from '../runtime-host.mjs';
 
 const pixel = (png, x, y) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
 const render = (p, options) => renderProjectFile(JSON.stringify(p), options);
+
+test('semantic geometry derives moving vectors and midpoints in SVG, PNG and independently decoded MP4', async () => {
+  const p = geometryProject();
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 145, 105), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 175, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 145, 105), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(svg, /data-geometry-element="points\/m" d="M18 0/);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[105 * 320 + 145] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 175] > 220);
+  assert.ok(video.frames[12].pixels[105 * 320 + 145] < 30);
+  p.scenes.scene.compositions.a.states.diagram.visible = false;
+  p.scenes.scene.transitions.transition.tracks.diagram.type = 'write';
+  const empty = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 200 })).bytes);
+  assert.doesNotMatch(empty, /data-geometry-element/);
+  const partial = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(partial, /stroke-dashoffset="0.5"/);
+  for (const c of Object.values(p.scenes.scene.compositions)) {
+    const state = c.states.diagram; state.visible = true; state.stroke = 'none';
+    for (const point of Object.values(state.geometry.points)) point.label = '';
+    for (const vector of Object.values(state.geometry.vectors)) vector.label = '';
+    state.geometry.points.a.label = '端点';
+  }
+  const labelled = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  let glyphPixels = 0;
+  for (let y = 85; y < 100; y++) for (let x = 138; x < 161; x++) if (pixel(labelled, x, y)[0] > 50) glyphPixels++;
+  assert.ok(glyphPixels > 20, 'Japanese diagram labels load their bundled glyph fonts');
+});
 
 test('mathematical definitions render the same animated and discontinuous curves in SVG, PNG and MP4', async () => {
   const p = functionProject();

@@ -31,6 +31,7 @@ priv enum StageMode {
   DrawObject(@scene.ObjectKind)
   SelectArea(StageMarquee)
   EditPath(String, @editor.CurvePoint, String?)
+  EditGeometryPoint(String, String, @scene.Point)
   TransformObject(
     String,
     @editor.StageTransform,

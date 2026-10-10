@@ -1,7 +1,9 @@
 ///|
 pub fn motion_project(scene : @scene.Scene) -> @core.Any {
   encode_project({
-    version: if @scene.has_graph_data(scene) {
+    version: if @scene.has_geometry_data(scene) {
+      5
+    } else if @scene.has_graph_data(scene) {
       4
     } else if scene.objects.values().any(fn(o) { o.clipChildren == Some(true) }) {
       3

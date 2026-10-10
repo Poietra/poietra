@@ -4,6 +4,7 @@ pub(all) enum Shape {
   Rectangle(Double, Double, Double)
   Path(String)
   Graph(GraphGeometry)
+  Diagram(DiagramGeometry)
   Arrow(ArrowGeometry)
   NumberLine(ArrowGeometry)
 } derive(Eq)
@@ -38,6 +39,7 @@ pub fn shape_geometry(
         ),
       )
     Graph => Some(Graph(graph_geometry(state, progress)))
+    Geometry => Some(Diagram(diagram_geometry(state, progress)))
     Path =>
       Some(
         Path(
@@ -143,6 +145,36 @@ pub fn object_bounds(item : Drawable, resources : Resources) -> Bounds {
   }
   let stroke = finite(s.strokeWidth).max(0.0).max(write_stroke) / 2.0
   let bounds : Bounds = match item.kind {
+    Geometry => {
+      let diagram = diagram_geometry(s, 1.0)
+      let points = @scene.geometry_points(
+        s.geometry.unwrap_or(@scene.default_geometry()),
+      )
+      let unit = @scene.geometry_unit(s)
+      let mut low_x = 0.0
+      let mut high_x = 0.0
+      let mut low_y = 0.0
+      let mut high_y = 0.0
+      for _, p in points {
+        low_x = low_x.min(p.x * unit - 32.0)
+        high_x = high_x.max(p.x * unit + 32.0)
+        low_y = low_y.min(-p.y * unit - 32.0)
+        high_y = high_y.max(-p.y * unit + 32.0)
+      }
+      for label in diagram.labels {
+        let metrics = (resources.measure_text)(label.text, 12.0)
+        low_x = low_x.min(label.x)
+        high_x = high_x.max(label.x + metrics.width)
+        low_y = low_y.min(label.y - metrics.line_height)
+        high_y = high_y.max(label.y + metrics.line_height)
+      }
+      {
+        x: x + low_x,
+        y: y + low_y,
+        width: high_x - low_x,
+        height: high_y - low_y,
+      }
+    }
     Path => {
       let (left, right) = cubic_range(
         finite(s.path.c1.x),

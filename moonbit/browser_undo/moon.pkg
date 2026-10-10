@@ -4,6 +4,7 @@ import {
   "mizchi/js_builtin/weak",
   "poietra/poietra/boundary",
   "poietra/poietra/collaboration",
+  "poietra/poietra/math_geometry",
 }
 
 supported_targets = "js"

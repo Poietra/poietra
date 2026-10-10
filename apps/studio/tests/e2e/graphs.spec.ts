@@ -201,7 +201,7 @@ for (const foreground of [false, true]) test(`graph picking respects nested rota
 });
 
 test('draws an editable function object, validates local drafts and reopens its version 4 definition', async ({ page }) => {
-  await live(page); await select(page, '関数グラフ');
+  await live(page); await select(page, '数学'); await select(page, '数式グラフ');
   const stage = await page.getByTestId('stage-main').locator('.scene-svg').boundingBox();
   expect(stage).not.toBeNull();
   await page.mouse.move(stage!.x + stage!.width * .3, stage!.y + stage!.height * .2); await page.mouse.down();

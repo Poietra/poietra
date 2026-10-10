@@ -152,7 +152,8 @@ pub fn apply_changes(
       (
         @core.equal(value, @core.any(2)) ||
         @core.equal(value, @core.any(3)) ||
-        @core.equal(value, @core.any(4))
+        @core.equal(value, @core.any(4)) ||
+        @core.equal(value, @core.any(5))
       ) {
       upgrade = upgrade.max(value.cast())
       continue
@@ -164,7 +165,10 @@ pub fn apply_changes(
       upgrade = upgrade.max(3)
     }
     if change_requires_v4(path, value) {
-      upgrade = 4
+      upgrade = upgrade.max(4)
+    }
+    if change_requires_v5(path, value) {
+      upgrade = 5
     }
     let mutation = if @core.is_undefined(value) {
       @collaboration.Remove
@@ -432,6 +436,31 @@ fn change_requires_v3(path : Array[String], value : @core.Any) -> Bool {
     for key in @core.object_keys(current) {
       let child = current._get(key)
       if key == "clipChildren" && @core.equal(child, @core.any(true)) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+fn change_requires_v5(path : Array[String], value : @core.Any) -> Bool {
+  if path.contains("geometry") ||
+    (path.last() == Some("kind") && @core.equal(value, @core.any("geometry"))) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if (key == "geometry" && !@core.is_nullish(child)) ||
+        (key == "kind" && @core.equal(child, @core.any("geometry"))) {
         return true
       }
       if !@core.is_nullish(child) && @core.typeof_(child) == "object" {

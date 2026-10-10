@@ -15,6 +15,7 @@ export class EditorUndoManager extends Y.UndoManager {
     get lastUndoPreservedCompositions() { return sessionCounts(this.moon).compositions; }
     get lastPreservedGraphRanges() { return sessionCounts(this.moon).graphRanges; }
     get lastPreservedGraphDefinitions() { return sessionCounts(this.moon).graphDefinitions; }
+    get lastPreservedGeometryElements() { return sessionCounts(this.moon).geometryElements; }
     destroy() { destroySession(this.moon); super.destroy(); }
 }
 export function undoPreservingPeerTracks(manager) { return undo(manager.moon); }

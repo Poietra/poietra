@@ -23,6 +23,7 @@ export const suites = {
     'editor.spec.ts',
     'groups.spec.ts',
     'graphs.spec.ts',
+    'math-geometry.spec.ts',
     'images.spec.ts',
     'ime.spec.ts',
     'keyboard.spec.ts',

@@ -118,6 +118,7 @@ fn Session::undo_step(self : Session) -> Int raise {
     let action = top(self.manager._get("undoStack"))
     let plan = self.shared_creations(action)
     self.protect_graph_ranges(plan, action)
+    self.protect_geometry(plan, action)
     let transitions = self.transitions()
     let durations = self.required_durations(plan, action, transitions)
     self.assert_tracks_fit(action, durations, Undo, plan.roots, transitions)
@@ -136,6 +137,7 @@ fn Session::undo_step(self : Session) -> Int raise {
         compositions: plan.compositions.size(),
         graph_ranges: plan.graph_ranges.size(),
         graph_definitions: plan.graph_definitions.size(),
+        geometry_elements: plan.geometry_elements.size(),
       }
       self.manager._call("stopCapturing", []) |> ignore
       return tracks
@@ -154,17 +156,20 @@ fn Session::redo_step(self : Session) -> Int raise {
     let plan = empty_creations()
     let action = top(self.manager._get("redoStack"))
     self.protect_graph_ranges(plan, action)
+    self.protect_geometry(plan, action)
     let transitions = self.transitions()
     let durations = self.required_durations(plan, action, transitions)
     self.assert_tracks_fit(action, durations, Redo, plan.roots, transitions)
     let changed = self.protected_step(Redo, plan, durations)
     if durations.size() > 0 ||
       plan.graph_ranges.size() > 0 ||
-      plan.graph_definitions.size() > 0 {
+      plan.graph_definitions.size() > 0 ||
+      plan.geometry_elements.size() > 0 {
       self.counts = {
         ..self.counts,
         graph_ranges: plan.graph_ranges.size(),
         graph_definitions: plan.graph_definitions.size(),
+        geometry_elements: plan.geometry_elements.size(),
       }
       self.manager._call("stopCapturing", []) |> ignore
       return durations.size()

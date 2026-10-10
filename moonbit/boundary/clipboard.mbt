@@ -96,7 +96,9 @@ pub fn serialize_objects(value : @core.Any) -> String {
     deleted: None,
   }
   let project : @scene.Project = {
-    version: if @scene.has_graph_data(scene) {
+    version: if @scene.has_geometry_data(scene) {
+      5
+    } else if @scene.has_graph_data(scene) {
       4
     } else if clipboard.objects.any(fn(o) { o.clipChildren == Some(true) }) {
       3

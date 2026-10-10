@@ -6,6 +6,7 @@ pub(all) enum ObjectKind {
   Text
   Equation
   Graph
+  Geometry
   Path
   Arrow
   NumberLine
@@ -101,6 +102,7 @@ pub fn object_kind(value : String) -> ObjectKind? {
     "rectangle" => Some(Rectangle)
     "text" => Some(Text)
     "graph" => Some(Graph)
+    "geometry" => Some(Geometry)
     "equation" => Some(Equation)
     "path" => Some(Path)
     "arrow" => Some(Arrow)
@@ -118,6 +120,7 @@ pub fn object_kind_name(kind : ObjectKind) -> String {
     Rectangle => "rectangle"
     Text => "text"
     Graph => "graph"
+    Geometry => "geometry"
     Equation => "equation"
     Path => "path"
     Arrow => "arrow"
@@ -174,6 +177,7 @@ pub impl ToJson for ObjectKind with fn to_json(self) {
     Rectangle => "rectangle"
     Text => "text"
     Graph => "graph"
+    Geometry => "geometry"
     Equation => "equation"
     Path => "path"
     Arrow => "arrow"

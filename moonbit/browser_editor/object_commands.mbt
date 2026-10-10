@@ -87,7 +87,24 @@ pub fn update_state(
   if truthy(composition._get("states")._get(id)) {
     let changes : Array[@core.Any] = []
     for key in @core.object_keys(patch) {
-      if key == "graph" {
+      if key == "geometry" {
+        if !@core.equal(object._get("kind"), @core.any("geometry")) {
+          @core.throw_error("数学図を選択してください。")
+        }
+        changes.append(
+          @boundary.geometry_patch_changes(
+            composition._get("states")._get(id)._get("geometry"),
+            patch._get(key),
+            FixedArray::makei(base.length() + 1, fn(i) {
+              if i < base.length() {
+                base[i]
+              } else {
+                key
+              }
+            }),
+          ),
+        )
+      } else if key == "graph" {
         if !@core.equal(object._get("kind"), @core.any("graph")) {
           @core.throw_error("関数グラフを選択してください。")
           return
@@ -128,6 +145,18 @@ pub fn update_state(
     @boundary.default_state(object._get("kind"), @core.undefined())
   }
   let next = merge(state, patch)
+  if @core.object_keys(patch).contains("geometry") {
+    if !@core.equal(object._get("kind"), @core.any("geometry")) {
+      @core.throw_error("数学図を選択してください。")
+    }
+    next._set(
+      "geometry",
+      @boundary.merge_geometry_patch(
+        state._get("geometry"),
+        patch._get("geometry"),
+      ),
+    )
+  }
   if @core.object_keys(patch).contains("graph") {
     if !@core.equal(object._get("kind"), @core.any("graph")) {
       @core.throw_error("関数グラフを選択してください。")
@@ -257,6 +286,10 @@ pub fn add_object(
   let initial = @boundary.default_state(@core.any(kind), patch)
   if kind == "graph" {
     @boundary.validate_graph_patch(initial._get("graph"), @core.new_object())
+  }
+  if kind == "geometry" {
+    @boundary.merge_geometry_patch(initial._get("geometry"), @core.new_object())
+    |> ignore
   }
   let result = @editor.create_object(
     creation_target(scene),

@@ -79,11 +79,19 @@ pub(all) enum Operation {
   Append(String, String, String, Double, Double)
   State(String, String, StateField, Scalar)
   ShapePath(String, String, @scene.Bezier)
+  GeometryElement(String, String, String, String, DiagramElement?)
   Parent(String, String?)
   Anchor(String, String, Double, Double)
   Track(String, String, TrackEdit)
   CompositionDuration(String, Double)
   TransitionDuration(String, Double)
+}
+
+///|
+pub(all) enum DiagramElement {
+  PointElement(@scene.GeometryPoint)
+  VectorElement(@scene.GeometryVector)
+  AngleElement(@scene.GeometryAngle)
 }
 
 ///|
@@ -126,6 +134,9 @@ pub(all) enum Value {
   PathValue(@scene.Bezier?)
   TimingValue(@scene.Timing?)
   KeyframeValue(@scene.Keyframe)
+  GeometryPointValue(@scene.GeometryPoint)
+  GeometryVectorValue(@scene.GeometryVector)
+  GeometryAngleValue(@scene.GeometryAngle)
   ParentValue(String?)
   StateValue(@scene.ObjectState)
   ObjectValue(@scene.SceneObject)

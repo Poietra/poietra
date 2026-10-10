@@ -3,6 +3,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/math",
   "poietra/poietra/math_plot",
+  "poietra/poietra/math_geometry",
 }
 
 import {

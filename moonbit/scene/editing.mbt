@@ -148,14 +148,14 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
   {
     x: 640.0,
     y: 360.0,
-    width: if kind == Graph {
+    width: if kind == Graph || kind == Geometry {
       560.0
     } else if line {
       400.0
     } else {
       100.0
     },
-    height: if kind == Graph {
+    height: if kind == Graph || kind == Geometry {
       360.0
     } else if kind == Path {
       -180.0
@@ -174,7 +174,7 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     visible: true,
     fill: "#d7d8e4",
     stroke: "#67c4d9",
-    strokeWidth: if line || kind == Graph {
+    strokeWidth: if line || kind == Graph || kind == Geometry {
       2.0
     } else {
       0.0
@@ -193,6 +193,11 @@ pub fn default_state(kind : ObjectKind) -> ObjectState {
     effect: Normal,
     graph: if kind == Graph {
       Some(default_graph())
+    } else {
+      None
+    },
+    geometry: if kind == Geometry {
+      Some(default_geometry())
     } else {
       None
     },

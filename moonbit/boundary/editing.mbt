@@ -120,6 +120,13 @@ pub fn default_state(kind : @core.Any, overrides : @core.Any) -> @core.Any {
       ),
     )
   }
+  if !@core.is_nullish(overrides) &&
+    !@core.is_nullish(overrides._get("geometry")) {
+    result._set(
+      "geometry",
+      merge_geometry_patch(base._get("geometry"), overrides._get("geometry")),
+    )
+  }
   result
 }
 

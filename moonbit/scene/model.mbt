@@ -77,6 +77,44 @@ pub(all) struct GraphDefinition {
 } derive(Eq, FromJson, ToJson)
 
 ///|
+pub(all) struct GeometryPoint {
+  kind : GeometryPointKind
+  x : Double
+  y : Double
+  from : String?
+  to : String?
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct GeometryVector {
+  from : String
+  to : String
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct GeometryAngle {
+  from : String
+  vertex : String
+  to : String
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+/// Stable IDs are scoped to a mathematical diagram. Each Composition owns its
+/// definitions and coordinates; evaluated positions and paths are runtime data.
+pub(all) struct GeometryDefinition {
+  version : Int
+  points : Map[String, GeometryPoint]
+  vectors : Map[String, GeometryVector]
+  angles : Map[String, GeometryAngle]
+} derive(Eq, FromJson, ToJson)
+
+///|
 pub(all) struct ObjectState {
   x : Double
   y : Double
@@ -99,6 +137,7 @@ pub(all) struct ObjectState {
   effect : Effect
   path : Bezier
   graph : GraphDefinition?
+  geometry : GeometryDefinition?
 } derive(Eq, FromJson, ToJson)
 
 ///|

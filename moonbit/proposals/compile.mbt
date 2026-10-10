@@ -25,6 +25,9 @@ fn write_value(value : @plan.Value) -> @core.Any {
         None => @core.null()
       }
     KeyframeValue(value) => @boundary.write_keyframe(value)
+    GeometryPointValue(value) => @boundary.write_geometry_point(value)
+    GeometryVectorValue(value) => @boundary.write_geometry_vector(value)
+    GeometryAngleValue(value) => @boundary.write_geometry_angle(value)
     ParentValue(value) =>
       match value {
         Some(id) => @core.any(id)

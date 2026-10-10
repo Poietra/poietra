@@ -11,7 +11,7 @@ rejects executable application TS/TSX. It does not measure runtime dependencies.
 
 | Layer | Main packages | Responsibility |
 | --- | --- | --- |
-| Model and engine | `scene`, `motion`, `math_plot`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, numeric plots, pure edit plans, prepared evaluation and shared rendering |
+| Model and engine | `scene`, `motion`, `math_plot`, `math_geometry`, `geometry`, `render`, `audio`, `exporting`, `editor`, `proposal_plan` | Documents, mathematical evaluation, pure edit plans, prepared evaluation and shared rendering |
 | Collaboration | `collaboration`, `boundary`, `browser_editor`, `browser_undo`, `browser_chat` | Yjs leaf edits, immutable snapshots, selective Undo and chat |
 | Browser | `ui`, `browser_render`, `browser_media`, `browser_export`, `browser_projects`, `browser_kernel` | React UI, drawing, resources, media and portable files |
 | Portable files | `project_codec` | Bounded parsing, validation and generated record adapters |
@@ -81,9 +81,37 @@ The boundaries to preserve are:
   repeated roots without sign changes can be missed. It is not certified topology
   or a global error bound. Preview and Node export use the same derived geometry;
   no new host dependency or serialized path is needed.
-- Graph picking (2026-10-11) uses the presented SVG curve with a 12 CSS-pixel
+- Extensible mathematics (2026-10-11) keeps one searchable creation palette in
+  `editor.math_tools`; adding a family does not add a toolbar button. Function
+  plots retain their own definition/evaluator. The first diagram family stores
+  a `scene.GeometryDefinition` per Composition: stable point IDs, free coordinates
+  or midpoint references, vector endpoint references, angles and deletion
+  tombstones. IDs belong to the diagram, so copying/reusing a diagram preserves
+  its internal relationships while creating independent root identities.
+  `math_geometry` is a host-independent, bounded one-way construction evaluator;
+  missing/cyclic references are unresolved rather than guessed. New edits and
+  portable files validate references, finite coordinates and at most 128 stored
+  elements per collection. Concurrent incompatible rewiring can still leave an
+  unresolved construction; the inspector reports it for correction.
+  Free points interpolate using Position timing; topology switches at half base
+  progress. Derived paths/labels feed the same `render.Shape.Diagram` boundary
+  in SVG, Canvas/GPU and Node, with per-element Write. Point gestures invert the
+  full world affine matrix and use screen-sized handles inside parent clips.
+  Boundary edits retain Yjs collections and write intended leaves. Selective
+  Undo/Redo preserves peer-used points, their construction ancestors and required
+  reference leaves without consuming an earlier action; unrelated pose/style
+  edits still undo. AI `setGeometryElement` uses typed plans and validates the
+  final diagram before publication, retaining per-element guards for coordinate
+  edits and topology dependencies for structural edits.
+  Portable geometry uses monotonic, non-Undo format v5 with v1–v4 reads.
+  This family avoids turning each point into a Scene object or adding point
+  fields to every global animation channel. Internal-point keyframes, global
+  constraints and 3D meshes are deferred. A future network family should retain
+  node/edge topology with its own layout evaluator, joining this palette and
+  shared render boundary; a layout-derived line is never its document source.
+- Graph and diagram picking (2026-10-11) use the presented SVG curves with a 12 CSS-pixel
   interaction stroke, independent of zoom and affine transforms. Selected graphs
-  also accept dragging within their transformed viewport. Both supplemental hits
+  also accept dragging within their transformed bounds. Both supplemental hits
   follow existing painted-object/bounds hits and intersect every evaluated parent
   clip, so they cannot capture another object's painted area or clipped content.
   `ui/stage_hit.mbt` uses a native Canvas `isPointInStroke` adapter and a WeakMap
@@ -197,7 +225,7 @@ Run pure MoonBit tests from the root:
 ```sh
 node scripts/moon.mjs check --target js --deny-warn
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/math_geometry moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
 ```
 
 Install Chromium with `pnpm --dir apps/studio exec playwright install --with-deps chromium`.
@@ -268,6 +296,27 @@ real process restart, dependency persistence, offline peer edits and 500 local
 sockets. These correctness checks do not establish production capacity or
 verify live provider calls. Equations remain numerically sampled as described
 above; verification does not establish complete topology for arbitrary inputs.
+
+Mathematical diagram verification (2026-10-11, working tree based on `05c57c1`)
+used the pinned MoonBit 2026-09-15 compiler, Node 24.13.0 and Chromium
+153.0.8010.12 with isolated Node/workerd storage. The release build, captured
+API/type checks, source/suite audits, production dry run and 5 isolated extension
+checks passed. MoonBit JS passed 90 cases; targeted `math_geometry`, `scene`,
+`render`, `proposal_plan` and `render_job` WASM checks passed 32. Studio passed
+849 tests and the complete headless suite passed 23. The final rendering/API
+selection passed 14, including Japanese diagram glyphs and independently
+decoded moving-vector/midpoint MP4 output.
+The 59-test browser selection below passed, covering the mathematics palette,
+point gestures, reference validation, peer edits, Undo/cancellation, save/import,
+affine parents/clipping, existing graphs/text/selection, and SVG/Canvas/GPU
+agreement during Write. The isolated workerd integration passed offline edits,
+selective Undo, hibernation, dependency persistence, forced process restart and
+500 local sockets. These are correctness checks; they do not establish faster
+rendering or production capacity, and live provider calls were not exercised.
+
+```sh
+POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test math-geometry.spec.ts graphs.spec.ts primitives.spec.ts clipping.spec.ts text-editing.spec.ts marquee.spec.ts painter-preview.spec.ts undo-objects.spec.ts ai-create.spec.ts --workers=2
+```
 
 ## API documentation
 

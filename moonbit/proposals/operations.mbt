@@ -108,6 +108,7 @@ fn read_operation(input : @core.Any) -> @plan.Operation {
         @plan.state_field(input._get("property").cast()).unwrap(),
         scalar(input._get("value")),
       )
+    "setGeometryElement" => read_geometry_operation(input, cid, oid)
     "setParent" =>
       Parent(
         oid,
