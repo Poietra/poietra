@@ -69,7 +69,7 @@ test "all property channels retain their timing parents and only change duration
   guard plan_track_command(explicit_source(), [], properties, 800.0) is Ok(plan) else {
     fail("Expected property edits")
   }
-  assert_eq(plan.properties.length(), 11)
+  assert_eq(plan.properties.length(), @scene.property_channels().length())
   assert_true(plan.fields.is_empty())
   for i, (channel, update) in plan.properties {
     assert_true(channel == @scene.property_channels()[i])

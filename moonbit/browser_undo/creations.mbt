@@ -5,6 +5,9 @@ priv struct CreationPlan {
   activated_tracks : @collection.JsSet[@core.Any]
   timing_parents : @collection.JsMap[@core.Any, Set[String]]
   retained_fields : @collection.JsMap[@core.Any, Set[String]]
+  graph_ranges : @collection.JsSet[@core.Any]
+  graph_definitions : @collection.JsSet[@core.Any]
+  geometry_elements : @collection.JsSet[@core.Any]
   audio : @collection.JsSet[@core.Any]
   tracks : @collection.JsSet[@core.Any]
   objects : @collection.JsSet[@core.Any]
@@ -22,6 +25,9 @@ fn empty_creations() -> CreationPlan {
     activated_tracks: @collection.JsSet::new(),
     timing_parents: @collection.JsMap::new(),
     retained_fields: @collection.JsMap::new(),
+    graph_ranges: @collection.JsSet::new(),
+    graph_definitions: @collection.JsSet::new(),
+    geometry_elements: @collection.JsSet::new(),
     audio: @collection.JsSet::new(),
     tracks: @collection.JsSet::new(),
     objects: @collection.JsSet::new(),

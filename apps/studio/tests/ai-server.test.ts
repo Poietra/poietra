@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import * as Y from 'yjs';
 import { applyChanges, initializeDocument, readProject } from '../shared/document';
 import { makeDemoProject } from '../shared/demo';
-import { validateProposalForApply } from '../shared/ai';
+import { applyProposal, validateProposalForApply } from '../shared/ai';
 
 const { parse, generate, constructed } = vi.hoisted(() => ({ parse: vi.fn(), generate: vi.fn(), constructed: [] as unknown[] }));
 vi.mock('openai', () => ({ default: class { constructor(options: unknown) { constructed.push(options); } responses = { parse }; images = { generate }; static APIError = class extends Error {}; } }));
@@ -50,6 +50,26 @@ test('Responses structured output uses the start snapshot and produces guarded e
 test('a missing selection is rejected without contacting the model', async () => {
   await expect(createEditProposal(doc, { ...input, selectedIds: ['missing'] }, 'test-key-never-sent', 'test-model')).rejects.toThrow('選択中');
   expect(parse).not.toHaveBeenCalled();
+});
+
+test.each(['x^3 - a*x', 'x^2+y^2=a^2'])('Responses receives mathematical graph operations and creates an editable definition (%s)', async expression => {
+  parse.mockResolvedValue({ status: 'completed', output_parsed: { message: '数式グラフを追加します。', operations: [
+    { action: 'createObject', ref: '@formula', compositionId: 'comp-1', name: 'Formula', kind: 'graph', x: 640, y: 360, width: 560, height: 360, fill: '#d7d8e4', text: '', fontSize: 32 },
+    { action: 'setState', compositionId: 'comp-1', objectId: '@formula', property: 'graphExpression', value: expression },
+    { action: 'setState', compositionId: 'comp-1', objectId: '@formula', property: 'graphA', value: 3 },
+  ] } });
+  const proposal = await createEditProposal(doc, { ...input, selectedIds: [], prompt: `${expression} のグラフを追加して` }, 'test-key-never-sent', 'test-model');
+  const body = parse.mock.calls[0][0];
+  expect(body.input[0].content).toContain('createObject kind graph');
+  expect(body.input[0].content).toContain('Do not approximate a requested function or implicit curve with a hand-authored path');
+  expect(body.input[0].content).toContain('x^2+y^2=a^2');
+  expect(JSON.stringify(body.text.format.schema)).toContain('graphExpression');
+  applyProposal(doc, proposal);
+  const project = readProject(doc)!, scene = project.scenes['scene-1'];
+  const graph = Object.values(scene.objects).find(o => o.kind === 'graph')!;
+  expect(scene.compositions['comp-1'].states[graph.id].graph).toMatchObject({ expression, syntaxVersion: expression.includes('=') ? 2 : 1, a: 3 });
+  expect(project.version).toBe(4);
+  expect(generate).not.toHaveBeenCalled();
 });
 
 test.each([

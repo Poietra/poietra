@@ -32,11 +32,27 @@ fn StageController::down(self : StageController, event : @core.Any) -> Unit {
     None
   }
   let handle = stage_handle(target, "data-path-handle")
+  let point_handle = stage_handle(target, "data-geometry-handle")
   let transform = match stage_handle(target, "data-transform-handle") {
     Some(name) => @editor.stage_transform(name)
     None => None
   }
-  let mode = if handle is Some(handle) && selected is Some(id) {
+  let mode = if point_handle is Some(point_id) && selected is Some(id) {
+    guard self.tool is SelectTool &&
+      self.state_editing &&
+      snapshot.object(id) is Some(object) &&
+      !object.locked &&
+      (object.kind == @scene.Geometry || object.kind == @scene.Network) &&
+      snapshot.geometry_point(id, point_id) is Some((point, unit)) &&
+      snapshot.object_matrix(id).inverse() is Some(inverse) else {
+      return
+    }
+    let local_point = inverse.point(start)
+    EditGeometryPoint(id, point_id, {
+      x: point.x - local_point.x / unit,
+      y: point.y + local_point.y / unit,
+    })
+  } else if handle is Some(handle) && selected is Some(id) {
     let object = snapshot.object(id)
     let selection = self.editor.selection
     let transition = if selection is TransitionSelection(_) {

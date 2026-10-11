@@ -1,18 +1,6 @@
 ///|
 pub fn property_channel_name(channel : @scene.PropertyChannel) -> String {
-  match channel {
-    Position => "position"
-    Opacity => "opacity"
-    Size => "size"
-    Rotation => "rotation"
-    Fill => "fill"
-    Stroke => "stroke"
-    StrokeWidth => "strokeWidth"
-    FontSize => "fontSize"
-    CornerRadius => "cornerRadius"
-    ShapePath => "path"
-    Reveal => "reveal"
-  }
+  @scene.property_channel_name(channel)
 }
 
 ///|
@@ -29,6 +17,7 @@ pub fn property_channel_label(channel : @scene.PropertyChannel) -> String {
     CornerRadius => "Corner radius"
     ShapePath => "Shape path"
     Reveal => "Reveal"
+    GraphParameters => "Graph parameters"
   }
 }
 
@@ -45,6 +34,7 @@ pub fn property_channels(
     match channel {
       Reveal => track.type_ is Write || track.type_ is Grow
       ShapePath => kind is Path
+      GraphParameters => kind is Graph
       FontSize => kind is Text || kind is Equation
       Size => !(kind is Text || kind is Equation)
       CornerRadius => kind is Rectangle || kind is Image || kind is Video

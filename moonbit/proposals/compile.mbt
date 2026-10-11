@@ -10,6 +10,8 @@ fn write_scalar(value : @plan.Scalar) -> @core.Any {
 ///|
 fn write_value(value : @plan.Value) -> @core.Any {
   match value {
+    NumbersValue(values) =>
+      @core.any(FixedArray::makei(values.length(), fn(i) { values[i] }))
     ScalarValue(value) => write_scalar(value)
     EasingValue(value) => @boundary.write_easing(value)
     PathValue(value) =>
@@ -23,6 +25,12 @@ fn write_value(value : @plan.Value) -> @core.Any {
         None => @core.null()
       }
     KeyframeValue(value) => @boundary.write_keyframe(value)
+    GeometryPointValue(value) => @boundary.write_geometry_point(value)
+    GeometryVectorValue(value) => @boundary.write_geometry_vector(value)
+    GeometryAngleValue(value) => @boundary.write_geometry_angle(value)
+    NetworkNodeValue(value) => @boundary.write_network_node(value)
+    NetworkEdgeValue(value) => @boundary.write_network_edge(value)
+    OptionalNumberValue(value) => value.map(@core.any).unwrap_or(@core.null())
     ParentValue(value) =>
       match value {
         Some(id) => @core.any(id)

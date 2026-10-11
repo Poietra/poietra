@@ -75,12 +75,39 @@ fn Compiler::execute(
         None =>
           raise CompileError("編集対象の状態が見つかりません。")
       }
-      self.set_state(cid, oid, change_state(state, field, value, object.kind))
+      let next = change_state(state, field, value, object.kind)
+      self.set_state(cid, oid, next)
       if !self.created.contains(oid) && !self.appended.contains(cid) {
-        self.emit(
-          ["compositions", cid, "states", oid, field_name(field)],
-          ScalarValue(value),
-        )
+        let base = ["compositions", cid, "states", oid]
+        if graph_field_key(field) is Some(key) {
+          self.depend(base + ["graph", "syntaxVersion"])
+          let counterpart = match field {
+            GraphXMin => Some("xMax")
+            GraphXMax => Some("xMin")
+            GraphYMin => Some("yMax")
+            GraphYMax => Some("yMin")
+            _ => None
+          }
+          if counterpart is Some(key) {
+            self.depend(base + ["graph", key])
+          }
+          self.emit(
+            base + ["graph", key],
+            if field == GraphBreaks {
+              NumbersValue(next.graph.unwrap().breaks)
+            } else {
+              ScalarValue(value)
+            },
+          )
+          if field == GraphExpression {
+            self.emit(
+              base + ["graph", "syntaxVersion"],
+              ScalarValue(Number(next.graph.unwrap().syntaxVersion.to_double())),
+            )
+          }
+        } else {
+          self.emit(base + [field_name(field)], ScalarValue(value))
+        }
       }
     }
     ShapePath(cid, oid, path) => {
@@ -108,6 +135,12 @@ fn Compiler::execute(
       }
     }
     Parent(oid, parent) => self.reparent(oid, parent)
+    GeometryElement(cid, oid, collection, id, value) =>
+      self.edit_geometry(cid, oid, collection, id, value)
+    NetworkElement(cid, oid, collection, id, value) =>
+      self.edit_network(cid, oid, collection, id, value)
+    SurfaceDefinition(cid, oid, definition) =>
+      self.edit_surface(cid, oid, definition)
     Anchor(cid, oid, x, y) => self.anchor(cid, oid, x, y)
     Track(tid, oid, edit) => self.edit_track(tid, oid, edit)
     CompositionDuration(cid, duration) => {

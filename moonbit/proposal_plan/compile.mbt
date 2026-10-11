@@ -1,5 +1,43 @@
 ///|
 fn Compiler::finish(self : Compiler) -> Plan raise CompileError {
+  for _, states in self.states {
+    for oid, state in states {
+      if self.objects[oid].kind == Network {
+        guard state.network is Some(definition) else {
+          raise CompileError(
+            "グラフ理論の図の定義がありません。",
+          )
+        }
+        if @scene.network_validation_error(definition) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+      if self.objects[oid].kind == Surface {
+        guard state.surface is Some(definition) else {
+          raise CompileError("曲面の定義がありません。")
+        }
+        if @scene.surface_validation_error(definition) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+      if self.objects[oid].kind == Geometry {
+        guard state.geometry is Some(definition) else {
+          raise CompileError("数学図の定義がありません。")
+        }
+        if @scene.geometry_validation_error(definition) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+      if self.objects[oid].kind == Graph {
+        guard state.graph is Some(graph) else {
+          raise CompileError("グラフの定義がありません。")
+        }
+        if @scene.graph_validation_error(graph) is Some(message) {
+          raise CompileError(message)
+        }
+      }
+    }
+  }
   for tid, duration in self.durations {
     if !self.new_transitions.contains(tid) {
       self.emit(["transitions", tid, "duration"], ScalarValue(Number(duration)))

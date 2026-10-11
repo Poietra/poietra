@@ -40,6 +40,8 @@ pub(all) struct MathNode {
 ///|
 pub(all) enum MathTag {
   Group
+  /// A stretched MathJax delimiter nests its own `<svg>` viewport.
+  Viewport
   Path
   Rectangle
   Line
@@ -53,6 +55,7 @@ pub(all) enum MathTag {
 pub fn math_tag(value : String) -> MathTag? {
   match value {
     "g" => Some(Group)
+    "svg" => Some(Viewport)
     "path" => Some(Path)
     "rect" => Some(Rectangle)
     "line" => Some(Line)
@@ -68,6 +71,7 @@ pub fn math_tag(value : String) -> MathTag? {
 pub fn math_tag_name(value : MathTag) -> String {
   match value {
     Group => "g"
+    Viewport => "svg"
     Path => "path"
     Rectangle => "rect"
     Line => "line"

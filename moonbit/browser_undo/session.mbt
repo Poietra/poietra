@@ -7,6 +7,7 @@ pub struct Session {
   peer_tracks : @weak.WeakSet[@core.Any]
   peer_timings : @weak.WeakSet[@core.Any]
   peer_keyframes : @weak.WeakSet[@core.Any]
+  peer_geometry : @weak.WeakSet[@core.Any]
   peer_parented : @weak.WeakSet[@core.Any]
   peer_detached : @weak.WeakSet[@core.Any]
   peer_activations : @weak.WeakMap[@core.Any, @weak.WeakSet[@core.Any]]
@@ -25,11 +26,22 @@ struct Preserved {
   objects : Int
   durations : Int
   compositions : Int
+  graph_ranges : Int
+  graph_definitions : Int
+  geometry_elements : Int
 }
 
 ///|
 fn empty_counts() -> Preserved {
-  { audio: 0, objects: 0, durations: 0, compositions: 0, }
+  {
+    audio: 0,
+    objects: 0,
+    durations: 0,
+    compositions: 0,
+    graph_ranges: 0,
+    graph_definitions: 0,
+    geometry_elements: 0,
+  }
 }
 
 ///|
@@ -43,6 +55,7 @@ pub fn create_session(manager : @core.Any, yjs : @core.Any) -> Session {
     peer_tracks: @weak.WeakSet::new(),
     peer_timings: @weak.WeakSet::new(),
     peer_keyframes: @weak.WeakSet::new(),
+    peer_geometry: @weak.WeakSet::new(),
     peer_parented: @weak.WeakSet::new(),
     peer_detached: @weak.WeakSet::new(),
     peer_activations: @weak.WeakMap::new(),
@@ -83,6 +96,9 @@ pub fn session_counts(session : Session) -> @core.Any {
     ("objects", @core.any(session.counts.objects)),
     ("durations", @core.any(session.counts.durations)),
     ("compositions", @core.any(session.counts.compositions)),
+    ("graphRanges", @core.any(session.counts.graph_ranges)),
+    ("graphDefinitions", @core.any(session.counts.graph_definitions)),
+    ("geometryElements", @core.any(session.counts.geometry_elements)),
   ])
 }
 
@@ -219,6 +235,9 @@ fn Session::remember_peer_edits(
       for id in ids {
         self.remember_object(path[1], id)
         let track = get(entries, id)
+        if collection == "states" && self.is_map(track) {
+          self.remember_geometry_edits(track, path, changed)
+        }
         if collection == "states" &&
           (
             path.length() < 6 ||

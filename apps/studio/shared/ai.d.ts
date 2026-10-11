@@ -1,4 +1,4 @@
-import type { Keyframe } from "./scene-types";
+import type { Keyframe, GeometryPoint, GeometryVector, GeometryAngle, NetworkNode, NetworkEdge, SurfaceDefinition } from "./scene-types";
 import type { z } from 'zod';
 import { type Change } from './document';
 import type { ObjectKind, Project } from './model';
@@ -39,6 +39,18 @@ export interface CreateImageOperation {
     width: number;
     height: number;
     image: ImageAsset;
+}
+export type GeometryElementOperation = {
+    action: 'setGeometryElement'; compositionId: string; objectId: string; elementId: string;
+} & ({ collection: 'points'; element: Omit<GeometryPoint, 'deleted'> | null }
+  | { collection: 'vectors'; element: Omit<GeometryVector, 'deleted'> | null }
+  | { collection: 'angles'; element: Omit<GeometryAngle, 'deleted'> | null });
+export type NetworkElementOperation = {
+    action: 'setNetworkElement'; compositionId: string; objectId: string; elementId: string;
+} & ({ collection: 'nodes'; element: Omit<NetworkNode, 'deleted'> | null }
+  | { collection: 'edges'; element: Omit<NetworkEdge, 'deleted'> | null });
+export interface SurfaceOperation {
+    action: 'setSurface'; compositionId: string; objectId: string; surface: SurfaceDefinition;
 }
 export type ProposalOperation = {
     action: 'setState';
@@ -106,8 +118,8 @@ export type ProposalOperation = {
     name: string;
     duration: number;
     transitionDuration: number;
-} | GenerateImageOperation;
-declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear'];
+} | GenerateImageOperation | GeometryElementOperation | NetworkElementOperation | SurfaceOperation;
+declare const stateProperties: readonly ['x', 'y', 'width', 'height', 'rotation', 'opacity', 'visible', 'fill', 'stroke', 'strokeWidth', 'text', 'fontSize', 'cornerRadius', 'effect', 'anchorX', 'anchorY', 'scaleX', 'scaleY', 'shear', 'graphExpression', 'graphXMin', 'graphXMax', 'graphYMin', 'graphYMax', 'graphA', 'graphB', 'graphC', 'graphAxes', 'graphGrid', 'graphFilled', 'graphBreaks'];
 export declare const GENERATED_IMAGE_SIZES: {
     readonly square: {
         readonly width: 1024;

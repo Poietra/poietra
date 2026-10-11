@@ -522,7 +522,7 @@ async fn RasterCache::get(
     previous.bind(fn(p) { p.equation }),
   )
   let shape = prepare_shape(
-    @render.shape_geometry(item.kind, item.state),
+    @render.shape_geometry(item.kind, item.state, progress=item.progress),
     previous.bind(fn(p) { p.shape }),
   )
   let geometry_bytes = equation

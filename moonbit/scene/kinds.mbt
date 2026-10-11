@@ -5,6 +5,10 @@ pub(all) enum ObjectKind {
   Rectangle
   Text
   Equation
+  Graph
+  Geometry
+  Network
+  Surface
   Path
   Arrow
   NumberLine
@@ -99,6 +103,10 @@ pub fn object_kind(value : String) -> ObjectKind? {
     "circle" => Some(Circle)
     "rectangle" => Some(Rectangle)
     "text" => Some(Text)
+    "graph" => Some(Graph)
+    "geometry" => Some(Geometry)
+    "network" => Some(Network)
+    "surface" => Some(Surface)
     "equation" => Some(Equation)
     "path" => Some(Path)
     "arrow" => Some(Arrow)
@@ -115,6 +123,10 @@ pub fn object_kind_name(kind : ObjectKind) -> String {
     Circle => "circle"
     Rectangle => "rectangle"
     Text => "text"
+    Graph => "graph"
+    Geometry => "geometry"
+    Network => "network"
+    Surface => "surface"
     Equation => "equation"
     Path => "path"
     Arrow => "arrow"
@@ -166,17 +178,7 @@ pub fn animation_name(value : AnimationKind) -> String {
 
 ///|
 pub impl ToJson for ObjectKind with fn to_json(self) {
-  match self {
-    Circle => "circle"
-    Rectangle => "rectangle"
-    Text => "text"
-    Equation => "equation"
-    Path => "path"
-    Arrow => "arrow"
-    NumberLine => "numberline"
-    Image => "image"
-    Video => "video"
-  }
+  object_kind_name(self).to_json()
 }
 
 ///|
@@ -245,6 +247,9 @@ pub(all) enum CurveProperty {
   ObjectScaleX
   ObjectScaleY
   ObjectShear
+  GraphA
+  GraphB
+  GraphC
 } derive(Eq, Hash)
 
 ///|
@@ -271,6 +276,9 @@ pub fn curve_property(value : String) -> CurveProperty? {
     "scaleX" => Some(ObjectScaleX)
     "scaleY" => Some(ObjectScaleY)
     "shear" => Some(ObjectShear)
+    "graphA" => Some(GraphA)
+    "graphB" => Some(GraphB)
+    "graphC" => Some(GraphC)
     _ => None
   }
 }
@@ -299,6 +307,9 @@ pub fn curve_property_name(value : CurveProperty) -> String {
     ObjectScaleX => "scaleX"
     ObjectScaleY => "scaleY"
     ObjectShear => "shear"
+    GraphA => "graphA"
+    GraphB => "graphB"
+    GraphC => "graphC"
   }
 }
 

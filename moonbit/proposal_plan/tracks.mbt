@@ -174,6 +174,7 @@ fn check_track(track : @scene.Track, limit : Double) -> Unit raise CompileError 
     track.cornerRadiusTiming,
     track.pathTiming,
     track.revealTiming,
+    track.graphTiming,
   ]
   for timing in timings {
     if timing is Some(timing) {

@@ -8,5 +8,7 @@
 .stage-surface[data-gesture='marquee'] { cursor: crosshair !important; }
 .stage-surface [data-transform-handle]:hover > :last-child { fill: #a9a7fb; }
 .stage-surface [data-path-handle]:hover { stroke: #f0edf8; }
+.stage-surface [data-geometry-handle]:hover > :last-child { fill: #a9a7fb; }
+.stage-surface[data-gesture='geometry-point'] { cursor: grabbing !important; }
 .stage-surface.is-manipulating [data-selection-id]:not([data-locked]) > rect { stroke: #b8b5ff; }
 .stage-media-status { position: absolute; inset: 0; display: grid; place-items: center; background: #191920b3; color: #c9c7d5; font-size: 12px; pointer-events: none; }

@@ -8,6 +8,9 @@ fn keyframe_label(property : @scene.CurveProperty) -> String {
     ObjectScaleX => "Scale X"
     ObjectScaleY => "Scale Y"
     ObjectShear => "Shear"
+    GraphA => "Parameter a"
+    GraphB => "Parameter b"
+    GraphC => "Parameter c"
     _ => @scene.curve_property_name(property)
   }
 }

@@ -31,12 +31,14 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
   let duration = @zod.number().finite().min(0).max(120000)
   let legacy_object = object_fields()
   legacy_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "geometry", "network", "surface",
+    "arrow", "numberline",
   ])
   let new_object = object_fields()
   new_object["ref"] = reference
   new_object["kind"] = @zod.enum_([
-    "circle", "rectangle", "text", "equation", "path", "arrow", "numberline",
+    "circle", "rectangle", "text", "equation", "graph", "geometry", "network", "surface",
+    "path", "arrow", "numberline",
   ])
   let operations = [
     operation("setState", {
@@ -45,7 +47,9 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "property": @zod.enum_([
         "x", "y", "width", "height", "rotation", "opacity", "visible", "fill", "stroke",
         "strokeWidth", "text", "fontSize", "cornerRadius", "effect", "anchorX", "anchorY",
-        "scaleX", "scaleY", "shear",
+        "scaleX", "scaleY", "shear", "graphExpression", "graphXMin", "graphXMax",
+        "graphYMin", "graphYMax", "graphA", "graphB", "graphC", "graphAxes", "graphGrid",
+        "graphFilled", "graphBreaks",
       ]),
       "value": @zod.union([@zod.number(), @zod.string(), @zod.boolean()]),
     }),
@@ -91,7 +95,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "objectId": @zod.string(),
       "channel": @zod.enum_([
         "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-        "fontSize", "cornerRadius", "path", "reveal",
+        "fontSize", "cornerRadius", "path", "reveal", "graph",
       ]),
       "timing": @zod.object({
         "start": @zod.number().finite().min(0),
@@ -108,6 +112,25 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
       "compositionId": @zod.string(),
       "objectId": @zod.string(),
       "path": bezier,
+    }),
+    operation("setGeometryElement", {
+      "compositionId": @zod.string(),
+      "objectId": @zod.string(),
+      "collection": @zod.enum_(["points", "vectors", "angles"]),
+      "elementId": @zod.string().regex("^[a-zA-Z0-9_-]{1,80}$"),
+      "element": geometry_element_schema().nullable(),
+    }),
+    operation("setNetworkElement", {
+      "compositionId": @zod.string(),
+      "objectId": @zod.string(),
+      "collection": @zod.enum_(["nodes", "edges"]),
+      "elementId": @zod.string().regex("^[a-zA-Z0-9_-]{1,80}$"),
+      "element": network_element_schema().nullable(),
+    }),
+    operation("setSurface", {
+      "compositionId": @zod.string(),
+      "objectId": @zod.string(),
+      "surface": surface_definition_schema(),
     }),
     operation("setCompositionDuration", {
       "compositionId": @zod.string(),

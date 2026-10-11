@@ -143,6 +143,9 @@ pub fn prepare_render_scene(
     let text_ids = @core.object_keys(objects).filter(fn(id) {
       let kind = objects._get(id)._get("kind")
       strict_equal(kind, @core.any("text")) ||
+      strict_equal(kind, @core.any("geometry")) ||
+      strict_equal(kind, @core.any("network")) ||
+      strict_equal(kind, @core.any("surface")) ||
       strict_equal(kind, @core.any("equation"))
     })
     let sources = []
@@ -151,6 +154,32 @@ pub fn prepare_render_scene(
       for id in text_ids {
         let state = states._get(id)
         if @core.is_nullish(state) {
+          continue
+        }
+        if strict_equal(objects._get(id)._get("kind"), @core.any("surface")) {
+          sources.push(@core.any("xyz"))
+          continue
+        }
+        if strict_equal(objects._get(id)._get("kind"), @core.any("network")) {
+          let value = state._get("network")
+          if !@core.is_nullish(value) {
+            sources.append(
+              @scene.network_texts(
+                @project_codec.decode_NetworkDefinition(value),
+              ).map(@core.any),
+            )
+          }
+          continue
+        }
+        if strict_equal(objects._get(id)._get("kind"), @core.any("geometry")) {
+          let definition = state._get("geometry")
+          if !@core.is_nullish(definition) {
+            sources.append(
+              @scene.geometry_texts(
+                @project_codec.decode_GeometryDefinition(definition),
+              ).map(@core.any),
+            )
+          }
           continue
         }
         let text = state._get("text")
@@ -397,6 +426,7 @@ pub fn shape_geometry(item : @core.Any) -> @core.Any {
     @render.shape_geometry(
       kind,
       @project_codec.decode_ObjectState(item._get("state")),
+      progress=item._get("writeProgress").cast(),
     ),
   )
 }
@@ -409,6 +439,8 @@ pub fn encode_shape(shape : @render.Shape?) -> @core.Any {
     Some(Rectangle(width, height, radius)) =>
       shape_rectangle_value(width, height, radius)
     Some(Path(path)) => path_value(path)
+    Some(Graph(graph)) => encode_graph_geometry(graph)
+    Some(Diagram(diagram)) => encode_diagram_geometry(diagram)
     Some(Arrow(geometry)) =>
       arrow_value(
         "arrow",
@@ -451,4 +483,107 @@ pub fn numberline_tick_path(length : Double, index : Int) -> String {
 ///|
 pub fn numberline_tick_progress(progress : Double, index : Int) -> Double {
   @render.numberline_tick_progress(progress, index)
+}
+
+///|
+extern "js" fn graph_label_value(
+  x : Double,
+  y : Double,
+  text : String,
+) -> @core.Any =
+  #|(x, y, text) => ({x, y, text})
+
+///|
+extern "js" fn graph_geometry_value(
+  curve : String,
+  area : String,
+  axes : String,
+  grid : String,
+  labels : FixedArray[@core.Any],
+  limited : Bool,
+) -> @core.Any =
+  #|(curve, area, axes, grid, labels, limited) => ({kind: 'graph', curve, area, axes, grid, labels, limited})
+
+///|
+pub fn encode_graph_geometry(graph : @render.GraphGeometry) -> @core.Any {
+  graph_geometry_value(
+    graph.curve,
+    graph.area,
+    graph.axes,
+    graph.grid,
+    FixedArray::makei(graph.labels.length(), fn(i) {
+      let label = graph.labels[i]
+      graph_label_value(label.x, label.y, label.text)
+    }),
+    graph.limited,
+  )
+}
+
+///|
+pub fn encode_diagram_geometry(diagram : @render.DiagramGeometry) -> @core.Any {
+  let curves = FixedArray::makei(diagram.curves.length(), fn(i) {
+    let curve = diagram.curves[i]
+    @core.from_entries([
+      ("id", @core.any(curve.id)),
+      ("path", @core.any(curve.path)),
+      (
+        "fill",
+        curve.fill.map(fn(v) { @core.any(v) }).unwrap_or(@core.undefined()),
+      ),
+      (
+        "stroke",
+        curve.stroke.map(fn(v) { @core.any(v) }).unwrap_or(@core.undefined()),
+      ),
+    ])
+  })
+  let labels = FixedArray::makei(diagram.labels.length(), fn(i) {
+    let label = diagram.labels[i]
+    graph_label_value(label.x, label.y, label.text)
+  })
+  @core.from_entries([
+    ("kind", @core.any("diagram")),
+    ("curves", @core.any(curves)),
+    ("labels", @core.any(labels)),
+    ("limited", @core.any(diagram.limited)),
+  ])
+}
+
+///|
+pub fn decode_diagram_geometry(value : @core.Any) -> @render.DiagramGeometry {
+  {
+    curves: @project_codec.decode_array(value._get("curves"), fn(curve) {
+      {
+        id: curve._get("id").cast(),
+        path: curve._get("path").cast(),
+        fill: @project_codec.optional(curve._get("fill"), fn(v) { v.cast() }),
+        stroke: @project_codec.optional(curve._get("stroke"), fn(v) { v.cast() }),
+      }
+    }),
+    labels: @project_codec.decode_array(value._get("labels"), fn(label) {
+      {
+        x: label._get("x").cast(),
+        y: label._get("y").cast(),
+        text: label._get("text").cast(),
+      }
+    }),
+    limited: value._get("limited").cast(),
+  }
+}
+
+///|
+pub fn decode_graph_geometry(value : @core.Any) -> @render.GraphGeometry {
+  {
+    curve: value._get("curve").cast(),
+    area: value._get("area").cast(),
+    axes: value._get("axes").cast(),
+    grid: value._get("grid").cast(),
+    labels: @project_codec.decode_array(value._get("labels"), fn(label) {
+      {
+        x: label._get("x").cast(),
+        y: label._get("y").cast(),
+        text: label._get("text").cast(),
+      }
+    }),
+    limited: value._get("limited").cast(),
+  }
 }

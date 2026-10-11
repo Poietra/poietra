@@ -25,7 +25,7 @@ let math_loading : Ref[@core.Promise[MathRuntime]?] = Ref(None)
 let geometry_attributes : Map[String, Unit] = Map::from_array(
   [
     "d", "x", "y", "x1", "x2", "y1", "y2", "width", "height", "rx", "ry", "cx", "cy",
-    "r", "points", "transform", "stroke-width",
+    "r", "points", "transform", "stroke-width", "viewBox",
   ].map(fn(name) { (name, ()) }),
 )
 
@@ -88,35 +88,6 @@ fn math_attribute(
 }
 
 ///|
-fn view_box(source : String) -> Array[Double]? {
-  let parts = []
-  let mut start = 0
-  let mut end = 0
-  while end <= source.length() {
-    let space = end == source.length() ||
-      @editor.trim_text(source[end:end + 1].to_owned()).is_empty()
-    if space {
-      if end > start {
-        let value = @string.parse_double(source[start:end]) catch {
-          _ => return None
-        }
-        if value.is_nan() || value.is_inf() {
-          return None
-        }
-        parts.push(value)
-      }
-      start = end + 1
-    }
-    end += 1
-  }
-  if parts.length() != 4 || parts[2] <= 0.0 || parts[3] <= 0.0 {
-    None
-  } else {
-    Some(parts)
-  }
-}
-
-///|
 fn convert_equation(
   runtime : MathRuntime,
   source : String,
@@ -131,7 +102,8 @@ fn convert_equation(
       @core.from_entries([("display", @core.any(true))]),
     ])
     let svg = adaptor._call("firstChild", [container])
-    guard math_attribute(adaptor, svg, "viewBox").bind(view_box) is Some(bounds) else {
+    guard math_attribute(adaptor, svg, "viewBox").bind(@render.math_view_box)
+      is Some(bounds) else {
       return None
     }
     let mut glyphs = 0
@@ -158,7 +130,8 @@ fn convert_equation(
           attributes.push((name, value))
         }
       }
-      if tag != @render.Group {
+      // A nested viewport wraps a stretched delimiter; its children are the glyphs.
+      if tag != @render.Group && tag != @render.Viewport {
         glyphs += 1
       }
       let children = []

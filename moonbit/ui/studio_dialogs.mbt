@@ -185,6 +185,11 @@ fn studio_dialogs(
   let input = controller.input
   let nodes : Array[&@react.ReactNode] = [
     component(
+      math_palette,
+      { "key": @core.any("math"), "controller": @core.any(controller) },
+      [],
+    ),
+    component(
       project_dialog,
       {
         "key": @core.any("projects"),

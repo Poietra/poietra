@@ -36,7 +36,7 @@ for (const example of [
   const peerContext = await browser.newContext(); const peer = await peerContext.newPage();
   try {
     await peer.goto(`/?room=${room}`); await expect(peer.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: example.tool, exact: true }).click();
+    if (example.tool === '数式 (E)') { await page.getByRole('button', { name: '数学', exact: true }).click(); await page.getByRole('button', { name: '数式', exact: true }).click(); } else await page.getByRole('button', { name: example.tool, exact: true }).click();
     const at = await world(page, 650, 230); await page.mouse.click(at.x, at.y);
     const input = page.getByRole('textbox', { name: example.label, exact: true });
     await expect(input).toBeFocused();

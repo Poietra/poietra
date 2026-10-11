@@ -16,6 +16,7 @@ priv struct GlyphGeometry {
 priv struct Glyph {
   geometry : GlyphGeometry
   transform : CanvasMatrix
+  clip : @render.Bounds?
   complete : GlyphPaint
   writing : GlyphPaint
 }
@@ -94,6 +95,58 @@ fn node_transform(
     }
   }
   result.cast()
+}
+
+///|
+/// MathJax viewport matrices carry no rotation, so a nested `<svg>` clips to an
+/// axis-aligned rectangle in the equation's own coordinates. `\overline` and the
+/// other stretched rules rely on it: their glyph is wider than the viewport.
+fn viewport_clip(
+  matrix : CanvasMatrix,
+  node : @render.MathNode,
+  outer : @render.Bounds?,
+) -> @render.Bounds {
+  let native = @core.any(matrix)
+  let a : Double = native._get("a").cast()
+  let b : Double = native._get("b").cast()
+  let c : Double = native._get("c").cast()
+  let d : Double = native._get("d").cast()
+  let e : Double = native._get("e").cast()
+  let f : Double = native._get("f").cast()
+  let left = numeric_attribute(node, "x", 0.0)
+  let top = numeric_attribute(node, "y", 0.0)
+  let right = left + numeric_attribute(node, "width", 0.0)
+  let bottom = top + numeric_attribute(node, "height", 0.0)
+  let corners = [(left, top), (right, top), (left, bottom), (right, bottom)].map(fn(
+      corner,
+    ) {
+      (a * corner.0 + c * corner.1 + e, b * corner.0 + d * corner.1 + f)
+    },
+  )
+  let mut min_x = corners[0].0
+  let mut max_x = corners[0].0
+  let mut min_y = corners[0].1
+  let mut max_y = corners[0].1
+  for corner in corners {
+    min_x = min_x.min(corner.0)
+    max_x = max_x.max(corner.0)
+    min_y = min_y.min(corner.1)
+    max_y = max_y.max(corner.1)
+  }
+  if outer is Some(outer) {
+    min_x = min_x.max(outer.x)
+    min_y = min_y.max(outer.y)
+    max_x = max_x.min(outer.x + outer.width)
+    max_y = max_y.min(outer.y + outer.height)
+  }
+  // Nested viewports intersect. A disjoint pair must clamp to an empty region:
+  // a negative extent would reverse the canvas rectangle and draw everything.
+  {
+    x: min_x,
+    y: min_y,
+    width: (max_x - min_x).max(0.0),
+    height: (max_y - min_y).max(0.0),
+  }
 }
 
 ///|
@@ -184,6 +237,9 @@ fn paint_glyphs(
         1.0
       }
       saved_canvas(context, fn() {
+        if glyph.clip is Some(rect) {
+          clip_rect(context, rect.x, rect.y, rect.width, rect.height)
+        }
         apply_matrix(context, glyph.transform)
         if paint.fill && fill_opacity > 0.0 {
           context.globalAlpha = opacity * fill_opacity
@@ -244,12 +300,26 @@ pub fn prepare_equation_drawing(equation : @core.Any) -> @core.Any {
       node : @render.MathNode,
       parent : CanvasMatrix,
       inherited : GlyphPaint,
+      clip : @render.Bounds?,
     ) -> Unit {
       let transform = node_transform(node, parent)
       let complete = node_paint(node, inherited)
-      if node.tag == @render.Group {
+      if node.tag == @render.Group || node.tag == @render.Viewport {
+        // Canvas2D has no nested viewport: fold it into the glyph matrix and
+        // clip, so the drawn region matches the `<svg>` the SVG renderer keeps.
+        let (transform, clip) = if node.tag == @render.Viewport {
+          guard @render.math_viewport(node) is Some((scale, x, y)) else {
+            return unsupported("Unsupported equation viewport.")
+          }
+          (
+            matrix_viewport(transform, x, y, scale),
+            Some(viewport_clip(transform, node, clip)),
+          )
+        } else {
+          (transform, clip)
+        }
         for child in node.children {
-          visit(child, transform, complete)
+          visit(child, transform, complete, clip)
         }
         return
       }
@@ -276,13 +346,14 @@ pub fn prepare_equation_drawing(equation : @core.Any) -> @core.Any {
         stroke: true,
         stroke_width: Some(18.0),
       })
-      glyphs.push({ geometry, transform, complete, writing, })
+      glyphs.push({ geometry, transform, clip, complete, writing, })
     }
-    visit(tree, canvas_matrix(), {
-      fill: true,
-      stroke: false,
-      stroke_width: None,
-    })
+    visit(
+      tree,
+      canvas_matrix(),
+      { fill: true, stroke: false, stroke_width: None, },
+      None,
+    )
     if glyphs.length() != count {
       return @core.null()
     }

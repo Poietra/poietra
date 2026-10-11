@@ -67,7 +67,7 @@ fn timing_keys() -> Array[String] {
   [
     "positionTiming", "opacityTiming", "sizeTiming", "rotationTiming", "fillTiming",
     "strokeTiming", "strokeWidthTiming", "fontSizeTiming", "cornerRadiusTiming",
-    "pathTiming", "revealTiming",
+    "pathTiming", "revealTiming", "graphTiming",
   ]
 }
 

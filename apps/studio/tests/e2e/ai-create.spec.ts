@@ -6,6 +6,7 @@ import type { z } from 'zod';
 import { compileProposal, type EditProposal, type EditProposalSchema } from '../../shared/ai';
 import { readProject } from '../../shared/document';
 import { parseProjectFile } from '../../shared/project-file';
+import { defaultState } from '../../shared/model';
 
 type Operation = z.infer<typeof EditProposalSchema>['operations'][number];
 const curve = { c1: { x: 400, y: 100 }, c2: { x: 800, y: 100 } };
@@ -164,4 +165,36 @@ test('Undo of an AI timing extension keeps a peer’s longer existing animation 
     await expect(item(peer, 'circle')).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
     expect(room.calls()).toBe(1);
   } finally { room.close(); await peerContext.close(); }
+});
+
+test('AI creates semantic network and parametric surface objects that Apply, Undo, Redo and portable validation preserve', async ({ page }) => {
+  const surface = { ...defaultState('surface').surface!, kind: 'parametric' as const,
+    xExpression: 'a*cos(u)*sin(v)', yExpression: 'a*sin(u)*sin(v)', zExpression: 'a*cos(v)',
+    uMin: 0, uMax: 2 * Math.PI, vMin: 0, vMax: Math.PI, a: 2 };
+  const operations: Operation[] = [
+    { action: 'createObject', ref: '@network', compositionId: 'comp-1', name: 'AI network', kind: 'network', x: 320, y: 360, width: 400, height: 300, fill: '#ffffff', text: '', fontSize: 32 },
+    { action: 'setNetworkElement', compositionId: 'comp-1', objectId: '@network', collection: 'nodes', elementId: 'a', element: { x: -3, y: -1, label: 'Start' } },
+    { action: 'setNetworkElement', compositionId: 'comp-1', objectId: '@network', collection: 'edges', elementId: 'loop', element: { from: 'a', to: 'a', label: 'loop', directed: true, weight: 4, bend: 0 } },
+    { action: 'createObject', ref: '@sphere', compositionId: 'comp-1', name: 'AI sphere', kind: 'surface', x: 900, y: 360, width: 400, height: 300, fill: '#ffffff', text: '', fontSize: 32 },
+    { action: 'setSurface', compositionId: 'comp-1', objectId: '@sphere', surface },
+  ];
+  const room = await fixture(page, operations);
+  try {
+    await request(page, '有向グラフの図と、媒介変数式で表す球を作って');
+    await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'AI network', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI sphere', exact: true })).toBeVisible();
+    const networkId = room.id('AI network'), sphereId = room.id('AI sphere');
+    await expect.poll(() => room.scene().compositions['comp-1'].states[networkId]?.network?.edges.loop.weight).toBe(4);
+    await expect.poll(() => room.scene().compositions['comp-1'].states[sphereId]?.surface?.kind).toBe('parametric');
+    expect(readProject(room.doc)!.version).toBe(6);
+    expect(parseProjectFile(JSON.stringify(readProject(room.doc)))).toEqual(readProject(room.doc));
+    await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'AI network', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'AI sphere', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'やり直す (⌘⇧Z)', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'AI sphere', exact: true })).toBeVisible();
+    await expect.poll(() => room.scene().compositions['comp-1'].states[sphereId]?.surface?.xExpression).toBe('a*cos(u)*sin(v)');
+    expect(parseProjectFile(JSON.stringify(readProject(room.doc)))).toEqual(readProject(room.doc));
+  } finally { room.close(); }
 });
