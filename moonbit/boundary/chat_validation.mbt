@@ -139,6 +139,42 @@ pub fn valid_chat_message(value : @core.Any) -> Bool {
       return false
     }
   }
+  if !valid_chat_attachments(value._get("attachments")) {
+    return false
+  }
   let proposal = value._get("proposal")
   @core.is_undefined(proposal) || valid_chat_proposal(proposal)
+}
+
+///|
+/// Peers write chat entries directly, so a figure must be a bounded list of
+/// stored room images with finite positive dimensions, never inline bytes.
+pub fn valid_chat_attachments(value : @core.Any) -> Bool {
+  if @core.is_undefined(value) {
+    return true
+  }
+  if !is_array(value) {
+    return false
+  }
+  let entries : FixedArray[@core.Any] = value.cast()
+  if entries.length() > @assets.figure_limit {
+    return false
+  }
+  for entry in entries {
+    if !chat_object(entry) ||
+      !chat_text(entry._get("src"), 200) ||
+      !@assets.room_source(entry._get("src").cast(), @assets.Image) {
+      return false
+    }
+    for key in ["width", "height"] {
+      if @core.typeof_(entry._get(key)) != "number" {
+        return false
+      }
+      let size : Double = entry._get(key).cast()
+      if size.is_nan() || size.is_inf() || size <= 0.0 || size > 8192.0 {
+        return false
+      }
+    }
+  }
+  true
 }

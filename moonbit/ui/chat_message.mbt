@@ -183,6 +183,9 @@ fn chat_message_view(
     )
   }
   nodes.push(h("p", Map([]), [message.content]))
+  if message.attachments is Some(attachments) && !attachments.is_empty() {
+    nodes.push(message_figures(attachments))
+  }
   if message.mentions_codex.unwrap_or(false) &&
     message.status == Some(@editor.Pending) {
     let props = {
@@ -227,6 +230,10 @@ fn chat_message_view(
             if message.scope.scene_id == controller.scene_id {
               (controller.set_prompt)(message.content)
             }
+            controller.restore_figures(
+              message.scope.scene_id,
+              message.attachments.unwrap_or([]),
+            )
             controller.focus()
           }),
         },

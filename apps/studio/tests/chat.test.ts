@@ -113,3 +113,44 @@ it('rejects malformed local chat data before writing and releases its observer o
   doc.getArray<Y.Map<unknown>>('chat').get(0).set('status', 'pending');
   expect(notifications).toBe(1);
 });
+
+describe('pasted Codex figures', () => {
+  const stored = '/api/rooms/chat-figure-room-01/images/' + 'a'.repeat(64);
+  const figure = { src: stored, width: 900, height: 540 };
+
+  it('synchronizes stored figure references with the request and restores them', () => {
+    const a = new Y.Doc(), b = new Y.Doc(), alice = new RoomChat(a), bob = new RoomChat(b);
+    alice.append({ ...message('figure', '@codex この図を再現して'), mentionsCodex: true, attachments: [figure, { ...figure, src: stored.replace(/a+$/, 'b'.repeat(64)) }] });
+    sync(a, b);
+    expect(bob.snapshot()[0].attachments).toEqual(alice.snapshot()[0].attachments);
+    expect(bob.snapshot()[0].attachments?.[0]).toEqual(figure);
+    expect(message('plain')).not.toHaveProperty('attachments');
+    expect(alice.snapshot()).toHaveLength(1);
+  });
+
+  it.each([
+    ['inline bytes', [{ ...figure, src: 'data:image/png;base64,iVBORw0KGgoAAAAAAAAAAAAAAAAAAAAA' }]],
+    ['a media reference', [{ ...figure, src: stored.replace('/images/', '/media/') }]],
+    ['an external URL', [{ ...figure, src: 'https://example.com/figure.png' }]],
+    ['three figures', [figure, figure, figure]],
+    ['an empty size', [{ ...figure, width: 0 }]],
+    ['an unbounded size', [{ ...figure, height: Infinity }]],
+    ['a non-list', figure],
+  ])('ignores %s written by a peer and refuses it locally', (_name, attachments) => {
+    const doc = new Y.Doc(), chat = new RoomChat(doc);
+    expect(() => chat.append({ ...message('local'), attachments } as ChatMessage)).toThrow();
+    doc.getArray('chat').push([new Y.Map(Object.entries({ ...message('peer'), attachments }))]);
+    expect(chat.snapshot()).toHaveLength(0);
+  });
+
+  it('tells Codex that earlier figures exist without resending them', () => {
+    const history = chatHistory([
+      { ...message('mine', '@codex この図を再現して'), mentionsCodex: true, attachments: [figure] },
+      { ...message('peer', '色は白で'), authorId: 'bob', authorName: 'Bob', attachments: [figure, figure] },
+    ], 'scene-1', 'alice');
+    expect(history.map(turn => turn.content)).toEqual([
+      'この図を再現して\n[1 attached image(s), not resent]',
+      'Bob: 色は白で\n[2 attached image(s), not resent]',
+    ]);
+  });
+});

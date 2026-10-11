@@ -79,7 +79,29 @@ pub fn read_chat_message(value : @core.Any) -> @editor.ChatMessage[@core.Any] {
     dismissed: @project_codec.optional(value._get("dismissed"), fn(v) {
       v.cast()
     }),
+    attachments: @project_codec.optional(value._get("attachments"), fn(v) {
+      let values : FixedArray[@core.Any] = v.cast()
+      Array::makei(values.length(), fn(i) { read_chat_attachment(values[i]) })
+    }),
   }
+}
+
+///|
+pub fn read_chat_attachment(value : @core.Any) -> @editor.ChatAttachment {
+  {
+    src: value._get("src").cast(),
+    width: value._get("width").cast(),
+    height: value._get("height").cast(),
+  }
+}
+
+///|
+pub fn write_chat_attachment(value : @editor.ChatAttachment) -> @core.Any {
+  @core.from_entries([
+    ("src", @core.any(value.src)),
+    ("width", @core.any(value.width)),
+    ("height", @core.any(value.height)),
+  ])
 }
 
 ///|
@@ -117,6 +139,14 @@ pub fn write_chat_message(value : @editor.ChatMessage[@core.Any]) -> @core.Any {
   }
   if value.dismissed is Some(v) {
     result._set("dismissed", @core.any(v))
+  }
+  if value.attachments is Some(v) {
+    result._set(
+      "attachments",
+      @core.any(
+        FixedArray::makei(v.length(), fn(i) { write_chat_attachment(v[i]) }),
+      ),
+    )
   }
   result
 }

@@ -1,7 +1,8 @@
 ///|
-/// A figure waiting in the composer. Only the request that carries it sends the
-/// data URL to Codex; the chat message keeps the text alone.
+/// A figure waiting in the composer. The normalized bytes are uploaded to room
+/// storage when sent; the data URL is what Codex sees.
 priv struct ChatFigure {
+  blob : @core.Any
   data : String
   width : Double
   height : Double
@@ -15,6 +16,7 @@ priv struct FigureDraft {
   mut figures : Array[ChatFigure]
   mut preparing : Int
   mut generation : Int
+  mut restoring : Bool
 }
 
 ///|
@@ -25,7 +27,12 @@ fn ChatController::figure_draft(
   match self.figure_drafts.get(scene) {
     Some(draft) => draft
     None => {
-      let draft = { figures: [], preparing: 0, generation: 0, }
+      let draft = {
+        figures: [],
+        preparing: 0,
+        generation: 0,
+        restoring: false,
+      }
       self.figure_drafts[scene] = draft
       draft
     }
@@ -48,6 +55,7 @@ fn ChatController::update_figures(
   figures : Array[ChatFigure],
 ) -> Unit {
   let scene = self.current_scene.get_current().unwrap()
+  self.edit_draft(scene)
   self.figure_draft(scene).figures = figures
   self.show_figures(scene)
 }
@@ -64,7 +72,17 @@ fn ChatController::replace_figures(
   draft.figures = figures
   draft.preparing = 0
   draft.generation += 1
+  draft.restoring = false
   self.show_figures(scene)
+}
+
+///|
+/// A new edit to a Scene's draft supersedes figures still being restored into it.
+fn ChatController::edit_draft(self : ChatController, scene : String) -> Unit {
+  let draft = self.figure_draft(scene)
+  if draft.restoring {
+    self.replace_figures(scene, draft.figures)
+  }
 }
 
 ///|
@@ -92,6 +110,7 @@ fn ChatController::attach(
     return
   }
   let scene = self.current_scene.get_current().unwrap()
+  self.edit_draft(scene)
   let draft = self.figure_draft(scene)
   let generation = draft.generation
   let existing = draft.figures.length()
@@ -109,6 +128,7 @@ fn ChatController::attach(
         let image = @browser_media.normalize_image(file).wait()
         let data = @browser_media.blob_data_url(image._get("blob")).wait()
         added.push({
+          blob: image._get("blob"),
           data,
           width: image._get("width").cast(),
           height: image._get("height").cast(),
@@ -158,6 +178,71 @@ fn ChatController::attach(
 }
 
 ///|
+/// Returning a stopped or failed request to the composer also returns its
+/// stored figures, read back from room storage. Until they arrive the draft is
+/// preparing, so it cannot be sent without them; any newer edit, send or
+/// restore discards this result.
+fn ChatController::restore_figures(
+  self : ChatController,
+  scene : String,
+  attachments : Array[@editor.ChatAttachment],
+) -> Unit {
+  self.replace_figures(scene, [])
+  if attachments.is_empty() {
+    return
+  }
+  let draft = self.figure_draft(scene)
+  let generation = draft.generation
+  draft.preparing += 1
+  draft.restoring = true
+  self.show_figures(scene)
+  @core.from_async(async fn() {
+    let figures = []
+    let mut failure = None
+    try {
+      for attachment in attachments {
+        let blob = @browser_media.image_blob(attachment.src, @core.undefined()).wait()
+        figures.push({
+          blob,
+          data: @browser_media.blob_data_url(blob).wait(),
+          width: attachment.width,
+          height: attachment.height,
+        })
+      }
+    } catch {
+      error =>
+        failure = Some(
+          error_message(
+            ui_native_error(error),
+            "添付画像を読み込めませんでした。",
+          ),
+        )
+    }
+    let latest = self.latest.get_current().unwrap()
+    let draft = latest.figure_draft(scene)
+    if draft.generation != generation {
+      return
+    }
+    draft.preparing -= 1
+    draft.restoring = false
+    match failure {
+      Some(message) => (latest.set_error)(message)
+      None => draft.figures = figures
+    }
+    latest.show_figures(scene)
+  })
+  |> ignore
+}
+
+///|
+fn figure_list(
+  class_name : String,
+  items : Array[&@react.ReactNode],
+) -> @react.Element {
+  h("div", { "className": @core.any(class_name) }, items)
+}
+
+///|
 fn composer_figures(controller : ChatController) -> @react.Element {
   let items : Array[&@react.ReactNode] = []
   for index, figure in controller.figures {
@@ -204,5 +289,39 @@ fn composer_figures(controller : ChatController) -> @react.Element {
       ),
     )
   }
-  h("div", { "className": @core.any("chat-figures composer-figures") }, items)
+  figure_list("chat-figures composer-figures", items)
+}
+
+///|
+fn message_figures(
+  attachments : Array[@editor.ChatAttachment],
+) -> @react.Element {
+  let items : Array[&@react.ReactNode] = []
+  for index, attachment in attachments {
+    items.push(
+      h(
+        "a",
+        {
+          "key": @core.any(attachment.src),
+          "href": @core.any(attachment.src),
+          "target": @core.any("_blank"),
+          "rel": @core.any("noopener"),
+        },
+        [
+          h(
+            "img",
+            {
+              "src": @core.any(attachment.src),
+              "alt": @core.any("添付画像 \{index + 1}"),
+              "width": @core.any(attachment.width),
+              "height": @core.any(attachment.height),
+              "loading": @core.any("lazy"),
+            },
+            [],
+          ),
+        ],
+      ),
+    )
+  }
+  figure_list("chat-figures", items)
 }
