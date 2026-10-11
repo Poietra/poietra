@@ -3,12 +3,14 @@ priv struct ChatRequest {
   controller : @core.Any
   scope : @editor.ChatScope
   prompt : String
+  figures : Array[ChatFigure]
   message_id : String
 }
 
 ///|
 priv struct ChatRetry {
   prompt : String
+  figures : Array[ChatFigure]
   message_id : String
 }
 
@@ -28,9 +30,14 @@ priv struct ChatController {
   composer : @react.ReactRef[@core.Any]
   list : @react.ReactRef[@core.Any]
   drafts : Map[String, String]
+  figures : Array[ChatFigure]
+  preparing : Bool
+  figure_drafts : Map[String, FigureDraft]
   applied : Set[String]
   follow : Ref[Bool]
   set_prompt : (String) -> Unit
+  set_figures : (Array[ChatFigure]) -> Unit
+  set_preparing : (Bool) -> Unit
   set_pending : (ChatRequest?) -> Unit
   set_error : (String) -> Unit
   set_retry : (ChatRetry?) -> Unit
@@ -59,6 +66,10 @@ fn ChatController::restore(
   let id = request.scope.scene_id
   if self.drafts.get(id).unwrap_or("").is_empty() {
     self.drafts[id] = request.prompt
+  }
+  let draft = self.figure_draft(id)
+  if draft.figures.is_empty() && draft.preparing == 0 {
+    self.replace_figures(id, request.figures)
   }
   if self.current_scene.get_current() == Some(id) {
     (self.set_prompt)(self.drafts.get(id).unwrap_or(""))

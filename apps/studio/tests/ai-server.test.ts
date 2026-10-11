@@ -517,3 +517,75 @@ test('a failed picture aborts its parallel sibling and releases the timer', asyn
   expect(generate.mock.calls[1][1].signal.aborted).toBe(true);
   expect(vi.getTimerCount()).toBe(0);
 });
+
+// A pasted figure: a PNG signature is enough for the inline image check.
+const figure = (type = 'png', bytes = Buffer.alloc(16)) => `data:image/${type};base64,${Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), bytes]).toString('base64')}`;
+const rebuilt = { status: 'completed', output_parsed: { message: '図を編集できるオブジェクトで再現しました。', operations: [
+  { action: 'createObject', ref: '@ab', compositionId: 'comp-1', name: 'Segment AB', kind: 'path', x: 340, y: 560, width: 600, height: 0, fill: '#ffffff', text: '', fontSize: 36 },
+  { action: 'setShapePath', compositionId: 'comp-1', objectId: '@ab', path: { c1: { x: 200, y: 0 }, c2: { x: 400, y: 0 } } },
+  { action: 'setState', compositionId: 'comp-1', objectId: '@ab', property: 'stroke', value: '#f2f2f2' },
+  { action: 'createObject', ref: '@mark', compositionId: 'comp-1', name: 'Angle mark upper half', kind: 'path', x: 420, y: 520, width: 16, height: 0, fill: '#ffffff', text: '', fontSize: 36 },
+  { action: 'setShapePath', compositionId: 'comp-1', objectId: '@mark', path: { c1: { x: 0, y: -10.67 }, c2: { x: 16, y: -10.67 } } },
+  { action: 'createObject', ref: '@cos', compositionId: 'comp-1', name: 'Label cos θ', kind: 'equation', x: 640, y: 620, width: 120, height: 48, fill: '#f2f2f2', text: '\\cos\\theta', fontSize: 36 },
+] } };
+
+test('a pasted figure reaches Responses as one high-detail image, including the repair, and rebuilds as editable objects', async () => {
+  const image = figure();
+  parse.mockResolvedValueOnce(missingTarget).mockResolvedValueOnce(rebuilt);
+  const history = [{ role: 'user' as const, content: '前の図\n[1 attached image(s), not resent]' }];
+  const proposal = await createEditProposal(doc, { ...input, prompt: 'この図を編集できるオブジェクトで再現して', history, images: [image] }, 'test-key-never-sent', 'test-model');
+  expect(parse).toHaveBeenCalledTimes(2);
+  for (const [body] of parse.mock.calls) {
+    expect(body.max_output_tokens).toBe(16000);
+    expect(body.input[0].content).toContain('two half-circle paths');
+    expect(body.input[0].content).toContain('Never use generateImage for this');
+    expect(body.input[1]).toEqual({ role: 'user', content: history[0].content });
+    const current = body.input[2];
+    expect(current.content).toEqual([{ type: 'input_text', text: expect.any(String) }, { type: 'input_image', image_url: image, detail: 'high' }]);
+    expect(JSON.parse(current.content[0].text)).toMatchObject({ request: 'この図を編集できるオブジェクトで再現して', attachedImages: 1 });
+    expect(JSON.stringify(body.input).split(image)).toHaveLength(2);
+  }
+  expect(parse.mock.calls[1][0].input.slice(3).map((message: { content: unknown }) => typeof message.content)).toEqual(['string', 'string']);
+  expect(constructed[0]).toMatchObject({ timeout: 120000 });
+  expect(JSON.parse(vi.mocked(console.log).mock.calls[0][0])).toMatchObject({ event: 'ai_proposal', figures: 1, attempts: 2 });
+
+  expect(() => validateProposalForApply(doc, proposal)).not.toThrow();
+  applyChanges(doc, proposal.changes.map(({ path, value }) => ({ path, value })), 'local');
+  const scene = readProject(doc)!.scenes['scene-1'];
+  const objects = Object.values(scene.objects);
+  const id = (name: string) => objects.find(object => object.name === name)!.id;
+  expect(objects.find(object => object.name === 'Label cos θ')).toMatchObject({ kind: 'equation' });
+  const states = scene.compositions['comp-1'].states;
+  expect(states[id('Segment AB')]).toMatchObject({ x: 340, y: 560, width: 600, height: 0, stroke: '#f2f2f2', path: { c1: { x: 200, y: 0 }, c2: { x: 400, y: 0 } } });
+  expect(states[id('Label cos θ')]).toMatchObject({ text: '\\cos\\theta', visible: true });
+  expect(scene.compositions['comp-2'].states[id('Segment AB')].visible).toBe(false);
+});
+
+test('requests without figures keep the text-only prompt, budget and timeout', async () => {
+  parse.mockResolvedValue(centered);
+  await createEditProposal(doc, input, 'test-key-never-sent', 'test-model');
+  const body = parse.mock.calls[0][0];
+  expect(body.max_output_tokens).toBe(6000);
+  expect(typeof body.input.at(-1).content).toBe('string');
+  expect(JSON.parse(body.input.at(-1).content).attachedImages).toBe(0);
+  expect(body.input[0].content).not.toContain('pasted');
+  expect(constructed[0]).toMatchObject({ timeout: 60000 });
+});
+
+test.each([
+  ['three figures', [figure(), figure(), figure()]],
+  ['a renamed type', [figure('jpeg')]],
+  ['an SVG', [figure('svg+xml')]],
+  ['a stored reference', ['/api/rooms/ai-unit-test-room/images/' + 'a'.repeat(64)]],
+  ['more than 1 MiB of bytes', [figure('png', Buffer.alloc(1048576))]],
+])('a request with %s is rejected before calling Responses', async (_name, images) => {
+  expect(AiRequestSchema.safeParse({ ...input, images }).success).toBe(false);
+  await expect(createEditProposal(doc, { ...input, images }, 'test-key-never-sent', 'test-model')).rejects.toThrow();
+  expect(parse).not.toHaveBeenCalled();
+});
+
+test('two figures within the per-image limit are accepted', () => {
+  const largest = figure('png', Buffer.alloc(1048576 - 8));
+  expect(largest.length).toBeLessThanOrEqual(1398166);
+  expect(AiRequestSchema.parse({ ...input, images: [largest, figure()] }).images).toHaveLength(2);
+});
