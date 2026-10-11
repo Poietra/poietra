@@ -216,6 +216,7 @@ async function failedFigureRequest(page: Page, requests: Record<string, unknown>
   await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'unavailable' }, 503); });
   await open(page, crypto.randomUUID());
   await pasteSized(page, 48);
+  await expect(attached(page, 1)).toBeVisible();
   await composer(page).fill('@codex 図を作って');
   await page.getByRole('button', { name: '送信', exact: true }).click();
   await expect(log(page).getByText('Codex への依頼に失敗しました', { exact: true })).toBeVisible();
