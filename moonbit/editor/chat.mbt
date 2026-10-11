@@ -34,6 +34,15 @@ pub(all) struct ChatScope {
 }
 
 ///|
+/// A figure pasted into a Codex request. The chat keeps only the room asset
+/// reference; the bytes stay in room storage.
+pub(all) struct ChatAttachment {
+  src : String
+  width : Double
+  height : Double
+} derive(Eq)
+
+///|
 pub(all) struct ChatMessage[P] {
   id : String
   role : ChatRole
@@ -50,6 +59,7 @@ pub(all) struct ChatMessage[P] {
   proposal : P?
   applied : Bool?
   dismissed : Bool?
+  attachments : Array[ChatAttachment]?
 }
 
 ///|
@@ -106,10 +116,16 @@ pub fn[P] chat_history(
         if message.status != Some(Complete) {
           continue
         }
-        let content = if message.mentions_codex.unwrap_or(false) {
+        let text = if message.mentions_codex.unwrap_or(false) {
           mention(message.content).unwrap_or(message.content)
         } else {
           message.content
+        }
+        // Earlier figures are not resent; say so instead of implying they are visible.
+        let content = match message.attachments {
+          Some(images) if !images.is_empty() =>
+            text + "\n[\{images.length()} attached image(s), not resent]"
+          _ => text
         }
         turns.push({
           role: Person,

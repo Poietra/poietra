@@ -55,7 +55,9 @@ fn chat_messages(chat : @core.Any) -> Array[@editor.ChatMessage[@core.Any]] {
 
 ///|
 fn ChatController::update_prompt(self : ChatController, text : String) -> Unit {
-  self.drafts[self.current_scene.get_current().unwrap()] = text
+  let scene = self.current_scene.get_current().unwrap()
+  self.edit_draft(scene)
+  self.drafts[scene] = text
   (self.set_prompt)(text)
 }
 

@@ -86,6 +86,7 @@
   background: #f4f4f6;
   object-fit: contain;
 }
+.chat-figures > a { max-width: calc(50% - 4px); }
 .composer-figures { margin: 0; padding: 10px 10px 0; }
 .composer-figures > span { position: relative; }
 .composer-figures img { max-height: 72px; }
