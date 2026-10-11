@@ -48,6 +48,15 @@ The boundaries to preserve are:
 - Each room has one authoritative Yjs document. Reads share immutable snapshots;
   selective Undo preserves peer edits. Persist updates before broadcasting or
   acknowledging them, including unresolved dependencies.
+- Workspace layout (2026-10-12) keeps the canvas, tools, segment cards and transport
+  fixed when changing Composition/Transition selection. Transitions use the same
+  single canvas by default; optional comparison retains the reference start frame
+  and editable end state or evaluated preview. Timeline height is local React state,
+  bounded by its parent and independent of selection, media and property track counts.
+  A shared scrolling body contains tracks/media while cards and transport remain fixed.
+  The pointer-owned resize gesture cancels on Escape, capture loss or window blur;
+  it never writes document leaves or editing Undo. Playback subscribers remain separate
+  from memoized cards and track structure.
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.

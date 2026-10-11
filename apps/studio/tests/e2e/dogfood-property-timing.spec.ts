@@ -25,6 +25,7 @@ async function setup(page: Page) {
   await page.mouse.click(box.x + box.width * 200 / 1280, box.y + box.height / 3);
   const objectId = (await page.locator('.layer-row.selected').getAttribute('data-layer-id'))!;
   await field(page, 'Position X', 200);
+  await field(page, 'Position Y', 200);
   await page.locator('.composition-strip .add-composition').click();
   await page.locator(`[data-layer-id="${objectId}"] .layer-select`).click();
   await field(page, 'Position X', 1000); await field(page, 'Opacity', 20);
@@ -80,14 +81,15 @@ test('a custom object moves over two seconds while opacity finishes in 300 ms; r
     const preview = page.getByRole('slider', { name: 'Transition preview position', exact: true });
     const rendered = page.locator(`[data-testid="stage-to"] .scene-svg [data-object-id="${room.objectId}"]`);
     await preview.fill('300');
-    await expect(rendered).toHaveAttribute('transform', 'translate(320 240) rotate(0)');
+    await expect(rendered).toHaveAttribute('transform', 'translate(320 200) rotate(0)');
     await expect(rendered).toHaveAttribute('opacity', '0.2');
     await preview.fill('1000');
-    await expect(rendered).toHaveAttribute('transform', 'translate(600 240) rotate(0)');
+    await expect(rendered).toHaveAttribute('transform', 'translate(600 200) rotate(0)');
     await expect(rendered).toHaveAttribute('opacity', '0.2');
     await expect(opacityRow).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: info.outputPath('independent-position-opacity.png') });
     await page.setViewportSize({ width: 1100, height: 800 });
+    await opacityRow.scrollIntoViewIfNeeded();
     await expect(opacityRow).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole('button', { name: 'プロジェクトを開く', exact: true })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: info.outputPath('independent-position-opacity-narrow.png') });

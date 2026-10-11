@@ -141,30 +141,22 @@ fn studio_workspace_heading(
     ),
   ]
   actions.push(
-    if compare {
-      h(
-        "button",
-        {
-          "className": @core.any(
-            "subtle-button preview-button " +
-            (if state.playing() { "active" } else { "" }),
-          ),
-          "onClick": @core.any(fn() { controller.play(SelectedTransition) }),
-        },
-        [
-          icon(if state.playing() { "Pause" } else { "Play" }, 13, props={
-            "fill": @core.any("currentColor"),
-          }),
-          "Preview",
-        ],
-      )
-    } else {
-      h("span", { "className": @core.any("workspace-dimensions") }, [
-        string_value(doc.scene._get("width")) +
-        " × " +
-        string_value(doc.scene._get("height")),
-      ])
-    },
+    h(
+      "button",
+      {
+        "className": @core.any("subtle-button compare-toggle"),
+        "aria-label": @core.any("開始と終了を比較"),
+        "aria-pressed": @core.any(compare && state.compare),
+        "disabled": @core.any(!compare),
+        "onClick": @core.any(fn() {
+          controller.update({
+            ..controller.state,
+            compare: !controller.state.compare,
+          })
+        }),
+      },
+      [icon("Layers2", 14), "Compare"],
+    ),
   )
   h(
     "div",
@@ -232,8 +224,7 @@ fn studio_import_status(imports : ImportView) -> @react.Element {
 fn studio_transition_stages(
   controller : StudioController,
   frames : StudioFrames,
-  time : Double,
-) -> Array[&@react.ReactNode] {
+) -> @react.Element {
   let doc = controller.document
   let state = controller.state
   let from : String = doc.transition._get("fromId").cast()
@@ -268,135 +259,82 @@ fn studio_transition_stages(
   } else {
     "Composition"
   }
-  [
-    h(
-      "div",
-      { "key": @core.any("compare"), "className": @core.any("compare-stages") },
-      [
-        studio_div("compare-column", [
-          studio_div("compare-label", [
-            h("span", Map([]), ["From"]),
-            HostNode::{
-              value: doc.scene._get("compositions")._get(from)._get("name"),
-            },
-          ]),
-          keyed_element(
-            cached_stage,
-            {
-              "frame": frames.from,
-              "compositionId": @core.any(from),
-              "interactive": @core.any(false),
-              "prefix": @core.any("from"),
-            },
-            [],
-          ),
-          studio_div("compare-caption", [
-            if single {
-              name
-            } else {
-              "Start state"
-            },
-            h("span", Map([]), [
-              icon("ArrowRight", 12),
-              if single &&
-                (!truthy(from_state) || !truthy(from_state._get("visible"))) {
-                "Enter"
-              } else {
-                "Transition"
-              },
-            ]),
-          ]),
-        ]),
-        studio_div("compare-column", [
-          studio_div("compare-label", [
-            h("span", Map([]), ["To"]),
-            HostNode::{
-              value: doc.scene._get("compositions")._get(to)._get("name"),
-            },
-          ]),
-          keyed_element(
-            cached_stage,
-            {
-              "frame": if truthy(frames.transition) {
-                frames.transition
-              } else {
-                frames.to
-              },
-              "compositionId": @core.any(to),
-              "stateEditing": @core.any(!truthy(frames.transition)),
-              "prefix": @core.any("to"),
-            },
-            [],
-          ),
-          studio_div("compare-caption", [
-            if single {
-              name
-            } else {
-              "End state"
-            },
-            h("span", Map([]), [animation]),
-          ]),
-        ]),
-      ],
-    ),
-    h(
-      "div",
-      {
-        "key": @core.any("transport"),
-        "className": @core.any("preview-transport"),
-      },
-      [
-        studio_icon_button(
-          if state.playing() {
-            "プレビューを停止"
-          } else {
-            "Transition をプレビュー"
+  h(
+    "div",
+    { "key": @core.any("compare"), "className": @core.any("compare-stages") },
+    [
+      studio_div("compare-column", [
+        studio_div("compare-label", [
+          h("span", Map([]), ["From"]),
+          HostNode::{
+            value: doc.scene._get("compositions")._get(from)._get("name"),
           },
-          if state.playing() {
-            "Pause"
-          } else {
-            "Play"
-          },
-          14,
-          fn() { controller.play(SelectedTransition) },
-          icon_props={ "fill": @core.any("currentColor") },
-        ),
-        h("span", Map([]), [
-          @boundary.format_milliseconds(doc.local_time(time)) +
-          " / " +
-          @boundary.format_milliseconds(doc.transition._get("duration").cast()) +
-          " ms",
         ]),
-        h(
-          "input",
+        keyed_element(
+          cached_stage,
           {
-            "aria-label": @core.any("Transition preview position"),
-            "type": @core.any("range"),
-            "min": @core.any(0),
-            "max": doc.transition._get("duration"),
-            "value": @core.any(doc.local_time(time)),
-            "step": @core.any(1),
-            "onChange": @core.any(fn(event : @core.Any) {
-              let start = if controller.document.selected is Some(segment) {
-                segment.start
-              } else {
-                0.0
-              }
-              controller.seek(
-                start + number_value(event._get("target")._get("value").cast()),
-                SelectedTransition,
-              )
-            }),
+            "frame": frames.from,
+            "compositionId": @core.any(from),
+            "interactive": @core.any(false),
+            "prefix": @core.any("from"),
+            "zoom": @core.any(state.zoom),
           },
           [],
         ),
-      ],
-    ),
-  ]
+        studio_div("compare-caption", [
+          if single {
+            name
+          } else {
+            "Start state"
+          },
+          h("span", Map([]), [
+            icon("ArrowRight", 12),
+            if single &&
+              (!truthy(from_state) || !truthy(from_state._get("visible"))) {
+              "Enter"
+            } else {
+              "Transition"
+            },
+          ]),
+        ]),
+      ]),
+      studio_div("compare-column", [
+        studio_div("compare-label", [
+          h("span", Map([]), ["To"]),
+          HostNode::{
+            value: doc.scene._get("compositions")._get(to)._get("name"),
+          },
+        ]),
+        keyed_element(
+          cached_stage,
+          {
+            "frame": if truthy(frames.transition) {
+              frames.transition
+            } else {
+              frames.to
+            },
+            "compositionId": @core.any(to),
+            "stateEditing": @core.any(!truthy(frames.transition)),
+            "prefix": @core.any("to"),
+            "zoom": @core.any(state.zoom),
+          },
+          [],
+        ),
+        studio_div("compare-caption", [
+          if single {
+            name
+          } else {
+            "End state"
+          },
+          h("span", Map([]), [animation]),
+        ]),
+      ]),
+    ],
+  )
 }
 
 ///|
-fn studio_composition_stage(
+fn studio_workspace_stage(
   controller : StudioController,
   frames : StudioFrames,
 ) -> @react.Element {
@@ -470,19 +408,51 @@ fn studio_composition_stage(
       },
     ),
   )
+  let transition = truthy(controller.document.transition) && !state.viewing()
   let nodes : Array[&@react.ReactNode] = [
-    keyed_element(
-      cached_stage,
-      {
-        "frame": frames.current,
-        "compositionId": @core.any(controller.document.composition),
-        "interactive": @core.any(!state.viewing()),
-        "zoom": @core.any(state.zoom),
-      },
-      [],
-    ),
+    if transition && state.compare {
+      studio_transition_stages(controller, frames)
+    } else {
+      keyed_element(
+        cached_stage,
+        {
+          "frame": if transition && truthy(frames.transition) {
+            frames.transition
+          } else {
+            frames.current
+          },
+          "compositionId": @core.any(controller.document.composition),
+          "interactive": @core.any(!state.viewing()),
+          "stateEditing": @core.any(!transition || !truthy(frames.transition)),
+          "prefix": @core.any(if transition { "to" } else { "main" }),
+          "zoom": @core.any(state.zoom),
+        },
+        [],
+      )
+    },
     studio_div("floating-tools", tools),
   ]
+  if transition && !state.compare {
+    nodes.push(
+      studio_div("stage-context", [
+        h("span", Map([]), [
+          if truthy(frames.transition) {
+            "Preview"
+          } else {
+            "End state"
+          },
+        ]),
+        h("span", Map([]), [
+          HostNode::{
+            value: controller.document.scene
+            ._get("compositions")
+            ._get(controller.document.composition)
+            ._get("name"),
+          },
+        ]),
+      ]),
+    )
+  }
   if !(state.tool is SelectTool) {
     nodes.push(
       studio_div("tool-instruction", [

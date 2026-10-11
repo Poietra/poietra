@@ -77,6 +77,7 @@ priv struct StudioState {
   cursor : StudioCursor
   path_editing : Bool
   zoom : Double
+  compare : Bool
   panel : StudioPanel
   project_open : Bool
   preview_open : Bool
@@ -121,6 +122,7 @@ fn studio_initial(store : @core.Any) -> StudioState {
     cursor: SelectedState,
     path_editing: false,
     zoom: 1.0,
+    compare: false,
     panel: DesignPanel,
     project_open: truthy(params._call("has", [@core.any("projects")])) ||
     truthy(params._call("has", [@core.any("auth_error")])),

@@ -207,11 +207,27 @@ fn timeline_transport(
       ),
       component(timeline_timecode, { "total": @core.any(total) }, []),
     ]),
-    h("span", { "className": @core.any("canvas-meta") }, [
-      string_value(scene._get("width")) +
-      " × " +
-      string_value(scene._get("height")),
-      h("span", Map([]), ["30 fps"]),
+    h("div", { "className": @core.any("transport-preview-slot") }, [
+      if editor.selection is TransitionSelection(id) && !editor.viewing_playback {
+        component(
+          timeline_transition_preview,
+          {
+            "transition": scene._get("transitions")._get(id),
+            "start": @core.any(studio_segment_start(scene, id)),
+          },
+          [],
+        )
+      } else {
+        h("span", { "className": @core.any("canvas-meta") }, [
+          "Scene",
+          h("span", Map([]), [
+            string_value(scene._get("width")) +
+            " × " +
+            string_value(scene._get("height")),
+          ]),
+          h("span", Map([]), ["30 fps"]),
+        ])
+      },
     ]),
     select_input(
       "キャンバスのズーム",
@@ -263,4 +279,55 @@ fn timeline_playhead(input : @core.Any) -> @react.Element {
     },
     [],
   )
+}
+
+///|
+fn timeline_transition_preview(input : @core.Any) -> @react.Element {
+  let editor = use_editor_state()
+  let transition = input._get("transition")
+  let start : Double = input._get("start").cast()
+  let duration : Double = transition._get("duration").cast()
+  let time = @scene.clamp(use_editor_position(editor) - start, 0.0, duration)
+  h("div", { "className": @core.any("preview-transport") }, [
+    h("span", { "className": @core.any("preview-scope") }, ["Transition"]),
+    studio_icon_button(
+      if editor.playing {
+        "プレビューを停止"
+      } else {
+        "Transition をプレビュー"
+      },
+      if editor.playing {
+        "Pause"
+      } else {
+        "Play"
+      },
+      14,
+      fn() { (editor.actions.play)(SelectedTransition) },
+      icon_props={ "fill": @core.any("currentColor") },
+    ),
+    h("span", Map([]), [
+      @boundary.format_milliseconds(time) +
+      " / " +
+      @boundary.format_milliseconds(duration) +
+      " ms",
+    ]),
+    h(
+      "input",
+      {
+        "aria-label": @core.any("Transition preview position"),
+        "type": @core.any("range"),
+        "min": @core.any(0),
+        "max": @core.any(duration),
+        "value": @core.any(time),
+        "step": @core.any(1),
+        "onChange": @core.any(fn(event : @core.Any) {
+          (editor.actions.seek)(
+            start + number_value(event._get("target")._get("value").cast()),
+            Some(SelectedTransition),
+          )
+        }),
+      },
+      [],
+    ),
+  ])
 }

@@ -159,11 +159,7 @@ fn studio_stage_view(input : @core.Any) -> @react.Element {
     self.input._get("kernel"),
     time,
   )
-  if truthy(self.document.transition) && !self.state.viewing() {
-    @react.fragment(studio_transition_stages(self, frames, time))
-  } else {
-    studio_composition_stage(self, frames)
-  }
+  studio_workspace_stage(self, frames)
 }
 
 ///|
