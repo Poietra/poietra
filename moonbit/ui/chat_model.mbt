@@ -32,6 +32,7 @@ priv struct ChatController {
   drafts : Map[String, String]
   figures : Array[ChatFigure]
   figure_drafts : Map[String, Array[ChatFigure]]
+  figure_input : @react.ReactRef[@core.Any]
   applied : Set[String]
   follow : Ref[Bool]
   set_prompt : (String) -> Unit

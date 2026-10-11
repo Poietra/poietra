@@ -71,6 +71,9 @@
 .assistant-jump button:hover { border-color: var(--accent); }
 .assistant-composer form:focus-within { border-color: var(--accent); }
 
+.composer-actions { display: flex; align-items: center; gap: 4px; }
+.assistant-composer .figure-button { width: 25px; height: 25px; color: #9c9cad; }
+.assistant-composer .figure-button:hover:not(:disabled) { color: #e4e2ee; background: var(--color-field); }
 .chat-figures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .chat-figures img {
   display: block;

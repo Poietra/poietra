@@ -31,6 +31,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
     )
     .get_current()
     .unwrap()
+  let figure_input = @react.use_ref((None : @core.Any?))
   let applied = @react.use_ref(Some((Set([]) : Set[String])))
     .get_current()
     .unwrap()
@@ -53,6 +54,7 @@ pub fn assistant_panel(input : @core.Any) -> @react.Element {
     drafts,
     figures,
     figure_drafts,
+    figure_input,
     applied,
     follow,
     set_prompt,

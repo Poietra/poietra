@@ -127,3 +127,50 @@ fn composer_figures(controller : ChatController) -> @react.Element {
   }
   h("div", { "className": @core.any("chat-figures composer-figures") }, items)
 }
+
+///|
+fn figure_picker(controller : ChatController) -> Array[&@react.ReactNode] {
+  [
+    h(
+      "button",
+      {
+        "key": @core.any("attach"),
+        "className": @core.any("icon-button figure-button"),
+        "type": @core.any("button"),
+        "aria-label": @core.any("Codex に図を添付"),
+        "title": @core.any(
+          "図を添付(貼り付け・ドロップでも追加できます)",
+        ),
+        "disabled": @core.any(
+          controller.figures.length() >= @assets.figure_limit,
+        ),
+        "onClick": @core.any(fn() {
+          if controller.figure_input.get_current() is Some(input) {
+            input._call("click", []) |> ignore
+          }
+        }),
+      },
+      [icon("ImagePlus", 14)],
+    ),
+    h(
+      "input",
+      {
+        "key": @core.any("figure-input"),
+        "ref": controller.figure_input.as_any(),
+        "type": @core.any("file"),
+        "accept": @core.any("image/png,image/jpeg,image/webp"),
+        "multiple": @core.any(true),
+        "hidden": @core.any(true),
+        "aria-hidden": @core.any(true),
+        "tabIndex": @core.any(-1),
+        "onChange": @core.any(fn(event : @core.Any) {
+          let input = event._get("currentTarget")
+          let files = image_files(input._get("files"))
+          input._set("value", @core.any(""))
+          controller.latest.get_current().unwrap().attach(files)
+        }),
+      },
+      [],
+    ),
+  ]
+}

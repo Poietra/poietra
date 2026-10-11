@@ -198,6 +198,22 @@ fn chat_view(
           prevent_default(event)
           controller.send(controller.prompt, controller.figures, None, false)
         }),
+        "onDragOver": @core.any(fn(event : @core.Any) {
+          let types : FixedArray[String] = @core.global_this()
+            ._get("Array")
+            ._call("from", [event._get("dataTransfer")._get("types")])
+            .cast()
+          if types.contains("Files") {
+            prevent_default(event)
+          }
+        }),
+        "onDrop": @core.any(fn(event : @core.Any) {
+          let files = image_files(event._get("dataTransfer")._get("files"))
+          if !files.is_empty() {
+            prevent_default(event)
+            controller.attach(files)
+          }
+        }),
       },
       fields +
       [
@@ -243,22 +259,30 @@ fn chat_view(
         ),
         h("div", { "className": @core.any("composer-bottom") }, [
           h(
-            "button",
-            {
-              "className": @core.any("mention-button"),
-              "type": @core.any("button"),
-              "onClick": @core.any(fn() {
-                controller.update_prompt(
-                  if addressing {
-                    controller.prompt
-                  } else {
-                    "@codex " + controller.prompt
-                  },
-                )
-                controller.focus()
-              }),
-            },
-            ["@codex"],
+            "div",
+            { "className": @core.any("composer-actions") },
+            [
+              h(
+                "button",
+                {
+                  "key": @core.any("mention"),
+                  "className": @core.any("mention-button"),
+                  "type": @core.any("button"),
+                  "onClick": @core.any(fn() {
+                    controller.update_prompt(
+                      if addressing {
+                        controller.prompt
+                      } else {
+                        "@codex " + controller.prompt
+                      },
+                    )
+                    controller.focus()
+                  }),
+                },
+                ["@codex"],
+              ),
+            ] +
+            figure_picker(controller),
           ),
           h("span", Map([]), [
             if addressing {
