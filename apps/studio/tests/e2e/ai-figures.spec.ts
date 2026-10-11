@@ -49,6 +49,21 @@ async function pasteFigure(page: Page) {
   });
 }
 
+// Holds the data URL step of figure preparation. The release waits until a
+// preparation has reached that step, then lets every held one finish.
+async function holdFigurePreparation(page: Page) {
+  await page.evaluate(() => {
+    const read = FileReader.prototype.readAsDataURL, held: (() => void)[] = [];
+    Object.assign(window, { heldFigures: held });
+    FileReader.prototype.readAsDataURL = function (this: FileReader, blob: Blob) { held.push(() => read.call(this, blob)); };
+  });
+  return async () => {
+    const held = () => page.evaluate(() => (window as unknown as { heldFigures: unknown[] }).heldFigures.length);
+    await expect.poll(held).toBeGreaterThan(0);
+    await page.evaluate(() => (window as unknown as { heldFigures: (() => void)[] }).heldFigures.splice(0).forEach(run => run()));
+  };
+}
+
 async function open(page: Page, room: string) {
   await page.route('**/api/health', route => reply(route, { ok: true, ai: true }));
   await page.goto(`/?room=${room}`);
@@ -128,12 +143,7 @@ test('a figure still being prepared cannot be sent without it and does not move 
   const requests: Record<string, unknown>[] = [];
   await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'stopped here' }, 503); });
   await open(page, crypto.randomUUID());
-  // Hold the data URL step of figure preparation until the test releases it.
-  await page.evaluate(() => {
-    const read = FileReader.prototype.readAsDataURL, held: (() => void)[] = [];
-    Object.assign(window, { releaseFigures: () => held.splice(0).forEach(run => run()) });
-    FileReader.prototype.readAsDataURL = function (this: FileReader, blob: Blob) { held.push(() => read.call(this, blob)); };
-  });
+  const release = await holdFigurePreparation(page);
   await composer(page).fill('@codex 三角形を作って');
   await pasteFigure(page);
   await expect(page.getByRole('status').filter({ hasText: '画像を準備中…' })).toBeVisible();
@@ -142,7 +152,7 @@ test('a figure still being prepared cannot be sent without it and does not move 
   await expect(page.locator('.assistant-composer').getByRole('alert')).toContainText('画像の準備が終わってから送信してください。');
   await expect(composer(page)).toHaveValue('@codex 三角形を作って');
 
-  await page.evaluate(() => (window as unknown as { releaseFigures: () => void }).releaseFigures());
+  await release();
   await expect(attached(page, 1)).toBeVisible();
   await expect(page.getByText('画像を準備中…', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '送信', exact: true }).click();
