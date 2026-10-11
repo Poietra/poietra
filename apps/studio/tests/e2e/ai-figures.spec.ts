@@ -56,14 +56,14 @@ async function open(page: Page, room: string) {
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
 }
 
-test('a pasted figure goes to Codex with the mention and becomes editable objects', async ({ page, browser }) => {
+test('a pasted figure goes to Codex with the mention, is shared as a stored image, and becomes editable objects', async ({ page, browser }) => {
   const room = crypto.randomUUID(), doc = new Y.Doc();
   let provider: WebsocketProvider | undefined;
   const peerContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const peer = await peerContext.newPage();
   await peer.route('**/api/ai/propose', route => route.abort('blockedbyclient'));
   const requests: Record<string, unknown>[] = [];
-  // AI HTTP is stubbed; chat sync, compilation, guards and Apply are real.
+  // AI HTTP is stubbed; storage, chat sync, compilation, guards and Apply are real.
   await page.route('**/api/ai/propose', route => {
     const input = route.request().postDataJSON();
     requests.push(input);
@@ -87,6 +87,11 @@ test('a pasted figure goes to Codex with the mention and becomes editable object
 
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({ prompt: 'この図を編集できるオブジェクトで再現して', images: [expect.stringMatching(/^data:image\/png;base64,/)] });
+    for (const viewer of [page, peer]) {
+      const shared = log(viewer).getByRole('img', { name: '添付画像 1', exact: true });
+      await expect(shared).toHaveAttribute('src', new RegExp(`^/api/rooms/${room}/images/[0-9a-f]{64}$`));
+      await expect.poll(() => shared.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBe(912);
+    }
 
     await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
     for (const name of ['Segment AB', 'Segment AC', 'Label cos θ']) await expect(peer.getByRole('button', { name, exact: true })).toBeVisible();
@@ -120,6 +125,7 @@ test('figures need the mention, can be removed, and return to the composer when 
   expect(pending[0].request().postDataJSON()).toMatchObject({ prompt: '添付した図を、編集できるオブジェクトで再現して。', images: [expect.any(String)] });
   await log(page).getByRole('button', { name: '停止', exact: true }).click();
   await expect(attached(page, 1)).toBeVisible();
+  await expect(log(page).getByRole('img', { name: '添付画像 1', exact: true })).toBeVisible();
   await expect(composer(page)).toHaveValue('@codex');
   await expect(log(page).getByText('停止しました', { exact: true })).toBeVisible();
 });

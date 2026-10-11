@@ -82,9 +82,12 @@ files or flatten AI edits into an uneditable generated video.
   without redrawing them. Images pasted into the composer are `@codex` figures
   (at most two, normalized to 1 MiB). Send the bytes inline to the model only for
   that request; the server accepts only PNG/JPEG/WebP data whose bytes match the
-  declared type. Figures are not stored in chat, rooms or portable files. Codex
-  rebuilds a figure as separately named paths, text, equations and shapes, never
-  as a generated or placed raster.
+  declared type. Codex rebuilds a figure as separately named paths, text,
+  equations and shapes, never as a generated or placed raster.
+- 2026-10-11: Collaborators saw only the text of a figure request. Store sent
+  figures as room image references in the shared message, validated at the chat
+  boundary; history notes earlier figures without resending them. Figures stay
+  out of portable files.
 - API credentials stay on the server. Automated provider simulations must not be
   described as paid API or live OAuth verification.
 - Google and GitHub logins are optional, independent identities. Do not merge by

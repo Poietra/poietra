@@ -148,6 +148,7 @@ async fn ChatController::send_async(
     proposal: None,
     applied: None,
     dismissed: None,
+    attachments: None,
   }
   let request : ChatRequest = {
     controller: new_controller(),
@@ -193,11 +194,40 @@ async fn ChatController::send_async(
     |> ignore
   })
   try {
+    // Store figures before the message names them; the room deduplicates bytes.
+    let attachments : Array[@editor.ChatAttachment] = []
+    if previous is None {
+      for figure in figures {
+        attachments.push({
+          src: @browser_media.upload_image(
+            self.store._get("roomId").cast(),
+            figure.blob,
+            request.controller._get("signal"),
+          ).wait(),
+          width: figure.width,
+          height: figure.height,
+        })
+      }
+      // Only Codex requests carry figures, and only they can be stopped while uploading.
+      if !figures.is_empty() &&
+        (!self.owns(request) || ui_aborted(request.controller._get("signal"))) {
+        return
+      }
+    }
     @core.throwable(fn() {
       if previous is Some(_) {
         self.status(id, message.status.unwrap())
       } else {
-        self.chat._call("append", [@boundary.write_chat_message(message)])
+        self.chat._call("append", [
+          @boundary.write_chat_message({
+            ..message,
+            attachments: if attachments.is_empty() {
+              None
+            } else {
+              Some(attachments)
+            },
+          }),
+        ])
         |> ignore
       }
     })
@@ -286,6 +316,7 @@ async fn ChatController::send_async(
               status: None,
               mentions_codex: None,
               request_client_id: None,
+              attachments: None,
             }),
           ])
           |> ignore
