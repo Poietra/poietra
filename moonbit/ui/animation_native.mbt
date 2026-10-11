@@ -294,12 +294,13 @@ fn AnimationBinding::set_keyframe_value(
   self : AnimationBinding,
   id : String,
   value : @scene.CurveValue,
+  separate? : Bool = true,
 ) -> Unit {
   let value = match value {
     CurveNumber(value) => @core.any(value)
     CurveColor(value) => @core.any(value)
   }
-  self.keyframe_patch(id, host_record({ "value": value }), true)
+  self.keyframe_patch(id, host_record({ "value": value }), separate)
 }
 
 ///|

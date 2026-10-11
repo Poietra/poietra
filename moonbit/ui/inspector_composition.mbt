@@ -301,10 +301,19 @@ fn composition_properties(
         component(
           color_input,
           {
+            "key": @core.any(
+              controller.scene_id +
+              "/" +
+              controller.composition_id +
+              "/" +
+              controller.selected.iter().join(",") +
+              "/fill",
+            ),
+            "disabled": @core.any(!controller.can_edit()),
             "value": @core.any(state.fill),
             "label": @core.any("Fill"),
-            "onChange": @core.any(fn(color : String) {
-              controller.update({ "fill": @core.any(color) })
+            "onChange": @core.any(fn(color : String, separate : Bool) {
+              controller.update({ "fill": @core.any(color) }, separate~)
             }),
           },
           [],
@@ -318,10 +327,19 @@ fn composition_properties(
       component(
         color_input,
         {
+          "key": @core.any(
+            controller.scene_id +
+            "/" +
+            controller.composition_id +
+            "/" +
+            controller.selected.iter().join(",") +
+            "/stroke",
+          ),
+          "disabled": @core.any(!controller.can_edit()),
           "value": @core.any(state.stroke),
           "label": @core.any("Stroke"),
-          "onChange": @core.any(fn(color : String) {
-            controller.update({ "stroke": @core.any(color) })
+          "onChange": @core.any(fn(color : String, separate : Bool) {
+            controller.update({ "stroke": @core.any(color) }, separate~)
           }),
         },
         [],
@@ -392,12 +410,17 @@ fn composition_inspector(
         component(
           color_input,
           {
+            "key": @core.any(controller.scene_id + "/background"),
             "value": controller.scene._get("background"),
             "label": @core.any("Background"),
-            "onChange": @core.any(fn(value : String) {
-              controller.store._call("setScene", [
-                @core.any(controller.scene_id),
+            "onChange": @core.any(fn(value : String, separate : Bool) {
+              let changes = @boundary.changes_for(
+                ["scenes", controller.scene_id],
                 host_record({ "background": @core.any(value) }),
+              )
+              controller.store._call("edit", [
+                @core.any(changes),
+                @core.any(separate),
               ])
               |> ignore
             }),

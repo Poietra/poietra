@@ -185,9 +185,12 @@ fn keyframe_inspector(input : KeyframeView) -> @react.Element {
           color_input,
           {
             "label": @core.any(label + " value"),
+            "disabled": @core.any(disabled),
             "value": @core.any(value),
-            "onChange": @core.any(fn(value : String) {
-              apply(fn() { binding.set_keyframe_value(id, CurveColor(value)) })
+            "onChange": @core.any(fn(value : String, separate : Bool) {
+              apply(fn() {
+                binding.set_keyframe_value(id, CurveColor(value), separate~)
+              })
             }),
           },
           [],
