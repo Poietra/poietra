@@ -15,7 +15,7 @@ extern "js" fn closest_element(
 fn shortcut_text_target(target : @core.Any) -> Bool {
   !@core.is_nullish(
     closest_element(
-      target, "input, textarea, select, [contenteditable=\"true\"], [role=\"dialog\"], [role=\"menu\"], [role=\"menuitem\"]",
+      target, "input, textarea, select, .color-field, [contenteditable=\"true\"], [role=\"dialog\"], [role=\"menu\"], [role=\"menuitem\"], [role=\"combobox\"], [role=\"listbox\"], [role=\"option\"]",
     ),
   )
 }

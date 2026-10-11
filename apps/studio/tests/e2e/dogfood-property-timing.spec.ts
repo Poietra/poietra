@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -35,9 +36,9 @@ async function setup(page: Page) {
 }
 
 async function property(page: Page, channel: string, label: string, duration: number) {
-  await page.getByRole('combobox', { name: 'Animation property', exact: true }).selectOption(channel);
+  await chooseOption(page.getByRole('combobox', { name: 'Animation property', exact: true }), channel);
   await field(page, `${label} animation duration`, duration);
-  await page.getByRole('combobox', { name: `${label} animation easing`, exact: true }).selectOption('linear');
+  await chooseOption(page.getByRole('combobox', { name: `${label} animation easing`, exact: true }), 'linear');
 }
 
 async function drag(page: Page, row: Locator, delta: number, edge?: 'start' | 'end') {

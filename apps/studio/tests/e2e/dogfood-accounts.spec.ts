@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test } from '@playwright/test';
 import type { AccountProject, AuthSession } from '../../shared/accounts';
 
@@ -259,7 +260,7 @@ test('private projects can be searched and sorted locally while refresh retains 
   const titles = list.locator('.saved-project-title strong');
   await expect(titles).toHaveText(['春の動画', 'alpha', 'Zebra']);
   await expect.poll(() => writes).toBe(1);
-  await list.getByRole('combobox', { name: 'プロジェクトの並び順' }).selectOption('name');
+  await chooseOption(list.getByRole('combobox', { name: 'プロジェクトの並び順' }), 'name');
   await expect(titles).toHaveText(['alpha', 'Zebra', '春の動画']);
   const search = list.getByRole('searchbox', { name: 'プロジェクトを検索' });
   await search.fill('  ALPHA  ');
@@ -275,7 +276,7 @@ test('private projects can be searched and sorted locally while refresh retains 
   await list.getByRole('button', { name: '一覧を更新', exact: true }).click();
   await expect(titles).toHaveText(['alpha', 'alpha follow-up']);
   await expect(search).toHaveValue('alpha');
-  await expect(list.getByRole('combobox')).toHaveValue('name');
+  await expect(list.getByRole('combobox')).toHaveAttribute('data-value', 'name');
   expect(writes).toBe(1);
 });
 
@@ -354,13 +355,13 @@ test('removing a shortcut offers a retryable restore scoped to the current accou
   await remove.click();
   await expect(restore).toBeEnabled();
   await list.getByRole('searchbox').fill('private query');
-  await list.getByRole('combobox').selectOption('name');
+  await chooseOption(list.getByRole('combobox'), 'name');
   account = 'google:bob';
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(page.getByText('Bob', { exact: true })).toBeVisible();
   await expect(restore).toHaveCount(0);
   await expect(list.getByRole('searchbox')).toHaveValue('');
-  await expect(list.getByRole('combobox')).toHaveValue('recent');
+  await expect(list.getByRole('combobox')).toHaveAttribute('data-value', 'recent');
   await expect(list.getByRole('link', { name: /Earlier work/ })).toHaveCount(0);
   expect(remembered).toBe(2);
 });

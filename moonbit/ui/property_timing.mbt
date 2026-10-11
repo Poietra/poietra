@@ -33,10 +33,10 @@ fn render_property_timing(input : PropertyTimingView) -> @react.Element {
       "時間を変更できませんでした。",
     )
   }
-  let options : Array[&@react.ReactNode] = []
+  let options : Array[SelectChoice] = []
   for value in channels {
     options.push(
-      export_choice(
+      select_choice(
         @editor.property_channel_name(value),
         @editor.property_channel_label(value) +
         (if @scene.timing_override(track, value) is Some(_) {
@@ -49,21 +49,17 @@ fn render_property_timing(input : PropertyTimingView) -> @react.Element {
   }
   let content : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Property") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Animation property"),
-          "value": @core.any(channel_name),
-          "onChange": @core.any(fn(event : @core.Any) {
-            set_chosen(
-              @scene.property_channel(event._get("target")._get("value").cast()).unwrap_or(
-                Position,
-              ),
-            )
-            set_error("")
-          }),
+      select_input(
+        "Animation property",
+        channel_name,
+        fn(selected_value : String) {
+          set_chosen(
+            @scene.property_channel(selected_value).unwrap_or(Position),
+          )
+          set_error("")
         },
         options,
+        disabled=animation.locked,
       ),
     ]),
     h(

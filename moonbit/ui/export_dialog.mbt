@@ -5,42 +5,22 @@ fn scene_count(project : @core.Any) -> Int {
 }
 
 ///|
-fn export_choice(
-  value : String,
-  label : String,
-  disabled? : Bool = false,
-) -> @react.Element {
-  h(
-    "option",
-    {
-      "key": @core.any(value),
-      "value": @core.any(value),
-      "disabled": @core.any(disabled),
-    },
-    [label],
-  )
-}
-
-///|
 fn export_select(
   label : String,
   accessible : String,
   value : @core.Any,
   on_change : (String) -> Unit,
-  options : Array[&@react.ReactNode],
+  options : Array[SelectChoice],
+  disabled : Bool,
 ) -> @react.Element {
   h("label", Map([]), [
     label,
-    h(
-      "select",
-      {
-        "aria-label": @core.any(accessible),
-        "value": value,
-        "onChange": @core.any(fn(event : @core.Any) {
-          on_change(event._get("target")._get("value").cast())
-        }),
-      },
+    select_input(
+      accessible,
+      string_value(value),
+      fn(selected_value : String) { on_change(selected_value) },
       options,
+      disabled~,
     ),
   ])
 }
@@ -243,15 +223,16 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
           )
         },
         [
-          export_choice(
+          select_choice(
             "project",
             "Entire project · \{scene_count(project)} scenes",
           ),
-          export_choice(
+          select_choice(
             "scene",
             "Current scene · " + string_value(scene._get("name")),
           ),
         ],
+        busy || completed || view is Checking,
       ),
     )
   }
@@ -262,20 +243,21 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
       @core.any(displayed_format.extension()),
       fn(value) { set_format(if value == "mp4" { Mp4 } else { Webm }) },
       [
-        export_choice(
+        select_choice(
           "mp4",
           "MP4",
           disabled=!capabilities.map(fn(value) { value.mp4 }).unwrap_or(false),
         ),
-        export_choice(
+        select_choice(
           "webm",
           "WebM",
           disabled=!capabilities.map(fn(value) { value.webm }).unwrap_or(false),
         ),
       ],
+      busy || completed || view is Checking,
     ),
   )
-  let resolutions : Array[&@react.ReactNode] = []
+  let resolutions : Array[SelectChoice] = []
   for
     (choice, label) in [
       (@exporting.Source, "Source"),
@@ -286,13 +268,13 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
     ] {
     let size = @exporting.dimensions(displayed, choice, displayed_format)
     resolutions.push(
-      export_choice(
+      select_choice(
         export_resolution_value(choice),
         label + " · \{size.width} × \{size.height}",
       ),
     )
   }
-  resolutions.push(export_choice("custom", "Custom"))
+  resolutions.push(select_choice("custom", "Custom"))
   settings.push(
     export_select(
       "Resolution",
@@ -311,6 +293,7 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
         )
       },
       resolutions,
+      busy || completed || view is Checking,
     ),
   )
   if resolution is Width(_) || resolution is Height(_) {
@@ -349,10 +332,11 @@ pub fn export_dialog(input : @core.Any) -> @react.Element {
       @core.any(displayed_fps),
       fn(value) { set_fps(number_value(value)) },
       [
-        export_choice("24", "24 fps"),
-        export_choice("30", "30 fps"),
-        export_choice("60", "60 fps"),
+        select_choice("24", "24 fps"),
+        select_choice("30", "30 fps"),
+        select_choice("60", "60 fps"),
       ],
+      busy || completed || view is Checking,
     ),
   )
   let content : Array[&@react.ReactNode] = [

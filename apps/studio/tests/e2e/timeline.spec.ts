@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -141,7 +142,7 @@ for (const channel of ['base', 'opacity'] as const) test(`${channel} timing drag
     await Promise.all([open(alice, room), open(bob, room)]);
     await Promise.all([transition(alice), transition(bob)]);
     if (channel === 'opacity') {
-      for (const page of [alice, bob]) await page.getByRole('combobox', { name: 'Animation property', exact: true }).selectOption('opacity');
+      for (const page of [alice, bob]) await chooseOption(page.getByRole('combobox', { name: 'Animation property', exact: true }), 'opacity');
     }
     const durationLabel = channel === 'base' ? 'Animation duration' : 'Opacity animation duration';
     const startLabel = channel === 'base' ? 'Animation start' : 'Opacity animation start';
@@ -153,8 +154,8 @@ for (const channel of ['base', 'opacity'] as const) test(`${channel} timing drag
     await alice.mouse.move(at.x, at.y); await alice.mouse.down();
     await alice.mouse.move(at.x + lane.width * 80 / 800, at.y, { steps: 4 });
     await expect(bob.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('80');
-    await bob.getByRole('combobox', { name: easingLabel, exact: true }).selectOption('easeOut');
-    await expect(alice.getByRole('combobox', { name: easingLabel, exact: true })).toHaveValue('easeOut');
+    await chooseOption(bob.getByRole('combobox', { name: easingLabel, exact: true }), 'easeOut');
+    await expect(alice.getByRole('combobox', { name: easingLabel, exact: true })).toHaveAttribute('data-value', 'easeOut');
     await alice.mouse.move(at.x + lane.width * 160 / 800, at.y, { steps: 4 }); await alice.mouse.up();
     await expect(bob.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('160');
     await expect(alice.locator('.timeline-feedback')).toHaveAttribute('data-feedback-state', 'complete');
@@ -162,7 +163,7 @@ for (const channel of ['base', 'opacity'] as const) test(`${channel} timing drag
     for (const page of [alice, bob]) {
       await expect(page.getByRole('spinbutton', { name: startLabel, exact: true })).toHaveValue('0');
       await expect(page.getByRole('spinbutton', { name: durationLabel, exact: true })).toHaveValue('500');
-      await expect(page.getByRole('combobox', { name: easingLabel, exact: true })).toHaveValue('easeOut');
+      await expect(page.getByRole('combobox', { name: easingLabel, exact: true })).toHaveAttribute('data-value', 'easeOut');
     }
   } finally { await a.close(); await b.close(); }
 });
@@ -231,7 +232,7 @@ test('bottom seeking follows the visible ruler after scrolling at a narrow width
   await page.locator('.composition-list').getByRole('button', { name: 'Composition を追加', exact: true }).click();
   await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).first().click();
   await page.getByRole('button', { name: 'Sigmoid path', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Animation type', exact: true }).selectOption('fade');
+  await chooseOption(page.getByRole('combobox', { name: 'Animation type', exact: true }), 'fade');
   await page.getByRole('button', { name: 'Circle', exact: true }).click();
   // The composition strip can scroll independently from the time ruler.
   const strip = page.locator('.composition-strip');

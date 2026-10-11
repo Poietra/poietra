@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import * as Y from 'yjs';
@@ -25,7 +26,7 @@ async function number(page: Page, label: string, value: number) {
   await input.fill(String(value)); await input.press('Tab');
 }
 async function custom(page: Page, label: string) {
-  await page.getByRole('combobox', { name: label, exact: true }).selectOption({ label: 'Custom Bézier' });
+  await chooseOption(page.getByRole('combobox', { name: label, exact: true }), { label: 'Custom Bézier' });
   for (const [key, value] of Object.entries(curve)) if (key !== 'type') await number(page, `${label} ${key.toUpperCase()}`, value as number);
 }
 async function dragDestination(page: Page, label: string, dx: number, dy: number) {
@@ -53,8 +54,8 @@ test('custom easing changes the rendered motion and independent opacity, then su
     await preview.fill('75');
     await expect(rendered).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
     await expect(rendered).toHaveAttribute('opacity', '0.6');
-    await page.getByRole('combobox', { name: 'Easing', exact: true }).selectOption('linear');
-    await page.getByRole('combobox', { name: 'Animation property', exact: true }).selectOption('opacity');
+    await chooseOption(page.getByRole('combobox', { name: 'Easing', exact: true }), 'linear');
+    await chooseOption(page.getByRole('combobox', { name: 'Animation property', exact: true }), 'opacity');
     await custom(page, 'Opacity animation easing');
     await expect.poll(() => room.track().opacityTiming?.easing).toEqual(curve);
     await expect(rendered).toHaveAttribute('opacity', '0.6');
@@ -123,11 +124,11 @@ test('multiple selected objects share custom curves without displaying Mixed and
     await select(page);
     await page.getByRole('button', { name: 'Equation', exact: true }).click({ modifiers: ['Shift'] });
     await custom(page, 'Selected animation easing');
-    await expect(page.getByRole('combobox', { name: 'Selected animation easing', exact: true })).toHaveValue('custom');
+    await expect(page.getByRole('combobox', { name: 'Selected animation easing', exact: true })).toHaveAttribute('data-value', 'custom');
     await expect.poll(() => room.track().easing).toEqual(curve);
     expect(readProject(room.doc)!.scenes['scene-1'].transitions['transition-1'].tracks.equation.easing).toEqual(curve);
     await page.getByRole('button', { name: 'Circle', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Animation type', exact: true }).selectOption('none');
+    await chooseOption(page.getByRole('combobox', { name: 'Animation type', exact: true }), 'none');
     await expect(page.getByRole('combobox', { name: 'Easing', exact: true })).toBeDisabled();
     await expect(page.getByRole('spinbutton', { name: 'Easing X1', exact: true })).toBeDisabled();
     expect(room.track().easing).toEqual(curve);
@@ -202,7 +203,7 @@ test('cancelling the first independent curve drag preserves a peer edit to the n
   const room = await fixture(page);
   try {
     await select(page); await custom(page, 'Easing');
-    await page.getByRole('combobox', { name: 'Animation property', exact: true }).selectOption('opacity');
+    await chooseOption(page.getByRole('combobox', { name: 'Animation property', exact: true }), 'opacity');
     expect(room.track().opacityTiming).toBeUndefined();
     const finalDrag = await dragDestination(page, 'Opacity animation easing', 30, -25);
     await expect.poll(() => room.track().opacityTiming).toEqual({ start: 0, duration: 600, easing: finalDrag });

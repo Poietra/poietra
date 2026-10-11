@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page, type Locator } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -35,8 +36,8 @@ test('parents and anchors preserve geometry, inherited transforms support draggi
   await open(page);
   await select(page, 'Equation'); await field(page, 'Rotation', 31); await field(page, 'Scale X', 180); await field(page, 'Scale Y', 75);
   await select(page, 'Circle'); const before = await matrix(page);
-  await page.getByRole('combobox', { name: 'Parent object' }).selectOption('equation');
-  await expect(page.getByRole('combobox', { name: 'Parent object' })).toHaveValue('equation');
+  await chooseOption(page.getByRole('combobox', { name: 'Parent object' }), 'equation');
+  await expect(page.getByRole('combobox', { name: 'Parent object' })).toHaveAttribute('data-value', 'equation');
   near(await matrix(page), before);
   await field(page, 'Anchor X', 17); await field(page, 'Anchor Y', -9);
   near(await matrix(page), before);
@@ -51,7 +52,7 @@ test('parents and anchors preserve geometry, inherited transforms support draggi
   await select(page, '元に戻す (⌘Z)');
   await expect(page.getByRole('spinbutton', { name: 'Width', exact: true })).toHaveValue('42');
   const attached = await matrix(page);
-  await page.getByRole('combobox', { name: 'Parent object' }).selectOption('');
+  await chooseOption(page.getByRole('combobox', { name: 'Parent object' }), '');
   near(await matrix(page), attached);
 });
 
@@ -60,7 +61,7 @@ test('intermediate values stretch with timing, follow endpoint edits and survive
   await select(page, 'Composition 2'); await field(page, 'Position X', 100);
   await select(page, 'Transition 800 ms');
   await field(page, 'Position animation start', 0); await field(page, 'Position animation duration', 800);
-  await page.getByRole('combobox', { name: 'Keyframe property' }).selectOption('x');
+  await chooseOption(page.getByRole('combobox', { name: 'Keyframe property' }), 'x');
   await select(page, '中間点を追加'); await field(page, 'X keyframe 1 value', 500);
   const slider = page.getByRole('slider', { name: 'Transition preview position', exact: true });
   await slider.fill('400');
@@ -87,7 +88,7 @@ test('intermediate values stretch with timing, follow endpoint edits and survive
 
 test('a version 2 saved project opens in a fresh room with its parenting and intermediate points intact', async ({ page }) => {
   await open(page); await select(page, 'Circle');
-  await page.getByRole('combobox', { name: 'Parent object' }).selectOption('equation');
+  await chooseOption(page.getByRole('combobox', { name: 'Parent object' }), 'equation');
   await select(page, 'Transition 800 ms'); await select(page, '中間点を追加'); await field(page, 'X keyframe 1 value', 350);
   await select(page, 'プロジェクトを開く');
   const downloading = page.waitForEvent('download'); await select(page, 'Save project');
@@ -100,7 +101,7 @@ test('a version 2 saved project opens in a fresh room with its parenting and int
   await page.getByLabel('プロジェクトファイル', { exact: true }).setInputFiles({ name: 'primitives.poietra.json', mimeType: 'application/json', buffer: saved });
   await expect(page).not.toHaveURL(original);
   await expect(page.getByText('Live', { exact: true })).toBeVisible();
-  await select(page, 'Circle'); await expect(page.getByRole('combobox', { name: 'Parent object' })).toHaveValue('equation');
+  await select(page, 'Circle'); await expect(page.getByRole('combobox', { name: 'Parent object' })).toHaveAttribute('data-value', 'equation');
   await select(page, 'Transition 800 ms');
   await expect(page.getByRole('spinbutton', { name: 'X keyframe 1 value' })).toHaveValue('350');
 });

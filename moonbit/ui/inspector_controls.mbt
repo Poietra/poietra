@@ -5,33 +5,23 @@ fn color_input(input : @core.Any) -> @react.Element {
   let (draft, set_draft) = @react.use_state((None : String?))
   let dirty = @react.use_ref(Some(false))
   let code = (if value.has_prefix("#") { value[1:].to_owned() } else { value }).to_upper()
-  let change : (String) -> Unit = input._get("onChange").cast()
+  let change : (String, Bool) -> Unit = input._get("onChange").cast()
   h("div", { "className": @core.any("color-field") }, [
-    h(
-      "label",
+    component(
+      color_picker,
       {
-        "className": @core.any("color-swatch"),
-        "style": host_record({ "background": @core.any(value) }),
+        "value": @core.any(value),
+        "label": @core.any(label),
+        "onChange": @core.any(change),
+        "disabled": input._get("disabled"),
       },
-      [
-        h(
-          "input",
-          {
-            "aria-label": @core.any(label + "の色を選択"),
-            "type": @core.any("color"),
-            "value": @core.any(value),
-            "onChange": @core.any(fn(event : @core.Any) {
-              change(event._get("target")._get("value").cast())
-            }),
-          },
-          [],
-        ),
-      ],
+      [],
     ),
     h(
       "input",
       {
         "aria-label": @core.any(label + "のカラーコード"),
+        "disabled": input._get("disabled"),
         "value": @core.any(draft.unwrap_or(code)),
         "onFocus": @core.any(fn() {
           dirty.set_current(Some(false))
@@ -45,7 +35,7 @@ fn color_input(input : @core.Any) -> @react.Element {
           if dirty.get_current() == Some(true) &&
             draft is Some(text) &&
             @editor.color_code(text) is Some(color) {
-            change(color)
+            change(color, true)
           }
           dirty.set_current(Some(false))
           set_draft(None)
@@ -154,6 +144,7 @@ fn InspectorController::can_edit(self : InspectorController) -> Bool {
 fn InspectorController::update(
   self : InspectorController,
   patch : Map[String, @core.Any],
+  separate? : Bool = true,
 ) -> Unit {
   if !self.can_edit() {
     return
@@ -165,6 +156,7 @@ fn InspectorController::update(
       @core.any(self.composition_id),
       @core.any(id),
       value,
+      @core.any(separate),
     ])
     |> ignore
   }

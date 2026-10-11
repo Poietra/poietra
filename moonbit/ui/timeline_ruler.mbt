@@ -164,7 +164,7 @@ fn timeline_transport(
 ) -> @react.Element {
   let playing = editor.playing
   let scene = editor.scene
-  let options : Array[&@react.ReactNode] = []
+  let options : Array[SelectChoice] = []
   for
     (value, name) in [
       (1.0, "Fit"),
@@ -173,9 +173,7 @@ fn timeline_transport(
       (1.25, "125%"),
       (1.5, "150%"),
     ] {
-    options.push(
-      h("option", { "key": @core.any(value), "value": @core.any(value) }, [name]),
-    )
+    options.push(select_choice(string_value(@core.any(value)), name))
   }
   h("div", { "className": @core.any("transport") }, [
     h("div", { "className": @core.any("transport-left") }, [
@@ -215,22 +213,15 @@ fn timeline_transport(
       string_value(scene._get("height")),
       h("span", Map([]), ["30 fps"]),
     ]),
-    h(
-      "select",
-      {
-        "className": @core.any("zoom-select"),
-        "aria-label": @core.any("キャンバスのズーム"),
-        "value": input._get("zoom"),
-        "onChange": @core.any(fn(event : @core.Any) {
-          input
-          ._get("setZoom")
-          ._invoke([
-            @core.any(number_value(event._get("target")._get("value").cast())),
-          ])
-          |> ignore
-        }),
+    select_input(
+      "キャンバスのズーム",
+      string_value(input._get("zoom")),
+      fn(selected_value : String) {
+        input._get("setZoom")._invoke([@core.any(number_value(selected_value))])
+        |> ignore
       },
       options,
+      class_name="zoom-select",
     ),
   ])
 }

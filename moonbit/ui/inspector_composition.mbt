@@ -259,16 +259,14 @@ fn composition_properties(
   content.push(
     inspector_section("Effects", [
       component(field, { "label": @core.any("Effect") }, [
-        h(
-          "select",
-          {
-            "aria-label": @core.any("Object effect"),
-            "value": @core.any(@scene.effect_name(state.effect)),
-            "onChange": @core.any(fn(event : @core.Any) {
-              controller.update({ "effect": event._get("target")._get("value") })
-            }),
+        select_input(
+          "Object effect",
+          @scene.effect_name(state.effect),
+          fn(selected_value : String) {
+            controller.update({ "effect": @core.any(selected_value) })
           },
-          [export_choice("none", "None"), export_choice("glow", "Glow")],
+          [select_choice("none", "None"), select_choice("glow", "Glow")],
+          disabled=!controller.can_edit(),
         ),
       ]),
     ]),
@@ -303,10 +301,19 @@ fn composition_properties(
         component(
           color_input,
           {
+            "key": @core.any(
+              controller.scene_id +
+              "/" +
+              controller.composition_id +
+              "/" +
+              controller.selected.iter().join(",") +
+              "/fill",
+            ),
+            "disabled": @core.any(!controller.can_edit()),
             "value": @core.any(state.fill),
             "label": @core.any("Fill"),
-            "onChange": @core.any(fn(color : String) {
-              controller.update({ "fill": @core.any(color) })
+            "onChange": @core.any(fn(color : String, separate : Bool) {
+              controller.update({ "fill": @core.any(color) }, separate~)
             }),
           },
           [],
@@ -320,10 +327,19 @@ fn composition_properties(
       component(
         color_input,
         {
+          "key": @core.any(
+            controller.scene_id +
+            "/" +
+            controller.composition_id +
+            "/" +
+            controller.selected.iter().join(",") +
+            "/stroke",
+          ),
+          "disabled": @core.any(!controller.can_edit()),
           "value": @core.any(state.stroke),
           "label": @core.any("Stroke"),
-          "onChange": @core.any(fn(color : String) {
-            controller.update({ "stroke": @core.any(color) })
+          "onChange": @core.any(fn(color : String, separate : Bool) {
+            controller.update({ "stroke": @core.any(color) }, separate~)
           }),
         },
         [],
@@ -394,12 +410,17 @@ fn composition_inspector(
         component(
           color_input,
           {
+            "key": @core.any(controller.scene_id + "/background"),
             "value": controller.scene._get("background"),
             "label": @core.any("Background"),
-            "onChange": @core.any(fn(value : String) {
-              controller.store._call("setScene", [
-                @core.any(controller.scene_id),
+            "onChange": @core.any(fn(value : String, separate : Bool) {
+              let changes = @boundary.changes_for(
+                ["scenes", controller.scene_id],
                 host_record({ "background": @core.any(value) }),
+              )
+              controller.store._call("edit", [
+                @core.any(changes),
+                @core.any(separate),
               ])
               |> ignore
             }),

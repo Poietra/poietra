@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 import { countEditorRenders } from './render-counts';
 
@@ -125,7 +126,7 @@ test('exported animation controls keep native values, optional callback argument
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/tests/e2e/fixtures/editor-context.html?animation=1');
   const command = () => page.getByTestId('command').textContent().then(value => JSON.parse(value || 'null'));
-  await page.getByRole('combobox', { name: 'External easing', exact: true }).selectOption('custom');
+  await chooseOption(page.getByRole('combobox', { name: 'External easing', exact: true }), 'custom');
   await expect.poll(command).toEqual([1, 'curve', { type: 'cubicBezier', x1: .25, y1: .1, x2: .25, y2: 1 }, 'default']);
   await page.getByRole('button', { name: 'Replace callbacks', exact: true }).click();
   const coordinate = page.getByRole('spinbutton', { name: 'External easing X1', exact: true });

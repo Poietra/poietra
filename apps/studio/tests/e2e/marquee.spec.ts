@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 
 async function world(page: Page, x: number, y: number) {
@@ -23,7 +24,7 @@ async function setup(page: Page) {
   await field(page, 'Width', 70); await field(page, 'Height', 60); await field(page, 'Rotation', 35);
   const text = await add(page, 'テキスト (T)', 620, 200, '日 本 語'); await field(page, 'Rotation', -30);
   const equation = await add(page, '数式 (E)', 790, 200, String.raw`x \quad + \quad y`);
-  await page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }).selectOption('0.75');
+  await chooseOption(page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }), '0.75');
   await expect(page.locator('.scene-canvas')).toBeVisible();
   return { rectangle, text, equation };
 }

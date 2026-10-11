@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 
 async function world(page: Page, x: number, y: number, stage = 'main') {
@@ -44,7 +45,7 @@ for (const example of [
     await input.fill(example.content); await input.press('Tab');
     await expect(page.locator(`[data-testid="stage-main"] .scene-svg [data-object-id="${id}"]`)).toBeVisible();
     await field(page, 'Rotation', 35);
-    await page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }).selectOption('0.75');
+    await chooseOption(page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }), '0.75');
     await peer.locator(`[data-layer-id="${id}"] .layer-select`).click();
     await expect(peer.getByRole('textbox', { name: example.label, exact: true })).toHaveValue(example.content);
     await expect(peer.getByRole('spinbutton', { name: 'Rotation', exact: true })).toHaveValue('35');
@@ -101,7 +102,7 @@ test('double click edits the visible transition destination, while an interpolat
   await page.mouse.dblclick(empty.x, empty.y);
   await expect(page.getByRole('textbox', { name: 'LaTeX expression', exact: true })).toBeFocused();
   await expect(page.getByTestId('stage-main')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Composition 2', exact: true })).toHaveClass(/selected/);
+  await expect(page.getByRole('button', { name: 'Composition 2', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 

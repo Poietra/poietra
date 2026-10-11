@@ -43,36 +43,32 @@ fn transform_inspector(input : @core.Any) -> @react.Element {
       @core.any(if axis == "y" { value } else { state.anchorY.unwrap_or(0.0) }),
     ])
   }
-  let choices : Array[&@react.ReactNode] = [export_choice("", "None")]
+  let choices : Array[SelectChoice] = [select_choice("", "None")]
   for candidate in @boundary.ordered_objects(scene) {
     let other : String = candidate._get("id").cast()
     if other != id {
-      choices.push(export_choice(other, string_value(candidate._get("name"))))
+      choices.push(select_choice(other, string_value(candidate._get("name"))))
     }
   }
   let content : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Parent · Scene") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Parent object"),
-          "value": @core.any(
-            optional_string(object._get("parentId")).unwrap_or(""),
-          ),
-          "onChange": @core.any(fn(event : @core.Any) {
-            let parent : String = event._get("target")._get("value").cast()
-            change("setParent", [
-              @core.any(sid),
-              @core.any(id),
-              if parent.is_empty() {
-                @core.null()
-              } else {
-                @core.any(parent)
-              },
-            ])
-          }),
+      select_input(
+        "Parent object",
+        optional_string(object._get("parentId")).unwrap_or(""),
+        fn(selected_value : String) {
+          let parent : String = selected_value
+          change("setParent", [
+            @core.any(sid),
+            @core.any(id),
+            if parent.is_empty() {
+              @core.null()
+            } else {
+              @core.any(parent)
+            },
+          ])
         },
         choices,
+        disabled=truthy(object._get("locked")),
       ),
     ]),
     h("p", { "className": @core.any("property-timing-note") }, [

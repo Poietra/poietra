@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,7 +9,7 @@ const execute = promisify(execFile);
 for (const format of ['mp4', 'webm'] as const) test(`the actual ${format} contains image colors and transparency`, async ({ page }, testInfo) => {
   test.setTimeout(90000); await open(page); await upload(page); await field(page, 'Width', '320');
   await page.getByRole('button', { name: 'Export', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Export format', exact: true }).selectOption(format);
+  await chooseOption(page.getByRole('combobox', { name: 'Export format', exact: true }), format);
   await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled();
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Export video', exact: true }).click()]);
   const path = testInfo.outputPath(`image.${format}`); await download.saveAs(path);

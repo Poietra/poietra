@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -203,8 +204,8 @@ for (const format of ['mp4', 'webm'] as const) test(`the actual ${format.toUpper
     await page.getByRole('tab', { name: 'Portrait ending', exact: true }).click();
     await page.getByRole('button', { name: 'Export', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeEnabled();
-    await expect(page.getByRole('combobox', { name: 'Export range', exact: true })).toHaveValue('project');
-    await page.getByRole('combobox', { name: 'Export format', exact: true }).selectOption(format);
+    await expect(page.getByRole('combobox', { name: 'Export range', exact: true })).toHaveAttribute('data-value', 'project');
+    await chooseOption(page.getByRole('combobox', { name: 'Export format', exact: true }), format);
     await expect(page.getByRole('combobox', { name: 'Export resolution', exact: true })).toContainText('Source · 640 × 360');
     await expect(page.getByRole('dialog')).toContainText('3.60 seconds');
     await page.evaluate(() => { (window as typeof window & { projectEncodeArmed: boolean }).projectEncodeArmed = true; });

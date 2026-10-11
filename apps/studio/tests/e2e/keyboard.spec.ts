@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('select triggers and portalled options keep editor shortcuts out of keyboard selection', async ({ page }) => {
+  await page.goto(`/?room=${crypto.randomUUID()}`);
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  const parent = page.getByRole('combobox', { name: 'Parent object', exact: true });
+  const x = page.getByRole('spinbutton', { name: 'Position X', exact: true });
+  const before = await x.inputValue();
+  await parent.focus();
+  await parent.press('Delete');
+  await expect(page.locator('[data-layer-id="circle"]')).toBeVisible();
+  await parent.press('Enter');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Delete');
+  await page.keyboard.press('Escape');
+  await expect(parent).toBeFocused();
+  await expect(parent).toHaveAttribute('data-value', '');
+  await expect(x).toHaveValue(before);
+  await expect(page.locator('select')).toHaveCount(0);
+  await page.getByRole('button', { name: 'ロック', exact: true }).click();
+  await expect(parent).toBeDisabled();
+});
+
 test('arrow keys nudge a linked selection; key repeat is one undo and Shift moves ten pixels', async ({ page }) => {
   await page.clock.install();
   await page.goto(`/?room=${crypto.randomUUID()}`);
