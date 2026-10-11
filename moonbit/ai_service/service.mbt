@@ -31,6 +31,7 @@ fn messages(
         ]),
       ),
       ("scene", scene),
+      ("attachedImages", @core.any(input.images.length())),
     ]),
   )
   if content.length() > 200000 {
@@ -40,14 +41,15 @@ fn messages(
   }
   let developer = instructions +
     (if images { image_instructions } else { no_image_instructions }) +
+    (if input.images.is_empty() { "" } else { figure_instructions }) +
     (if input.supports_append {
       ""
     } else {
       "\nThis client cannot apply appendComposition. Do not use appendComposition for this request. If adding a Composition is necessary, ask the user to reload the page to use the updated editor, and return no operations. Existing-object and existing-timeline editing remains available."
     })
-  [{ role: Developer, content: developer, }] +
+  [{ role: Developer, content: developer, images: [], }] +
   input.history +
-  [{ role: User, content, }]
+  [{ role: User, content, images: input.images, }]
 }
 
 ///|
@@ -116,12 +118,20 @@ pub fn create_edit_proposal(
         client: @core.new(runtime._get("OpenAI"), [
           @core.from_entries([
             ("apiKey", @core.any(api_key)),
-            ("timeout", @core.any(60000)),
+            (
+              "timeout",
+              @core.any(if input.images.is_empty() { 60000 } else { 120000 }),
+            ),
             ("maxRetries", @core.any(1)),
           ]),
         ]),
         tuning: read_tuning(options._get("tuning")),
         usage: { input: 0.0, cached: 0.0, output: 0.0, },
+        max_output: if input.images.is_empty() {
+          6000
+        } else {
+          16000
+        },
         attempts: 0,
       }
       let compile = fn(
@@ -167,12 +177,13 @@ pub fn create_edit_proposal(
             ("reason", @core.any(reason)),
           ])
           parsed = generation.generate([
-            { role: Assistant, content: json(parsed), },
+            { role: Assistant, content: json(parsed), images: [], },
             {
               role: User,
               content: "The previous proposal was rejected before it reached the editor. Validation error: " +
               reason +
               "\nReturn a corrected proposal for the same request. Use only object, composition and transition IDs that exist in the current Scene, or refs declared in this proposal; keep every track within its Transition duration; never edit locked objects. If the request cannot be satisfied with the available operations, explain why and return no operations.",
+              images: [],
             },
           ])
           compile(parsed, placeholder)
@@ -220,6 +231,7 @@ pub fn create_edit_proposal(
         ("operations", parsed._get("operations")._get("length")),
         ("changes", proposal._get("changes")._get("length")),
         ("images", @core.any(requests.length())),
+        ("figures", @core.any(input.images.length())),
         (
           "usage",
           @core.from_entries([

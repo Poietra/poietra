@@ -70,3 +70,32 @@
 }
 .assistant-jump button:hover { border-color: var(--accent); }
 .assistant-composer form:focus-within { border-color: var(--accent); }
+
+.chat-figures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chat-figures img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f4f4f6;
+  object-fit: contain;
+}
+.composer-figures { margin: 0; padding: 10px 10px 0; }
+.composer-figures > span { position: relative; }
+.composer-figures img { max-height: 72px; }
+.composer-figures button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3a3a48;
+  color: #e4e2ee;
+}
+.composer-figures button:hover { background: #8160a3; }

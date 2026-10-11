@@ -33,3 +33,33 @@ test "asset references are local immutable paths or supported inert data URLs" {
   assert_eq(video_seconds(5000.0, 2000.0), 1.999999)
   assert_eq(video_seconds(-100.0, 2000.0), 0.0)
 }
+
+///|
+test "a pasted figure is a bounded inline image whose signature matches its type" {
+  let png = "iVBORw0KGgoAAAAAAAAAAAAAAAAAAAAA"
+  assert_eq(figure_mime("data:image/png;base64,\{png}"), Some("image/png"))
+  assert_eq(figure_mime("data:image/png;base64,\{png}AQ=="), Some("image/png"))
+  assert_eq(
+    figure_mime("data:image/webp;base64,UklGRgAAAABXRUJQAAAAAAAAAAAAAAAA"),
+    Some("image/webp"),
+  )
+  for
+    source in [
+      // A renamed type, a truncated payload, a short file and a stored reference.
+      "data:image/jpeg;base64,\{png}",
+      "data:image/png;base64,\{png}AQ",
+      "data:image/png;base64,AQ==",
+      "data:image/svg+xml;base64,\{png}",
+      "/api/rooms/0123456789abcdef/images/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    ] {
+    assert_eq(figure_mime(source), None)
+  }
+  // The decoded size, not only the URL length, must fit one stored image.
+  let filler = String::make((image_limit + 3) / 3 * 4 - 32, 'A')
+  assert_eq(figure_mime("data:image/png;base64,\{png}\{filler}"), None)
+  let fits = String::make(image_limit / 3 * 4 - 32, 'A')
+  assert_eq(
+    figure_mime("data:image/png;base64,\{png}\{fits}"),
+    Some("image/png"),
+  )
+}

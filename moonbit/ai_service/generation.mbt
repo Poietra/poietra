@@ -17,7 +17,7 @@ async fn Generation::request(
   let body = @core.from_entries([
     ("model", @core.any(self.model)),
     ("store", @core.any(false)),
-    ("max_output_tokens", @core.any(6000)),
+    ("max_output_tokens", @core.any(self.max_output)),
     (
       "input",
       @core.any(

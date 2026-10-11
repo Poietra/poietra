@@ -1,5 +1,7 @@
 ///|
-pub let ai_request_limit : Int = 262144
+/// Text, history and Scene context plus the pasted figures sent inline.
+pub let ai_request_limit : Int = 262144 +
+  @assets.figure_limit * @assets.image_data_limit
 
 ///|
 pub fn read_json(
