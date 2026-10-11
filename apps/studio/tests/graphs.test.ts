@@ -354,4 +354,9 @@ it('shades the region under a function as a derived path, upgrades to version 7 
   expect(graph(alice, 'comp-2').filled).toBe(true);
   alice.updateState('scene-1', 'comp-1', 'graph', { graph: { expression: 'x^2+y^2=a^2', filled: true } });
   expect(curve(compositionFrame(alice.scene('scene-1'), alice.scene('scene-1').compositions['comp-1']).objects[0]).area).toBe('');
+  // Wholly above the viewport: no line, one rectangle between the axis and the top edge.
+  alice.updateState('scene-1', 'comp-1', 'graph', { graph: { syntaxVersion: 1, expression: '5', filled: true } });
+  const above = curve(compositionFrame(alice.scene('scene-1'), alice.scene('scene-1').compositions['comp-1']).objects[0]);
+  expect(above.curve).toBe('');
+  expect(above.area).toMatch(/^M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) \2L\3 0L\1 0Z$/);
 });

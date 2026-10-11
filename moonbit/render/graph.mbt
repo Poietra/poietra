@@ -117,7 +117,13 @@ fn prepare_graph(
         definition.c,
         definition.breaks,
       )
-    None => @math_plot.Plot::{ segments: [], limited: false, evaluations: 0, }
+    None =>
+      @math_plot.Plot::{
+        segments: [],
+        chords: [],
+        limited: false,
+        evaluations: 0,
+      }
   }
   let axes = StringBuilder()
   let grid = StringBuilder()
@@ -189,7 +195,7 @@ fn prepare_graph(
     full_curve: graph_curve(plot.segments, 1.0),
     baseline,
     full_area: match baseline {
-      Some(baseline) => graph_area(plot.segments, 1.0, baseline)
+      Some(baseline) => graph_area(plot, 1.0, baseline, width, height)
       None => ""
     },
     axes: axes.to_string(),
@@ -250,21 +256,90 @@ fn graph_curve(
 }
 
 ///|
-/// Each revealed run closed down to the baseline, so Write draws the line and
-/// fills the region beneath it together; branches shade independently.
+/// The region beneath each continuous run of the curve, closed to the baseline
+/// before viewport clipping, so stretches above or below the viewport still
+/// shade beneath them. Write fills up to the x reached by the revealed line; a
+/// wholly offscreen curve sweeps across the viewport instead.
 fn graph_area(
-  segments : Array[@math_plot.Segment],
+  plot : @math_plot.Plot,
   progress : Double,
   baseline : Double,
+  width : Double,
+  height : Double,
 ) -> String {
+  let progress = unit(progress)
+  let front = if progress >= 1.0 {
+    width / 2.0
+  } else {
+    match graph_runs(plot.segments, progress).last() {
+      Some(run) => run[run.length() - 1].0
+      None => (progress - 0.5) * width
+    }
+  }
+  let top = -height / 2.0
+  let bottom = height / 2.0
+  let runs : Array[Array[(Double, Double)]] = []
+  let mut previous : (Double, Double)? = None
+  for chord in plot.chords {
+    if chord.x0 >= front {
+      break
+    }
+    if previous != Some((chord.x0, chord.y0)) {
+      runs.push([])
+      area_point(runs[runs.length() - 1], chord.x0, chord.y0, top, bottom)
+    }
+    let run = runs[runs.length() - 1]
+    // Cut at the front, then insert the viewport-edge crossings so clamping the
+    // points keeps the exact positions where the curve leaves and returns.
+    let amount = if chord.x1 > front {
+      (front - chord.x0) / (chord.x1 - chord.x0)
+    } else {
+      1.0
+    }
+    let dx = amount * (chord.x1 - chord.x0)
+    let dy = amount * (chord.y1 - chord.y0)
+    let t0 = (top - chord.y0) / dy
+    let t1 = (bottom - chord.y0) / dy
+    for t in (if t0 <= t1 { [t0, t1] } else { [t1, t0] }) {
+      if t > 0.0 && t < 1.0 {
+        area_point(run, chord.x0 + t * dx, chord.y0 + t * dy, top, bottom)
+      }
+    }
+    area_point(run, chord.x0 + dx, chord.y0 + dy, top, bottom)
+    previous = Some((chord.x1, chord.y1))
+  }
   let path = StringBuilder()
-  for run in graph_runs(segments, progress) {
+  for run in runs {
     write_run(path, run)
     path.write_string(
       "L\{number(run[run.length() - 1].0)} \{number(baseline)}L\{number(run[0].0)} \{number(baseline)}Z",
     )
   }
   path.to_string()
+}
+
+///|
+/// Clamp to the viewport and drop the middle of three level points, so a
+/// stretch along an edge is one line.
+fn area_point(
+  run : Array[(Double, Double)],
+  x : Double,
+  y : Double,
+  top : Double,
+  bottom : Double,
+) -> Unit {
+  let y = y.max(top).min(bottom)
+  let count = run.length()
+  if count >= 1 &&
+    (run[count - 1].0 - x).abs() < 1.0e-6 &&
+    (run[count - 1].1 - y).abs() < 1.0e-6 {
+    return
+  }
+  if count >= 2 && run[count - 1].1 == y && run[count - 2].1 == y {
+    run[count - 1] = (x, y)
+  } else {
+    run.push((x, y))
+  }
 }
 
 ///|
@@ -310,7 +385,13 @@ pub fn graph_geometry(
         if unit(progress) == 1.0 {
           prepared.full_area
         } else {
-          graph_area(prepared.plot.segments, progress, baseline)
+          graph_area(
+            prepared.plot,
+            progress,
+            baseline,
+            prepared.width,
+            prepared.height,
+          )
         }
       None => ""
     },

@@ -77,6 +77,16 @@ test('a shaded function fills the region down to the x-axis in SVG and PNG and r
   assert.deepEqual(pixel(middle, 220, 105), [0, 0, 0, 255]);
   const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
   assert.deepEqual(pixel(first, 220, 83), [0, 0, 0, 255]);
+  // A steep line leaving through the top and bottom, and a constant wholly above the viewport, still shade between the axis and the edge.
+  for (const c of Object.values(p.scenes.scene.compositions)) c.states.graph.graph.a = 3;
+  const steep = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  shaded(steep, 220, 83); shaded(steep, 100, 98);
+  assert.deepEqual(pixel(steep, 100, 83), [0, 0, 0, 255]);
+  for (const c of Object.values(p.scenes.scene.compositions)) c.states.graph.graph.expression = '5';
+  const above = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  shaded(above, 220, 83); shaded(above, 100, 83);
+  assert.deepEqual(pixel(above, 100, 98), [0, 0, 0, 255]);
+  assert.match(new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes), /data-graph-area="true" d="M-120 -60L120 -60L120 0L-120 0Z"[^>]*><path data-graph-curve="true" d=""/);
   for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { syntaxVersion: 2, expression: 'x^2+y^2=1' });
   assert.doesNotMatch(new TextDecoder().decode((await render(p, { format: 'svg' })).bytes), /data-graph-area/);
 });

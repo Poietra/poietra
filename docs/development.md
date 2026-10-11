@@ -83,10 +83,13 @@ The boundaries to preserve are:
   no new host dependency or serialized path is needed.
 - Shaded regions (2026-10-11) resolve the request to draw a curve thinly and
   then fill beneath it. `GraphDefinition.filled` is an optional flag; `render`
-  closes each revealed explicit run to the x-axis, clamped to the viewport, and
-  emits one derived path that SVG, Canvas and Node export paint in the curve
-  colour at a fixed quarter opacity beneath the curve. Write grows the region
-  with the line. Equations never shade. The flag follows the discrete
+  closes each continuous explicit run to the x-axis using the sampler's
+  unclipped chords and only then clips the region to the viewport, so a curve
+  that leaves through the top or bottom still shades beneath it. It emits one
+  derived path that SVG, Canvas and Node export paint in the curve colour at a
+  fixed quarter opacity beneath the curve. Write fills up to the x reached by
+  the revealed line; a wholly offscreen curve sweeps across the viewport.
+  Equations never shade. The flag follows the discrete
   expression switch, writes one graph leaf and is a Composition value; the
   region is never serialized. Shading is painted content, so the hit SVG picks a
   graph by its region like a filled shape. Portable format v7 is required only
@@ -165,8 +168,9 @@ The boundaries to preserve are:
   and 128 parser nodes; coefficients/ranges are finite within ±100000 and known
   discontinuities at most 32. For y=f(x), adaptive midpoint/quarter probes use 0.5 logical
   scene pixels as a subdivision threshold, with depth 10, 16384 evaluations and
-  4096 segments per plot. Lines are clipped before generating paths; undefined
-  samples and unresolved jumps split branches. Reaching a bound omits unresolved
+  4096 chords per plot. Lines are clipped before generating paths, and the
+  unclipped chords are kept so shaded regions can close before clipping;
+  undefined samples and unresolved jumps split branches. Reaching a bound omits unresolved
   portions and reports it in the inspector. This is a drawing heuristic, not a
   certified global error bound or proof of continuity; extreme oscillation and
   narrow features can be missed. `render` owns bounded expression/geometry caches,

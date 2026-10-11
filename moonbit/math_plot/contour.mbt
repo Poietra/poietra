@@ -308,17 +308,17 @@ pub fn plot_implicit(
     ] +
     breaks {
     if value.is_nan() || value.is_inf() {
-      return { segments: [], limited: false, evaluations: 0, }
+      return { segments: [], chords: [], limited: false, evaluations: 0, }
     }
   }
   if breaks.length() > 32 {
-    return { segments: [], limited: true, evaluations: 0, }
+    return { segments: [], chords: [], limited: true, evaluations: 0, }
   }
   if viewport.x_max <= viewport.x_min ||
     viewport.y_max <= viewport.y_min ||
     viewport.width <= 0.0 ||
     viewport.height <= 0.0 {
-    return { segments: [], limited: false, evaluations: 0, }
+    return { segments: [], chords: [], limited: false, evaluations: 0, }
   }
   let sampler : ContourSampler = {
     program,
@@ -370,6 +370,8 @@ pub fn plot_implicit(
   }
   {
     segments: contour_segments(sampler.edges, viewport),
+    // Equations never shade, so implicit curves carry no chords.
+    chords: [],
     limited: sampler.limited,
     evaluations: sampler.evaluations,
   }

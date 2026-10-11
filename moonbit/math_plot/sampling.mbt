@@ -9,6 +9,10 @@ pub(all) struct Segment {
 ///|
 pub(all) struct Plot {
   segments : Array[Segment]
+  /// Unclipped chords in viewport coordinates. Consecutive chords share
+  /// endpoints across viewport edges; only breaks, undefined values and
+  /// unresolved jumps separate them, so a region can be closed before clipping.
+  chords : Array[Segment]
   limited : Bool
   evaluations : Int
 } derive(Eq, Debug)
@@ -44,6 +48,7 @@ priv struct Sampler {
   b : Double
   c : Double
   segments : Array[Segment]
+  chords : Array[Segment]
   mut evaluations : Int
   mut limited : Bool
 }
@@ -73,10 +78,11 @@ fn Sampler::line(
   a : (Double, Double),
   b : (Double, Double),
 ) -> Unit {
-  if self.segments.length() >= 4096 {
+  if self.chords.length() >= 4096 {
     self.limited = true
     return
   }
+  self.chords.push({ x0: a.0, y0: a.1, x1: b.0, y1: b.1, })
   let dx = b.0 - a.0
   let dy = b.1 - a.1
   let mut low = 0.0
@@ -173,6 +179,7 @@ pub fn plot(
     b,
     c,
     segments: [],
+    chords: [],
     evaluations: 0,
     limited: false,
   }
@@ -189,17 +196,17 @@ pub fn plot(
       c,
     ] {
     if value.is_nan() || value.is_inf() {
-      return { segments: [], limited: false, evaluations: 0, }
+      return { segments: [], chords: [], limited: false, evaluations: 0, }
     }
   }
   if breaks.length() > 32 {
-    return { segments: [], limited: true, evaluations: 0, }
+    return { segments: [], chords: [], limited: true, evaluations: 0, }
   }
   if viewport.x_max <= viewport.x_min ||
     viewport.y_max <= viewport.y_min ||
     viewport.width <= 0.0 ||
     viewport.height <= 0.0 {
-    return { segments: [], limited: false, evaluations: 0, }
+    return { segments: [], chords: [], limited: false, evaluations: 0, }
   }
   let boundaries = [viewport.x_min]
   for value in breaks {
@@ -229,13 +236,14 @@ pub fn plot(
       sampler.interval(low, high, a, b, 0)
       low = high
       a = b
-      if sampler.evaluations >= 16384 || sampler.segments.length() >= 4096 {
+      if sampler.evaluations >= 16384 || sampler.chords.length() >= 4096 {
         break
       }
     }
   }
   {
     segments: sampler.segments,
+    chords: sampler.chords,
     limited: sampler.limited,
     evaluations: sampler.evaluations,
   }
