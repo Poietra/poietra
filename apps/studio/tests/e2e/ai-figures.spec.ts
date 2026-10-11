@@ -129,3 +129,110 @@ test('figures need the mention, can be removed, and return to the composer when 
   await expect(composer(page)).toHaveValue('@codex');
   await expect(log(page).getByText('停止しました', { exact: true })).toBeVisible();
 });
+
+test('a figure still being prepared cannot be sent without it and does not move to the next draft', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'stopped here' }, 503); });
+  await open(page, crypto.randomUUID());
+  // Hold the data URL step of figure preparation until the test releases it.
+  await page.evaluate(() => {
+    const read = FileReader.prototype.readAsDataURL, held: (() => void)[] = [];
+    Object.assign(window, { releaseFigures: () => held.splice(0).forEach(run => run()) });
+    FileReader.prototype.readAsDataURL = function (this: FileReader, blob: Blob) { held.push(() => read.call(this, blob)); };
+  });
+  await composer(page).fill('@codex 三角形を作って');
+  await pasteFigure(page);
+  await expect(page.getByRole('status').filter({ hasText: '画像を準備中…' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '送信', exact: true })).toBeDisabled();
+  await composer(page).press('Enter');
+  await expect(page.locator('.assistant-composer').getByRole('alert')).toContainText('画像の準備が終わってから送信してください。');
+  await expect(composer(page)).toHaveValue('@codex 三角形を作って');
+
+  await page.evaluate(() => (window as unknown as { releaseFigures: () => void }).releaseFigures());
+  await expect(attached(page, 1)).toBeVisible();
+  await expect(page.getByText('画像を準備中…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0]).toMatchObject({ prompt: '三角形を作って', images: [expect.stringMatching(/^data:image\/png;base64,/)] });
+  await expect(attached(page, 1)).toHaveCount(0);
+  expect(requests).toHaveLength(1);
+});
+
+// Pastes a plain figure of the given width, so tests can tell figures apart by their stored size.
+async function pasteSized(page: Page, width: number) {
+  await composer(page).evaluate(async (element, width) => {
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = 32;
+    canvas.getContext('2d')!.fillRect(0, 0, width / 2, 16);
+    const blob = await new Promise<Blob>(resolve => canvas.toBlob(value => resolve(value!), 'image/png'));
+    const data = new DataTransfer(); data.items.add(new File([blob], `${width}.png`, { type: 'image/png' }));
+    element.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, width);
+}
+
+async function failedFigureRequest(page: Page, requests: Record<string, unknown>[]) {
+  await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'unavailable' }, 503); });
+  await open(page, crypto.randomUUID());
+  await pasteSized(page, 48);
+  await composer(page).fill('@codex 図を作って');
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+  await expect(log(page).getByText('Codex への依頼に失敗しました', { exact: true })).toBeVisible();
+  await expect(log(page).getByRole('img', { name: '添付画像 1', exact: true })).toHaveAttribute('width', '48');
+}
+
+// Holds reading stored figures back from the room until the returned function is called.
+async function holdStoredFigures(page: Page) {
+  const held: Route[] = [];
+  await page.route('**/api/rooms/*/images/*', route => route.request().resourceType() === 'fetch' ? void held.push(route) : route.continue());
+  return async () => { await expect.poll(() => held.length).toBeGreaterThan(0); for (const route of held.splice(0)) await route.continue(); };
+}
+
+test('resending the same text with a different figure publishes it as a new request', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await failedFigureRequest(page, requests);
+  await pasteSized(page, 96);
+  await composer(page).fill('@codex 図を作って');
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].images).not.toEqual(requests[0].images);
+  // Shared history keeps both requests, each with the figure Codex actually saw.
+  const shared = log(page).getByRole('img', { name: '添付画像 1', exact: true });
+  await expect(shared).toHaveCount(2);
+  await expect(shared.nth(0)).toHaveAttribute('width', '48');
+  await expect(shared.nth(1)).toHaveAttribute('width', '96');
+});
+
+test('a request returned to the composer cannot be sent until its figures are back', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await failedFigureRequest(page, requests);
+  const release = await holdStoredFigures(page);
+  await log(page).getByRole('button', { name: '依頼を入力欄に戻す', exact: true }).click();
+  await expect(composer(page)).toHaveValue('@codex 図を作って');
+  await expect(page.getByRole('status').filter({ hasText: '画像を準備中…' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '送信', exact: true })).toBeDisabled();
+  await composer(page).press('Enter');
+  await expect(page.locator('.assistant-composer').getByRole('alert')).toContainText('画像の準備が終わってから送信してください。');
+  expect(requests).toHaveLength(1);
+
+  await release();
+  await expect(attached(page, 1)).toHaveAttribute('width', '48');
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].images).toEqual(requests[0].images);
+});
+
+test('figures restored late do not replace a newer draft', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await failedFigureRequest(page, requests);
+  const release = await holdStoredFigures(page);
+  await log(page).getByRole('button', { name: '依頼を入力欄に戻す', exact: true }).click();
+  await pasteSized(page, 96);
+  await expect(attached(page, 1)).toHaveAttribute('width', '96');
+  await composer(page).fill('@codex 新しい依頼');
+  await release();
+  // Give the stale restore time to land before checking that it did not.
+  await page.waitForTimeout(500);
+  await expect(attached(page, 1)).toHaveAttribute('width', '96');
+  await expect(attached(page, 2)).toHaveCount(0);
+  await expect(composer(page)).toHaveValue('@codex 新しい依頼');
+  await expect(page.getByText('画像を準備中…', { exact: true })).toHaveCount(0);
+});

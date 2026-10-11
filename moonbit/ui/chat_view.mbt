@@ -186,7 +186,7 @@ fn chat_view(
   }
   let addressing = @boundary.codex_mention(controller.prompt) is Some(_)
   let fields : Array[&@react.ReactNode] = []
-  if !controller.figures.is_empty() {
+  if !controller.figures.is_empty() || controller.preparing {
     fields.push(composer_figures(controller))
   }
   composer.push(
@@ -278,6 +278,7 @@ fn chat_view(
                   controller.prompt.trim().is_empty() &&
                   controller.figures.is_empty()
                 ) ||
+                controller.preparing ||
                 (
                   addressing &&
                   (
