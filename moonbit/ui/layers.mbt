@@ -354,7 +354,7 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
               "disabled": @core.any(scene_count >= 100),
             },
             [
-              icon("Square", 13),
+              icon("ChartNoAxesColumnIncreasing", 13),
               h("span", Map([]), ["New scene"]),
               h("span", { "className": @core.any("shortcut") }, ["＋"]),
             ],
