@@ -100,11 +100,30 @@ extern "js" fn canvas_matrix() -> CanvasMatrix =
   #|() => new DOMMatrix()
 
 ///|
+extern "js" fn matrix_viewport(
+  matrix : CanvasMatrix,
+  x : Double,
+  y : Double,
+  scale : Double,
+) -> CanvasMatrix =
+  #|(matrix, x, y, scale) => matrix.translate(x, y).scale(scale)
+
+///|
 extern "js" fn apply_matrix(
   context : @canvas.CanvasRenderingContext2D,
   matrix : CanvasMatrix,
 ) -> Unit =
   #|(context, matrix) => context.transform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f)
+
+///|
+extern "js" fn clip_rect(
+  context : @canvas.CanvasRenderingContext2D,
+  x : Double,
+  y : Double,
+  width : Double,
+  height : Double,
+) -> Unit =
+  #|(context, x, y, width, height) => { context.beginPath(); context.rect(x, y, width, height); context.clip(); }
 
 ///|
 priv struct Outline {
