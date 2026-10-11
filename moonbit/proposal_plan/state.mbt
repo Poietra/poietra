@@ -30,6 +30,7 @@ pub fn state_field(value : String) -> StateField? {
     "graphC" => Some(GraphC)
     "graphAxes" => Some(GraphAxes)
     "graphGrid" => Some(GraphGrid)
+    "graphFilled" => Some(GraphFilled)
     "graphBreaks" => Some(GraphBreaks)
     _ => None
   }
@@ -67,6 +68,7 @@ pub fn field_name(value : StateField) -> String {
     GraphC => "graphC"
     GraphAxes => "graphAxes"
     GraphGrid => "graphGrid"
+    GraphFilled => "graphFilled"
     GraphBreaks => "graphBreaks"
   }
 }
@@ -96,7 +98,7 @@ pub fn validate_state(
         try @scene.parse_graph_breaks(source) |> ignore catch {
           @scene.InvalidGraph(message) => raise CompileError(message)
         }
-      (GraphAxes | GraphGrid, Boolean(_)) => ()
+      (GraphAxes | GraphGrid | GraphFilled, Boolean(_)) => ()
       (
         GraphXMin
         | GraphXMax
@@ -197,6 +199,7 @@ fn change_state(
       (GraphC, Number(c)) => { ..graph, c, }
       (GraphAxes, Boolean(axes)) => { ..graph, axes, }
       (GraphGrid, Boolean(grid)) => { ..graph, grid, }
+      (GraphFilled, Boolean(filled)) => { ..graph, filled: Some(filled), }
       (GraphBreaks, Text(source)) =>
         {
           ..graph,
@@ -258,6 +261,7 @@ pub fn graph_field_key(field : StateField) -> String? {
     GraphC => Some("c")
     GraphAxes => Some("axes")
     GraphGrid => Some("grid")
+    GraphFilled => Some("filled")
     GraphBreaks => Some("breaks")
     _ => None
   }

@@ -57,6 +57,7 @@ fn paint_shape(
   head : CanvasPath?,
   ticks : Array[CanvasPath],
   diagrams : Array[Outline],
+  area : CanvasPath?,
 ) -> Unit {
   let progress = @render.unit(progress)
   if progress == 0.0 {
@@ -100,6 +101,12 @@ fn paint_shape(
         for label in graph.labels {
           context.fillText(label.text, label.x, label.y)
         }
+      }
+      // Same quarter-opacity curve colour as the SVG region, beneath the curve.
+      if area is Some(area) && stroke.to_lower() != "none" {
+        context.globalAlpha = opacity * progress * 0.25
+        context.fillStyle = stroke
+        fill_path(context, area)
       }
       if stroke.to_lower() != "none" && stroke_width > 0.0 {
         context.globalAlpha = opacity
@@ -191,6 +198,7 @@ priv struct ShapeDrawing {
   head : CanvasPath?
   ticks : Array[CanvasPath]
   diagrams : Array[Outline]
+  area : CanvasPath?
   key : String
 }
 
@@ -211,6 +219,7 @@ fn ShapeDrawing::paint(
     self.head,
     self.ticks,
     self.diagrams,
+    self.area,
   )
 }
 
@@ -250,6 +259,10 @@ fn prepare_shape(
         Diagram(diagram) =>
           diagram.curves.map(fn(curve) { outline(@render.Path(curve.path)) })
         _ => []
+      },
+      area: match shape {
+        Graph(graph) if !graph.area.is_empty() => Some(canvas_path(graph.area))
+        _ => None
       },
       key: @core.json_stringify(@boundary.encode_shape(Some(shape))),
     })
@@ -303,6 +316,7 @@ pub fn prepare_shape_drawing(
           prepared.head,
           prepared.ticks,
           prepared.diagrams,
+          prepared.area,
         )
       }),
     ),

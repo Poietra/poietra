@@ -16,6 +16,7 @@ test "function definitions remain independent per Composition and coefficients f
           b: 4.0,
           c: -2.0,
           expression: "a*x+b+c",
+          filled: Some(true),
         }),
       },
     },
@@ -71,6 +72,7 @@ test "function definitions remain independent per Composition and coefficients f
         "a*x+b+c"
       },
     )
+    assert_eq(graph.filled, if time < 500.0 { None } else { Some(true) })
   }
   assert_eq(
     prepared.composition(from.id, None).objects[0].state.graph.unwrap().a,
@@ -119,6 +121,7 @@ test "implicit definitions keep an explicit grammar version and portable equatio
       ..graph,
       expression,
       syntaxVersion: @scene.graph_expression_version(expression),
+      filled: Some(true),
     }
     assert_eq(definition.syntaxVersion, 2)
     assert_true(@scene.graph_validation_error(definition) is None)

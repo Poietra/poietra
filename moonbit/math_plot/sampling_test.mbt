@@ -83,3 +83,25 @@ test "undefined regions, extreme frequencies and invalid viewports have bounded 
     assert_eq(plot(prepare("x"), bad, 0.0, 0.0, 0.0, []).segments.length(), 0)
   }
 }
+
+///|
+test "chords stay continuous across viewport edges while segments are clipped" {
+  let viewport = viewport()
+  let above = plot(prepare("5"), viewport, 0.0, 0.0, 0.0, [])
+  assert_eq(above.segments, [])
+  assert_true(above.chords.length() > 0)
+  close(above.chords[0].x0, -300.0)
+  close(above.chords[above.chords.length() - 1].x1, 300.0)
+  close(above.chords[0].y0, viewport.point(0.0, 5.0).1)
+  let cubic = plot(prepare("x^3-3x"), viewport, 0.0, 0.0, 0.0, [])
+  assert_true(cubic.chords.any(fn(c) { c.y1.abs() > viewport.height / 2.0 }))
+  for index = 1; index < cubic.chords.length(); index = index + 1 {
+    assert_eq(
+      (cubic.chords[index].x0, cubic.chords[index].y0),
+      (cubic.chords[index - 1].x1, cubic.chords[index - 1].y1),
+    )
+  }
+  let pole = plot(prepare("1/x"), viewport, 0.0, 0.0, 0.0, [0.0])
+  assert_true(pole.chords.all(fn(c) { !(c.x0 < 0.0 && c.x1 > 0.0) }))
+  assert_true(pole.chords.length() <= 4096)
+}

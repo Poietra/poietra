@@ -23,6 +23,7 @@ export type ShapeGeometry = {
 } | {
     kind: 'graph';
     curve: string;
+    area: string;
     axes: string;
     grid: string;
     labels: { x: number; y: number; text: string }[];

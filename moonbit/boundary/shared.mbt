@@ -154,7 +154,8 @@ pub fn apply_changes(
         @core.equal(value, @core.any(3)) ||
         @core.equal(value, @core.any(4)) ||
         @core.equal(value, @core.any(5)) ||
-        @core.equal(value, @core.any(6))
+        @core.equal(value, @core.any(6)) ||
+        @core.equal(value, @core.any(7))
       ) {
       upgrade = upgrade.max(value.cast())
       continue
@@ -419,7 +420,9 @@ pub fn required_format_for_change(
   path : Array[String],
   value : @core.Any,
 ) -> Int {
-  if change_requires_v6(path, value) {
+  if change_requires_v7(path, value) {
+    7
+  } else if change_requires_v6(path, value) {
     6
   } else if change_requires_v5(path, value) {
     5
@@ -447,6 +450,42 @@ fn change_requires_v3(path : Array[String], value : @core.Any) -> Bool {
     for key in @core.object_keys(current) {
       let child = current._get(key)
       if key == "clipChildren" && @core.equal(child, @core.any(true)) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+/// Only a shaded region needs v7: a v6 reader would silently strip `filled` and
+/// show an unfilled graph, so an explicit version rejection is the honest failure.
+fn change_requires_v7(path : Array[String], value : @core.Any) -> Bool {
+  let shaded = fn(graph : @core.Any) {
+    !@core.is_nullish(graph) &&
+    @core.typeof_(graph) == "object" &&
+    @core.equal(graph._get("filled"), @core.any(true))
+  }
+  // Match the graph definition's own leaf: an object or state keyed "graph"
+  // must not promote a surface's `filled` flag.
+  let leaf = path.length() >= 2 &&
+    path[path.length() - 2] == "graph" &&
+    path.last() == Some("filled") &&
+    @core.equal(value, @core.any(true))
+  if leaf || (path.last() == Some("graph") && shaded(value)) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if key == "graph" && shaded(child) {
         return true
       }
       if !@core.is_nullish(child) && @core.typeof_(child) == "object" {

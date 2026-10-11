@@ -285,9 +285,9 @@ for (const fallback of [false, true]) test(`mathematical curves agree between SV
     const painter = await createFramePainter(canvas);
     const samples: { canvas: number[]; svg: number[]; expected: number }[] = [];
     try {
-      for (const [source, a, progress, opacity, x, y, expected] of [['a*x', 1, 1, 1, 100, 120, 255], ['a*x', 1, .5, 1, 220, 60, 0], ['1/x', 1, 1, 1, 160, 90, 0], ['1/x', 1, 1, 1, 220, 60, 255], ['a*x', 1, 1, .5, 100, 120, 128], ['a*x', 0, 1, .5, 100, 120, 0], ['a*x', 0, 1, .5, 100, 90, 128], ['x^2+y^2=a^2', 1, 1, 1, 220, 90, 255], ['x^2+y^2=a^2', 1, 1, 1, 160, 90, 0], ['x^2+y^2=a^2', .5, 1, .5, 190, 90, 128], ['x^2+y^2=a^2', 1, 0, 1, 220, 90, 0], ['x*y=0', 1, 1, 1, 100, 90, 255], ['1/(x-0.123)=0', 1, 1, 1, 160, 90, 0]] as const) {
+      for (const [source, a, progress, opacity, x, y, expected, filled = false] of [['a*x', 1, 1, 1, 100, 120, 255], ['a*x', 1, .5, 1, 220, 60, 0], ['1/x', 1, 1, 1, 160, 90, 0], ['1/x', 1, 1, 1, 220, 60, 255], ['a*x', 1, 1, .5, 100, 120, 128], ['a*x', 0, 1, .5, 100, 120, 0], ['a*x', 0, 1, .5, 100, 90, 128], ['x^2+y^2=a^2', 1, 1, 1, 220, 90, 255], ['x^2+y^2=a^2', 1, 1, 1, 160, 90, 0], ['x^2+y^2=a^2', .5, 1, .5, 190, 90, 128], ['x^2+y^2=a^2', 1, 0, 1, 220, 90, 0], ['x*y=0', 1, 1, 1, 100, 90, 255], ['1/(x-0.123)=0', 1, 1, 1, 160, 90, 0], ['a*x', 1, 1, 1, 220, 75, 64, true], ['a*x', 1, 1, 1, 100, 75, 0, true], ['a*x', 1, .5, 1, 220, 75, 0, true], ['a*x', 1, .5, 1, 100, 105, 32, true], ['x^2+y^2=a^2', 1, 1, 1, 160, 90, 0, true], ['a*x', 3, 1, 1, 220, 75, 64, true], ['a*x+5', 1, 1, 1, 220, 75, 64, true], ['a*x+5', 1, 1, 1, 100, 105, 0, true], ['a*x+5', 1, .5, 1, 100, 75, 32, true], ['a*x+5', 1, .5, 1, 220, 75, 0, true]] as const) {
         state.graph!.syntaxVersion = source.includes('=') ? 2 : 1;
-        state.graph!.expression = source; state.graph!.a = a; state.opacity = opacity;
+        state.graph!.expression = source; state.graph!.a = a; state.opacity = opacity; state.graph!.filled = filled;
         state.graph!.breaks = source === '1/x' ? [0] : [];
         const frame = compositionFrame(scene, scene.compositions['comp-1']); frame.objects[0].writeProgress = progress;
         await painter.render(frame);
@@ -307,4 +307,41 @@ for (const fallback of [false, true]) test(`mathematical curves agree between SV
     for (const values of [sample.canvas, sample.svg]) expect(Math.abs(values[0] - sample.expected)).toBeLessThanOrEqual(1);
     sample.canvas.forEach((value, i) => expect(Math.abs(value - sample.svg[i])).toBeLessThanOrEqual(1));
   }
+});
+
+test('shades the region under a function from the inspector, picks it by its area, and keeps version 7 shading through peers, save and reload', async ({ page, browser }) => {
+  await importGraph(page);
+  const area = (target: Page) => target.locator('[data-testid="stage-main"] .scene-svg [data-graph-area]');
+  await expect(area(page)).toHaveCount(0);
+  const context = await browser.newContext();
+  try {
+    const peer = await context.newPage(); await live(peer, page.url());
+    await page.getByRole('checkbox', { name: 'Fill area', exact: true }).check();
+    await expect(area(page)).toHaveAttribute('d', /^M.*Z$/);
+    await expect(area(peer)).toHaveCount(1);
+    // Under x^3 - 3x at x = -1.5 (y = 1.125), off the integer grid lines and more
+    // than the 12 px curve pick distance away, so only shading can select it.
+    const inside = await graphPoint(page, -140, -18);
+    await clearGraph(page); await clickAt(page, inside);
+    await expect(graphSelection(page)).toHaveCount(1);
+    await page.getByRole('checkbox', { name: 'Fill area', exact: true }).uncheck();
+    await expect(area(page)).toHaveCount(0);
+    await expect(area(peer)).toHaveCount(0);
+    await clearGraph(page); await clickAt(page, inside);
+    await expect(graphSelection(page)).toHaveCount(0);
+    await select(peer, 'Function graph');
+    await peer.getByRole('checkbox', { name: 'Fill area', exact: true }).check();
+    await expect(area(page)).toHaveCount(1);
+    // Undoing the local clear keeps the peer's shading.
+    await select(page, '元に戻す (⌘Z)');
+    await expect(area(page)).toHaveCount(1);
+    await select(page, 'Function graph');
+    await expect(page.getByRole('checkbox', { name: 'Fill area', exact: true })).toBeChecked();
+  } finally { await context.close(); }
+  await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(area(page)).toHaveCount(1);
+  const project = JSON.parse((await saved(page)).toString());
+  expect(project.version).toBe(7);
+  expect(project.scenes['scene-1'].compositions['comp-1'].states.graph.graph.filled).toBe(true);
+  expect(JSON.stringify(project)).not.toMatch(/"area":/);
 });

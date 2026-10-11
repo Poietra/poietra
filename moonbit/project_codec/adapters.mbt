@@ -219,6 +219,7 @@ pub fn decode_GraphDefinition(value : @core.Any) -> @scene.GraphDefinition {
     c: value._get("c").cast(),
     axes: value._get("axes").cast(),
     grid: value._get("grid").cast(),
+    filled: optional(value._get("filled"), fn(v) { v.cast() }),
     breaks: decode_array(value._get("breaks"), fn(v) { v.cast() }),
   }
 }
@@ -814,6 +815,9 @@ pub fn encode_GraphDefinition(value : @scene.GraphDefinition) -> @core.Any {
   put_own(result, "c", @core.any(value.c))
   put_own(result, "axes", @core.any(value.axes))
   put_own(result, "grid", @core.any(value.grid))
+  if value.filled is Some(item) {
+    put_own(result, "filled", @core.any(item))
+  }
   put_own(
     result,
     "breaks",

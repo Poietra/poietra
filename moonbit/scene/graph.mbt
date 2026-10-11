@@ -12,6 +12,7 @@ pub fn default_graph() -> GraphDefinition {
     c: 0.0,
     axes: true,
     grid: true,
+    filled: None,
     breaks: [],
   }
 }

@@ -48,6 +48,7 @@ pub(all) enum StateField {
   GraphC
   GraphAxes
   GraphGrid
+  GraphFilled
   GraphBreaks
 } derive(Eq)
 

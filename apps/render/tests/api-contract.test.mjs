@@ -16,7 +16,7 @@ test('generated project schema accepts current and legacy projects and rejects i
     assert.equal(inspectProjectFile(JSON.stringify(value)).issues.length, 0);
   }
   for (const change of [
-    value => { value.version = 7; },
+    value => { value.version = 8; },
     value => { value.scenes.scene.compositions.a.states.box.x = '100'; },
     value => { value.scenes.scene.objects.box.kind = 'unknown'; },
     value => { delete value.sceneOrder; },
