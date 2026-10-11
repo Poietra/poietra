@@ -507,16 +507,16 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
         {
           "key": @core.any(id),
           "data-composition-id": @core.any(id),
-          "className": @core.any("group flex items-center gap-0.5"),
+          "className": classes([
+            @core.any("composition-row"),
+            @core.any(if chosen { "selected" } else { "" }),
+          ]),
         },
         [
           h(
             "button",
             {
-              "className": classes([
-                @core.any("composition-list-item min-w-0 flex-1"),
-                @core.any(if chosen { "selected" } else { "" }),
-              ]),
+              "className": @core.any("composition-list-item"),
               "onClick": @core.any(fn() { select(CompositionSelection(id)) }),
               "aria-pressed": @core.any(chosen),
             },
@@ -527,9 +527,7 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
               "Menu",
               "Trigger",
               {
-                "className": @core.any(
-                  "icon-button shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100",
-                ),
+                "className": @core.any("icon-button composition-menu"),
                 "aria-label": @core.any(name + " の操作"),
               },
               [icon("MoreHorizontal", 15)],

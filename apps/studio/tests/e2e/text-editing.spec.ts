@@ -101,7 +101,7 @@ test('double click edits the visible transition destination, while an interpolat
   await page.mouse.dblclick(empty.x, empty.y);
   await expect(page.getByRole('textbox', { name: 'LaTeX expression', exact: true })).toBeFocused();
   await expect(page.getByTestId('stage-main')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Composition 2', exact: true })).toHaveClass(/selected/);
+  await expect(page.getByRole('button', { name: 'Composition 2', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 
