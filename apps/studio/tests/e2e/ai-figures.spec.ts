@@ -145,6 +145,39 @@ test('figures need the mention, can be removed, and return to the composer when 
   await expect(log(page).getByText('停止しました', { exact: true })).toBeVisible();
 });
 
+test('the attach button and a file drop add figures up to the limit', async ({ page }) => {
+  await open(page, crypto.randomUUID());
+  const png = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas'); canvas.width = 40; canvas.height = 30;
+    canvas.getContext('2d')!.fillRect(0, 0, 20, 15);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  // Both entry points share paste's preparation: sending waits for it.
+  const release = await holdFigurePreparation(page);
+  const preparing = page.getByRole('status').filter({ hasText: '画像を準備中…' });
+  const send = page.getByRole('button', { name: '送信', exact: true });
+  const button = page.getByRole('button', { name: 'Codex に図を添付', exact: true });
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), button.click()]);
+  await chooser.setFiles({ name: 'picked.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
+  await expect(preparing).toBeVisible();
+  await expect(send).toBeDisabled();
+  await release();
+  await expect(attached(page, 1)).toBeVisible();
+  await expect(composer(page)).toHaveValue('@codex ');
+
+  await page.locator('.assistant-composer form').evaluate((form, base64) => {
+    const data = new DataTransfer();
+    data.items.add(new File([Uint8Array.from(atob(base64), c => c.charCodeAt(0))], 'dropped.png', { type: 'image/png' }));
+    form.dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }));
+  }, png);
+  await expect(preparing).toBeVisible();
+  await expect(send).toBeDisabled();
+  await release();
+  await expect(attached(page, 2)).toBeVisible();
+  await expect(send).toBeEnabled();
+  await expect(button).toBeDisabled();
+});
+
 test('a figure still being prepared cannot be sent without it and does not move to the next draft', async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'stopped here' }, 503); });
