@@ -410,44 +410,46 @@ intermediate H.264 MP4 buffer remain backend constraints.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-11 04:20 JST**, Worker version
-`9a901272-73fa-4f75-91a3-61369a0c5409` at 100% on `poietra.com`.
-The uploaded source was clean commit `ef28e07efc84727350babad8cce5b6de4d123e40`,
-tagged `spatial-ef28e07`. Its predecessor was
-`b14c0aa5-a9b7-4fa3-b0de-e8060163c77b` (`math-92de518`).
-Version metadata confirmed identical bindings, Durable Object namespaces,
-migration tags, runtime settings, asset routing and exported classes; R2,
-secrets, domain and existing workers.dev links were preserved. Upload rebuilt
-the release artifacts and passed the captured public API/type checks; the
-tracked working tree remained clean after the build.
+Last recorded deployment: **2026-10-12 00:07 JST**, Worker version
+`540e5b71-7ba4-4b09-8c01-590de1746e69` at 100% on `poietra.com`.
+The application source was clean commit `dc1ae0b91b59c60d35f2c5fb679745a14d5b732b`,
+tagged `prs-dc1ae0b`, with all eight checks passing in
+[CI run 38148724104](https://github.com/Poietra/poietra/actions/runs/38148724104).
+Its predecessor was `9a901272-73fa-4f75-91a3-61369a0c5409`.
+The production build and dry run passed with the pinned MoonBit compiler and
+Node 24.13.0. Before promotion, version metadata confirmed identical bindings,
+Durable Object namespaces/classes, migration tags, runtime settings and asset
+routing. R2, secret bindings, domain and existing workers.dev links were preserved.
 
-Four production browser checks passed: shared-palette creation, network node
-and edge editing, self-loops/parallel edges/weights, surface formulas and
-sphere/torus presets, two-browser edits, selective Undo/cancellation, portable
-v6 save/import and affine/clipped/locked node gestures.
-Rooms from the earlier releases retained their v1 image data, v4 function and
-implicit definitions, and v5 geometry states; image bytes were identical.
-New network and surface rooms retained their semantic definitions and SVG
-curves after reload, and a fresh browser without an IndexedDB copy recovered
-both Compositions. The served client runtime and generated schema matched the
-uploaded local build, and health returned success. Production export downloaded
-a 320 × 180 H.264 MP4 for each new family, each with 25 frames over 0.82 seconds.
-FFmpeg independently decoded every frame; initial/middle-frame pixels confirmed
-moving nodes and changing surface coefficients. No browser errors were observed.
-Full provider login, paid AI calls and 500 production clients were outside these
-checks. Local raw logs, version/deployment metadata, screenshots, portable files
-and MP4s are retained in ignored `apps/studio/test-results/production-spatial/`.
+Production Chromium 153.0.8010.12 checks covered ten browser cases: graph area
+picking, shared shading, selective Undo and portable v7 save/reload; network
+gestures and surface editing; figure paste, file selection/drop, shared stored
+images, preparation guards, cancellation, distinct requests and restoration.
+The seven figure cases passed after the test helper waited for its initial
+attachment before typing; the initial run and rerun are retained as evidence.
+AI HTTP was mocked in those cases; room storage, image bytes, collaboration and
+proposal application used the real production service.
 
-```sh
-POIETRA_TEST_URL=https://poietra.com pnpm --dir apps/studio exec playwright test spatial-math.spec.ts --grep 'shared mathematics|network node gestures|surface formulas|network gestures invert' --workers=1
-```
+Six dedicated rooms retained their full v1/v4/v5/v6 project snapshots across
+the deployment, and the earlier image retained its SHA-256. A new v7 graph with
+an equation survived reload and retrieval by a fresh browser without IndexedDB.
+Playback and seeking passed. Its exported 320 × 180 H.264 MP4 contained 25 frames
+over 0.82 seconds; FFmpeg decoded every frame, and pixel samples confirmed
+quarter-opacity shading for wholly offscreen curves, changing coefficients and
+visible equation output. English/Japanese pages and health passed; served
+bootstrap, client runtime, kernel, schema and OpenAPI hashes matched the build.
+No browser errors occurred in the export canary. Live provider login, paid AI
+calls and 500 production clients were outside these correctness checks.
+Raw logs, version metadata, initial failure trace, screenshots, portable file,
+MP4 and manifests are retained in ignored
+`apps/studio/test-results/production-prs-2026-10-12-thi44wsz/`.
 
-[Previous deployment record](https://github.com/Poietra/poietra/blob/fe72e65/docs/development.md#deployment-and-limits).
+[Previous deployment record](https://github.com/Poietra/poietra/blob/dc1ae0b91b59c60d35f2c5fb679745a14d5b732b/docs/development.md#deployment-and-limits).
 Confirm the active version before deploying again.
 
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
 A Worker rollback restores code/assets, not room data; it must understand version
-6 networks/surfaces, version 5 diagrams and graph grammar v2 equations,
+7 graph shading, version 6 networks/surfaces, version 5 diagrams and graph grammar v2 equations,
 as well as persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).
