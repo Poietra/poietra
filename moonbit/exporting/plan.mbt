@@ -4,6 +4,13 @@ fn finite(value : Double) -> Bool {
 }
 
 ///|
+pub let max_dimension : Int = 8192
+
+///|
+/// Frame indices must fit in the shared evaluator's Int representation.
+pub let max_frames : Int = 2147483647
+
+///|
 pub(all) enum Container {
   Mp4
   Webm
@@ -102,10 +109,13 @@ pub fn plan(
     .unwrap_or(size.height)
   })
   if [width, height].any(fn(value) {
-      !finite(value) || value <= 0.0 || value > 8192.0 || value.floor() != value
+      !finite(value) ||
+      value <= 0.0 ||
+      value > max_dimension.to_double() ||
+      value.floor() != value
     }) {
     return Err(
-      "書き出す幅と高さは 1〜8192 ピクセルの整数にしてください。",
+      "書き出す幅と高さは 1〜\{max_dimension} ピクセルの整数にしてください。",
     )
   }
   if container == Mp4 && (width.to_int() % 2 != 0 || height.to_int() % 2 != 0) {
@@ -125,7 +135,7 @@ pub fn plan(
   }
   let frames = (duration * fps / 1000.0).ceil()
   // Check before Int conversion; malformed oversized timelines must not wrap.
-  if !finite(frames) || frames > 2147483647.0 {
+  if !finite(frames) || frames > max_frames.to_double() {
     return Err(
       "書き出す動画のフレーム数が多すぎます。Scene の再生時間を短くしてください。",
     )

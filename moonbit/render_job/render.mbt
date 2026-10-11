@@ -29,22 +29,6 @@ fn validate(
     Ok(plan) => plan
     Err(message) => raise Invalid(message)
   }
-  if plan.width > 1920 ||
-    plan.height > 1920 ||
-    plan.width * plan.height > max_pixels {
-    raise Invalid(
-      "Headless output is limited to 1920 pixels per side and 2,073,600 pixels per frame.",
-    )
-  }
-  if request.format == Mp4 &&
-    (
-      timeline.duration > max_video_duration_ms ||
-      plan.frames > max_video_frames
-    ) {
-    raise Invalid(
-      "Headless MP4 output is limited to 60 seconds and 1800 frames.",
-    )
-  }
   if request.time_ms.is_nan() ||
     request.time_ms.is_inf() ||
     request.time_ms < 0.0 ||

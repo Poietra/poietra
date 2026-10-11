@@ -26,7 +26,7 @@ export function startServer({ host = '127.0.0.1', port = 8799, token = process.e
       }
       return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, size));
     },
-    render: renderProjectFile,
+    render: (text, options) => renderProjectFile(text, { ...options, timeoutMs: 120000 }),
   });
   const server = createServer(async (req, res) => {
     const controller = new AbortController(); controllers.add(controller);

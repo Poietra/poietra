@@ -7,6 +7,7 @@ export interface RenderOptions {
   timeMs?: number;
   signal?: AbortSignal;
   onProgress?: (fraction: number) => void;
+  /** Optional deadline in milliseconds, 0–2147483647. Defaults to 0 (no timeout). */
   timeoutMs?: number;
 }
 export interface RenderResult {
@@ -31,8 +32,12 @@ export interface Capabilities {
   audioInputs: string[];
   videoInputs: false;
   maxInputBytes: number;
+  /** Shared with browser export; each output dimension must be within this bound. */
+  maxDimension: number;
   maxPixels: number;
-  maxVideoDurationMs: number;
+  /** No headless-specific duration limit. */
+  maxVideoDurationMs: null;
+  /** Shared frame-index representation limit, not an encoding quota. */
   maxVideoFrames: number;
   externalAssets: false;
 }

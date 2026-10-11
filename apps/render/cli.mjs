@@ -6,10 +6,10 @@ try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     format: { type: 'string', default: 'png' }, output: { type: 'string', short: 'o' },
     width: { type: 'string' }, height: { type: 'string' }, fps: { type: 'string' },
-    'time-ms': { type: 'string' }, inspect: { type: 'boolean' }, help: { type: 'boolean', short: 'h' },
+    'time-ms': { type: 'string' }, 'timeout-ms': { type: 'string' }, inspect: { type: 'boolean' }, help: { type: 'boolean', short: 'h' },
   } });
   if (values.help) {
-    console.log('Usage: node apps/render/cli.mjs INPUT.poietra.json --format png|svg|mp4 -o OUTPUT\n       node apps/render/cli.mjs INPUT.poietra.json --inspect\nOptions: --width N --height N --fps 24|30|60 --time-ms N');
+    console.log('Usage: node apps/render/cli.mjs INPUT.poietra.json --format png|svg|mp4 -o OUTPUT\n       node apps/render/cli.mjs INPUT.poietra.json --inspect\nOptions: --width N --height N --fps 24|30|60 --time-ms N --timeout-ms N (default 0: no timeout)');
   } else {
     if (positionals.length !== 1 || (!values.inspect && !values.output)) throw new Error('Supply one input file and --output, or use --inspect. See --help.');
     const text = await readProjectFile(positionals[0]);
@@ -20,7 +20,7 @@ try {
       process.once('SIGINT', abort);
       try {
         const options = { format: values.format, signal: controller.signal };
-        for (const [flag, key] of [['width','width'], ['height','height'], ['fps','fps'], ['time-ms','timeMs']]) {
+        for (const [flag, key] of [['width','width'], ['height','height'], ['fps','fps'], ['time-ms','timeMs'], ['timeout-ms','timeoutMs']]) {
           if (values[flag] !== undefined) options[key] = Number(values[flag]);
         }
         const { bytes, ...metadata } = await renderProjectFile(text, options);

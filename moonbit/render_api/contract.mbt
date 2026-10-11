@@ -40,9 +40,10 @@ pub fn capabilities() -> Json {
     "audioInputs": ["PCM WAV"],
     "videoInputs": false,
     "maxInputBytes": Json(@job.max_input_bytes),
-    "maxPixels": Json(@job.max_pixels),
-    "maxVideoDurationMs": Json(@job.max_video_duration_ms),
-    "maxVideoFrames": Json(@job.max_video_frames),
+    "maxDimension": Json(@exporting.max_dimension),
+    "maxPixels": Json(@exporting.max_dimension * @exporting.max_dimension),
+    "maxVideoDurationMs": Json::null(),
+    "maxVideoFrames": Json(@exporting.max_frames),
     "externalAssets": false,
   }
 }
@@ -161,18 +162,26 @@ pub fn openapi_json(server_url : String) -> String {
         ),
         parameter(
           "width",
-          { "type": "integer", "minimum": 1, "maximum": 1920 },
-          "Output width. MP4 dimensions must be even; total pixels must not exceed 2,073,600. A single supplied dimension preserves aspect ratio.",
+          {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": Json(@exporting.max_dimension),
+          },
+          "Output width, using the same dimension validation as browser export. MP4 dimensions must be even. A single supplied dimension preserves aspect ratio.",
         ),
         parameter(
           "height",
-          { "type": "integer", "minimum": 1, "maximum": 1920 },
+          {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": Json(@exporting.max_dimension),
+          },
           "Output height. Same dimension constraints as width.",
         ),
         parameter(
           "fps",
           { "type": "integer", "enum": [24, 30, 60], "default": 30 },
-          "Frame rate. MP4 is limited to 60 seconds and 1800 frames, whichever is reached first.",
+          "Frame rate. There is no fixed MP4 duration limit; frame indices must fit in a signed 32-bit integer, as in browser export.",
         ),
         parameter(
           "timeMs",

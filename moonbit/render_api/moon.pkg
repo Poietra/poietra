@@ -3,6 +3,7 @@ import {
   "poietra/poietra/project_codec" @codec,
   "poietra/poietra/scene",
   "poietra/poietra/render_job" @job,
+  "poietra/poietra/exporting",
 }
 
 supported_targets = "js"

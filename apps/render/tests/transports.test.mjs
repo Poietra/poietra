@@ -87,6 +87,24 @@ test('HTTP returns 413 for declared and chunked oversized files without losing t
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 });
 
+test('HTTP retains its own deadline when local rendering has no default timeout', async t => {
+  const schedule = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (callback, delay, ...args) => schedule(callback, delay === 120000 ? 1 : delay, ...args));
+  const server = await startServer({ port: 0 });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const response = await fetch(base + '/render', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project()),
+    });
+    assert.equal(response.status, 504);
+    assert.match((await response.json()).error, /Rendering exceeded its time limit/);
+    const recovery = await fetch(base + '/inspect', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(project()),
+    });
+    assert.equal(recovery.status, 200);
+  } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+});
+
 test('HTTP wildcard binding requires a token and accepts requests through a real interface', async () => {
   assert.throws(() => startServer({ host: '0.0.0.0', port: 0, token: '' }), /POIETRA_RENDER_TOKEN/);
   const server = await startServer({ host: '0.0.0.0', port: 0, token: 'public-test-token' });
@@ -107,6 +125,11 @@ test('MCP stdio discovers tools, inspects and renders a file without overwriting
     await client.connect(transport);
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map(tool => tool.name).sort(), ['poietra_capabilities', 'poietra_inspect', 'poietra_render']);
+    const caps = JSON.parse((await client.callTool({ name: 'poietra_capabilities', arguments: {} })).content[0].text);
+    const renderSchema = tools.find(tool => tool.name === 'poietra_render').inputSchema.properties;
+    assert.equal(renderSchema.width.maximum, caps.maxDimension);
+    assert.equal(renderSchema.height.maximum, caps.maxDimension);
+    assert.equal(caps.maxVideoDurationMs, null);
     const resources = await client.listResources();
     assert.deepEqual(resources.resources.map(resource => resource.uri).sort(), [
       'poietra://docs/openapi', 'poietra://docs/project-schema', 'poietra://examples/hello',
@@ -122,13 +145,31 @@ test('MCP stdio discovers tools, inspects and renders a file without overwriting
     }
     const inspect = await client.callTool({ name: 'poietra_inspect', arguments: { inputPath } });
     assert.equal(JSON.parse(inspect.content[0].text).name, 'Headless fixture');
-    const result = await client.callTool({ name: 'poietra_render', arguments: { inputPath, outputPath, format: 'png', width: 160 } });
+    const result = await client.callTool({ name: 'poietra_render', arguments: { inputPath, outputPath, format: 'png', width: 2048, timeoutMs: 0 } });
     assert.ok(!result.isError, JSON.stringify(result));
-    assert.equal(JSON.parse(result.content[0].text).width, 160);
+    assert.equal(JSON.parse(result.content[0].text).width, 2048);
     const original = await readFile(outputPath); assert.ok(original.length > 100);
     const duplicate = await client.callTool({ name: 'poietra_render', arguments: { inputPath, outputPath } });
     assert.equal(duplicate.isError, true); assert.deepEqual(await readFile(outputPath), original);
   } finally { await client.close(); await transport.close(); await rm(dir, { recursive: true, force: true }); }
+});
+
+test('CLI renders above 1080p with an optional deadline and leaves no file on timeout', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'poietra-cli-'));
+  const input = join(dir, 'input.poietra.json'), output = join(dir, 'output.svg');
+  const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
+  try {
+    await writeFile(input, JSON.stringify(project()));
+    const { stdout } = await run(process.execPath, [cli, input, '--format', 'svg', '--width', '3840', '--timeout-ms', '300001', '-o', output]);
+    assert.equal(JSON.parse(stdout).width, 3840);
+    assert.match(await readFile(output, 'utf8'), /width="3840" height="2160"/);
+    const timedOut = join(dir, 'timed-out.png');
+    await assert.rejects(run(process.execPath, [cli, input, '--timeout-ms', '1', '-o', timedOut]), error => {
+      assert.match(error.stderr, /Rendering exceeded its time limit/);
+      return true;
+    });
+    await assert.rejects(readFile(timedOut), { code: 'ENOENT' });
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
 test('render works with subprocess launches and network fetch disabled, and no browser globals', async () => {

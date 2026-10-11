@@ -41,11 +41,16 @@ test('agent discovery returns Markdown, OpenAPI, schema and a usable starter fil
   const text = await markdown.text();
   expect(text).toContain('poietra://docs/project-schema');
   expect(text).toContain('ローカル');
+  expect(text).toContain('1〜8192 px');
+  expect(text).toContain('CLI・Node・MCP の描画には既定のタイムアウトがありません');
+  expect(text).not.toContain('1800 フレーム');
   expect(text).not.toContain('<html');
   const spec = await (await request.get('/openapi.json')).json();
   expect(spec.openapi).toBe('3.1.1');
   expect(spec.servers[0].url).toBe('http://127.0.0.1:8799');
   expect(spec.paths['/render'].post.requestBody.content['application/json'].schema.$ref).toContain('Project');
+  expect(spec.paths['/render'].post.parameters.find((parameter: { name: string }) => parameter.name === 'width').schema.maximum).toBe(8192);
+  expect(spec.components.schemas.Capabilities.properties.maxVideoDurationMs.const).toBeNull();
   expect((await (await request.get('/schemas/project.json')).json()).$defs.SceneObject).toBeTruthy();
   const example = await (await request.get('/examples/hello.poietra.json')).json();
   expect(example.version).toBe(2); expect(example.sceneOrder).toEqual(['hello']);

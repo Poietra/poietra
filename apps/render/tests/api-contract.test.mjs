@@ -57,6 +57,14 @@ test('published OpenAPI resolves its schemas and describes actual authenticated 
     assert.equal((await fetch(origin + '/capabilities')).status, 401);
     const caps = await (await fetch(origin + '/capabilities', { headers })).json();
     valid('Capabilities', caps); assert.deepEqual(caps, capabilities());
+    assert.equal(caps.maxVideoDurationMs, null);
+    assert.equal(caps.maxVideoFrames, 2147483647);
+    assert.equal(caps.maxDimension, 8192);
+    assert.equal(caps.maxPixels, caps.maxDimension ** 2);
+    for (const name of ['width', 'height']) {
+      const parameter = spec.paths['/render'].post.parameters.find(value => value.name === name);
+      assert.equal(parameter.schema.maximum, caps.maxDimension);
+    }
     const inspect = await fetch(origin + '/inspect', { method: 'POST', headers, body: sample });
     assert.equal(inspect.status, 200); valid('Inspection', await inspect.json());
     const render = await fetch(origin + '/render?format=mp4&width=320&fps=30', { method: 'POST', headers, body: sample });
@@ -64,6 +72,9 @@ test('published OpenAPI resolves its schemas and describes actual authenticated 
     assert.ok(Object.hasOwn(spec.paths['/render'].post.responses['200'].content, render.headers.get('content-type')));
     assert.equal(render.headers.get('x-poietra-frames'), '30');
     assert.equal(Buffer.from(await render.arrayBuffer()).toString('ascii', 4, 8), 'ftyp');
+    const highResolution = await fetch(origin + '/render?format=svg&width=3840&height=2160', { method: 'POST', headers, body: sample });
+    assert.equal(highResolution.status, 200);
+    assert.match(await highResolution.text(), /width="3840" height="2160"/);
     const error = await fetch(origin + '/render?fps=25', { method: 'POST', headers, body: sample });
     assert.equal(error.status, 422); valid('Error', await error.json());
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

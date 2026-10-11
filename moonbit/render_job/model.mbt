@@ -94,12 +94,3 @@ pub(all) struct Inspection {
 
 ///|
 pub let max_input_bytes : Int = 33554432
-
-///|
-pub let max_pixels : Int = 2073600
-
-///|
-pub let max_video_duration_ms : Double = 60000.0
-
-///|
-pub let max_video_frames : Int = 1800
