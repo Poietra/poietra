@@ -501,6 +501,25 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
     }
     let chosen = selection is CompositionSelection(_) && selection.id() == id
     let name : String = composition._get("name").cast()
+    let menu_items : Array[&@react.ReactNode] = [
+      scene_menu_item("Duplicate", "Copy", false, fn() {
+        change_composition(id, true)
+      }),
+      scene_menu_item("Delete", "Trash2", order.length() <= 1, fn() {
+        change_composition(id, false)
+      }),
+    ]
+    if order.length() > 1 {
+      menu_items.push(
+        h(
+          "p",
+          { "className": @core.any("px-2 py-1 text-xs text-[var(--muted)]") },
+          [
+            "削除すると前後のアニメーションも消えます。元に戻すで復元できます。",
+          ],
+        ),
+      )
+    }
     compositions.push(
       h(
         "div",
@@ -551,29 +570,7 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
                         "min-w-44 max-w-60 rounded-md border border-line bg-panel p-1 shadow-lg outline-none",
                       ),
                     },
-                    [
-                      scene_menu_item("Duplicate", "Copy", false, fn() {
-                        change_composition(id, true)
-                      }),
-                      scene_menu_item("Delete", "Trash2", order.length() <= 1, fn() {
-                        change_composition(id, false)
-                      }),
-                      h(
-                        "p",
-                        {
-                          "className": @core.any(
-                            "px-2 py-1 text-xs text-[var(--muted)]",
-                          ),
-                        },
-                        [
-                          if order.length() <= 1 {
-                            "最後の Composition は残します。"
-                          } else {
-                            "削除すると前後のアニメーションも消えます。元に戻すで復元できます。"
-                          },
-                        ],
-                      ),
-                    ],
+                    menu_items,
                   ),
                 ],
               ),
