@@ -167,6 +167,7 @@ fn stage_view(
         TransformObject(_, transform, _, _, _) =>
           @editor.stage_transform_name(transform)
         EditPath(_, _, _) => "path"
+        EditGeometryPoint(_, _, _) => "geometry-point"
         DrawObject(_) => "draw"
         SelectArea(_) => "marquee"
         MoveObjects(_) => "move"

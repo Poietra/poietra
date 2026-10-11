@@ -28,6 +28,8 @@ for name, body in re.findall(r'pub\(all\) struct (\w+)\s*\{([^}]+)\}', model):
 # One table drives native codecs and public string unions for closed domain values.
 wire_enums = {
     'ObjectKind': ('object_kind', 'object_kind_name'),
+    'GeometryPointKind': ('geometry_point_kind', 'geometry_point_kind_name'),
+    'SurfaceKind': ('surface_kind', 'surface_kind_name'),
     'AnimationKind': ('animation_kind', 'animation_name'),
     'Effect': ('effect_kind', 'effect_name'),
     'CurveProperty': ('curve_property', 'curve_property_name'),
@@ -236,7 +238,7 @@ def ts_type(kind):
         return aliases.get(kind, kind)
     raise ValueError('Unsupported public representation: ' + kind)
 
-kinds = (root / 'moonbit/scene/kinds.mbt').read_text()
+kinds = '\n'.join(path.read_text() for path in sorted((root / 'moonbit/scene').glob('*.mbt')))
 def names(function):
     body = re.search(r'pub fn ' + function + r'\(.*?\n}', kinds, re.S).group()
     return re.findall(r'=> "([^"\n]+)"', body)
@@ -259,9 +261,13 @@ for name, fields in structs.items():
             value += ' | null'
         elif name == 'SceneObject' and field == 'parentId':
             value += ' | null'
+        elif name == 'GeometryPoint' and field in ['from', 'to']:
+            value += ' | null'
+        elif name == 'NetworkEdge' and field == 'weight':
+            value += ' | null'
         elif name == 'Track' and kind == 'Timing?':
             value += ' | null'
-        if name == 'Project' and field == 'version': value = '1 | 2 | 3'
+        if name == 'Project' and field == 'version': value = '1 | 2 | 3 | 4 | 5 | 6 | 7'
         types += '  ' + key + ('?' if optional else '') + ': ' + value + ';\n'
     if name == 'RenderObject': types += '  videoFrame?: string; // Portable SVG preparation only; not stored in a project.\n'
     types += '}\n'

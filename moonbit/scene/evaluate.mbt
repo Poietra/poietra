@@ -448,6 +448,34 @@ pub fn evaluate_transition(
       }
     }
     let mut state : ObjectState = {
+      network: interpolate_network(
+        a.network,
+        b.network,
+        position,
+        base,
+        interpolate,
+      ),
+      surface: interpolate_surface(
+        a.surface,
+        b.surface,
+        position,
+        base,
+        interpolate,
+      ),
+      geometry: interpolate_geometry(
+        a.geometry,
+        b.geometry,
+        position,
+        base,
+        interpolate,
+      ),
+      graph: interpolate_graph(
+        a.graph,
+        b.graph,
+        channel(track.graphTiming),
+        base,
+        interpolate,
+      ),
       anchorX: optional_transform(a.anchorX, b.anchorX, 0.0, position),
       anchorY: optional_transform(a.anchorY, b.anchorY, 0.0, position),
       scaleX: optional_transform(a.scaleX, b.scaleX, 1.0, size),

@@ -6,6 +6,7 @@ import {
   "poietra/poietra/browser_media",
   "poietra/poietra/exporting",
   "poietra/poietra/scene",
+  "poietra/poietra/render",
   "poietra/poietra/geometry",
   "poietra/poietra/editor",
   "poietra/poietra/boundary",

@@ -102,6 +102,11 @@ fn StageController::feedback(
         "ベジェ曲線を調整",
         "X " + coordinate(at.x) + " · Y " + coordinate(at.y),
       )
+    EditGeometryPoint(_, _, _) =>
+      (
+        "点を移動",
+        "X " + @render.number(at.x) + " · Y " + @render.number(at.y),
+      )
     TransformObject(_, @editor.RotateObject, state, _, _) => {
       let rotation = match value {
         Some(Rotation(rotation)) => rotation
@@ -150,7 +155,9 @@ fn StageController::capture(
 ) -> Unit {
   self.gesture.set_current(Some(gesture))
   if !(gesture.mode is SelectArea(_)) {
-    self.feedback(gesture, gesture.start, None)
+    if !(gesture.mode is EditGeometryPoint(_, _, _)) {
+      self.feedback(gesture, gesture.start, None)
+    }
     gesture.binding.history().begin()
   }
   try
@@ -188,7 +195,9 @@ fn StageController::double_click(
   let target = event._get("target")
   if truthy(
       target._call("closest", [
-        @core.any("[data-transform-handle], [data-path-handle]"),
+        @core.any(
+          "[data-transform-handle], [data-path-handle], [data-geometry-handle]",
+        ),
       ]),
     ) {
     return

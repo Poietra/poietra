@@ -50,6 +50,7 @@ pub fn default_track(
     cornerRadiusTiming: None,
     pathTiming: None,
     revealTiming: None,
+    graphTiming: None,
     keyframes,
   }
 }

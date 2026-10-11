@@ -59,6 +59,112 @@ pub impl ToJson for Easing with fn to_json(self) {
 }
 
 ///|
+/// Authored mathematics belongs to each Composition; paths and sample points are derived.
+/// Grammar 2 adds two-variable equations (left=right) to grammar 1's y=f(x).
+pub(all) struct GraphDefinition {
+  syntaxVersion : Int
+  expression : String
+  xMin : Double
+  xMax : Double
+  yMin : Double
+  yMax : Double
+  a : Double
+  b : Double
+  c : Double
+  axes : Bool
+  grid : Bool
+  filled : Bool?
+  breaks : Array[Double]
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct GeometryPoint {
+  kind : GeometryPointKind
+  x : Double
+  y : Double
+  from : String?
+  to : String?
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct GeometryVector {
+  from : String
+  to : String
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct GeometryAngle {
+  from : String
+  vertex : String
+  to : String
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+/// Stable IDs are scoped to a mathematical diagram. Each Composition owns its
+/// definitions and coordinates; evaluated positions and paths are runtime data.
+pub(all) struct GeometryDefinition {
+  version : Int
+  points : Map[String, GeometryPoint]
+  vectors : Map[String, GeometryVector]
+  angles : Map[String, GeometryAngle]
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct NetworkNode {
+  x : Double
+  y : Double
+  label : String
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct NetworkEdge {
+  from : String
+  to : String
+  label : String
+  directed : Bool
+  weight : Double?
+  bend : Double
+  deleted : Bool?
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct NetworkDefinition {
+  version : Int
+  nodes : Map[String, NetworkNode]
+  edges : Map[String, NetworkEdge]
+} derive(Eq, FromJson, ToJson)
+
+///|
+pub(all) struct SurfaceDefinition {
+  version : Int
+  kind : SurfaceKind
+  xExpression : String
+  yExpression : String
+  zExpression : String
+  uMin : Double
+  uMax : Double
+  vMin : Double
+  vMax : Double
+  a : Double
+  b : Double
+  c : Double
+  yaw : Double
+  pitch : Double
+  zoom : Double
+  steps : Int
+  filled : Bool
+  wireframe : Bool
+  axes : Bool
+} derive(Eq, FromJson, ToJson)
+
+///|
 pub(all) struct ObjectState {
   x : Double
   y : Double
@@ -80,6 +186,10 @@ pub(all) struct ObjectState {
   cornerRadius : Double
   effect : Effect
   path : Bezier
+  graph : GraphDefinition?
+  geometry : GeometryDefinition?
+  network : NetworkDefinition?
+  surface : SurfaceDefinition?
 } derive(Eq, FromJson, ToJson)
 
 ///|
@@ -180,6 +290,7 @@ pub(all) struct Track {
   cornerRadiusTiming : Timing?
   pathTiming : Timing?
   revealTiming : Timing?
+  graphTiming : Timing?
   keyframes : Map[String, Keyframe]?
 } derive (
   FromJson(fields(type_(rename="type"))),

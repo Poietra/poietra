@@ -49,7 +49,7 @@ pub fn prepare(
     let mut has_text = false
     for _, object in scene.objects {
       match object.kind {
-        Text | Equation => has_text = true
+        Text | Equation | Geometry | Network | Surface => has_text = true
         _ => ()
       }
       if object.kind == @scene.Video {
@@ -77,6 +77,19 @@ pub fn prepare(
             match object.kind {
               Text => texts[state.text] = ()
               Equation => equations[state.text] = ()
+              Geometry =>
+                if state.geometry is Some(definition) {
+                  for text in @scene.geometry_texts(definition) {
+                    texts[text] = ()
+                  }
+                }
+              Network =>
+                if state.network is Some(value) {
+                  for text in @scene.network_texts(value) {
+                    texts[text] = ()
+                  }
+                }
+              Surface => texts["xyz"] = ()
               _ => ()
             }
           }

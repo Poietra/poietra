@@ -23,6 +23,8 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
+import { toShared } from '../shared/document.js';
+import { defaultState, defaultTrack } from '../shared/model.js';
 
 const repository = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const { values: args } = parseArgs({ options: {
@@ -324,6 +326,37 @@ if (args.child) {
     await eventually(() => !lateJoiner.provider.awareness.getStates().has(717171), 'Closed connection left a phantom avatar');
     console.log('PASS stale close cannot remove a reconnected avatar after hibernation; final close removes it');
 
+    const mathRoom = crypto.randomUUID();
+    const mathAlice = await connect(mathRoom);
+    const mathScene = mathAlice.doc.getMap('project').get('scenes').get('scene-1');
+    mathAlice.doc.transact(() => {
+      mathAlice.doc.getMap('project').set('version', 6);
+      for (const kind of ['network', 'surface']) {
+        mathScene.get('objects').set(kind, toShared({ id: kind, name: kind, kind, order: kind === 'network' ? 10 : 11, groupId: null, locked: false }));
+        for (const composition of mathScene.get('compositions').values()) composition.get('states').set(kind, toShared(defaultState(kind)));
+        for (const transition of mathScene.get('transitions').values()) transition.get('tracks').set(kind, toShared(defaultTrack(kind, { duration: transition.get('duration'), easing: 'linear' })));
+      }
+    });
+    const mathBob = await connect(mathRoom);
+    const mathState = (doc, id) => doc.getMap('project').get('scenes').get('scene-1').get('compositions').get('comp-1').get('states').get(id);
+    await eventually(() => mathState(mathBob.doc, 'surface')?.has('surface'), 'Version 6 mathematical objects did not reach the peer');
+    mathBob.provider.disconnect();
+    mathState(mathAlice.doc, 'network').get('network').get('nodes').get('a').set('x', 1.25);
+    mathState(mathBob.doc, 'network').get('network').get('nodes').get('a').set('label', '共同編集');
+    mathState(mathAlice.doc, 'surface').get('surface').set('zExpression', 'a*(x^2-y^2)/4');
+    mathState(mathBob.doc, 'surface').get('surface').set('yaw', 95);
+    mathBob.provider.connect();
+    for (const client of [mathAlice, mathBob]) {
+      await eventually(() => mathState(client.doc, 'network').get('network').get('nodes').get('a').get('x') === 1.25 && mathState(client.doc, 'network').get('network').get('nodes').get('a').get('label') === '共同編集' && mathState(client.doc, 'surface').get('surface').get('zExpression') === 'a*(x^2-y^2)/4' && mathState(client.doc, 'surface').get('surface').get('yaw') === 95, 'Offline mathematical leaf edits did not converge');
+    }
+    mathState(mathAlice.doc, 'network').get('network').get('nodes').set('retired', toShared({ x: 0, y: 0, label: '削除済み', deleted: true }));
+    await eventually(() => mathState(mathBob.doc, 'network').get('network').get('nodes').get('retired')?.get('deleted') === true, 'Mathematical tombstone did not persist before broadcast');
+    await control('hibernate', mathRoom);
+    assert.equal(mathAlice.provider.ws.readyState, WebSocket.OPEN);
+    mathState(mathAlice.doc, 'network').get('network').get('edges').get('ab').set('weight', 7);
+    await eventually(() => mathState(mathBob.doc, 'network').get('network').get('edges').get('ab').get('weight') === 7, 'Mathematical edit did not survive hibernation');
+    console.log('PASS version 6 networks and surfaces merge offline leaf edits and wake from hibernation with live sockets');
+
     // Yjs retains an out-of-order update without emitting `doc.on("update")`.
     // Preserve it both in a compacted snapshot and the following journal tail.
     const pendingRoom = crypto.randomUUID();
@@ -355,6 +388,16 @@ if (args.child) {
     assert.equal(circle(fresh.doc).get('fill'), '#f4ce55');
     assert.equal(fresh.provider.awareness.getStates().size, 1);
     console.log('PASS fresh workerd process restores snapshot + update journal without any previous browser; no stale presence');
+    const mathFresh = await connect(mathRoom);
+    assert.equal(mathFresh.doc.getMap('project').get('version'), 6);
+    const restoredNetwork = mathState(mathFresh.doc, 'network').get('network');
+    assert.equal(restoredNetwork.get('nodes').get('a').get('x'), 1.25);
+    assert.equal(restoredNetwork.get('nodes').get('a').get('label'), '共同編集');
+    assert.equal(restoredNetwork.get('nodes').get('retired').get('deleted'), true);
+    assert.equal(restoredNetwork.get('edges').get('ab').get('weight'), 7);
+    assert.equal(mathState(mathFresh.doc, 'surface').get('surface').get('zExpression'), 'a*(x^2-y^2)/4');
+    assert.equal(mathState(mathFresh.doc, 'surface').get('surface').get('yaw'), 95);
+    console.log('PASS version 6 semantic nodes, edges, tombstones, formulas and view settings restore from a fresh runtime without previous clients');
     const pendingReader = await connect(pendingRoom);
     Y.applyUpdate(pendingReader.doc, updates[0]);
     await eventually(() => pendingReader.doc.getMap('pending-proof').get('third') === 3, 'Out-of-order updates were lost during restart');

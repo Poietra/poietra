@@ -72,6 +72,7 @@ fn Compiler::prepare(
                 "objectId", "start", "duration", "implicit", "positionTiming", "opacityTiming",
                 "sizeTiming", "rotationTiming", "fillTiming", "strokeTiming", "strokeWidthTiming",
                 "fontSizeTiming", "cornerRadiusTiming", "pathTiming", "revealTiming",
+                "graphTiming",
               ] {
               self.depend(["transitions", id, "tracks", object_id, key])
             }

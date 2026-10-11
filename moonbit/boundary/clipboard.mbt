@@ -96,7 +96,13 @@ pub fn serialize_objects(value : @core.Any) -> String {
     deleted: None,
   }
   let project : @scene.Project = {
-    version: if clipboard.objects.any(fn(o) { o.clipChildren == Some(true) }) {
+    version: if @scene.has_spatial_math(scene) {
+      6
+    } else if @scene.has_geometry_data(scene) {
+      5
+    } else if @scene.has_graph_data(scene) {
+      4
+    } else if clipboard.objects.any(fn(o) { o.clipChildren == Some(true) }) {
       3
     } else if clipboard.objects.any(fn(o) { o.parentId is Some(_) }) ||
       clipboard.states.values().any(fn(s) { s.has_transform() }) {

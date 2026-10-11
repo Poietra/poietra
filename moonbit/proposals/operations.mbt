@@ -108,6 +108,14 @@ fn read_operation(input : @core.Any) -> @plan.Operation {
         @plan.state_field(input._get("property").cast()).unwrap(),
         scalar(input._get("value")),
       )
+    "setGeometryElement" => read_geometry_operation(input, cid, oid)
+    "setNetworkElement" => read_network_operation(input, cid, oid)
+    "setSurface" =>
+      SurfaceDefinition(
+        cid,
+        oid,
+        @project_codec.read_surface_definition(input._get("surface")),
+      )
     "setParent" =>
       Parent(
         oid,

@@ -30,6 +30,9 @@ export class EditorStore {
     get lastUndoPreservedAudioTracks() { return this.undoManager.lastUndoPreservedAudioTracks; }
     get lastUndoPreservedCompositions() { return this.undoManager.lastUndoPreservedCompositions; }
     get lastUndoPreservedDurations() { return this.undoManager.lastUndoPreservedDurations; }
+    get lastPreservedGraphRanges() { return this.undoManager.lastPreservedGraphRanges; }
+    get lastPreservedGraphDefinitions() { return this.undoManager.lastPreservedGraphDefinitions; }
+    get lastPreservedGeometryElements() { return this.undoManager.lastPreservedGeometryElements; }
     undo() { return commands.undoEdit(this); }
     redo() { return commands.redoEdit(this); }
     rollbackGesture(item) { return commands.rollbackGesture(this, item); }

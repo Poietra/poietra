@@ -149,16 +149,18 @@ pub fn apply_changes(
       v.cast()
     })
     if path == ["version"] &&
-      (@core.equal(value, @core.any(2)) || @core.equal(value, @core.any(3))) {
+      (
+        @core.equal(value, @core.any(2)) ||
+        @core.equal(value, @core.any(3)) ||
+        @core.equal(value, @core.any(4)) ||
+        @core.equal(value, @core.any(5)) ||
+        @core.equal(value, @core.any(6)) ||
+        @core.equal(value, @core.any(7))
+      ) {
       upgrade = upgrade.max(value.cast())
       continue
     }
-    if change_requires_v2(path, value) {
-      upgrade = upgrade.max(2)
-    }
-    if change_requires_v3(path, value) {
-      upgrade = 3
-    }
+    upgrade = upgrade.max(required_format_for_change(path, value))
     let mutation = if @core.is_undefined(value) {
       @collaboration.Remove
     } else {
@@ -399,7 +401,7 @@ pub fn upgrade_document_format(doc : @core.Any) -> Unit {
 }
 
 ///|
-fn upgrade_format_to(doc : @core.Any, version : Int) -> Unit {
+pub fn upgrade_format_to(doc : @core.Any, version : Int) -> Unit {
   let root = shared_map(doc)
   let current = map_get(root, "version")
   if @core.typeof_(current) == "number" && (current.cast() : Int) >= version {
@@ -410,6 +412,29 @@ fn upgrade_format_to(doc : @core.Any, version : Int) -> Unit {
     fn() { map_set(root, "version", @core.any(version)) },
     @core.any("initialize-primitives"),
   )
+}
+
+///|
+/// Ordinary editing and AI publication share the same monotonic format gate.
+pub fn required_format_for_change(
+  path : Array[String],
+  value : @core.Any,
+) -> Int {
+  if change_requires_v7(path, value) {
+    7
+  } else if change_requires_v6(path, value) {
+    6
+  } else if change_requires_v5(path, value) {
+    5
+  } else if change_requires_v4(path, value) {
+    4
+  } else if change_requires_v3(path, value) {
+    3
+  } else if change_requires_v2(path, value) {
+    2
+  } else {
+    1
+  }
 }
 
 ///|
@@ -425,6 +450,139 @@ fn change_requires_v3(path : Array[String], value : @core.Any) -> Bool {
     for key in @core.object_keys(current) {
       let child = current._get(key)
       if key == "clipChildren" && @core.equal(child, @core.any(true)) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+/// Only a shaded region needs v7: a v6 reader would silently strip `filled` and
+/// show an unfilled graph, so an explicit version rejection is the honest failure.
+fn change_requires_v7(path : Array[String], value : @core.Any) -> Bool {
+  let shaded = fn(graph : @core.Any) {
+    !@core.is_nullish(graph) &&
+    @core.typeof_(graph) == "object" &&
+    @core.equal(graph._get("filled"), @core.any(true))
+  }
+  // Match the graph definition's own leaf: an object or state keyed "graph"
+  // must not promote a surface's `filled` flag.
+  let leaf = path.length() >= 2 &&
+    path[path.length() - 2] == "graph" &&
+    path.last() == Some("filled") &&
+    @core.equal(value, @core.any(true))
+  if leaf || (path.last() == Some("graph") && shaded(value)) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if key == "graph" && shaded(child) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+fn change_requires_v6(path : Array[String], value : @core.Any) -> Bool {
+  if path.contains("network") ||
+    path.contains("surface") ||
+    (
+      path.last() == Some("kind") &&
+      ["network", "surface"].any(fn(k) { @core.equal(value, @core.any(k)) })
+    ) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if (["network", "surface"].contains(key) && !@core.is_nullish(child)) ||
+        (
+          key == "kind" &&
+          ["network", "surface"].any(fn(k) { @core.equal(child, @core.any(k)) })
+        ) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+fn change_requires_v5(path : Array[String], value : @core.Any) -> Bool {
+  if path.contains("geometry") ||
+    (path.last() == Some("kind") && @core.equal(value, @core.any("geometry"))) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if (key == "geometry" && !@core.is_nullish(child)) ||
+        (key == "kind" && @core.equal(child, @core.any("geometry"))) {
+        return true
+      }
+      if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
+        pending.push(child)
+      }
+    }
+  }
+  false
+}
+
+///|
+pub fn change_requires_v4(path : Array[String], value : @core.Any) -> Bool {
+  if path.contains("graph") ||
+    path.last() == Some("graphTiming") ||
+    (path.last() == Some("kind") && @core.equal(value, @core.any("graph"))) ||
+    (
+      path.last() == Some("property") &&
+      ["graphA", "graphB", "graphC"].any(fn(name) {
+        @core.equal(value, @core.any(name))
+      })
+    ) {
+    return true
+  }
+  let pending = [value]
+  while pending.pop() is Some(current) {
+    if @core.is_nullish(current) || @core.typeof_(current) != "object" {
+      continue
+    }
+    for key in @core.object_keys(current) {
+      let child = current._get(key)
+      if !@core.is_nullish(child) && (key == "graph" || key == "graphTiming") {
+        return true
+      }
+      if (key == "kind" && @core.equal(child, @core.any("graph"))) ||
+        (
+          key == "property" &&
+          ["graphA", "graphB", "graphC"].any(fn(name) {
+            @core.equal(child, @core.any(name))
+          })
+        ) {
         return true
       }
       if !@core.is_nullish(child) && @core.typeof_(child) == "object" {
@@ -474,4 +632,9 @@ pub fn change_requires_v2(path : Array[String], value : @core.Any) -> Bool {
   last == "keyframes" &&
   @core.typeof_(value) == "object" &&
   @core.object_keys(value).length() > 0
+}
+
+///|
+pub fn upgrade_graph_format(doc : @core.Any) -> Unit {
+  upgrade_format_to(doc, 4)
 }

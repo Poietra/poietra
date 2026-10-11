@@ -2,12 +2,118 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PNG } from 'pngjs';
 import { renderProjectFile, inspectProjectFile } from '../index.mjs';
-import { project, addObject, addImage, addAudio } from './fixtures.mjs';
+import { project, addObject, addImage, addAudio, functionProject, geometryProject } from './fixtures.mjs';
 import { decodeVideo, decodeAudio } from './decode.mjs';
 import { normalizePathLengths } from '../runtime-host.mjs';
 
 const pixel = (png, x, y) => [...png.data.subarray((y * png.width + x) * 4, (y * png.width + x) * 4 + 4)];
 const render = (p, options) => renderProjectFile(JSON.stringify(p), options);
+
+test('semantic geometry derives moving vectors and midpoints in SVG, PNG and independently decoded MP4', async () => {
+  const p = geometryProject();
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 145, 105), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 175, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 145, 105), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(svg, /data-geometry-element="points\/m" d="M18 0/);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[105 * 320 + 145] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 175] > 220);
+  assert.ok(video.frames[12].pixels[105 * 320 + 145] < 30);
+  p.scenes.scene.compositions.a.states.diagram.visible = false;
+  p.scenes.scene.transitions.transition.tracks.diagram.type = 'write';
+  const empty = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 200 })).bytes);
+  assert.doesNotMatch(empty, /data-geometry-element/);
+  const partial = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(partial, /stroke-dashoffset="0.5"/);
+  for (const c of Object.values(p.scenes.scene.compositions)) {
+    const state = c.states.diagram; state.visible = true; state.stroke = 'none';
+    for (const point of Object.values(state.geometry.points)) point.label = '';
+    for (const vector of Object.values(state.geometry.vectors)) vector.label = '';
+    state.geometry.points.a.label = '端点';
+  }
+  const labelled = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  let glyphPixels = 0;
+  for (let y = 85; y < 100; y++) for (let x = 138; x < 161; x++) if (pixel(labelled, x, y)[0] > 50) glyphPixels++;
+  assert.ok(glyphPixels > 20, 'Japanese diagram labels load their bundled glyph fonts');
+});
+
+test('mathematical definitions render the same animated and discontinuous curves in SVG, PNG and MP4', async () => {
+  const p = functionProject();
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 100, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 100, 105), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 100, 90), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(svg, /data-graph-curve="true" d="M-120 30/);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[90 * 320 + 100] > 220);
+  assert.ok(video.frames[12].pixels[105 * 320 + 100] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 100] < 30);
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { expression: '1/x', breaks: [0] });
+  const pole = PNG.sync.read(Buffer.from((await render(p)).bytes));
+  assert.deepEqual(pixel(pole, 160, 90), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(pole, 220, 60), [255, 255, 255, 255]);
+});
+
+test('a shaded function fills the region down to the x-axis in SVG and PNG and reveals it with the curve', async () => {
+  const p = functionProject(); p.version = 7;
+  for (const c of Object.values(p.scenes.scene.compositions)) c.states.graph.graph.filled = true;
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  assert.match(svg, /data-graph-area="true" d="M-120 30L[^"]*L120 -30L120 0L-120 0Z" fill="#ffffff" fill-opacity="0.25" stroke="none"\/><path data-graph-curve="true"/);
+  // y = 0.5x at 400 ms: the region lies between the curve and the axis on both sides.
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  const shaded = (png, x, y) => { const [r, g, b, a] = pixel(png, x, y); assert.ok(Math.abs(r - 64) <= 1 && r === g && g === b && a === 255, `${x},${y} = ${[r, g, b, a]}`); };
+  shaded(middle, 220, 83); shaded(middle, 100, 98);
+  assert.deepEqual(pixel(middle, 100, 75), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(middle, 220, 105), [0, 0, 0, 255]);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  assert.deepEqual(pixel(first, 220, 83), [0, 0, 0, 255]);
+  // A steep line leaving through the top and bottom, and a constant wholly above the viewport, still shade between the axis and the edge.
+  for (const c of Object.values(p.scenes.scene.compositions)) c.states.graph.graph.a = 3;
+  const steep = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  shaded(steep, 220, 83); shaded(steep, 100, 98);
+  assert.deepEqual(pixel(steep, 100, 83), [0, 0, 0, 255]);
+  for (const c of Object.values(p.scenes.scene.compositions)) c.states.graph.graph.expression = '5';
+  const above = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  shaded(above, 220, 83); shaded(above, 100, 83);
+  assert.deepEqual(pixel(above, 100, 98), [0, 0, 0, 255]);
+  assert.match(new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes), /data-graph-area="true" d="M-120 -60L120 -60L120 0L-120 0Z"[^>]*><path data-graph-curve="true" d=""/);
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { syntaxVersion: 2, expression: 'x^2+y^2=1' });
+  assert.doesNotMatch(new TextDecoder().decode((await render(p, { format: 'svg' })).bytes), /data-graph-area/);
+});
+
+test('implicit equations keep closed animated contours in PNG, SVG and independently decoded MP4', async () => {
+  const p = functionProject();
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { syntaxVersion: 2, expression: 'x^2+y^2=a^2', a: c.id === 'a' ? .5 : 1.5 });
+  assert.deepEqual(inspectProjectFile(JSON.stringify(p)).issues, []);
+  const first = PNG.sync.read(Buffer.from((await render(p, { timeMs: 0 })).bytes));
+  const middle = PNG.sync.read(Buffer.from((await render(p, { timeMs: 400 })).bytes));
+  assert.deepEqual(pixel(first, 190, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(first, 220, 90), [0, 0, 0, 255]);
+  assert.deepEqual(pixel(middle, 220, 90), [255, 255, 255, 255]);
+  assert.deepEqual(pixel(middle, 160, 90), [0, 0, 0, 255]);
+  const svg = new TextDecoder().decode((await render(p, { format: 'svg', timeMs: 400 })).bytes);
+  const path = svg.match(/data-graph-curve="true" d="([^"]*)"/)[1];
+  assert.equal((path.match(/M/g) ?? []).length, 1);
+  assert.doesNotMatch(svg, /NaN|Infinity/);
+  const video = await decodeVideo((await render(p, { format: 'mp4', fps: 30 })).bytes);
+  assert.ok(video.frames[0].pixels[90 * 320 + 190] > 220);
+  assert.ok(video.frames[0].pixels[90 * 320 + 220] < 30);
+  assert.ok(video.frames[12].pixels[90 * 320 + 220] > 220);
+  assert.ok(video.frames[12].pixels[90 * 320 + 160] < 30);
+  for (const c of Object.values(p.scenes.scene.compositions)) Object.assign(c.states.graph.graph, { expression: '1/(x-0.123)=0' });
+  const pole = PNG.sync.read(Buffer.from((await render(p)).bytes));
+  assert.deepEqual(pixel(pole, 160, 90), [0, 0, 0, 255]);
+});
 
 test('hidden rectangle clips animated descendants in SVG, PNG and encoded video', async () => {
   const p = project(); p.version = 3;

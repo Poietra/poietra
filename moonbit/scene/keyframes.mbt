@@ -25,6 +25,7 @@ pub fn curve_channel(property : CurveProperty) -> PropertyChannel {
     ObjectScaleX => Size
     ObjectScaleY => Size
     ObjectShear => Rotation
+    GraphA | GraphB | GraphC => GraphParameters
   }
 }
 
@@ -42,6 +43,7 @@ pub fn curve_properties(channel : PropertyChannel) -> Array[CurveProperty] {
     CornerRadius => [ObjectCornerRadius]
     ShapePath => [Control1X, Control1Y, Control2X, Control2Y]
     Reveal => [ObjectReveal]
+    GraphParameters => [GraphA, GraphB, GraphC]
   }
 }
 
@@ -72,6 +74,9 @@ pub fn state_curve_value(
     ObjectScaleX => CurveNumber(state.scaleX.unwrap_or(1.0))
     ObjectScaleY => CurveNumber(state.scaleY.unwrap_or(1.0))
     ObjectShear => CurveNumber(state.shear.unwrap_or(0.0))
+    GraphA => CurveNumber(state.graph.unwrap_or(default_graph()).a)
+    GraphB => CurveNumber(state.graph.unwrap_or(default_graph()).b)
+    GraphC => CurveNumber(state.graph.unwrap_or(default_graph()).c)
   }
 }
 
@@ -107,6 +112,21 @@ pub fn with_curve_value(
     (ObjectScaleX, CurveNumber(value)) => { ..state, scaleX: Some(value), }
     (ObjectScaleY, CurveNumber(value)) => { ..state, scaleY: Some(value), }
     (ObjectShear, CurveNumber(value)) => { ..state, shear: Some(value), }
+    (GraphA, CurveNumber(value)) =>
+      {
+        ..state,
+        graph: Some({ ..state.graph.unwrap_or(default_graph()), a: value, }),
+      }
+    (GraphB, CurveNumber(value)) =>
+      {
+        ..state,
+        graph: Some({ ..state.graph.unwrap_or(default_graph()), b: value, }),
+      }
+    (GraphC, CurveNumber(value)) =>
+      {
+        ..state,
+        graph: Some({ ..state.graph.unwrap_or(default_graph()), c: value, }),
+      }
     _ => state
   }
 }

@@ -32,7 +32,7 @@ jobs:
       - name: Check generated public bindings
         run: git diff --exit-code -- apps/studio/src apps/studio/shared apps/studio/server apps/studio/worker
       - run: node scripts/moon.mjs test --target js
-      - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
+      - run: node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
 
   browser:
     runs-on: ubuntu-latest

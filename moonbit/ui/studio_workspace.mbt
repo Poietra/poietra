@@ -408,10 +408,8 @@ fn studio_composition_stage(
       ("Square", "rectangle", "四角形 (R)"),
       ("Circle", "circle", "円 (O)"),
       ("Spline", "path", "ベジェ曲線 (P)"),
-      ("Sigma", "equation", "数式 (E)"),
       ("Type", "text", "テキスト (T)"),
       ("ArrowUpRight", "arrow", "矢印 (L)"),
-      ("Minus", "numberline", "数直線"),
     ] {
     tools.push(
       studio_icon_button(
@@ -427,6 +425,23 @@ fn studio_composition_stage(
       ),
     )
   }
+  tools.push(
+    studio_icon_button(
+      "数学",
+      "Sigma",
+      18,
+      fn() { controller.update({ ..controller.state, math_open: true, }) },
+      extra={
+        "key": @core.any("math"),
+        "aria-haspopup": @core.any("dialog"),
+        "active": @core.any(
+          @editor.math_tools().any(fn(item) {
+            state.tool == @editor.DrawTool(item.kind)
+          }),
+        ),
+      },
+    ),
+  )
   tools.push(
     h(
       "div",

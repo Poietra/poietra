@@ -201,6 +201,9 @@ fn stage_overlay(
   for item in stage_paths(controller) {
     nodes.push(item)
   }
+  for item in stage_geometry_handles(controller) {
+    nodes.push(item)
+  }
   if marquee is Some(area) {
     nodes.push(
       h(

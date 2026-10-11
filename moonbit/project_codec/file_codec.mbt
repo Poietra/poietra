@@ -324,7 +324,7 @@ let object_file_field : FileField = Record({
   "name": Text(200),
   "kind": Strings([
     "circle", "rectangle", "text", "equation", "path", "arrow", "numberline", "image",
-    "video",
+    "video", "graph", "geometry", "network", "surface",
   ]),
   "order": file_number,
   "groupId": Nullable(Identifier),
@@ -341,6 +341,103 @@ let file_point : FileField = Record({ "x": file_number, "y": file_number })
 
 ///|
 let file_bezier : FileField = Record({ "c1": file_point, "c2": file_point })
+
+///|
+let graph_file_field : FileField = Record({
+  "syntaxVersion": Numeric(1.0, 2.0, true),
+  "expression": Text(512),
+  "xMin": Numeric(-100000.0, 100000.0, false),
+  "xMax": Numeric(-100000.0, 100000.0, false),
+  "yMin": Numeric(-100000.0, 100000.0, false),
+  "yMax": Numeric(-100000.0, 100000.0, false),
+  "a": Numeric(-100000.0, 100000.0, false),
+  "b": Numeric(-100000.0, 100000.0, false),
+  "c": Numeric(-100000.0, 100000.0, false),
+  "axes": Boolean,
+  "grid": Boolean,
+  "filled": Optional(Boolean),
+  "breaks": Sequence(Numeric(-100000.0, 100000.0, false), 0, 32),
+})
+
+///|
+let geometry_file_field : FileField = Record({
+  "version": Numeric(1.0, 1.0, true),
+  "points": Dictionary(
+    Record({
+      "kind": Strings(["free", "midpoint"]),
+      "x": Numeric(-100000.0, 100000.0, false),
+      "y": Numeric(-100000.0, 100000.0, false),
+      "from": Optional(Nullable(Identifier)),
+      "to": Optional(Nullable(Identifier)),
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+  "vectors": Dictionary(
+    Record({
+      "from": Identifier,
+      "to": Identifier,
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+  "angles": Dictionary(
+    Record({
+      "from": Identifier,
+      "vertex": Identifier,
+      "to": Identifier,
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+})
+
+///|
+let network_file_field : FileField = Record({
+  "version": Numeric(1.0, 1.0, true),
+  "nodes": Dictionary(
+    Record({
+      "x": Numeric(-100000.0, 100000.0, false),
+      "y": Numeric(-100000.0, 100000.0, false),
+      "label": Text(100),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+  "edges": Dictionary(
+    Record({
+      "from": Identifier,
+      "to": Identifier,
+      "label": Text(100),
+      "directed": Boolean,
+      "weight": Optional(Nullable(Numeric(-100000.0, 100000.0, false))),
+      "bend": Numeric(-10.0, 10.0, false),
+      "deleted": Optional(Boolean),
+    }),
+  ),
+})
+
+///|
+let surface_file_field : FileField = Record({
+  "version": Numeric(1.0, 1.0, true),
+  "kind": Strings(["heightfield", "parametric"]),
+  "xExpression": Text(512),
+  "yExpression": Text(512),
+  "zExpression": Text(512),
+  "uMin": Numeric(-100000.0, 100000.0, false),
+  "uMax": Numeric(-100000.0, 100000.0, false),
+  "vMin": Numeric(-100000.0, 100000.0, false),
+  "vMax": Numeric(-100000.0, 100000.0, false),
+  "a": Numeric(-100000.0, 100000.0, false),
+  "b": Numeric(-100000.0, 100000.0, false),
+  "c": Numeric(-100000.0, 100000.0, false),
+  "yaw": Numeric(-100000.0, 100000.0, false),
+  "pitch": Numeric(-89.0, 89.0, false),
+  "zoom": Numeric(0.05, 10.0, false),
+  "steps": Numeric(4.0, 48.0, true),
+  "filled": Boolean,
+  "wireframe": Boolean,
+  "axes": Boolean,
+})
 
 ///|
 let state_file_field : FileField = Record({
@@ -364,6 +461,10 @@ let state_file_field : FileField = Record({
   "cornerRadius": Numeric(0.0, 10000.0, false),
   "effect": Strings(["none", "glow"]),
   "path": file_bezier,
+  "graph": Optional(graph_file_field),
+  "geometry": Optional(geometry_file_field),
+  "network": Optional(network_file_field),
+  "surface": Optional(surface_file_field),
 })
 
 ///|
@@ -403,19 +504,17 @@ fn track_file_fields() -> FileField {
     "order": Strings(["together", "sequential"]),
     "path": Nullable(file_bezier),
   }
-  for
-    key in [
-      "position", "opacity", "size", "rotation", "fill", "stroke", "strokeWidth",
-      "fontSize", "cornerRadius", "path", "reveal",
-    ] {
-    fields[key + "Timing"] = Optional(Nullable(timing_file_field))
+  for channel in @scene.property_channels() {
+    fields[@scene.property_channel_name(channel) + "Timing"] = Optional(
+      Nullable(timing_file_field),
+    )
   }
   Record(fields)
 }
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 3.0, true),
+  "version": Numeric(1.0, 7.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(
@@ -453,6 +552,51 @@ let project_file_field : FileField = Record({
 ///|
 pub fn read_keyframe(value : @core.Any) -> @scene.Keyframe {
   decode_Keyframe(value)
+}
+
+///|
+pub fn read_network_definition(value : @core.Any) -> @scene.NetworkDefinition {
+  let parsed = parse_file_field(value, network_file_field) catch {
+    _ => {
+      @core.throw_error("グラフ理論のデータ形式が不正です。")
+      @core.undefined()
+    }
+  }
+  let result = decode_NetworkDefinition(parsed)
+  if @scene.network_validation_error(result) is Some(message) {
+    @core.throw_error(message)
+  }
+  result
+}
+
+///|
+pub fn read_surface_definition(value : @core.Any) -> @scene.SurfaceDefinition {
+  let parsed = parse_file_field(value, surface_file_field) catch {
+    _ => {
+      @core.throw_error("3D曲面のデータ形式が不正です。")
+      @core.undefined()
+    }
+  }
+  let result = decode_SurfaceDefinition(parsed)
+  if @scene.surface_validation_error(result) is Some(message) {
+    @core.throw_error(message)
+  }
+  result
+}
+
+///|
+pub fn read_geometry_definition(value : @core.Any) -> @scene.GeometryDefinition {
+  let parsed = parse_file_field(value, geometry_file_field) catch {
+    _ => {
+      @core.throw_error("幾何のデータ形式が不正です。")
+      @core.undefined()
+    }
+  }
+  let definition = decode_GeometryDefinition(parsed)
+  if @scene.geometry_validation_error(definition) is Some(message) {
+    @core.throw_error(message)
+  }
+  definition
 }
 
 ///|

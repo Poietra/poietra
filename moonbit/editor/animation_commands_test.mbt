@@ -57,7 +57,7 @@ test "every property is clamped without rewriting its easing or the implicit bas
   guard resize_transition([timing_input(track)], Set([]), 500.0) is Ok(plan) else {
     fail("Expected resize")
   }
-  assert_eq(plan.tracks.length(), 11)
+  assert_eq(plan.tracks.length(), @scene.property_channels().length())
   for index, change in plan.tracks {
     assert_true(change.channel == Some(@scene.property_channels()[index]))
     assert_true(change.fields == [DurationTime(400.0)])

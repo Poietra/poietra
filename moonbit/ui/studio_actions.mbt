@@ -297,6 +297,13 @@ fn StudioController::undo(self : StudioController) -> Unit {
       let objects : Int = store._get("lastUndoPreservedObjects").cast()
       let audio : Int = store._get("lastUndoPreservedAudioTracks").cast()
       let durations : Int = store._get("lastUndoPreservedDurations").cast()
+      let geometry_elements : Int = store
+        ._get("lastPreservedGeometryElements")
+        .cast()
+      let graph_ranges : Int = store._get("lastPreservedGraphRanges").cast()
+      let graph_definitions : Int = store
+        ._get("lastPreservedGraphDefinitions")
+        .cast()
       self.notify(
         if compositions > 0 {
           "共同編集者が使っている \{compositions} 個の新しい場面と、そのオブジェクト・動きを保持しました。"
@@ -308,6 +315,12 @@ fn StudioController::undo(self : StudioController) -> Unit {
           "共同編集者が変更した \{retained} 個のアニメーションと、その中間点を保持しました。"
         } else if durations > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
+        } else if geometry_elements > 0 {
+          "共同編集者が使っている数学オブジェクトの要素と定義を保持しました。"
+        } else if graph_definitions > 0 {
+          "共同編集者が変更したグラフの数式を保持しました。"
+        } else if graph_ranges > 0 {
+          "共同編集者の範囲を保つため、グラフの軸の値を保持しました。"
         } else {
           "元に戻しました"
         },
@@ -322,10 +335,24 @@ fn StudioController::undo(self : StudioController) -> Unit {
 fn StudioController::redo(self : StudioController) -> Unit {
   attempt(
     fn() {
-      let retained : Int = self.input._get("store")._call("redo", []).cast()
+      let store = self.input._get("store")
+      let retained : Int = store._call("redo", []).cast()
+      let geometry_elements : Int = store
+        ._get("lastPreservedGeometryElements")
+        .cast()
+      let graph_ranges : Int = store._get("lastPreservedGraphRanges").cast()
+      let graph_definitions : Int = store
+        ._get("lastPreservedGraphDefinitions")
+        .cast()
       self.notify(
         if retained > 0 {
           "共同編集者のアニメーションが収まるように、Transition の長さを保持しました。"
+        } else if geometry_elements > 0 {
+          "共同編集者が使っている数学オブジェクトの要素と定義を保持しました。"
+        } else if graph_definitions > 0 {
+          "共同編集者が変更したグラフの数式を保持しました。"
+        } else if graph_ranges > 0 {
+          "共同編集者の範囲を保つため、グラフの軸の値を保持しました。"
         } else {
           "やり直しました"
         },

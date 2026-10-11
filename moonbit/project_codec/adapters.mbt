@@ -66,6 +66,36 @@ pub fn decode_ObjectKind(value : @core.Any) -> @scene.ObjectKind {
 }
 
 ///|
+pub fn decode_GeometryPointKind(value : @core.Any) -> @scene.GeometryPointKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected GeometryPointKind string")
+    panic()
+  }
+  match @scene.geometry_point_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid GeometryPointKind")
+      panic()
+    }
+  }
+}
+
+///|
+pub fn decode_SurfaceKind(value : @core.Any) -> @scene.SurfaceKind {
+  if @core.typeof_(value) != "string" {
+    @core.throw_error("Expected SurfaceKind string")
+    panic()
+  }
+  match @scene.surface_kind(value.cast()) {
+    Some(kind) => kind
+    None => {
+      @core.throw_error("Invalid SurfaceKind")
+      panic()
+    }
+  }
+}
+
+///|
 pub fn decode_AnimationKind(value : @core.Any) -> @scene.AnimationKind {
   if @core.typeof_(value) != "string" {
     @core.throw_error("Expected AnimationKind string")
@@ -176,6 +206,130 @@ pub fn decode_Bezier(value : @core.Any) -> @scene.Bezier {
 }
 
 ///|
+pub fn decode_GraphDefinition(value : @core.Any) -> @scene.GraphDefinition {
+  {
+    syntaxVersion: value._get("syntaxVersion").cast(),
+    expression: value._get("expression").cast(),
+    xMin: value._get("xMin").cast(),
+    xMax: value._get("xMax").cast(),
+    yMin: value._get("yMin").cast(),
+    yMax: value._get("yMax").cast(),
+    a: value._get("a").cast(),
+    b: value._get("b").cast(),
+    c: value._get("c").cast(),
+    axes: value._get("axes").cast(),
+    grid: value._get("grid").cast(),
+    filled: optional(value._get("filled"), fn(v) { v.cast() }),
+    breaks: decode_array(value._get("breaks"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryPoint(value : @core.Any) -> @scene.GeometryPoint {
+  {
+    kind: decode_GeometryPointKind(value._get("kind")),
+    x: value._get("x").cast(),
+    y: value._get("y").cast(),
+    from: optional(value._get("from"), fn(v) { v.cast() }),
+    to: optional(value._get("to"), fn(v) { v.cast() }),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryVector(value : @core.Any) -> @scene.GeometryVector {
+  {
+    from: value._get("from").cast(),
+    to: value._get("to").cast(),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryAngle(value : @core.Any) -> @scene.GeometryAngle {
+  {
+    from: value._get("from").cast(),
+    vertex: value._get("vertex").cast(),
+    to: value._get("to").cast(),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_GeometryDefinition(
+  value : @core.Any,
+) -> @scene.GeometryDefinition {
+  {
+    version: value._get("version").cast(),
+    points: decode_map(value._get("points"), fn(v) { decode_GeometryPoint(v) }),
+    vectors: decode_map(value._get("vectors"), fn(v) {
+      decode_GeometryVector(v)
+    }),
+    angles: decode_map(value._get("angles"), fn(v) { decode_GeometryAngle(v) }),
+  }
+}
+
+///|
+pub fn decode_NetworkNode(value : @core.Any) -> @scene.NetworkNode {
+  {
+    x: value._get("x").cast(),
+    y: value._get("y").cast(),
+    label: value._get("label").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_NetworkEdge(value : @core.Any) -> @scene.NetworkEdge {
+  {
+    from: value._get("from").cast(),
+    to: value._get("to").cast(),
+    label: value._get("label").cast(),
+    directed: value._get("directed").cast(),
+    weight: optional(value._get("weight"), fn(v) { v.cast() }),
+    bend: value._get("bend").cast(),
+    deleted: optional(value._get("deleted"), fn(v) { v.cast() }),
+  }
+}
+
+///|
+pub fn decode_NetworkDefinition(value : @core.Any) -> @scene.NetworkDefinition {
+  {
+    version: value._get("version").cast(),
+    nodes: decode_map(value._get("nodes"), fn(v) { decode_NetworkNode(v) }),
+    edges: decode_map(value._get("edges"), fn(v) { decode_NetworkEdge(v) }),
+  }
+}
+
+///|
+pub fn decode_SurfaceDefinition(value : @core.Any) -> @scene.SurfaceDefinition {
+  {
+    version: value._get("version").cast(),
+    kind: decode_SurfaceKind(value._get("kind")),
+    xExpression: value._get("xExpression").cast(),
+    yExpression: value._get("yExpression").cast(),
+    zExpression: value._get("zExpression").cast(),
+    uMin: value._get("uMin").cast(),
+    uMax: value._get("uMax").cast(),
+    vMin: value._get("vMin").cast(),
+    vMax: value._get("vMax").cast(),
+    a: value._get("a").cast(),
+    b: value._get("b").cast(),
+    c: value._get("c").cast(),
+    yaw: value._get("yaw").cast(),
+    pitch: value._get("pitch").cast(),
+    zoom: value._get("zoom").cast(),
+    steps: value._get("steps").cast(),
+    filled: value._get("filled").cast(),
+    wireframe: value._get("wireframe").cast(),
+    axes: value._get("axes").cast(),
+  }
+}
+
+///|
 pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
   {
     x: value._get("x").cast(),
@@ -198,6 +352,16 @@ pub fn decode_ObjectState(value : @core.Any) -> @scene.ObjectState {
     cornerRadius: value._get("cornerRadius").cast(),
     effect: decode_Effect(value._get("effect")),
     path: decode_Bezier(value._get("path")),
+    graph: optional(value._get("graph"), fn(v) { decode_GraphDefinition(v) }),
+    geometry: optional(value._get("geometry"), fn(v) {
+      decode_GeometryDefinition(v)
+    }),
+    network: optional(value._get("network"), fn(v) {
+      decode_NetworkDefinition(v)
+    }),
+    surface: optional(value._get("surface"), fn(v) {
+      decode_SurfaceDefinition(v)
+    }),
   }
 }
 
@@ -339,6 +503,7 @@ pub fn decode_Track(value : @core.Any) -> @scene.Track {
     revealTiming: optional(value._get("revealTiming"), fn(v) {
       decode_Timing(v)
     }),
+    graphTiming: optional(value._get("graphTiming"), fn(v) { decode_Timing(v) }),
     keyframes: optional(value._get("keyframes"), fn(v) {
       decode_map(v, fn(v) { decode_Keyframe(v) })
     }),
@@ -447,8 +612,12 @@ extern "js" fn make_ObjectState(
   cornerRadius : Double,
   effect : String,
   path : @core.Any,
+  graph : @core.Any,
+  geometry : @core.Any,
+  network : @core.Any,
+  surface : @core.Any,
 ) -> @core.Any =
-  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; return value; }
+  #|(x, y, width, height, rotation, anchorX, anchorY, scaleX, scaleY, shear, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path, graph, geometry, network, surface) => { const value = {x, y, width, height, rotation, opacity, visible, fill, stroke, strokeWidth, text, fontSize, cornerRadius, effect, path}; if (anchorX !== undefined) value.anchorX = anchorX; if (anchorY !== undefined) value.anchorY = anchorY; if (scaleX !== undefined) value.scaleX = scaleX; if (scaleY !== undefined) value.scaleY = scaleY; if (shear !== undefined) value.shear = shear; if (graph !== undefined) value.graph = graph; if (geometry !== undefined) value.geometry = geometry; if (network !== undefined) value.network = network; if (surface !== undefined) value.surface = surface; return value; }
 
 ///|
 pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
@@ -488,6 +657,22 @@ pub fn encode_ObjectState(value : @scene.ObjectState) -> @core.Any {
     value.cornerRadius,
     @scene.effect_name(value.effect),
     encode_Bezier(value.path),
+    match value.graph {
+      Some(item) => encode_GraphDefinition(item)
+      None => @core.undefined()
+    },
+    match value.geometry {
+      Some(item) => encode_GeometryDefinition(item)
+      None => @core.undefined()
+    },
+    match value.network {
+      Some(item) => encode_NetworkDefinition(item)
+      None => @core.undefined()
+    },
+    match value.surface {
+      Some(item) => encode_SurfaceDefinition(item)
+      None => @core.undefined()
+    },
   )
 }
 
@@ -583,6 +768,9 @@ pub fn encode_Track(value : @scene.Track) -> @core.Any {
   if value.revealTiming is Some(item) {
     put_own(result, "revealTiming", encode_Timing(item))
   }
+  if value.graphTiming is Some(item) {
+    put_own(result, "graphTiming", encode_Timing(item))
+  }
   if value.keyframes is Some(item) {
     put_own(
       result,
@@ -610,6 +798,174 @@ pub fn[T] encode_map(
   for key, item in value {
     put_own(result, key, convert(item))
   }
+  result
+}
+
+///|
+pub fn encode_GraphDefinition(value : @scene.GraphDefinition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "syntaxVersion", @core.any(value.syntaxVersion))
+  put_own(result, "expression", @core.any(value.expression))
+  put_own(result, "xMin", @core.any(value.xMin))
+  put_own(result, "xMax", @core.any(value.xMax))
+  put_own(result, "yMin", @core.any(value.yMin))
+  put_own(result, "yMax", @core.any(value.yMax))
+  put_own(result, "a", @core.any(value.a))
+  put_own(result, "b", @core.any(value.b))
+  put_own(result, "c", @core.any(value.c))
+  put_own(result, "axes", @core.any(value.axes))
+  put_own(result, "grid", @core.any(value.grid))
+  if value.filled is Some(item) {
+    put_own(result, "filled", @core.any(item))
+  }
+  put_own(
+    result,
+    "breaks",
+    encode_array(value.breaks, fn(item) { @core.any(item) }),
+  )
+  result
+}
+
+///|
+pub fn encode_GeometryPoint(value : @scene.GeometryPoint) -> @core.Any {
+  let result = @core.new_object()
+  put_own(
+    result,
+    "kind",
+    @core.any(@scene.geometry_point_kind_name(value.kind)),
+  )
+  put_own(result, "x", @core.any(value.x))
+  put_own(result, "y", @core.any(value.y))
+  if value.from is Some(item) {
+    put_own(result, "from", @core.any(item))
+  }
+  if value.to is Some(item) {
+    put_own(result, "to", @core.any(item))
+  }
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryVector(value : @scene.GeometryVector) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "from", @core.any(value.from))
+  put_own(result, "to", @core.any(value.to))
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryAngle(value : @scene.GeometryAngle) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "from", @core.any(value.from))
+  put_own(result, "vertex", @core.any(value.vertex))
+  put_own(result, "to", @core.any(value.to))
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_GeometryDefinition(
+  value : @scene.GeometryDefinition,
+) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "version", @core.any(value.version))
+  put_own(
+    result,
+    "points",
+    encode_map(value.points, fn(item) { encode_GeometryPoint(item) }),
+  )
+  put_own(
+    result,
+    "vectors",
+    encode_map(value.vectors, fn(item) { encode_GeometryVector(item) }),
+  )
+  put_own(
+    result,
+    "angles",
+    encode_map(value.angles, fn(item) { encode_GeometryAngle(item) }),
+  )
+  result
+}
+
+///|
+pub fn encode_NetworkNode(value : @scene.NetworkNode) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "x", @core.any(value.x))
+  put_own(result, "y", @core.any(value.y))
+  put_own(result, "label", @core.any(value.label))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_NetworkEdge(value : @scene.NetworkEdge) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "from", @core.any(value.from))
+  put_own(result, "to", @core.any(value.to))
+  put_own(result, "label", @core.any(value.label))
+  put_own(result, "directed", @core.any(value.directed))
+  if value.weight is Some(item) {
+    put_own(result, "weight", @core.any(item))
+  }
+  put_own(result, "bend", @core.any(value.bend))
+  if value.deleted is Some(item) {
+    put_own(result, "deleted", @core.any(item))
+  }
+  result
+}
+
+///|
+pub fn encode_NetworkDefinition(value : @scene.NetworkDefinition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "version", @core.any(value.version))
+  put_own(
+    result,
+    "nodes",
+    encode_map(value.nodes, fn(item) { encode_NetworkNode(item) }),
+  )
+  put_own(
+    result,
+    "edges",
+    encode_map(value.edges, fn(item) { encode_NetworkEdge(item) }),
+  )
+  result
+}
+
+///|
+pub fn encode_SurfaceDefinition(value : @scene.SurfaceDefinition) -> @core.Any {
+  let result = @core.new_object()
+  put_own(result, "version", @core.any(value.version))
+  put_own(result, "kind", @core.any(@scene.surface_kind_name(value.kind)))
+  put_own(result, "xExpression", @core.any(value.xExpression))
+  put_own(result, "yExpression", @core.any(value.yExpression))
+  put_own(result, "zExpression", @core.any(value.zExpression))
+  put_own(result, "uMin", @core.any(value.uMin))
+  put_own(result, "uMax", @core.any(value.uMax))
+  put_own(result, "vMin", @core.any(value.vMin))
+  put_own(result, "vMax", @core.any(value.vMax))
+  put_own(result, "a", @core.any(value.a))
+  put_own(result, "b", @core.any(value.b))
+  put_own(result, "c", @core.any(value.c))
+  put_own(result, "yaw", @core.any(value.yaw))
+  put_own(result, "pitch", @core.any(value.pitch))
+  put_own(result, "zoom", @core.any(value.zoom))
+  put_own(result, "steps", @core.any(value.steps))
+  put_own(result, "filled", @core.any(value.filled))
+  put_own(result, "wireframe", @core.any(value.wireframe))
+  put_own(result, "axes", @core.any(value.axes))
   result
 }
 

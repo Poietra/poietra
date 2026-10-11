@@ -38,6 +38,18 @@ pub(all) enum StateField {
   ScaleX
   ScaleY
   Shear
+  GraphExpression
+  GraphXMin
+  GraphXMax
+  GraphYMin
+  GraphYMax
+  GraphA
+  GraphB
+  GraphC
+  GraphAxes
+  GraphGrid
+  GraphFilled
+  GraphBreaks
 } derive(Eq)
 
 ///|
@@ -68,11 +80,27 @@ pub(all) enum Operation {
   Append(String, String, String, Double, Double)
   State(String, String, StateField, Scalar)
   ShapePath(String, String, @scene.Bezier)
+  GeometryElement(String, String, String, String, DiagramElement?)
+  NetworkElement(String, String, String, String, NetworkElement?)
+  SurfaceDefinition(String, String, @scene.SurfaceDefinition)
   Parent(String, String?)
   Anchor(String, String, Double, Double)
   Track(String, String, TrackEdit)
   CompositionDuration(String, Double)
   TransitionDuration(String, Double)
+}
+
+///|
+pub(all) enum DiagramElement {
+  PointElement(@scene.GeometryPoint)
+  VectorElement(@scene.GeometryVector)
+  AngleElement(@scene.GeometryAngle)
+}
+
+///|
+pub(all) enum NetworkElement {
+  NodeElement(@scene.NetworkNode)
+  EdgeElement(@scene.NetworkEdge)
 }
 
 ///|
@@ -110,10 +138,17 @@ pub(all) struct Source {
 ///|
 pub(all) enum Value {
   ScalarValue(Scalar)
+  NumbersValue(Array[Double])
   EasingValue(@scene.Easing)
   PathValue(@scene.Bezier?)
   TimingValue(@scene.Timing?)
   KeyframeValue(@scene.Keyframe)
+  GeometryPointValue(@scene.GeometryPoint)
+  GeometryVectorValue(@scene.GeometryVector)
+  GeometryAngleValue(@scene.GeometryAngle)
+  NetworkNodeValue(@scene.NetworkNode)
+  NetworkEdgeValue(@scene.NetworkEdge)
+  OptionalNumberValue(Double?)
   ParentValue(String?)
   StateValue(@scene.ObjectState)
   ObjectValue(@scene.SceneObject)
