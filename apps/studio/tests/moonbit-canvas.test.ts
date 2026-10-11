@@ -169,6 +169,29 @@ describe('MoonBit Canvas resource lifetime', () => {
     expect(markup).toContain('<g transform="translate(0,626)"><svg width="958" height="237" x="0" y="148" viewBox="239.5 148 958 237">');
   });
 
+  // Disjoint nested viewports show nothing in SVG; a negative canvas extent
+  // would reverse the clip rectangle and draw the glyph in full instead.
+  it('clips disjoint nested viewports to an empty region', () => {
+    nativeTransforms();
+    const glyph = { tag: 'path', attributes: { d: 'M-30 -30H70V70H-30Z' }, children: [] };
+    const outer = { width: '20', height: '20', viewBox: '0 0 20 20' };
+    const nested = (attributes: Record<string, string>) => ({
+      tag: 'svg', attributes: outer, children: [{ tag: 'svg', attributes: { ...outer, ...attributes }, children: [glyph] }],
+    });
+    for (const [attributes, expected] of [
+      [{ x: '30' }, [30, 0, 0, 20]],
+      [{ y: '30' }, [0, 30, 20, 0]],
+    ] as const) {
+      const equation = { glyphs: 1, tree: { tag: 'g', attributes: {}, children: [nested(attributes)] } };
+      const drawing = canvas.prepareEquationDrawing(equation);
+      const { context, rect } = recordingContext();
+      drawing.paint(context, 1, 'together', '#abc');
+      expect(rect.mock.calls).toEqual([expected]);
+      // The SVG renderer nests the same empty viewports.
+      expect(equationMarkup({ x: 0, y: 0, width: 20, height: 20, ...equation }, 1, 'together')).toContain(`<svg ${Object.entries({ ...outer, ...attributes }).map(([k, v]) => `${k}="${v}"`).join(' ')}>`);
+    }
+  });
+
   it('keeps SVG fallback for unsupported equation primitives and unavailable native APIs', () => {
     nativeDrawing();
     const tree = { tag: 'g', attributes: {}, children: [{ tag: 'circle', attributes: { r: '20' }, children: [] }] };

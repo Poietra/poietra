@@ -134,13 +134,19 @@ fn viewport_clip(
     max_y = max_y.max(corner.1)
   }
   if outer is Some(outer) {
-    // Nested viewports intersect; an empty result correctly draws nothing.
     min_x = min_x.max(outer.x)
     min_y = min_y.max(outer.y)
     max_x = max_x.min(outer.x + outer.width)
     max_y = max_y.min(outer.y + outer.height)
   }
-  { x: min_x, y: min_y, width: max_x - min_x, height: max_y - min_y, }
+  // Nested viewports intersect. A disjoint pair must clamp to an empty region:
+  // a negative extent would reverse the canvas rectangle and draw everything.
+  {
+    x: min_x,
+    y: min_y,
+    width: (max_x - min_x).max(0.0),
+    height: (max_y - min_y).max(0.0),
+  }
 }
 
 ///|
