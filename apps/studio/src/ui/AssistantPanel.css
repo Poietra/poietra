@@ -99,3 +99,4 @@
   color: #e4e2ee;
 }
 .composer-figures button:hover { background: #8160a3; }
+.composer-figures .figure-preparing { align-self: center; color: #9c9cad; font-size: 12px; }

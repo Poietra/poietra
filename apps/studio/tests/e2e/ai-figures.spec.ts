@@ -123,3 +123,31 @@ test('figures need the mention, can be removed, and return to the composer when 
   await expect(composer(page)).toHaveValue('@codex');
   await expect(log(page).getByText('停止しました', { exact: true })).toBeVisible();
 });
+
+test('a figure still being prepared cannot be sent without it and does not move to the next draft', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  await page.route('**/api/ai/propose', route => { requests.push(route.request().postDataJSON()); return reply(route, { error: 'stopped here' }, 503); });
+  await open(page, crypto.randomUUID());
+  // Hold the data URL step of figure preparation until the test releases it.
+  await page.evaluate(() => {
+    const read = FileReader.prototype.readAsDataURL, held: (() => void)[] = [];
+    Object.assign(window, { releaseFigures: () => held.splice(0).forEach(run => run()) });
+    FileReader.prototype.readAsDataURL = function (this: FileReader, blob: Blob) { held.push(() => read.call(this, blob)); };
+  });
+  await composer(page).fill('@codex 三角形を作って');
+  await pasteFigure(page);
+  await expect(page.getByRole('status').filter({ hasText: '画像を準備中…' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '送信', exact: true })).toBeDisabled();
+  await composer(page).press('Enter');
+  await expect(page.locator('.assistant-composer').getByRole('alert')).toContainText('画像の準備が終わってから送信してください。');
+  await expect(composer(page)).toHaveValue('@codex 三角形を作って');
+
+  await page.evaluate(() => (window as unknown as { releaseFigures: () => void }).releaseFigures());
+  await expect(attached(page, 1)).toBeVisible();
+  await expect(page.getByText('画像を準備中…', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: '送信', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0]).toMatchObject({ prompt: '三角形を作って', images: [expect.stringMatching(/^data:image\/png;base64,/)] });
+  await expect(attached(page, 1)).toHaveCount(0);
+  expect(requests).toHaveLength(1);
+});

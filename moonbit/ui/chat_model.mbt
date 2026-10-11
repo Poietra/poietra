@@ -31,11 +31,13 @@ priv struct ChatController {
   list : @react.ReactRef[@core.Any]
   drafts : Map[String, String]
   figures : Array[ChatFigure]
-  figure_drafts : Map[String, Array[ChatFigure]]
+  preparing : Bool
+  figure_drafts : Map[String, FigureDraft]
   applied : Set[String]
   follow : Ref[Bool]
   set_prompt : (String) -> Unit
   set_figures : (Array[ChatFigure]) -> Unit
+  set_preparing : (Bool) -> Unit
   set_pending : (ChatRequest?) -> Unit
   set_error : (String) -> Unit
   set_retry : (ChatRetry?) -> Unit
@@ -65,12 +67,12 @@ fn ChatController::restore(
   if self.drafts.get(id).unwrap_or("").is_empty() {
     self.drafts[id] = request.prompt
   }
-  if self.figure_drafts.get(id).unwrap_or([]).is_empty() {
-    self.figure_drafts[id] = request.figures
+  let draft = self.figure_draft(id)
+  if draft.figures.is_empty() && draft.preparing == 0 {
+    self.replace_figures(id, request.figures)
   }
   if self.current_scene.get_current() == Some(id) {
     (self.set_prompt)(self.drafts.get(id).unwrap_or(""))
-    (self.set_figures)(self.figure_drafts.get(id).unwrap_or([]))
   }
 }
 
