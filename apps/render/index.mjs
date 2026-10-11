@@ -3,11 +3,12 @@ export { capabilities, inspectProjectFile } from '../../_build/js/release/build/
 
 // Each request owns a fresh WASM instance. A timeout, disconnect or AbortSignal
 // terminates the thread, including synchronous raster/codec work and its caches.
-export function renderProjectFile(text, { signal, onProgress, timeoutMs = 120000, ...options } = {}) {
+export function renderProjectFile(text, { signal, onProgress, timeoutMs = 0, ...options } = {}) {
   if (signal?.aborted) return Promise.reject(signal.reason ?? new DOMException('Rendering cancelled.', 'AbortError'));
   if (typeof text !== 'string') return Promise.reject(new TypeError('Pass portable project JSON as a string.'));
   if (Buffer.byteLength(text) > 32 * 1024 * 1024) return Promise.reject(new RangeError('Project files must be 32 MiB or smaller.'));
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300000) return Promise.reject(new RangeError('timeoutMs must be between 1 and 300000.'));
+  // Node timers use a signed 32-bit delay; zero leaves cancellation to the caller.
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 0 || timeoutMs > 2147483647) return Promise.reject(new RangeError('timeoutMs must be an integer between 0 and 2147483647 (0 disables the timeout).'));
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./worker.mjs', import.meta.url), {
       workerData: { text, options },
@@ -28,7 +29,7 @@ export function renderProjectFile(text, { signal, onProgress, timeoutMs = 120000
       if (error) reject(error); else resolve(result);
     };
     const abort = () => void finish(signal.reason ?? new DOMException('Rendering cancelled.', 'AbortError'));
-    const timer = setTimeout(() => void finish(new DOMException('Rendering exceeded its time limit.', 'TimeoutError')), timeoutMs);
+    const timer = timeoutMs === 0 ? undefined : setTimeout(() => void finish(new DOMException('Rendering exceeded its time limit.', 'TimeoutError')), timeoutMs);
     signal?.addEventListener('abort', abort, { once: true });
     if (signal?.aborted) abort();
     worker.on('message', message => {

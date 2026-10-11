@@ -217,20 +217,20 @@ fn sections(locale : @site.Locale) -> Array[Section] {
             "入力素材：埋め込み PNG/JPEG と PCM WAV。動画・WebP・圧縮音声・外部の素材 URL は未対応。",
           ),
           t(
-            locale, "Input ≤ 32 MiB; output ≤ 64 MiB. Each side ≤ 1920 px; total ≤ 2,073,600 pixels.",
-            "入力 32 MiB 以下、出力 64 MiB 以下。各辺 1920 px 以下、合計 2,073,600 ピクセル以下。",
+            locale, "Input ≤ 32 MiB; output ≤ 64 MiB. Output dimensions use browser export's 1–8192 px validation; MP4 dimensions must be even.",
+            "入力 32 MiB 以下、出力 64 MiB 以下。出力寸法はブラウザー書き出しと共通の 1〜8192 px。MP4 の寸法は偶数が必要です。",
           ),
           t(
-            locale, "MP4: up to 60 seconds and 1800 frames. At most 32 audible tracks.",
-            "MP4：60 秒以内かつ 1800 フレーム以内。音が出るトラックは最大 32 本。",
+            locale, "MP4 has no fixed duration quota. Frame counts must fit in a signed 32-bit integer, as in browser export. At most 32 audible tracks.",
+            "MP4 の尺に固定の上限はありません。フレーム数はブラウザー書き出しと共通の符号付き 32 ビット整数の範囲内。音が出るトラックは最大 32 本。",
           ),
           t(
             locale, "One HTTP inspection/render at a time. Requests wait for completion; there is no job queue, job ID or hosted result storage.",
             "HTTP の検査・描画は一度に１件。完了まで応答を待ちます。ジョブキュー・ジョブ ID・結果のホスト保存はありません。",
           ),
           t(
-            locale, "Default render timeout: 120 seconds. Disconnecting HTTP or cancelling MCP stops the job.",
-            "描画の既定タイムアウトは 120 秒。HTTP の切断や MCP のキャンセルで処理を中断します。",
+            locale, "CLI, Node and MCP rendering have no default timeout. Set --timeout-ms on the CLI or timeoutMs in Node/MCP (0 disables it). HTTP retains its 120-second deadline. Disconnecting HTTP or cancelling MCP stops the job.",
+            "CLI・Node・MCP の描画には既定のタイムアウトがありません。CLI の --timeout-ms、Node/MCP の timeoutMs で指定できます（0 は無効）。HTTP の処理期限は従来どおり 120 秒。HTTP の切断や MCP のキャンセルで処理を中断します。",
           ),
         ]),
       ],

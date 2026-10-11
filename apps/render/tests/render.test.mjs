@@ -237,7 +237,40 @@ test('consecutive static Scenes invalidate pixels and shift audio on the project
   assert.ok(Math.abs(onset - 0.6) < 0.002, `second Scene audio onset ${onset}`);
 });
 
-test('invalid files, unsupported media and resource limits fail explicitly', async () => {
+test('4K SVG, PNG and independently decoded MP4 use the shared output dimensions', async () => {
+  const p = project(), scene = p.scenes.scene;
+  scene.compositionOrder = ['a'];
+  scene.compositions = { a: { ...scene.compositions.a, duration: 100 } };
+  scene.transitions = {};
+  const options = { width: 3840, height: 2160 };
+  const svg = new TextDecoder().decode((await render(p, { ...options, format: 'svg' })).bytes);
+  assert.match(svg, /width="3840" height="2160"/);
+  const png = PNG.sync.read(Buffer.from((await render(p, options)).bytes));
+  assert.equal(png.width, 3840); assert.equal(png.height, 2160);
+  assert.deepEqual(pixel(png, 720, 1080), [255, 255, 255, 255]);
+  const result = await render(p, { ...options, format: 'mp4' });
+  const video = await decodeVideo(result.bytes);
+  assert.equal(result.frames, 3); assert.equal(video.frames.length, 3);
+  for (const frame of video.frames) {
+    assert.equal(frame.width, 3840); assert.equal(frame.height, 2160);
+    assert.ok(frame.pixels[1080 * 3840 + 720] > 220);
+  }
+});
+
+test('MP4 beyond 60 seconds and 1800 frames preserves every decoded frame and final pose', async () => {
+  const p = project(); p.scenes.scene.compositions.b.duration = 61000;
+  const result = await render(p, { format: 'mp4', width: 64, fps: 30 });
+  const video = await decodeVideo(result.bytes);
+  assert.equal(result.durationMs, 61600); assert.equal(result.frames, 1848);
+  assert.equal(video.frames.length, 1848); assert.equal(video.packets.length, 1848);
+  assert.ok(Math.abs(video.duration - 61.6) < 0.001);
+  assert.ok(Math.abs(video.packets.at(-1).timestamp - 1847 / 30) < 0.001);
+  assert.ok(video.frames[0].pixels[18 * 64 + 12] > 220);
+  assert.ok(video.frames.at(-1).pixels[18 * 64 + 52] > 220);
+  assert.ok(video.frames.at(-1).pixels[18 * 64 + 12] < 30);
+});
+
+test('invalid files, unsupported media and shared numeric bounds fail explicitly', async () => {
   assert.throws(() => inspectProjectFile('{"__proto__":{}}'), /JSON|形式/);
   const p = project(); addImage(p);
   p.scenes.scene.objects.image.image.src = 'data:image/webp;base64,AAAA';
@@ -248,11 +281,16 @@ test('invalid files, unsupported media and resource limits fail explicitly', asy
   video.scenes.scene.objects.movie.media = { src: 'data:video/mp4;base64,AAAA', mime: 'video/mp4', duration: 1000, hasAudio: false, width: 20, height: 20 };
   video.scenes.scene.objects.movie.playback = { start: 0, offset: 0, duration: 1000 };
   await assert.rejects(render(video), /Video decoding is not available/);
-  for (const options of [{ width: 1921 }, { width: 1920, height: 1920 }, { timeMs: -1 }, { timeMs: 821 }, { fps: 10 }, { format: 'webm' }, { format: 'mp4', timeMs: 10 }]) {
+  for (const options of [{ width: 8193 }, { height: 8193 }, { width: 0 }, { width: NaN }, { height: Infinity }, { format: 'mp4', width: 1921 }, { timeMs: -1 }, { timeMs: 821 }, { fps: 10 }, { format: 'webm' }, { format: 'mp4', timeMs: 10 }]) {
     await assert.rejects(render(project(), options));
   }
-  const long = project(); long.scenes.scene.compositions.b.duration = 60000;
-  await assert.rejects(render(long, { format: 'mp4' }), /60 seconds/);
+});
+
+test('local rendering has no default deadline', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const pending = render(project());
+  t.mock.timers.tick(3600000);
+  assert.equal((await pending).mimeType, 'image/png');
 });
 
 test('cancellation, timeout and callback failure release the worker and allow another render', async () => {
@@ -261,4 +299,10 @@ test('cancellation, timeout and callback failure release the worker and allow an
   await assert.rejects(render(project(), { timeoutMs: 1 }), { name: 'TimeoutError' });
   await assert.rejects(render(project(), { format: 'mp4', onProgress() { throw new Error('consumer stopped'); } }), /consumer stopped/);
   const next = await render(project()); assert.equal(next.mimeType, 'image/png');
+  for (const timeoutMs of [0, 300001]) {
+    assert.equal((await render(project(), { timeoutMs })).mimeType, 'image/png');
+  }
+  for (const timeoutMs of [-1, 0.5, NaN, Infinity, 2147483648]) {
+    await assert.rejects(render(project(), { timeoutMs }), RangeError);
+  }
 });

@@ -408,6 +408,22 @@ review kept SVG because canvas-mbt lacked the filters/shadows needed for Glow.
 Browser-identical pixels are not promised; path-length adaptation and an
 intermediate H.264 MP4 buffer remain backend constraints.
 
+The 2026-10-12 output-limit decision removes headless-only resolution, duration
+and frame quotas that blocked local exports. `exporting` owns the shared
+dimension and frame-index bounds used by validation and published capabilities;
+`maxVideoDurationMs: null` means there is no fixed duration quota. Local deadlines
+are opt-in; the HTTP adapter owns its existing deadline. Cancellation still
+terminates synchronous WASM work. Input/media validation and the output byte
+bound remain in place; larger jobs still need memory for intermediate and final
+encoded buffers.
+
+Validated on 2026-10-12 with MoonBit `0.10.13+cbb11c36f`, Node `26.11.1` and
+Python `3.14`: shared JS/WASM validation, independent decoding of 4K and
+61.6-second MP4s, CLI/MCP/HTTP contracts, cancellation/deadlines, Studio tests,
+public API types and the built bilingual developer pages. Logs are retained in
+ignored `test-results/headless-limits-2026-10-12/`. This was local validation,
+not a production deployment.
+
 ## Deployment and limits
 
 Last recorded deployment: **2026-10-12 00:07 JST**, Worker version

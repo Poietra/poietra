@@ -36,8 +36,9 @@ server.registerTool('poietra_render', {
   inputSchema: {
     inputPath: z.string().min(1), outputPath: z.string().min(1),
     format: z.enum(['svg', 'png', 'mp4']).default('png'),
-    width: z.number().int().positive().max(1920).optional(), height: z.number().int().positive().max(1920).optional(),
+    width: z.number().int().positive().max(capabilities().maxDimension).optional(), height: z.number().int().positive().max(capabilities().maxDimension).optional(),
     fps: z.union([z.literal(24), z.literal(30), z.literal(60)]).optional(), timeMs: z.number().nonnegative().optional(),
+    timeoutMs: z.number().int().min(0).max(2147483647).describe('Optional deadline in milliseconds; 0 or omitted means no renderer timeout.').optional(),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 }, async ({ inputPath, outputPath, ...options }, extra) => {

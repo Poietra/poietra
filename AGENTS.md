@@ -32,6 +32,13 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-10-12: The founder requested removing headless-only output quotas that
+  restricted local rendering. Use the same dimension and frame-index validation
+  as browser export, without the 1080p, 60-second or 1800-frame caps. Local
+  CLI/library/MCP rendering has no default deadline and accepts an optional
+  timeout; the HTTP adapter owns its existing 120-second deadline. Preserve
+  bounded inputs, cancellation, cleanup and independent output decoding checks.
+
 - 2026-10-11: The founder requested curves that are drawn thinly and then
   filled beneath, after a branch that baked sampled polylines into `Path` states
   was superseded by evaluated function graphs. Keep the region a derived
