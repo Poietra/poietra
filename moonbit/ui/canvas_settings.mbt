@@ -44,28 +44,24 @@ fn render_canvas_settings(view : CanvasSettingsView) -> @react.Element {
     })
     .map(fn(preset) { preset.0 })
     .unwrap_or("custom")
-  let options : Array[&@react.ReactNode] = [
-    export_choice("custom", "Custom", disabled=true),
+  let options : Array[SelectChoice] = [
+    select_choice("custom", "Custom", disabled=true),
   ]
   for (name, size) in presets {
     options.push(
-      export_choice(name, "\{name} · \{size.width} × \{size.height}"),
+      select_choice(name, "\{name} · \{size.width} × \{size.height}"),
     )
   }
   h("div", { "className": @core.any("canvas-settings") }, [
     component(field, { "label": @core.any("Preset") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Canvas preset"),
-          "value": @core.any(chosen),
-          "onChange": @core.any(fn(event : @core.Any) {
-            let name : String = event._get("target")._get("value").cast()
-            if presets.iter().find_first(fn(preset) { preset.0 == name })
-              is Some((_, size)) {
-              (view.change)(Some(size.width), Some(size.height))
-            }
-          }),
+      select_input(
+        "Canvas preset",
+        chosen,
+        fn(name) {
+          if presets.iter().find_first(fn(preset) { preset.0 == name })
+            is Some((_, size)) {
+            (view.change)(Some(size.width), Some(size.height))
+          }
         },
         options,
       ),

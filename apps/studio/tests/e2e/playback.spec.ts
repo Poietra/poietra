@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 
 async function open(page: Page, room = crypto.randomUUID()) {
@@ -82,7 +83,7 @@ test('Glow remains visible through scene playback, pause, and direct seeking', a
   for (const composition of ['Composition 1', 'Composition 2']) {
     await page.getByRole('button', { name: composition, exact: true }).click();
     await page.getByRole('button', { name: 'Circle', exact: true }).click();
-    await page.getByRole('combobox', { name: 'Object effect', exact: true }).selectOption('glow');
+    await chooseOption(page.getByRole('combobox', { name: 'Object effect', exact: true }), 'glow');
   }
   const slider = page.getByRole('slider', { name: '再生位置', exact: true });
   const canvas = page.locator('[data-testid="stage-main"] .scene-canvas');

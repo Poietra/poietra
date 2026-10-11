@@ -95,41 +95,37 @@ fn transition_inspector(
       |> ignore
     }
   }
-  let options : Array[&@react.ReactNode] = []
+  let options : Array[SelectChoice] = []
   for name in ["move", "write", "fade", "grow", "none"] {
-    options.push(export_choice(name, animation_label(@core.any(name))))
+    options.push(select_choice(name, animation_label(@core.any(name))))
   }
   let animation_fields : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Type") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Animation type"),
-          "value": @core.any(@scene.animation_name(timing.type_)),
-          "onChange": @core.any(fn(event : @core.Any) {
-            set_track({ "type": event._get("target")._get("value") }, true)
-          }),
+      select_input(
+        "Animation type",
+        @scene.animation_name(timing.type_),
+        fn(selected_value : String) {
+          set_track({ "type": @core.any(selected_value) }, true)
         },
         options,
+        disabled=!controller.can_edit(),
       ),
     ]),
   ]
   if timing.type_ is Write {
     animation_fields.push(
       component(field, { "label": @core.any("Order") }, [
-        h(
-          "select",
-          {
-            "aria-label": @core.any("Write order"),
-            "value": @core.any(timing.order),
-            "onChange": @core.any(fn(event : @core.Any) {
-              set_track({ "order": event._get("target")._get("value") }, true)
-            }),
+        select_input(
+          "Write order",
+          @scene.write_order_name(timing.order),
+          fn(selected_value : String) {
+            set_track({ "order": @core.any(selected_value) }, true)
           },
           [
-            export_choice("together", "Together"),
-            export_choice("sequential", "Sequential"),
+            select_choice("together", "Together"),
+            select_choice("sequential", "Sequential"),
           ],
+          disabled=!controller.can_edit(),
         ),
       ]),
     )
@@ -294,25 +290,27 @@ fn transition_inspector(
     ] {
     presence_fields.push(
       component(field, { "label": @core.any(label) }, [
-        h(
-          "select",
-          {
-            "aria-label": @core.any(accessible),
-            "value": @core.any(if visible { "visible" } else { "none" }),
-            "onChange": @core.any(fn(event : @core.Any) {
-              if controller.can_edit() {
-                let value : String = event._get("target")._get("value").cast()
-                store._call("updateState", [
-                  @core.any(controller.scene_id),
-                  @core.any(composition_id),
-                  @core.any(object_id),
-                  host_record({ "visible": @core.any(value == "visible") }),
-                ])
-                |> ignore
-              }
-            }),
+        select_input(
+          accessible,
+          if visible {
+            "visible"
+          } else {
+            "none"
           },
-          [export_choice("visible", "Visible"), export_choice("none", "None")],
+          fn(selected_value : String) {
+            if controller.can_edit() {
+              let value : String = selected_value
+              store._call("updateState", [
+                @core.any(controller.scene_id),
+                @core.any(composition_id),
+                @core.any(object_id),
+                host_record({ "visible": @core.any(value == "visible") }),
+              ])
+              |> ignore
+            }
+          },
+          [select_choice("visible", "Visible"), select_choice("none", "None")],
+          disabled=!controller.can_edit(),
         ),
       ]),
     )

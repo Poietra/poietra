@@ -91,43 +91,39 @@ fn surface_inspector(input : SurfaceInspectorView) -> @react.Element {
   ]
   content.push(
     component(field, { "label": @core.any("Example") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Surface example"),
-          "value": @core.any(""),
-          "onChange": @core.any(fn(e : @core.Any) {
-            let name : String = e._get("target")._get("value").cast()
-            if !name.is_empty() {
-              apply(@boundary.write_surface(@scene.surface_preset(name)))
-            }
-          }),
+      select_input(
+        "Surface example",
+        "",
+        fn(selected_value : String) {
+          let name : String = selected_value
+          if !name.is_empty() {
+            apply(@boundary.write_surface(@scene.surface_preset(name)))
+          }
         },
         [
-          export_choice("", "例を選んで作成"),
-          export_choice("wave", "波状の曲面"),
-          export_choice("saddle", "鞍型"),
-          export_choice("sphere", "球"),
-          export_choice("torus", "トーラス"),
+          select_choice("", "例を選んで作成"),
+          select_choice("wave", "波状の曲面"),
+          select_choice("saddle", "鞍型"),
+          select_choice("sphere", "球"),
+          select_choice("torus", "トーラス"),
         ],
+        disabled=!input.controller.can_edit(),
       ),
     ]),
   )
   content.push(
     component(field, { "label": @core.any("Surface kind") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Surface kind"),
-          "value": @core.any(@scene.surface_kind_name(value.kind)),
-          "onChange": @core.any(fn(e : @core.Any) {
-            apply(host_record({ "kind": e._get("target")._get("value") }))
-          }),
+      select_input(
+        "Surface kind",
+        @scene.surface_kind_name(value.kind),
+        fn(selected_value : String) {
+          apply(host_record({ "kind": @core.any(selected_value) }))
         },
         [
-          export_choice("heightfield", "z = f(x, y)"),
-          export_choice("parametric", "x(u,v), y(u,v), z(u,v)"),
+          select_choice("heightfield", "z = f(x, y)"),
+          select_choice("parametric", "x(u,v), y(u,v), z(u,v)"),
         ],
+        disabled=!input.controller.can_edit(),
       ),
     ]),
   )

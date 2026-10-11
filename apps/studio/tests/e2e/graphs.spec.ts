@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { graphProject } from '../graph-fixture';
@@ -157,7 +158,7 @@ test('keeps graph picking in screen pixels across zoom, affine transforms and co
   await page.getByRole('checkbox', { name: 'Show grid', exact: true }).uncheck();
   await number(page, 'Rotation', 37); await number(page, 'Scale X', 180); await number(page, 'Scale Y', 55);
   for (const zoom of ['0.5', '1.5']) {
-    await page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }).selectOption(zoom);
+    await chooseOption(page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }), zoom);
     await clearGraph(page); await clickAt(page, await curvePoint(page, 1.4, 8));
     await expect(graphSelection(page)).toHaveCount(0);
     await clickAt(page, await curvePoint(page, 1.4, 4)); await expect(graphSelection(page)).toHaveCount(1);
@@ -245,16 +246,16 @@ test('shares coefficients with a peer, preserves them through Undo and reload, a
     await expect(page.getByRole('spinbutton', { name: 'Graph parameter a', exact: true })).toHaveValue('5');
     await select(peer, 'Composition 2'); await number(peer, 'Graph parameter a', 7);
     await select(page, 'Transition 800 ms');
-    await page.getByRole('combobox', { name: 'Animation property' }).selectOption('graph');
+    await chooseOption(page.getByRole('combobox', { name: 'Animation property' }), 'graph');
     await number(page, 'Graph parameters animation start', 100); await number(page, 'Graph parameters animation duration', 600);
-    await page.getByRole('combobox', { name: 'Keyframe property' }).selectOption('graphA');
+    await chooseOption(page.getByRole('combobox', { name: 'Keyframe property' }), 'graphA');
     await select(page, '中間点を追加');
     await number(page, 'Parameter a keyframe 1 value', 9);
     const slider = page.getByRole('slider', { name: 'Transition preview position', exact: true });
     await slider.fill('400'); await expect(curve(page, 'to')).toHaveCount(1);
     await page.reload(); await expect(page.getByText('Live', { exact: true })).toBeVisible();
     await select(page, 'Function graph'); await select(page, 'Transition 800 ms');
-    await page.getByRole('combobox', { name: 'Animation property' }).selectOption('graph');
+    await chooseOption(page.getByRole('combobox', { name: 'Animation property' }), 'graph');
     await expect(page.getByRole('spinbutton', { name: 'Parameter a keyframe 1 value', exact: true })).toHaveValue('9');
     const project = JSON.parse((await saved(page)).toString()), scene = project.scenes['scene-1'];
     expect(scene.compositions['comp-1'].states.graph.graph.a).toBe(5);

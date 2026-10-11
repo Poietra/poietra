@@ -259,16 +259,14 @@ fn composition_properties(
   content.push(
     inspector_section("Effects", [
       component(field, { "label": @core.any("Effect") }, [
-        h(
-          "select",
-          {
-            "aria-label": @core.any("Object effect"),
-            "value": @core.any(@scene.effect_name(state.effect)),
-            "onChange": @core.any(fn(event : @core.Any) {
-              controller.update({ "effect": event._get("target")._get("value") })
-            }),
+        select_input(
+          "Object effect",
+          @scene.effect_name(state.effect),
+          fn(selected_value : String) {
+            controller.update({ "effect": @core.any(selected_value) })
           },
-          [export_choice("none", "None"), export_choice("glow", "Glow")],
+          [select_choice("none", "None"), select_choice("glow", "Glow")],
+          disabled=!controller.can_edit(),
         ),
       ]),
     ]),

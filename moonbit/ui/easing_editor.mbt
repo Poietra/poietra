@@ -130,9 +130,9 @@ fn render_easing_editor(input : EasingView) -> @react.Element {
     },
     [editor.store, @core.any(disabled), @core.any(custom)],
   )
-  let options : Array[&@react.ReactNode] = []
+  let options : Array[SelectChoice] = []
   if curve is None {
-    options.push(export_choice("", "Mixed", disabled=true))
+    options.push(select_choice("", "Mixed", disabled=true))
   }
   for
     (value, name) in [
@@ -142,48 +142,39 @@ fn render_easing_editor(input : EasingView) -> @react.Element {
       ("easeOut", "Ease out"),
       ("custom", "Custom Bézier"),
     ] {
-    options.push(export_choice(value, name))
+    options.push(select_choice(value, name))
   }
   let nodes : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Easing") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any(label),
-          "aria-describedby": if input.disabled_reason is Some(_) {
-            @core.any(description)
-          } else {
-            @core.undefined()
-          },
-          "disabled": @core.any(disabled),
-          "value": @core.any(
-            match curve {
-              Some(Linear) => "linear"
-              Some(EaseInOut) => "easeInOut"
-              Some(EaseIn) => "easeIn"
-              Some(EaseOut) => "easeOut"
-              Some(CubicBezier(_, _, _, _)) => "custom"
-              None => ""
-            },
-          ),
-          "onChange": @core.any(fn(event : @core.Any) {
-            if !disabled {
-              let name : String = event._get("target")._get("value").cast()
-              let next = match name {
-                "linear" => Some(@scene.Linear)
-                "easeInOut" => Some(@scene.EaseInOut)
-                "easeIn" => Some(@scene.EaseIn)
-                "easeOut" => Some(@scene.EaseOut)
-                "custom" => Some(@scene.CubicBezier(0.25, 0.1, 0.25, 1.0))
-                _ => None
-              }
-              if next is Some(next) {
-                (input.on_change)(next, true)
-              }
+      select_input(
+        label,
+        match curve {
+          Some(Linear) => "linear"
+          Some(EaseInOut) => "easeInOut"
+          Some(EaseIn) => "easeIn"
+          Some(EaseOut) => "easeOut"
+          Some(CubicBezier(_, _, _, _)) => "custom"
+          None => ""
+        },
+        fn(selected_value : String) {
+          if !disabled {
+            let name : String = selected_value
+            let next = match name {
+              "linear" => Some(@scene.Linear)
+              "easeInOut" => Some(@scene.EaseInOut)
+              "easeIn" => Some(@scene.EaseIn)
+              "easeOut" => Some(@scene.EaseOut)
+              "custom" => Some(@scene.CubicBezier(0.25, 0.1, 0.25, 1.0))
+              _ => None
             }
-          }),
+            if next is Some(next) {
+              (input.on_change)(next, true)
+            }
+          }
         },
         options,
+        disabled~,
+        description=input.disabled_reason.map(fn(_) { description }),
       ),
     ]),
   ]

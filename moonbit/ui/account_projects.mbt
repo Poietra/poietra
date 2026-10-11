@@ -299,33 +299,25 @@ fn account_project_list(props : @core.Any) -> @react.Element {
       ]),
       h("label", Map([]), [
         "並び順",
-        h(
-          "select",
-          {
-            "aria-label": @core.any("プロジェクトの並び順"),
-            "value": @core.any(
-              if order == @editor.RecentlyUpdated {
-                "recent"
+        select_input(
+          "プロジェクトの並び順",
+          if order == @editor.RecentlyUpdated {
+            "recent"
+          } else {
+            "name"
+          },
+          fn(selected_value : String) {
+            set_order(
+              if @core.equal(@core.any(selected_value), @core.any("name")) {
+                @editor.ProjectName
               } else {
-                "name"
+                @editor.RecentlyUpdated
               },
-            ),
-            "onChange": @core.any(fn(event : @core.Any) {
-              set_order(
-                if @core.equal(
-                    event._get("target")._get("value"),
-                    @core.any("name"),
-                  ) {
-                  @editor.ProjectName
-                } else {
-                  @editor.RecentlyUpdated
-                },
-              )
-            }),
+            )
           },
           [
-            h("option", { "value": @core.any("recent") }, ["一覧の更新順"]),
-            h("option", { "value": @core.any("name") }, ["名前順"]),
+            select_choice("recent", "一覧の更新順"),
+            select_choice("name", "名前順"),
           ],
         ),
       ]),

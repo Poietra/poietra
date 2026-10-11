@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -103,13 +104,13 @@ test('multiple Japanese titles can enter and exit together with Write order and 
     await expect(page.getByRole('list', { name: 'Animation targets', exact: true })).toContainText('Enter · Move');
     await expect(page.getByRole('list', { name: 'Animation targets', exact: true }).locator('li')).toHaveCount(2);
     const type = page.getByRole('combobox', { name: 'Selected animation type', exact: true });
-    await type.selectOption('write');
+    await chooseOption(type, 'write');
     await expect.poll(() => ids.map(id => tracks()[id]?.type)).toEqual(['write', 'write']);
     await undo(page); await expect.poll(() => Object.keys(tracks())).toEqual([]);
-    await type.selectOption('write');
-    await page.getByRole('combobox', { name: 'Selected Write order', exact: true }).selectOption('sequential');
+    await chooseOption(type, 'write');
+    await chooseOption(page.getByRole('combobox', { name: 'Selected Write order', exact: true }), 'sequential');
     await field(page, 'Selected animation duration', 400); await field(page, 'Selected animation start', 200);
-    await page.getByRole('combobox', { name: 'Selected animation easing', exact: true }).selectOption('linear');
+    await chooseOption(page.getByRole('combobox', { name: 'Selected animation easing', exact: true }), 'linear');
     await expect.poll(() => ids.map(id => tracks()[id])).toEqual(ids.map(objectId => ({ objectId, type: 'write', start: 200, duration: 400, easing: 'linear', order: 'sequential', path: null, keyframes: {} })));
     const fromId = room.scene().compositionOrder[0], toId = room.scene().compositionOrder[1];
     expect(ids.map(id => [room.scene().compositions[fromId].states[id].visible, room.scene().compositions[toId].states[id].visible])).toEqual([[false, true], [false, true]]);
@@ -129,14 +130,14 @@ test('multiple Japanese titles can enter and exit together with Write order and 
     const exitId = Object.values(room.scene().transitions).find(t => t.fromId === toId)!.id;
     await expect(page.getByRole('list', { name: 'Animation targets', exact: true })).toContainText('Exit · Move');
     for (const animation of ['grow', 'fade', 'write']) {
-      await type.selectOption(animation);
+      await chooseOption(type, animation);
       await expect.poll(() => ids.map(id => room.scene().transitions[exitId].tracks[id]?.type)).toEqual([animation, animation]);
     }
     await undo(page); await expect.poll(() => ids.map(id => room.scene().transitions[exitId].tracks[id].type)).toEqual(['fade', 'fade']);
     expect(ids.map(id => room.scene().compositions[toId].states[id].text)).toEqual(['最初の字幕', '次の字幕']);
     applyChanges(room.doc, [{ path: ['scenes', room.id, 'objects', second, 'locked'], value: true }], 'peer');
     await expect(page.getByRole('list', { name: 'Excluded animation targets', exact: true })).toContainText('ロック中');
-    await type.selectOption('grow');
+    await chooseOption(type, 'grow');
     await expect.poll(() => ids.map(id => room.scene().transitions[exitId].tracks[id].type)).toEqual(['grow', 'fade']);
   } finally { room.close(); }
 });

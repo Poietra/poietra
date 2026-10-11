@@ -70,28 +70,25 @@ fn keyframe_inspector(input : KeyframeView) -> @react.Element {
       "キーフレームを変更できませんでした。",
     )
   }
-  let choices : Array[&@react.ReactNode] = []
+  let choices : Array[SelectChoice] = []
   for p in properties {
     choices.push(
-      export_choice(@scene.curve_property_name(p), keyframe_label(p)),
+      select_choice(@scene.curve_property_name(p), keyframe_label(p)),
     )
   }
   let content : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Keyframes") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Keyframe property"),
-          "value": @core.any(name),
-          "onChange": @core.any(fn(event : @core.Any) {
-            if @scene.curve_property(event._get("target")._get("value").cast())
-              is Some(p) {
-              choose(p)
-              set_error("")
-            }
-          }),
+      select_input(
+        "Keyframe property",
+        name,
+        fn(selected_value : String) {
+          if @scene.curve_property(selected_value) is Some(p) {
+            choose(p)
+            set_error("")
+          }
         },
         choices,
+        disabled~,
       ),
     ]),
     h("p", { "className": @core.any("property-timing-note") }, [

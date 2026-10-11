@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -62,8 +63,8 @@ test('two browsers group, drag together, set common timing, preview, ungroup and
     await expect(alice.getByRole('list', { name: 'Animation targets', exact: true })).toContainText('Second circle');
     await timing(alice, 'Selected animation duration', '500');
     await timing(alice, 'Selected animation start', '100');
-    await alice.getByRole('combobox', { name: 'Selected animation easing', exact: true }).selectOption('linear');
-    await alice.getByRole('combobox', { name: 'Selected animation type', exact: true }).selectOption('move');
+    await chooseOption(alice.getByRole('combobox', { name: 'Selected animation easing', exact: true }), 'linear');
+    await chooseOption(alice.getByRole('combobox', { name: 'Selected animation type', exact: true }), 'move');
     await expect.poll(() => room.scene().transitions['transition-1'].tracks.second.type).toBe('move');
     for (const id of ['circle', 'second']) {
       expect(room.scene().transitions['transition-1'].tracks[id]).toEqual({ ...before.transitions['transition-1'].tracks[id], type: 'move', start: 100, duration: 500, easing: 'linear' });
@@ -121,7 +122,7 @@ test('common fields apply to unlocked visible targets and activate an automatic 
     await expect(page.getByRole('list', { name: 'Excluded animation targets', exact: true })).toContainText('ロック中');
     await expect(page.getByRole('list', { name: 'Animation targets', exact: true })).toContainText('Enter · Write');
     await timing(page, 'Selected animation duration', '400'); await timing(page, 'Selected animation start', '100');
-    await page.getByRole('combobox', { name: 'Selected animation easing', exact: true }).selectOption('easeOut');
+    await chooseOption(page.getByRole('combobox', { name: 'Selected animation easing', exact: true }), 'easeOut');
     await expect.poll(() => room.scene().transitions['transition-1'].tracks.sigmoid?.easing).toBe('easeOut');
     const tracks = room.scene().transitions['transition-1'].tracks;
     expect(tracks.sigmoid).toEqual(defaultTrack('sigmoid', { start: 100, duration: 400, easing: 'easeOut', implicit: false }));

@@ -150,28 +150,28 @@ pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
       ]),
     )
   }
-  let options : Array[&@react.ReactNode] = [
-    export_choice("", "Mixed", disabled=true),
+  let options : Array[SelectChoice] = [
+    select_choice("", "Mixed", disabled=true),
   ]
   for name in ["move", "write", "fade", "grow", "none"] {
-    options.push(export_choice(name, animation_label(@core.any(name))))
+    options.push(select_choice(name, animation_label(@core.any(name))))
   }
   let fields : Array[&@react.ReactNode] = [
     component(field, { "label": @core.any("Type") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Selected animation type"),
-          "value": if @core.is_undefined(common_type) {
+      select_input(
+        "Selected animation type",
+        string_value(
+          if @core.is_undefined(common_type) {
             @core.any("")
           } else {
             common_type
           },
-          "onChange": @core.any(fn(event : @core.Any) {
-            apply("type", event._get("target")._get("value"), true)
-          }),
+        ),
+        fn(selected_value : String) {
+          apply("type", @core.any(selected_value), true)
         },
         options,
+        disabled=targets.length() == 0 || viewing,
       ),
     ]),
   ]
@@ -179,24 +179,24 @@ pub fn group_animation_inspector(_input : @core.Any) -> @react.Element {
     let value = @boundary.common_track_value(targets, "order")
     fields.push(
       component(field, { "label": @core.any("Order") }, [
-        h(
-          "select",
-          {
-            "aria-label": @core.any("Selected Write order"),
-            "value": if @core.is_undefined(value) {
+        select_input(
+          "Selected Write order",
+          string_value(
+            if @core.is_undefined(value) {
               @core.any("")
             } else {
               value
             },
-            "onChange": @core.any(fn(event : @core.Any) {
-              apply("order", event._get("target")._get("value"), true)
-            }),
+          ),
+          fn(selected_value : String) {
+            apply("order", @core.any(selected_value), true)
           },
           [
-            export_choice("", "Mixed", disabled=true),
-            export_choice("together", "Together"),
-            export_choice("sequential", "Sequential"),
+            select_choice("", "Mixed", disabled=true),
+            select_choice("together", "Together"),
+            select_choice("sequential", "Sequential"),
           ],
+          disabled=targets.length() == 0 || viewing,
         ),
       ]),
     )

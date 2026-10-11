@@ -84,24 +84,18 @@ fn network_inspector(input : NetworkInspectorView) -> @react.Element {
   }
   let reference = fn(label : String, key : String, current : String) {
     component(field, { "label": @core.any(label) }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Network " + label),
-          "value": @core.any(current),
-          "onChange": @core.any(fn(e : @core.Any) {
-            apply(
-              collection,
-              id,
-              host_record(Map([(key, e._get("target")._get("value"))])),
-            )
-          }),
+      select_input(
+        "Network " + label,
+        current,
+        fn(selected_value : String) {
+          apply(
+            collection,
+            id,
+            host_record(Map([(key, @core.any(selected_value))])),
+          )
         },
-        ids.map(fn(id) -> &@react.ReactNode {
-          h("option", { "key": @core.any(id), "value": @core.any(id) }, [
-            value.nodes[id].label,
-          ])
-        }),
+        ids.map(fn(id) { select_choice(id, value.nodes[id].label) }),
+        disabled=!controller.can_edit(),
       ),
     ])
   }
@@ -110,21 +104,15 @@ fn network_inspector(input : NetworkInspectorView) -> @react.Element {
       "ノードをドラッグすると、接続している辺が追従します。自己ループ・平行辺も作れます。",
     ]),
     component(field, { "label": @core.any("Element") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Network element"),
-          "value": @core.any(selected),
-          "onChange": @core.any(fn(e : @core.Any) {
-            set_selected(e._get("target")._get("value").cast())
-            set_error("")
-          }),
+      select_input(
+        "Network element",
+        selected,
+        fn(selected_value : String) {
+          set_selected(selected_value)
+          set_error("")
         },
-        rows.map(fn(row) -> &@react.ReactNode {
-          h("option", { "key": @core.any(row.0), "value": @core.any(row.0) }, [
-            row.1,
-          ])
-        }),
+        rows.map(fn(row) { select_choice(row.0, row.1) }),
+        disabled=!controller.can_edit(),
       ),
     ]),
   ]

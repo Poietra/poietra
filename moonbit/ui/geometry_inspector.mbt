@@ -94,26 +94,18 @@ fn geometry_inspector(input : GeometryInspectorView) -> @react.Element {
   }
   let reference = fn(label : String, key : String, value : String) {
     component(field, { "label": @core.any(label) }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Geometry " + label),
-          "value": @core.any(value),
-          "onChange": @core.any(fn(event : @core.Any) {
-            apply(
-              collection,
-              id,
-              host_record(Map([(key, event._get("target")._get("value"))])),
-            )
-          }),
+      select_input(
+        "Geometry " + label,
+        value,
+        fn(selected_value : String) {
+          apply(
+            collection,
+            id,
+            host_record(Map([(key, @core.any(selected_value))])),
+          )
         },
-        ids
-        .map(fn(id) {
-          h("option", { "key": @core.any(id), "value": @core.any(id) }, [
-            definition.points[id].label,
-          ])
-        })
-        .map(fn(node) -> &@react.ReactNode { node }),
+        ids.map(fn(id) { select_choice(id, definition.points[id].label) }),
+        disabled=!controller.can_edit(),
       ),
     ])
   }
@@ -134,21 +126,15 @@ fn geometry_inspector(input : GeometryInspectorView) -> @react.Element {
   ]
   content.push(
     component(field, { "label": @core.any("Element") }, [
-      h(
-        "select",
-        {
-          "aria-label": @core.any("Geometry element"),
-          "value": @core.any(selected),
-          "onChange": @core.any(fn(event : @core.Any) {
-            set_selected(event._get("target")._get("value").cast())
-            set_error("")
-          }),
+      select_input(
+        "Geometry element",
+        selected,
+        fn(selected_value : String) {
+          set_selected(selected_value)
+          set_error("")
         },
-        rows.map(fn(row) -> &@react.ReactNode {
-          h("option", { "key": @core.any(row.0), "value": @core.any(row.0) }, [
-            row.1,
-          ])
-        }),
+        rows.map(fn(row) { select_choice(row.0, row.1) }),
+        disabled=!controller.can_edit(),
       ),
     ]),
   )

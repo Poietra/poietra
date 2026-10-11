@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Browser, type Page, type WebSocketRoute } from '@playwright/test';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
@@ -52,21 +53,21 @@ test('a group-created track survives peer offline edits and creator Undo while o
     await bob.page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
     await expect(bob.page.getByRole('spinbutton', { name: 'Animation duration', exact: true })).toHaveValue('400');
     await Promise.all([alice.offline(), bob.offline()]);
-    await bob.page.getByRole('combobox', { name: 'Easing', exact: true }).selectOption('easeOut');
+    await chooseOption(bob.page.getByRole('combobox', { name: 'Easing', exact: true }), 'easeOut');
     await bob.online(); await alice.online();
-    await expect(alice.page.getByRole('combobox', { name: 'Selected animation easing', exact: true })).toHaveValue('');
+    await expect(alice.page.getByRole('combobox', { name: 'Selected animation easing', exact: true })).toHaveAttribute('data-value', '');
     // Undoing an overwrite recreates the peer's value under Alice's Yjs client ID.
     // Shared ownership must survive this ordinary field Undo.
-    await alice.page.getByRole('combobox', { name: 'Selected animation easing', exact: true }).selectOption('linear');
-    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveValue('linear');
+    await chooseOption(alice.page.getByRole('combobox', { name: 'Selected animation easing', exact: true }), 'linear');
+    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveAttribute('data-value', 'linear');
     await undo(alice.page);
-    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveValue('easeOut');
+    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveAttribute('data-value', 'easeOut');
     await undo(alice.page);
     await expect.poll(() => data.tracks().circle.duration).toBe(600);
     await expect.poll(() => data.tracks().sigmoid).toEqual(defaultTrack('sigmoid', { duration: 400, easing: 'easeOut', implicit: false }));
     await expect(alice.page.getByText(retainedNotice, { exact: true })).toBeVisible();
     for (const client of [alice, bob]) await expect(client.page.getByRole('button', { name: 'Sigmoid path Move: 0–400 ms', exact: true })).toBeVisible();
-    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveValue('easeOut');
+    await expect(bob.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveAttribute('data-value', 'easeOut');
     await expect(bob.page.getByRole('spinbutton', { name: 'Animation duration', exact: true })).toHaveValue('400');
     expect(parseProjectFile(JSON.stringify(data.project()))).toEqual(data.project());
     await redo(alice.page); await expect.poll(() => data.tracks().circle.duration).toBe(400);
@@ -95,8 +96,8 @@ test('single-track creation Undo removes untouched data and retains peer-edited 
     await bob.page.getByRole('button', { name: 'Sigmoid path', exact: true }).click();
     await bob.page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
     await expect(bob.page.getByRole('spinbutton', { name: 'Animation duration', exact: true })).toHaveValue('400');
-    await bob.page.getByRole('combobox', { name: 'Easing', exact: true }).selectOption('easeOut');
-    await expect(alice.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveValue('easeOut');
+    await chooseOption(bob.page.getByRole('combobox', { name: 'Easing', exact: true }), 'easeOut');
+    await expect(alice.page.getByRole('combobox', { name: 'Easing', exact: true })).toHaveAttribute('data-value', 'easeOut');
     await undo(alice.page);
     await expect.poll(() => data.tracks().sigmoid).toEqual(defaultTrack('sigmoid', { duration: 400, easing: 'easeOut', implicit: false }));
     await expect(alice.page.getByText(retainedNotice, { exact: true })).toBeVisible();

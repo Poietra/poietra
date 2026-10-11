@@ -1,3 +1,4 @@
+import { chooseOption } from './select';
 import { expect, test, type Page } from '@playwright/test';
 
 async function open(page: Page) { await page.evaluate(() => window.exportDialogProbe.open()); await expect(page.getByRole('dialog')).toBeVisible(); }
@@ -22,12 +23,12 @@ test('the studio keeps the export session when an Undo notification expires', as
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   await ready(page);
   const resolution = page.getByRole('combobox', { name: 'Export resolution' });
-  await resolution.selectOption('2160');
+  await chooseOption(resolution, '2160');
   await start(page);
   await page.evaluate(() => window.exportDialogProbe.progress(0, .25));
   await page.clock.runFor(4000);
   await expect(page.locator('.toast')).toHaveCount(0);
-  await expect(resolution).toHaveValue('2160');
+  await expect(resolution).toHaveAttribute('data-value', '2160');
   await expect(resolution).toBeDisabled();
   await expect(page.getByRole('progressbar')).toHaveAttribute('value', '0.25');
   expect((await page.evaluate(() => window.exportDialogProbe.state())).exports).toMatchObject([
@@ -42,8 +43,10 @@ test('the studio keeps the export session when an Undo notification expires', as
 test('4K follows the current source orientation and freezes the chosen dimensions', async ({ page }) => {
   await open(page); await ready(page);
   const resolution = page.getByRole('combobox', { name: 'Export resolution' });
-  await expect(resolution).toContainText('4K (2160p) · 3840 × 2160');
-  await resolution.selectOption('2160');
+  await resolution.click();
+  await expect(page.getByRole('option', { name: '4K (2160p) · 3840 × 2160', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await chooseOption(resolution, '2160');
   await page.evaluate(() => window.exportDialogProbe.changeSource(720, 1280, 'Vertical', 'Portrait movie'));
   await expect(resolution).toContainText('4K (2160p) · 2160 × 3840');
   await start(page);
@@ -55,7 +58,7 @@ test('4K follows the current source orientation and freezes the chosen dimension
 
 test('custom width and height stay linked and clicking Export commits a pending numeric draft', async ({ page }, testInfo) => {
   await open(page); await ready(page);
-  await page.getByRole('combobox', { name: 'Export resolution' }).selectOption('custom');
+  await chooseOption(page.getByRole('combobox', { name: 'Export resolution' }), 'custom');
   const width = page.getByRole('spinbutton', { name: 'Export width' });
   const height = page.getByRole('spinbutton', { name: 'Export height' });
   await width.fill('2048'); await width.press('Tab');
@@ -63,7 +66,7 @@ test('custom width and height stay linked and clicking Export commits a pending 
   await height.fill('900'); await height.press('Tab');
   await expect(width).toHaveValue('1600');
   await page.screenshot({ path: testInfo.outputPath('custom-export-settings.png') });
-  await page.getByRole('combobox', { name: 'Export format' }).selectOption('webm');
+  await chooseOption(page.getByRole('combobox', { name: 'Export format' }), 'webm');
   await width.fill('1001'); await start(page);
   expect((await page.evaluate(() => window.exportDialogProbe.state())).exports[0]).toMatchObject({ format: 'webm', width: 1001, height: 563 });
   await expect(width).toBeDisabled();
@@ -74,11 +77,11 @@ test('oversized panoramic presets explain the limit and a smaller custom edge re
   await page.evaluate(() => window.exportDialogProbe.changeSource(8192, 100, 'Panorama', 'Wide'));
   await open(page); await ready(page);
   const resolution = page.getByRole('combobox', { name: 'Export resolution' });
-  await resolution.selectOption('2160');
+  await chooseOption(resolution, '2160');
   await expect(page.getByRole('alert')).toContainText('1〜8192');
   await expect(page.getByRole('button', { name: 'Export video', exact: true })).toBeDisabled();
   expect((await page.evaluate(() => window.exportDialogProbe.state())).exports).toHaveLength(0);
-  await resolution.selectOption('custom');
+  await chooseOption(resolution, 'custom');
   const width = page.getByRole('spinbutton', { name: 'Export width' });
   await width.fill('4096'); await width.press('Tab');
   await expect(page.getByRole('alert')).toHaveCount(0);
@@ -90,9 +93,11 @@ test('freezes the scene, filename and aspect-preserving settings, and downloads 
   await page.evaluate(() => window.exportDialogProbe.changeSource(900, 1600, 'Portrait', 'My movie'));
   await open(page); await ready(page);
   await expect(page.getByRole('combobox', { name: 'Export resolution' })).toContainText('Source · 900 × 1600');
-  await expect(page.getByRole('combobox', { name: 'Export resolution' })).toContainText('720p · 720 × 1280');
-  await page.getByRole('combobox', { name: 'Export resolution' }).selectOption('1080');
-  await page.getByRole('combobox', { name: 'Export frame rate' }).selectOption('60');
+  await page.getByRole('combobox', { name: 'Export resolution' }).click();
+  await expect(page.getByRole('option', { name: '720p · 720 × 1280', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await chooseOption(page.getByRole('combobox', { name: 'Export resolution' }), '1080');
+  await chooseOption(page.getByRole('combobox', { name: 'Export frame rate' }), '60');
   await start(page);
   await expect(page.getByRole('status')).toContainText('準備しています');
   await page.evaluate(() => window.exportDialogProbe.changeSource(600, 600, 'Peer renamed scene', 'Peer renamed project'));
@@ -136,9 +141,9 @@ test('stale capabilities cannot overwrite a reopened dialog and unsupported brow
   await page.getByRole('button', { name: '閉じる', exact: true }).click(); await open(page);
   await expect.poll(() => page.evaluate(() => window.exportDialogProbe.state().capabilities)).toBe(2);
   await page.evaluate(() => window.exportDialogProbe.capabilities(1, { mp4: false, webm: true }));
-  await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveValue('webm');
+  await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveAttribute('data-value', 'webm');
   await page.evaluate(() => window.exportDialogProbe.capabilities(0, { mp4: true, webm: false }));
-  await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveValue('webm');
+  await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveAttribute('data-value', 'webm');
   await page.getByRole('button', { name: 'Close', exact: true }).click(); await open(page);
   await expect.poll(() => page.evaluate(() => window.exportDialogProbe.state().capabilities)).toBe(3);
   await page.evaluate(() => window.exportDialogProbe.capabilities(2, { mp4: false, webm: false }));
@@ -166,9 +171,9 @@ test('native dimensions remain exact for WebM and MP4 shows its required even di
   await open(page); await ready(page);
   await expect(page.getByRole('combobox', { name: 'Export resolution' })).toContainText('Source · 1002 × 752');
   await expect(page.getByRole('dialog')).toContainText('偶数ピクセル');
-  await page.getByRole('combobox', { name: 'Export format' }).selectOption('webm');
+  await chooseOption(page.getByRole('combobox', { name: 'Export format' }), 'webm');
   await expect(page.getByRole('combobox', { name: 'Export resolution' })).toContainText('Source · 1001 × 751');
-  await page.getByRole('combobox', { name: 'Export frame rate' }).selectOption('24'); await start(page);
+  await chooseOption(page.getByRole('combobox', { name: 'Export frame rate' }), '24'); await start(page);
   expect((await page.evaluate(() => window.exportDialogProbe.state())).exports[0]).toMatchObject({ format: 'webm', width: 1001, height: 751, fps: 24 });
 });
 
@@ -184,7 +189,7 @@ test('capability errors are visible and a fresh opening can recover', async ({ p
 test('captures a project once and keeps only stable display values across exporter mutation and completion', async ({ page }) => {
   await page.goto('/tests/e2e/fixtures/export-dialog.html?project=1');
   await open(page); await ready(page);
-  await expect(page.getByRole('combobox', { name: 'Export range' })).toHaveValue('project');
+  await expect(page.getByRole('combobox', { name: 'Export range' })).toHaveAttribute('data-value', 'project');
   const before = (await page.evaluate(() => window.exportDialogProbe.state())).clones;
   await start(page);
   const state = await page.evaluate(() => window.exportDialogProbe.state());
