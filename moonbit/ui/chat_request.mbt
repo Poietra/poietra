@@ -50,6 +50,8 @@ async fn ChatController::send_async(
   let selected : FixedArray[String] = self.editor.selected_ids
   let error = if text.length() > 3000 {
     "メッセージは 3,000 文字以内で入力してください。"
+  } else if retry_id is None && self.figure_draft(self.scene_id).preparing > 0 {
+    "画像の準備が終わってから送信してください。"
   } else if mention is None && !figures.is_empty() {
     "図は @codex への依頼に添付できます。"
   } else if mention is Some(_) && self.editor.viewing_playback {
@@ -166,8 +168,8 @@ async fn ChatController::send_async(
     (self.prompt.trim().is_empty() && text == "@codex") {
     self.update_prompt("")
   }
-  if physical_equal(self.figures, figures) {
-    self.update_figures([])
+  if physical_equal(self.figure_draft(self.scene_id).figures, figures) {
+    self.replace_figures(self.scene_id, [])
   }
   self.follow.val = true
   defer (if self.owns(request) {
