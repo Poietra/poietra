@@ -73,6 +73,7 @@ pub(all) struct GraphDefinition {
   c : Double
   axes : Bool
   grid : Bool
+  filled : Bool?
   breaks : Array[Double]
 } derive(Eq, FromJson, ToJson)
 

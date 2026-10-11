@@ -355,6 +355,7 @@ let graph_file_field : FileField = Record({
   "c": Numeric(-100000.0, 100000.0, false),
   "axes": Boolean,
   "grid": Boolean,
+  "filled": Optional(Boolean),
   "breaks": Sequence(Numeric(-100000.0, 100000.0, false), 0, 32),
 })
 
@@ -513,7 +514,7 @@ fn track_file_fields() -> FileField {
 
 ///|
 let project_file_field : FileField = Record({
-  "version": Numeric(1.0, 6.0, true),
+  "version": Numeric(1.0, 7.0, true),
   "name": Text(100),
   "sceneOrder": Sequence(Identifier, 1, 100),
   "scenes": Dictionary(

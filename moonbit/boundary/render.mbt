@@ -496,17 +496,19 @@ extern "js" fn graph_label_value(
 ///|
 extern "js" fn graph_geometry_value(
   curve : String,
+  area : String,
   axes : String,
   grid : String,
   labels : FixedArray[@core.Any],
   limited : Bool,
 ) -> @core.Any =
-  #|(curve, axes, grid, labels, limited) => ({kind: 'graph', curve, axes, grid, labels, limited})
+  #|(curve, area, axes, grid, labels, limited) => ({kind: 'graph', curve, area, axes, grid, labels, limited})
 
 ///|
 pub fn encode_graph_geometry(graph : @render.GraphGeometry) -> @core.Any {
   graph_geometry_value(
     graph.curve,
+    graph.area,
     graph.axes,
     graph.grid,
     FixedArray::makei(graph.labels.length(), fn(i) {
@@ -572,6 +574,7 @@ pub fn decode_diagram_geometry(value : @core.Any) -> @render.DiagramGeometry {
 pub fn decode_graph_geometry(value : @core.Any) -> @render.GraphGeometry {
   {
     curve: value._get("curve").cast(),
+    area: value._get("area").cast(),
     axes: value._get("axes").cast(),
     grid: value._get("grid").cast(),
     labels: @project_codec.decode_array(value._get("labels"), fn(label) {

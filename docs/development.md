@@ -81,6 +81,17 @@ The boundaries to preserve are:
   repeated roots without sign changes can be missed. It is not certified topology
   or a global error bound. Preview and Node export use the same derived geometry;
   no new host dependency or serialized path is needed.
+- Shaded regions (2026-10-11) resolve the request to draw a curve thinly and
+  then fill beneath it. `GraphDefinition.filled` is an optional flag; `render`
+  closes each revealed explicit run to the x-axis, clamped to the viewport, and
+  emits one derived path that SVG, Canvas and Node export paint in the curve
+  colour at a fixed quarter opacity beneath the curve. Write grows the region
+  with the line. Equations never shade. The flag follows the discrete
+  expression switch, writes one graph leaf and is a Composition value; the
+  region is never serialized. Shading is painted content, so the hit SVG picks a
+  graph by its region like a filled shape. Portable format v7 is required only
+  when a graph is shaded, so a v6 reader fails explicitly instead of silently
+  dropping the region; v1–v6 remain readable.
 - Extensible mathematics (2026-10-11) keeps one searchable creation palette in
   `editor.math_tools`; adding a family does not add a toolbar button. Function
   plots retain their own definition/evaluator. The first diagram family stores

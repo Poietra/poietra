@@ -32,6 +32,16 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-10-11: The founder requested curves that are drawn thinly and then
+  filled beneath, after a branch that baked sampled polylines into `Path` states
+  was superseded by evaluated function graphs. Keep the region a derived
+  rendering of the existing Graph: an optional `filled` flag per Composition,
+  one closed path per revealed explicit run down to the viewport-clamped x-axis,
+  shared by SVG, Canvas and export, painted in the curve colour beneath the line
+  and grown with Write. Equations never shade. Require portable format v7 only
+  when a graph is shaded; keep v1–v6 reads. Do not store sampled points or
+  region geometry in documents.
+
 - 2026-09-27: The founder requested reusable motions and rectangle clipping.
   Rectangle parents opt into Scene-wide `clipChildren`; hidden/transparent
   parents still clip descendants, nested clips intersect, and corner radius does

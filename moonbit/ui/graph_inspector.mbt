@@ -163,6 +163,7 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
     (key, label, checked) in [
       ("axes", "Show axes", graph.axes),
       ("grid", "Show grid", graph.grid),
+      ("filled", "Fill area", graph.filled == Some(true)),
     ] {
     content.push(
       h("label", { "className": @core.any("muted small") }, [

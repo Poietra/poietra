@@ -149,7 +149,7 @@ it('rejects invalid surface programs, camera, ranges, subdivision counts and mod
   ]) expect(() => alice.updateState('scene-1', 'comp-1', 'diagram', { fill: '#ffffff', surface } as never)).toThrow();
   expect(readProject(alice.doc)).toBe(before);
   expect(() => parseProjectFile(JSON.stringify({ ...before, version: 5 }))).toThrow();
-  expect(() => parseProjectFile(JSON.stringify({ ...before, version: 7 }))).toThrow();
+  expect(() => parseProjectFile(JSON.stringify({ ...before, version: 8 }))).toThrow();
 });
 
 for (const kind of ['network', 'surface'] as const) it(`${kind} animation, clipboard and reusable motions preserve semantic scopes and derive render paths`, () => {

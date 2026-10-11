@@ -87,7 +87,11 @@ pub fn valid_project_references(project : Project) -> Bool {
           return false
         }
         if state.graph is Some(graph) &&
-          (project.version < 4 || graph_validation_error(graph) is Some(_)) {
+          (
+            project.version < 4 ||
+            (graph.filled == Some(true) && project.version < 7) ||
+            graph_validation_error(graph) is Some(_)
+          ) {
           return false
         }
       }

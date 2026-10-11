@@ -94,6 +94,7 @@ Composition のツールバーで **数学 → 数式グラフ** を選び、キ
 
 **X / Y min・max** は数学座標の表示範囲、**Size** は画面上の幅・高さです。
 **Show axes / Show grid** で軸・目盛りと格子を切り替えられます。
+**Fill area** を入れると、曲線と x 軸の間を曲線の色で薄く塗ります。Write では線が伸びるのに合わせて領域が埋まり、塗った領域をクリックしてグラフを選べます。等式のグラフは塗りません。
 Appearance の Fill は軸・目盛りの色、Stroke は曲線の色です。
 変数は `x` と係数 `a・b・c`、等式では `y` も使えます。定数は `pi・e` に対応します。
 `+ - * / ^`、括弧、`sin cos tan asin acos atan exp ln log sqrt abs floor ceil min max pow` が使えます。

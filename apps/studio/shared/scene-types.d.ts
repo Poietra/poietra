@@ -31,6 +31,7 @@ export interface GraphDefinition {
   c: number;
   axes: boolean;
   grid: boolean;
+  filled?: boolean;
   breaks: number[];
 }
 export interface GeometryPoint {
@@ -243,7 +244,7 @@ export interface Scene {
   deleted?: boolean;
 }
 export interface Project {
-  version: 1 | 2 | 3 | 4 | 5 | 6;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   name: string;
   sceneOrder: string[];
   scenes: Record<string, Scene>;

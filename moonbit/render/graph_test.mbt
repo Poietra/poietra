@@ -57,3 +57,55 @@ test "equation geometry owns one connected circle and invalidates coefficients a
   )
   assert_eq(graph_geometry(state, 1.0).curve, full.curve)
 }
+
+///|
+test "a filled function shades each branch down to the clamped x-axis and reveals it with the curve" {
+  let graph = {
+    ..@scene.default_graph(),
+    expression: "1/x",
+    breaks: [0.0],
+    axes: false,
+    grid: false,
+    xMin: -2.0,
+    xMax: 2.0,
+    yMin: -2.0,
+    yMax: 2.0,
+  }
+  let state = {
+    ..@scene.default_state(Graph),
+    graph: Some(graph),
+    width: 400.0,
+    height: 200.0,
+  }
+  assert_eq(graph_geometry(state, 1.0).area, "")
+  let filled = { ..state, graph: Some({ ..graph, filled: Some(true), }), }
+  let full = graph_geometry(filled, 1.0)
+  assert_eq(full.curve, graph_geometry(state, 1.0).curve)
+  // Two branches around the pole, each closed on the axis at y = 0.
+  assert_eq(full.area.split("Z").count(), 3)
+  assert_eq(full.area.split("M").count(), 3)
+  assert_true(full.area.contains(" 0Z"))
+  let half = graph_geometry(filled, 0.5)
+  assert_true(half.area.length() < full.area.length())
+  assert_true(half.area.length() > 0)
+  assert_eq(graph_geometry(filled, 0.0).area, "")
+  // An axis outside the viewport clamps the baseline to the viewport edge.
+  let above = {
+    ..filled,
+    graph: Some({ ..graph, filled: Some(true), yMin: 1.0, yMax: 3.0, }),
+  }
+  assert_true(graph_geometry(above, 1.0).area.contains(" 100Z"))
+  // The region below an equation is undefined, so implicit curves never shade.
+  let implicit = {
+    ..filled,
+    graph: Some({
+      ..graph,
+      filled: Some(true),
+      syntaxVersion: 2,
+      expression: "x^2+y^2=1",
+      breaks: [],
+    }),
+  }
+  assert_true(!graph_geometry(implicit, 1.0).curve.is_empty())
+  assert_eq(graph_geometry(implicit, 1.0).area, "")
+}

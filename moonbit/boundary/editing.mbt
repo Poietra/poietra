@@ -180,7 +180,7 @@ pub fn validate_graph_patch(current : @core.Any, patch : @core.Any) -> Unit {
   for key in @core.object_keys(patch) {
     if ![
         "syntaxVersion", "expression", "xMin", "xMax", "yMin", "yMax", "a", "b",
-        "c", "axes", "grid", "breaks",
+        "c", "axes", "grid", "filled", "breaks",
       ].contains(key) {
       @core.throw_error("グラフの属性が無効です。")
       return

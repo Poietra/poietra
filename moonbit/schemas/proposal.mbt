@@ -49,7 +49,7 @@ fn proposal_schema(resolved : Bool) -> @zod.ZodSchema {
         "strokeWidth", "text", "fontSize", "cornerRadius", "effect", "anchorX", "anchorY",
         "scaleX", "scaleY", "shear", "graphExpression", "graphXMin", "graphXMax",
         "graphYMin", "graphYMax", "graphA", "graphB", "graphC", "graphAxes", "graphGrid",
-        "graphBreaks",
+        "graphFilled", "graphBreaks",
       ]),
       "value": @zod.union([@zod.number(), @zod.string(), @zod.boolean()]),
     }),
