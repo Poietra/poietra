@@ -189,17 +189,6 @@ fn scene_tabs_content(input : SceneTabsView) -> @react.Element {
       scene_menu_item("Delete", "Trash2", order.length() <= 1, fn() {
         operate(id, Delete)
       }),
-      h(
-        "p",
-        { "className": @core.any("px-2 py-1 text-xs text-[var(--muted)]") },
-        [
-          if order.length() <= 1 {
-            "最後の Scene は残します。"
-          } else {
-            "削除した Scene は元に戻すで復元できます。"
-          },
-        ],
-      ),
     ]
     tabs.push(
       h(
