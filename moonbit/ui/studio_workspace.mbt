@@ -59,9 +59,9 @@ fn studio_workspace_heading(
 ) -> @react.Element {
   let state = controller.state
   let doc = controller.document
-  let compare = truthy(doc.transition) && !state.viewing()
+  let transition = truthy(doc.transition) && !state.viewing()
   let crumbs : Array[&@react.ReactNode] = []
-  if compare {
+  if transition {
     crumbs.append([
       h("span", Map([]), [
         HostNode::{
@@ -79,6 +79,9 @@ fn studio_workspace_heading(
           ._get(doc.transition._get("toId").cast())
           ._get("name"),
         },
+      ]),
+      h("span", { "className": @core.any("muted workspace-subtitle") }, [
+        "Transition",
       ]),
     ])
   } else {
@@ -140,24 +143,6 @@ fn studio_workspace_heading(
       [icon("Film", 14), "Add media"],
     ),
   ]
-  actions.push(
-    h(
-      "button",
-      {
-        "className": @core.any("subtle-button compare-toggle"),
-        "aria-label": @core.any("開始と終了を比較"),
-        "aria-pressed": @core.any(compare && state.compare),
-        "disabled": @core.any(!compare),
-        "onClick": @core.any(fn() {
-          controller.update({
-            ..controller.state,
-            compare: !controller.state.compare,
-          })
-        }),
-      },
-      [icon("Layers2", 14), "Compare"],
-    ),
-  )
   h(
     "div",
     { "key": @core.any("heading"), "className": @core.any("workspace-heading") },
@@ -451,21 +436,16 @@ fn studio_workspace_stage(
   )
   let transition = truthy(controller.document.transition) && !state.viewing()
   let nodes : Array[&@react.ReactNode] = [
-    if transition && state.compare {
+    if transition {
       studio_transition_stages(controller, frames)
     } else {
       keyed_element(
         cached_stage,
         {
-          "frame": if transition && truthy(frames.transition) {
-            frames.transition
-          } else {
-            frames.current
-          },
+          "frame": frames.current,
           "compositionId": @core.any(controller.document.composition),
           "interactive": @core.any(!state.viewing()),
-          "stateEditing": @core.any(!transition || !truthy(frames.transition)),
-          "prefix": @core.any(if transition { "to" } else { "main" }),
+          "prefix": @core.any("main"),
           "zoom": @core.any(state.zoom),
         },
         [],
@@ -473,27 +453,6 @@ fn studio_workspace_stage(
     },
     studio_div("floating-tools", tools),
   ]
-  if transition && !state.compare {
-    nodes.push(
-      studio_div("stage-context", [
-        h("span", Map([]), [
-          if truthy(frames.transition) {
-            "Preview"
-          } else {
-            "End state"
-          },
-        ]),
-        h("span", Map([]), [
-          HostNode::{
-            value: controller.document.scene
-            ._get("compositions")
-            ._get(controller.document.composition)
-            ._get("name"),
-          },
-        ]),
-      ]),
-    )
-  }
   if !(state.tool is SelectTool) {
     nodes.push(
       studio_div("tool-instruction", [

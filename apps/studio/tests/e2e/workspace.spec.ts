@@ -7,7 +7,6 @@ async function open(page: Page, room = crypto.randomUUID()) {
   await expect(page.getByTestId('stage-main')).toBeVisible();
 }
 const transition = (page: Page) => page.getByRole('button', { name: 'Transition 800 ms', exact: true });
-const compare = (page: Page) => page.getByRole('button', { name: '開始と終了を比較', exact: true });
 const divider = (page: Page) => page.getByRole('separator', { name: 'タイムラインの高さ', exact: true });
 const preview = (page: Page) => page.getByRole('slider', { name: 'Transition preview position', exact: true });
 const height = async (page: Page) => (await page.locator('.timeline').boundingBox())!.height;
@@ -16,22 +15,28 @@ const chrome = (page: Page) => page.locator('.workspace-heading, .main-stage-are
   return { x, y, width, height };
 }));
 
-test('selection keeps the canvas, tools, cards and playback controls in place at wide and narrow sizes', async ({ page }) => {
+test('selection switches between state editing and motion comparison within a fixed workspace', async ({ page }) => {
   await open(page);
   for (const width of [1440, 960, 760]) {
     await page.setViewportSize({ width, height: 900 });
     await page.getByRole('button', { name: 'Composition 1', exact: true }).click();
-    await expect(compare(page)).toBeDisabled();
+    await expect(page.getByTestId('stage-from')).toHaveCount(0);
     await expect(page.getByTestId('stage-main')).toBeVisible();
     const before = await chrome(page);
     const canvas = await page.getByTestId('stage-main').boundingBox();
     for (let i = 0; i < 3; i++) {
       await transition(page).click();
-      await expect(page.getByTestId('stage-from')).toHaveCount(0);
-      await expect.poll(() => page.getByTestId('stage-to').boundingBox()).toEqual(canvas);
+      await expect(page.getByTestId('stage-from')).toBeVisible();
+      await expect(page.getByTestId('stage-to')).toBeVisible();
+      const from = (await page.getByTestId('stage-from').boundingBox())!;
+      const to = (await page.getByTestId('stage-to').boundingBox())!;
+      expect(from.width).toBe(to.width);
+      expect(from.height).toBe(to.height);
+      expect(from.x + from.width).toBeLessThan(to.x);
+      expect(to.width).toBeLessThan(canvas!.width);
       expect(await chrome(page)).toEqual(before);
       await expect(preview(page)).toBeInViewport({ ratio: 1 });
-      await expect(compare(page)).toBeInViewport({ ratio: 1 });
+      await expect(page.getByRole('button', { name: '比較しながらモーションを再生', exact: true })).toBeInViewport({ ratio: 1 });
       await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
       await expect.poll(() => page.getByTestId('stage-main').boundingBox()).toEqual(canvas);
       expect(await chrome(page)).toEqual(before);
@@ -39,31 +44,41 @@ test('selection keeps the canvas, tools, cards and playback controls in place at
   }
 });
 
-test('comparison is optional, keeps the scrubbed frame, and returns to the same single-canvas zoom', async ({ page }) => {
+test('easing and timing edits update the compared motion at the current time and preserve Composition zoom', async ({ page }) => {
   await open(page);
   await chooseOption(page.getByRole('combobox', { name: 'キャンバスのズーム', exact: true }), '0.75');
   const canvas = await page.getByTestId('stage-main').boundingBox();
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
   await transition(page).click();
-  await expect.poll(() => page.getByTestId('stage-to').boundingBox()).toEqual(canvas);
-  await preview(page).fill('300');
+  await expect(page.getByTestId('stage-from')).toBeVisible();
+  await preview(page).fill('150');
+  const from = page.locator('[data-testid="stage-from"] .scene-svg [data-object-id="circle"]');
   const circle = page.locator('[data-testid="stage-to"] .scene-svg [data-object-id="circle"]');
-  await expect(circle).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
+  const start = await from.getAttribute('transform');
+  const eased = await circle.getAttribute('transform');
   const before = await chrome(page);
-  await compare(page).click();
-  await expect(compare(page)).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('stage-from')).toBeVisible();
-  await expect(circle).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
+  const compared = await page.getByTestId('stage-to').boundingBox();
+  await chooseOption(page.getByRole('combobox', { name: 'Easing', exact: true }), 'linear');
+  await expect(circle).not.toHaveAttribute('transform', eased!);
+  const linear = await circle.getAttribute('transform');
+  const duration = page.getByRole('spinbutton', { name: 'Animation duration', exact: true });
+  await duration.fill('400'); await duration.press('Tab');
+  await expect(circle).not.toHaveAttribute('transform', linear!);
+  await expect(from).toHaveAttribute('transform', start!);
+  await expect(preview(page)).toHaveValue('150');
+  expect(await page.getByTestId('stage-to').boundingBox()).toEqual(compared);
   expect(await chrome(page)).toEqual(before);
-  await compare(page).click();
+  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(circle).toHaveAttribute('transform', linear!);
+  await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
+  await expect(circle).toHaveAttribute('transform', eased!);
+  await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
   await expect(page.getByTestId('stage-from')).toHaveCount(0);
-  await expect.poll(() => page.getByTestId('stage-to').boundingBox()).toEqual(canvas);
-  await expect(preview(page)).toHaveValue('300');
-  await expect(circle).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
-  await page.getByRole('button', { name: 'Transition をプレビュー', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'プレビューを停止', exact: true })).toBeVisible();
-  await compare(page).click();
+  await expect.poll(() => page.getByTestId('stage-main').boundingBox()).toEqual(canvas);
+  await expect(page.getByRole('spinbutton', { name: 'Position X', exact: true })).toHaveValue('955');
+  await transition(page).click();
   await expect(page.getByTestId('stage-from')).toBeVisible();
-  await expect.poll(async () => Number(await preview(page).inputValue())).toBeGreaterThan(300);
+  expect(await page.getByTestId('stage-to').boundingBox()).toEqual(compared);
 });
 
 test('comparison plays and scrubs motion on the right while retaining the start state and layout', async ({ page }) => {
@@ -72,7 +87,6 @@ test('comparison plays and scrubs motion on the right while retaining the start 
   await transition(page).click();
   const duration = page.getByRole('spinbutton', { name: 'Transition duration', exact: true });
   await duration.fill('8000'); await duration.press('Tab');
-  await compare(page).click();
   const play = page.getByRole('button', { name: '比較しながらモーションを再生', exact: true });
   const pause = page.getByRole('button', { name: '比較プレビューを一時停止', exact: true });
   const from = page.locator('[data-testid="stage-from"] .scene-svg [data-object-id="circle"]');
@@ -96,7 +110,7 @@ test('comparison plays and scrubs motion on the right while retaining the start 
     await expect(motion).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
     await expect(from).toHaveAttribute('transform', start!);
     await expect(page.getByRole('slider', { name: '再生位置', exact: true })).toHaveCount(0);
-    await expect(compare(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('stage-from')).toBeVisible();
   }
 });
 
