@@ -39,7 +39,8 @@ const undo = (page: Page) => page.getByRole('button', { name: '元に戻す (⌘
 test('created objects have editable automatic motion; timing materializes once, cancels cleanly, and preserves peer changes on undo', async ({ page }) => {
   const room = await blank(page);
   try {
-    const circle = await create(page, 'circle', 280, 230);
+    const circle = await create(page, 'circle', 200, 200);
+    await field(page, 'Position X', 280); await field(page, 'Position Y', 230);
     const title = await create(page, 'text', 600, 420, '一緒につくる動画');
     await page.locator('.composition-strip .add-composition').click();
     await members(page, [circle]); await field(page, 'Position X', 900);
@@ -53,13 +54,7 @@ test('created objects have editable automatic motion; timing materializes once, 
     await row.locator('.track-label').click();
     expect(track()).toBeUndefined(); // Selecting and seeking never materialize shared data.
     await page.getByRole('slider', { name: 'Transition preview position', exact: true }).fill('400');
-    const rendered = page.locator(`[data-testid="stage-to"] .scene-svg [data-object-id="${circle}"]`);
-    // Pointer projection through the fitted canvas can introduce subpixel rounding.
-    await expect.poll(() => rendered.evaluate(element => {
-      const matrix = (element as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix;
-      return [matrix.e, matrix.f].map(value => Number(value.toFixed(3)));
-    })).toEqual([590, 230]);
-    await expect(rendered).toHaveAttribute('transform', / rotate\(0\)$/);
+    await expect(page.locator(`[data-testid="stage-to"] .scene-svg [data-object-id="${circle}"]`)).toHaveAttribute('transform', 'translate(590 230) rotate(0)');
     expect(track()).toBeUndefined();
 
     await dragTiming(page, row, -400, 'end'); await page.mouse.up();

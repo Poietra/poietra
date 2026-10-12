@@ -66,14 +66,11 @@ test('a paused scene preview cannot edit a hidden composition and opens the disp
 test('a scene preview started from a transition keeps its scene ruler and returns to the same transition time', async ({ page }) => {
   await open(page); await page.getByRole('button', { name: 'Circle', exact: true }).click();
   await page.getByRole('button', { name: 'Transition 800 ms', exact: true }).click();
-  await expect(page.locator('.floating-tools')).toHaveCount(0);
   await page.getByRole('button', { name: 'シーンを再生', exact: true }).click();
-  await expect(page.locator('.floating-tools')).toBeVisible();
   await expect(page.getByRole('slider', { name: '再生位置', exact: true })).toBeVisible();
   await page.getByRole('slider', { name: '再生位置', exact: true }).fill('1300');
   await expect(circle(page)).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
   await page.getByRole('button', { name: 'この場面を編集', exact: true }).click();
-  await expect(page.locator('.floating-tools')).toHaveCount(0);
   await expect(page.getByRole('slider', { name: 'Transition preview position', exact: true })).toHaveValue('300');
   await expect(circle(page, 'to')).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
   await expect(page.getByRole('spinbutton', { name: 'Animation duration', exact: true })).toHaveValue('600');

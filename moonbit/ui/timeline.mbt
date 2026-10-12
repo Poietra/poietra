@@ -151,7 +151,6 @@ fn timeline_tracks(
 ///|
 pub fn timeline(input : @core.Any) -> @react.Element {
   let editor = use_editor_state()
-  let layout = use_timeline_layout()
   let scene = editor.scene
   let selection = editor.selection
   let expanded = selection is TransitionSelection(_) && !editor.viewing_playback
@@ -195,11 +194,8 @@ pub fn timeline(input : @core.Any) -> @react.Element {
         "timeline " + (if expanded { "expanded" } else { "" }),
       ),
       "aria-label": @core.any("タイムライン"),
-      "ref": layout.element.as_any(),
-      "style": host_record({ "flexBasis": @core.any("\{layout.height}px") }),
     },
     [
-      layout.handle,
       typed_component(cached_timeline_structure, props),
       h("div", { "className": @core.any("timeline-scroll") }, [
         typed_component(cached_timeline_details, props),
