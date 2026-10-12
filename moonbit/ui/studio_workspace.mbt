@@ -451,9 +451,11 @@ fn studio_workspace_stage(
         [],
       )
     },
-    studio_div("floating-tools", tools),
   ]
-  if !(state.tool is SelectTool) {
+  if !transition {
+    nodes.push(studio_div("floating-tools", tools))
+  }
+  if !transition && !(state.tool is SelectTool) {
     nodes.push(
       studio_div("tool-instruction", [
         "キャンバスをクリック、またはドラッグして追加",

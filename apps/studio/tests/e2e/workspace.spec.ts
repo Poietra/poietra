@@ -10,7 +10,7 @@ const transition = (page: Page) => page.getByRole('button', { name: 'Transition 
 const divider = (page: Page) => page.getByRole('separator', { name: 'タイムラインの高さ', exact: true });
 const preview = (page: Page) => page.getByRole('slider', { name: 'Transition preview position', exact: true });
 const height = async (page: Page) => (await page.locator('.timeline').boundingBox())!.height;
-const chrome = (page: Page) => page.locator('.workspace-heading, .main-stage-area, .floating-tools, .timeline, .composition-strip, .transport').evaluateAll(nodes => nodes.map(node => {
+const chrome = (page: Page) => page.locator('.workspace-heading, .main-stage-area, .timeline, .composition-strip, .transport').evaluateAll(nodes => nodes.map(node => {
   const { x, y, width, height } = node.getBoundingClientRect();
   return { x, y, width, height };
 }));
@@ -22,12 +22,16 @@ test('selection switches between state editing and motion comparison within a fi
     await page.getByRole('button', { name: 'Composition 1', exact: true }).click();
     await expect(page.getByTestId('stage-from')).toHaveCount(0);
     await expect(page.getByTestId('stage-main')).toBeVisible();
+    await expect(page.locator('.floating-tools')).toBeVisible();
     const before = await chrome(page);
+    const tools = await page.locator('.floating-tools').boundingBox();
     const canvas = await page.getByTestId('stage-main').boundingBox();
     for (let i = 0; i < 3; i++) {
       await transition(page).click();
       await expect(page.getByTestId('stage-from')).toBeVisible();
       await expect(page.getByTestId('stage-to')).toBeVisible();
+      await expect(page.locator('.floating-tools')).toHaveCount(0);
+      await expect(page.locator('.tool-instruction')).toHaveCount(0);
       const from = (await page.getByTestId('stage-from').boundingBox())!;
       const to = (await page.getByTestId('stage-to').boundingBox())!;
       expect(from.width).toBe(to.width);
@@ -38,6 +42,8 @@ test('selection switches between state editing and motion comparison within a fi
       await expect(preview(page)).toBeInViewport({ ratio: 1 });
       await expect(page.getByRole('button', { name: '比較しながらモーションを再生', exact: true })).toBeInViewport({ ratio: 1 });
       await page.getByRole('button', { name: 'Composition 2', exact: true }).click();
+      await expect(page.locator('.floating-tools')).toBeVisible();
+      expect(await page.locator('.floating-tools').boundingBox()).toEqual(tools);
       await expect.poll(() => page.getByTestId('stage-main').boundingBox()).toEqual(canvas);
       expect(await chrome(page)).toEqual(before);
     }
@@ -100,8 +106,10 @@ test('comparison plays and scrubs motion on the right while retaining the start 
     await expect(play).toBeInViewport({ ratio: 1 });
     await play.click();
     await expect.poll(async () => Number(await preview(page).inputValue())).toBeGreaterThan(120);
+    await expect(page.locator('.floating-tools')).toHaveCount(0);
     await expect(from).toHaveAttribute('transform', start!);
     await pause.click();
+    await expect(page.locator('.floating-tools')).toHaveCount(0);
     // Playback paints Canvas directly; the retained SVG catches up when paused.
     await expect(motion).not.toHaveAttribute('transform', start!);
     expect(await chrome(page)).toEqual(fixed);
