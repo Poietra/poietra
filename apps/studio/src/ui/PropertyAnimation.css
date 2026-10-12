@@ -13,8 +13,6 @@
 .property-track-row .animation-bar.selected { background: #343854; border-color: #8a7ddc; }
 .property-track-row .bar-handle { top: 3px; bottom: 3px; }
 .property-track-row .bar-name { font-variant-numeric: tabular-nums; }
-/* Keep a base row and two independent timings visible above the empty media lane. */
-.timeline.expanded:has(.property-track-row):not(:has(.media-lanes)) { flex-basis: min(438px, 55dvh); }
 
 .keyframe-fields { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
 .keyframe-graph { display: block; width: 100%; height: 72px; margin: 10px 0; background: var(--panel, #181820); border-radius: 4px; }

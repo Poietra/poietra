@@ -39,7 +39,8 @@ const undo = (page: Page) => page.getByRole('button', { name: '元に戻す (⌘
 test('created objects have editable automatic motion; timing materializes once, cancels cleanly, and preserves peer changes on undo', async ({ page }) => {
   const room = await blank(page);
   try {
-    const circle = await create(page, 'circle', 280, 230);
+    const circle = await create(page, 'circle', 200, 200);
+    await field(page, 'Position X', 280); await field(page, 'Position Y', 230);
     const title = await create(page, 'text', 600, 420, '一緒につくる動画');
     await page.locator('.composition-strip .add-composition').click();
     await members(page, [circle]); await field(page, 'Position X', 900);
