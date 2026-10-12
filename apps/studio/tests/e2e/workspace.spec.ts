@@ -66,6 +66,40 @@ test('comparison is optional, keeps the scrubbed frame, and returns to the same 
   await expect.poll(async () => Number(await preview(page).inputValue())).toBeGreaterThan(300);
 });
 
+test('comparison plays and scrubs motion on the right while retaining the start state and layout', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  await transition(page).click();
+  const duration = page.getByRole('spinbutton', { name: 'Transition duration', exact: true });
+  await duration.fill('8000'); await duration.press('Tab');
+  await compare(page).click();
+  const play = page.getByRole('button', { name: '比較しながらモーションを再生', exact: true });
+  const pause = page.getByRole('button', { name: '比較プレビューを一時停止', exact: true });
+  const from = page.locator('[data-testid="stage-from"] .scene-svg [data-object-id="circle"]');
+  const motion = page.locator('[data-testid="stage-to"] .scene-svg [data-object-id="circle"]');
+  const start = await from.getAttribute('transform');
+  for (const width of [1440, 760]) {
+    await page.setViewportSize({ width, height: 900 });
+    await preview(page).fill('0');
+    const fixed = await chrome(page);
+    const canvas = await page.getByTestId('stage-to').boundingBox();
+    await expect(play).toBeInViewport({ ratio: 1 });
+    await play.click();
+    await expect.poll(async () => Number(await preview(page).inputValue())).toBeGreaterThan(120);
+    await expect(from).toHaveAttribute('transform', start!);
+    await pause.click();
+    // Playback paints Canvas directly; the retained SVG catches up when paused.
+    await expect(motion).not.toHaveAttribute('transform', start!);
+    expect(await chrome(page)).toEqual(fixed);
+    expect(await page.getByTestId('stage-to').boundingBox()).toEqual(canvas);
+    await preview(page).fill('300');
+    await expect(motion).toHaveAttribute('transform', 'translate(588.75 355) rotate(0)');
+    await expect(from).toHaveAttribute('transform', start!);
+    await expect(page.getByRole('slider', { name: '再生位置', exact: true })).toHaveCount(0);
+    await expect(compare(page)).toHaveAttribute('aria-pressed', 'true');
+  }
+});
+
 test('panel resizing is local, preserves Undo, cancels safely, and stays bounded after a window resize', async ({ browser }) => {
   const alice = await browser.newPage(), bob = await browser.newPage(), room = crypto.randomUUID();
   try {

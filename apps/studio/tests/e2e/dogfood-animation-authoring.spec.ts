@@ -53,7 +53,13 @@ test('created objects have editable automatic motion; timing materializes once, 
     await row.locator('.track-label').click();
     expect(track()).toBeUndefined(); // Selecting and seeking never materialize shared data.
     await page.getByRole('slider', { name: 'Transition preview position', exact: true }).fill('400');
-    await expect(page.locator(`[data-testid="stage-to"] .scene-svg [data-object-id="${circle}"]`)).toHaveAttribute('transform', 'translate(590 230) rotate(0)');
+    const rendered = page.locator(`[data-testid="stage-to"] .scene-svg [data-object-id="${circle}"]`);
+    // Pointer projection through the fitted canvas can introduce subpixel rounding.
+    await expect.poll(() => rendered.evaluate(element => {
+      const matrix = (element as SVGGraphicsElement).transform.baseVal.consolidate()!.matrix;
+      return [matrix.e, matrix.f].map(value => Number(value.toFixed(3)));
+    })).toEqual([590, 230]);
+    await expect(rendered).toHaveAttribute('transform', / rotate\(0\)$/);
     expect(track()).toBeUndefined();
 
     await dragTiming(page, row, -400, 'end'); await page.mouse.up();

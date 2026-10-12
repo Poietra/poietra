@@ -266,9 +266,11 @@ fn studio_transition_stages(
       studio_div("compare-column", [
         studio_div("compare-label", [
           h("span", Map([]), ["From"]),
-          HostNode::{
-            value: doc.scene._get("compositions")._get(from)._get("name"),
-          },
+          h("span", { "className": @core.any("compare-name") }, [
+            HostNode::{
+              value: doc.scene._get("compositions")._get(from)._get("name"),
+            },
+          ]),
         ]),
         keyed_element(
           cached_stage,
@@ -300,10 +302,47 @@ fn studio_transition_stages(
       ]),
       studio_div("compare-column", [
         studio_div("compare-label", [
-          h("span", Map([]), ["To"]),
-          HostNode::{
-            value: doc.scene._get("compositions")._get(to)._get("name"),
-          },
+          h("span", Map([]), [
+            if truthy(frames.transition) {
+              "Motion"
+            } else {
+              "To"
+            },
+          ]),
+          h("span", { "className": @core.any("compare-name") }, [
+            HostNode::{
+              value: doc.scene._get("compositions")._get(to)._get("name"),
+            },
+          ]),
+          h(
+            "button",
+            {
+              "className": @core.any("subtle-button compare-motion-button"),
+              "aria-label": @core.any(
+                if state.playing() {
+                  "比較プレビューを一時停止"
+                } else {
+                  "比較しながらモーションを再生"
+                },
+              ),
+              "title": @core.any(
+                "開始状態を左に残してモーションを再生",
+              ),
+              "onClick": @core.any(fn() { controller.play(SelectedTransition) }),
+            },
+            [
+              icon(if state.playing() { "Pause" } else { "Play" }, 12, props={
+                "fill": @core.any("currentColor"),
+              }),
+              h("span", Map([]), [
+                if state.playing() {
+                  "Pause"
+                } else {
+                  "Play motion"
+                },
+              ]),
+            ],
+          ),
         ]),
         keyed_element(
           cached_stage,
@@ -323,6 +362,8 @@ fn studio_transition_stages(
         studio_div("compare-caption", [
           if single {
             name
+          } else if truthy(frames.transition) {
+            "Motion preview"
           } else {
             "End state"
           },
