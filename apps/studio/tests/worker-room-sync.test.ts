@@ -178,48 +178,25 @@ test('stores a compacted document larger than one SQLite row in snapshot parts a
   source.destroy(); peer.destroy();
 });
 
-test('reads a legacy single-row snapshot and moves it into parts at the next compaction', () => {
+test.each([false, true])('reads the latest legacy snapshot and migrates it on compaction (stale parts: %s)', staleParts => {
   const f = fixture();
-  // A room compacted before snapshot parts kept the whole document in one row.
+  // Old deployments compact only the legacy row, possibly leaving stale parts after a rollback.
   const legacy = f.saved(); legacy.getMap('project').set('name', 'Legacy');
-  f.database.exec('DELETE FROM snapshot_parts');
+  if (!staleParts) f.database.exec('DELETE FROM snapshot_parts');
   f.database.prepare('INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)').run(Y.encodeStateAsUpdate(legacy));
+  legacy.on('update', bytes => f.database.prepare('INSERT INTO updates (data) VALUES (?)').run(bytes));
+  legacy.getMap('project').set('name', 'Latest edit'); // depends on the legacy compaction
   const room = f.create();
-  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(0);
+  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(staleParts ? 1 : 0);
   message(room, f.sockets[0], syncStep1());
   const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
-  expect(peer.getMap('project').get('name')).toBe('Legacy');
+  expect(peer.getMap('project').get('name')).toBe('Latest edit');
   const source = f.saved(); let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
   for (const key of ['first', 'second', 'third']) {
     source.getMap('project').set(key, 'x'.repeat(1_500_000));
     message(room, f.sockets[0], wire(update));
   }
   expect(f.count('snapshot')).toBe(0); expect(f.count('snapshot_parts')).toBeGreaterThan(1);
-  expect(f.saved().getMap('project').get('name')).toBe('Legacy');
+  expect(f.saved().getMap('project').get('name')).toBe('Latest edit');
   legacy.destroy(); source.destroy(); peer.destroy();
-});
-
-test('restores edits compacted by an older deployment instead of stale snapshot parts', () => {
-  const f = fixture();
-  const parts = f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all();
-  expect(f.count('snapshot')).toBe(1); expect(parts).toHaveLength(1);
-  // Roll back to a deployment that only reads and writes the legacy snapshot.
-  const legacy = new Y.Doc();
-  const row = f.database.prepare('SELECT data FROM snapshot WHERE id = 1').get() as { data: Uint8Array };
-  Y.applyUpdate(legacy, row.data);
-  legacy.getMap('project').set('name', 'Edited after rollback');
-  f.ctx.storage.transactionSync(() => {
-    f.database.prepare('INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)').run(Y.encodeStateAsUpdate(legacy));
-    f.database.exec('DELETE FROM updates');
-  });
-  expect(f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all()).toEqual(parts);
-  // A later journal edit depends on that legacy snapshot and must also survive.
-  legacy.on('update', bytes => f.database.prepare('INSERT INTO updates (data) VALUES (?)').run(bytes));
-  legacy.getMap('project').set('name', 'Latest edit');
-  const restored = f.create();
-  message(restored, f.sockets[0], syncStep1());
-  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
-  expect(peer.getMap('project').get('name')).toBe('Latest edit');
-  expect(f.ctx.abort).not.toHaveBeenCalled();
-  legacy.destroy(); peer.destroy();
 });
