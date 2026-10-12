@@ -134,16 +134,23 @@ test('a malformed frame cannot poison another sender’s queued edits', () => {
   source.destroy(); recovered.destroy();
 });
 
-test('large incoming updates compact the journal by bytes, before its row count limit', () => {
+test('large incoming updates compact by bytes into bounded snapshot parts and survive restart', () => {
   const f = fixture(), source = f.saved();
+  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(1);
   let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
-  for (let i = 0; i < 3; i++) {
-    source.getMap('project').set('name', String(i) + 'x'.repeat(1_500_000));
+  for (const key of ['first', 'second', 'third']) {
+    source.getMap('project').set(key, key + 'x'.repeat(1_500_000));
     message(f.room, f.sockets[0], wire(update));
   }
-  expect((f.database.prepare('SELECT COUNT(*) AS n FROM updates').get() as { n: number }).n).toBe(0);
-  const recovered = f.saved(); expect(recovered.getMap('project').get('name')).toBe('2' + 'x'.repeat(1_500_000));
-  source.destroy(); recovered.destroy();
+  expect(f.count('updates')).toBe(0); expect(f.count('snapshot')).toBe(0);
+  expect(f.count('snapshot_parts')).toBeGreaterThan(2);
+  expect((f.database.prepare('SELECT MAX(LENGTH(data)) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
+  const restored = f.create(); f.sockets[0].send.mockClear();
+  message(restored, f.sockets[0], syncStep1());
+  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
+  for (const key of ['first', 'second', 'third']) expect(peer.getMap('project').get(key)).toBe(key + 'x'.repeat(1_500_000));
+  expect(peer.getMap('project').get('name')).toBe('A little motion');
+  source.destroy(); peer.destroy();
 });
 
 test('full rosters remain readable by legacy clients with a 16 KiB / 100-entry input budget', () => {
@@ -156,26 +163,6 @@ test('full rosters remain readable by legacy clients with a 16 KiB / 100-entry i
   // Simulate a stock y-websocket client relaying the received roster.
   for (const [bytes] of [...observer.send.mock.calls]) message(f.room, observer, bytes);
   expect(observer.close).not.toHaveBeenCalled();
-});
-
-test('stores a compacted document larger than one SQLite row in snapshot parts and serves it after restart', () => {
-  const f = fixture(), source = f.saved();
-  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(1); // one part also keeps the legacy row
-  let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
-  for (const key of ['first', 'second', 'third']) {
-    source.getMap('project').set(key, key + 'x'.repeat(1_500_000));
-    message(f.room, f.sockets[0], wire(update));
-  }
-  expect(f.count('updates')).toBe(0); expect(f.count('snapshot')).toBe(0);
-  expect(f.count('snapshot_parts')).toBeGreaterThan(2);
-  expect((f.database.prepare('SELECT MAX(LENGTH(data)) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
-  expect(f.saved().getMap('project').get('third')).toBe('third' + 'x'.repeat(1_500_000));
-  const restored = f.create(); f.sockets[0].send.mockClear();
-  message(restored, f.sockets[0], syncStep1());
-  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
-  expect(peer.getMap('project').get('first')).toBe('first' + 'x'.repeat(1_500_000));
-  expect(peer.getMap('project').get('name')).toBe('A little motion');
-  source.destroy(); peer.destroy();
 });
 
 test.each([false, true])('reads the latest legacy snapshot and migrates it on compaction (stale parts: %s)', staleParts => {

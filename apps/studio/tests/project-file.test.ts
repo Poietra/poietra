@@ -120,31 +120,19 @@ describe('project file import', () => {
     source.destroy();
   });
 
-  it('opens a valid project above 2 MiB in compact bounded messages that reconstruct it', () => {
+  it('opens projects above 2 MiB in compact bounded messages without losing authored keyframes to room initialization', () => {
     const empty = new Y.Doc();
     expect(createProjectMessages(empty, makeDemoProject()).updateMessages).toHaveLength(1);
     empty.destroy();
-    const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
-    const project = parseProjectFile(JSON.stringify(largeProject()));
-    const messages = createProjectMessages(source, project);
-    expect(messages.updateMessages.length).toBeGreaterThan(1);
-    expect(messages.updateMessages.length).toBeLessThan(100);
-    expect(messages.updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(2 * 1048576);
-    for (const message of messages.updateMessages) expect(message.byteLength).toBeLessThanOrEqual(1048576);
-    expect(readProject(source)).toEqual(makeDemoProject());
-    applyMessages(source, messages.updateMessages);
-    expect(readProject(source)).toEqual(project);
-    source.destroy();
-  });
-  it('preserves authored tracks and 2,000 keyframes when the room initializes after every import message', () => {
     const source = new Y.Doc(), server = new Y.Doc();
     source.clientID = 1;
     // A deterministic winner for defaults inserted concurrently with the staged import.
     server.clientID = 0xffffffff;
     initializeDocument(source, makeDemoProject());
     ensureSceneAudioTracks(source); ensureSceneAnimationTracks(source);
+    const original = readProject(source);
     Y.applyUpdate(server, Y.encodeStateAsUpdate(source));
-    const input = largeProject(2, 2); input.version = 2;
+    const input = largeProject(); input.version = 2;
     const tracks = input.scenes['scene-1'].transitions.t1.tracks;
     for (const objectId of ['o0', 'o1']) tracks[objectId] = defaultTrack(objectId, {
       type: 'write', start: 25, duration: 200, easing: 'easeOut',
@@ -156,13 +144,19 @@ describe('project file import', () => {
     const project = parseProjectFile(JSON.stringify(input));
     const { updateMessages } = createProjectMessages(source, project);
     expect(updateMessages.length).toBeGreaterThan(1);
+    expect(updateMessages.length).toBeLessThan(100);
+    expect(updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(2 * 1048576);
+    expect(readProject(source)).toEqual(original);
     for (const [index, message] of updateMessages.entries()) {
+      expect(message.byteLength).toBeLessThanOrEqual(1048576);
       applyMessages(server, [message]);
       ensureSceneAudioTracks(server); ensureSceneAnimationTracks(server);
       if (index < updateMessages.length - 1) expect(readProject(server)).toBeNull();
     }
-    expect(readProject(server)!.scenes['scene-1'].transitions.t1.tracks).toEqual(tracks);
-    source.destroy(); server.destroy();
+    const whole = new Y.Doc(); initializeDocument(whole, project);
+    ensureSceneAudioTracks(whole); ensureSceneAnimationTracks(whole);
+    expect(readProject(server)).toEqual(readProject(whole));
+    source.destroy(); server.destroy(); whole.destroy();
   });
   it('creates the same shared structure in parts as a single conversion, including legacy track keyframes', () => {
     const project = largeProject();
