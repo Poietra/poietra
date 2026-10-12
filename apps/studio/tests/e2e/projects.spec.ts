@@ -85,9 +85,10 @@ for (const legacy of [false, true]) test(`a large import survives acknowledgment
   }
   const empty = new Y.Doc();
   try {
-    const { updateMessage } = createProjectMessages(empty, project);
-    expect(updateMessage.byteLength).toBeGreaterThan(1048576);
-    expect(updateMessage.byteLength).toBeLessThan(2097152);
+    const { updateMessages } = createProjectMessages(empty, project);
+    expect(updateMessages.length).toBeGreaterThan(1);
+    expect(updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(1048576);
+    for (const message of updateMessages) expect(message.byteLength).toBeLessThanOrEqual(1048576);
   } finally { empty.destroy(); }
   const originalRoom = crypto.randomUUID(); await page.goto(`/?room=${originalRoom}`);
   await expect(page.getByText('Live', { exact: true })).toBeVisible();

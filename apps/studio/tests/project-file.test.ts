@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeDemoProject } from '../shared/demo';
+import { defaultState } from '../shared/model';
 import { parseProjectFile } from '../shared/project-file';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
@@ -111,9 +112,7 @@ describe('project file import', () => {
     const project = makeDemoProject(); project.name = 'Restored';
     const messages = createProjectMessages(source, project);
     expect(readProject(source)!.name).toBe('A little motion');
-    const decoder = decoding.createDecoder(messages.updateMessage);
-    expect(decoding.readVarUint(decoder)).toBe(0);
-    sync.readSyncMessage(decoder, encoding.createEncoder(), source, 'test');
+    applyMessages(source, messages.updateMessages);
     expect(readProject(source)).toEqual(project);
     const request = decoding.createDecoder(messages.syncMessage);
     expect(decoding.readVarUint(request)).toBe(0);
@@ -121,12 +120,69 @@ describe('project file import', () => {
     source.destroy();
   });
 
-  it('rejects an oversized encoded update before mutating or sending the project', () => {
+  it('publishes a project above one message as ordered bounded messages that reconstruct it', () => {
+    expect(createProjectMessages(new Y.Doc(), makeDemoProject()).updateMessages).toHaveLength(1);
+    const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
+    const project = largeProject();
+    const messages = createProjectMessages(source, project);
+    expect(messages.updateMessages.length).toBeGreaterThan(1);
+    expect(messages.updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(1048576);
+    for (const message of messages.updateMessages) expect(message.byteLength).toBeLessThanOrEqual(1048576);
+    expect(readProject(source)).toEqual(makeDemoProject());
+    applyMessages(source, messages.updateMessages);
+    expect(readProject(source)).toEqual(project);
+    source.destroy();
+  });
+  it('creates the same shared structure in parts as a single conversion, including legacy track keyframes', () => {
+    const project = largeProject();
+    // A legacy track without keyframes that is itself larger than one staging transaction.
+    (project.scenes['scene-1'].transitions.t1.tracks as Record<string, unknown>).o0 = { objectId: 'o0', type: 'move', start: 0, duration: 250, easing: 'linear', order: 'together', path: null, extra: 'x'.repeat(300000) };
+    const parts = new Y.Doc(), whole = new Y.Doc();
+    applyMessages(parts, createProjectMessages(new Y.Doc(), project).updateMessages);
+    initializeDocument(whole, project);
+    const track = ['scenes', 'scene-1', 'transitions', 't1', 'tracks', 'o0'].reduce((map: any, key) => map.get(key), parts.getMap('project') as any);
+    expect(track.get('keyframes')).toBeInstanceOf(Y.Map);
+    expect(track.get('extra')).toHaveLength(300000);
+    expect(shape(parts.getMap('project'))).toEqual(shape(whole.getMap('project')));
+    parts.destroy(); whole.destroy();
+  });
+  it('rejects a single value that cannot fit one message before mutating or sending the project', () => {
     const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
     const project = makeDemoProject();
     project.scenes['scene-1'].compositions['comp-1'].states.equation.text = 'a'.repeat(2 * 1024 * 1024);
-    expect(() => createProjectMessages(source, project)).toThrow('データ量');
+    expect(() => createProjectMessages(source, project)).toThrow('1 MB');
     expect(readProject(source)).toEqual(makeDemoProject());
     source.destroy();
   });
 });
+
+function applyMessages(doc: Y.Doc, messages: Uint8Array[]) {
+  for (const message of messages) {
+    const decoder = decoding.createDecoder(message);
+    expect(decoding.readVarUint(decoder)).toBe(0);
+    sync.readSyncMessage(decoder, encoding.createEncoder(), doc, 'test');
+  }
+}
+
+// Nested shared maps and arrays versus plain leaves, independent of item order.
+function shape(value: unknown): unknown {
+  if (value instanceof Y.Map) return { map: Object.fromEntries([...value.keys()].sort().map(key => [key, shape(value.get(key))])) };
+  if (value instanceof Y.Array) return { array: value.toArray().map(shape) };
+  return value;
+}
+
+// Serializes to several bounded messages; the 500-object fixture also backs the e2e import test.
+function largeProject(objects = 500, compositions = 6) {
+  const project = makeDemoProject(), scene = project.scenes['scene-1'];
+  scene.objects = {}; scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
+  for (let i = 0; i < objects; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false };
+  for (let c = 0; c < compositions; c++) {
+    const id = `c${c}`; scene.compositionOrder.push(id);
+    scene.compositions[id] = { id, name: `Composition ${c}`, accent: '#123456', duration: 1000,
+      states: Object.fromEntries(Object.keys(scene.objects).map((oid, i) => [oid, defaultState('circle', {
+        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20, text: '日本語😀',
+      })])) };
+    if (c) scene.transitions[`t${c}`] = { id: `t${c}`, fromId: `c${c - 1}`, toId: id, duration: 250, tracks: {} };
+  }
+  return project;
+}

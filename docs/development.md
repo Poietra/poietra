@@ -47,7 +47,11 @@ The boundaries to preserve are:
   keep the shared document snapshots intact.
 - Each room has one authoritative Yjs document. Reads share immutable snapshots;
   selective Undo preserves peer edits. Persist updates before broadcasting or
-  acknowledging them, including unresolved dependencies.
+  acknowledging them, including unresolved dependencies. Opening a portable
+  project publishes it as ordered messages of at most 1 MiB (2026-10-12), and
+  Durable Object compaction stores the document in 1 MiB SQLite rows (plus the
+  legacy single row while it fits one part), so project size is bounded by the
+  128 MB file limit rather than one CRDT message.
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.

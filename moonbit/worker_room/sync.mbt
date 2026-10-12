@@ -1,12 +1,40 @@
 ///|
+/// A Durable Object SQLite row holds at most 2 MB, so the compacted document
+/// is stored in parts of this size and reassembled on load.
+let snapshot_part_bytes : Int = 1048576
+
+///|
 fn Room::compact(self : Room) -> Unit {
   self.storage._call("transactionSync", [
     @core.any(fn() {
-      self.sql.exec1(
-        "INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)",
-        self.runtime._get("Y")._call("encodeStateAsUpdate", [self.doc]),
-      )
-      |> ignore
+      let snapshot = self.runtime
+        ._get("Y")
+        ._call("encodeStateAsUpdate", [self.doc])
+      let length : Int = snapshot._get("byteLength").cast()
+      self.sql.exec_raw("DELETE FROM snapshot_parts") |> ignore
+      // A document that fits one part also keeps the legacy row, so an older
+      // deployment still finds it instead of re-initializing the room.
+      if length <= snapshot_part_bytes {
+        self.sql.exec1(
+          "INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)", snapshot,
+        )
+        |> ignore
+      } else {
+        self.sql.exec_raw("DELETE FROM snapshot") |> ignore
+      }
+      let mut offset = 0
+      let mut part = 0
+      while offset < length {
+        let end = (offset + snapshot_part_bytes).min(length)
+        self.sql.exec2(
+          "INSERT INTO snapshot_parts (part, data) VALUES (?, ?)",
+          @core.any(part),
+          snapshot._call("slice", [@core.any(offset), @core.any(end)]),
+        )
+        |> ignore
+        offset = end
+        part += 1
+      }
       self.sql.exec_raw("DELETE FROM updates") |> ignore
     }),
   ])

@@ -31,13 +31,19 @@ function fixture(sockets = [socket(), socket()]) {
   const Room = projectRoomClass({ Y, sync });
   const create = () => new Room(ctx, {});
   const room = create();
+  const rows = (query: string) => (database.prepare(query).all() as { data: Uint8Array }[]).map(row => row.data);
+  const count = (table: string) => (database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
   function saved() {
     const doc = new Y.Doc();
-    for (const { data } of database.prepare('SELECT data FROM snapshot UNION ALL SELECT data FROM updates ORDER BY 1').all() as { data: Uint8Array }[]) Y.applyUpdate(doc, data);
+    const parts = rows('SELECT data FROM snapshot_parts ORDER BY part');
+    const snapshot = parts.length ? parts : rows('SELECT data FROM snapshot WHERE id = 1');
+    if (snapshot.length) Y.applyUpdate(doc, Buffer.concat(snapshot));
+    for (const data of rows('SELECT data FROM updates ORDER BY seq')) Y.applyUpdate(doc, data);
     return doc;
   }
-  return { room, create, ctx, database, sockets, saved };
+  return { room, create, ctx, database, sockets, saved, count };
 }
+function syncStep1() { const e = encoding.createEncoder(); encoding.writeVarUint(e, 0); sync.writeSyncStep1(e, new Y.Doc()); return encoding.toUint8Array(e); }
 function wire(update: Uint8Array) { const e = encoding.createEncoder(); encoding.writeVarUint(e, 0); sync.writeUpdate(e, update); return encoding.toUint8Array(e); }
 function message(room: any, peer: ReturnType<typeof socket>, bytes: Uint8Array) { room.webSocketMessage(peer, bytes.slice().buffer); }
 function readUpdates(peer: ReturnType<typeof socket>, doc: Y.Doc) {
@@ -150,4 +156,45 @@ test('full rosters remain readable by legacy clients with a 16 KiB / 100-entry i
   // Simulate a stock y-websocket client relaying the received roster.
   for (const [bytes] of [...observer.send.mock.calls]) message(f.room, observer, bytes);
   expect(observer.close).not.toHaveBeenCalled();
+});
+
+test('stores a compacted document larger than one SQLite row in snapshot parts and serves it after restart', () => {
+  const f = fixture(), source = f.saved();
+  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(1); // one part also keeps the legacy row
+  let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
+  for (const key of ['first', 'second', 'third']) {
+    source.getMap('project').set(key, key + 'x'.repeat(1_500_000));
+    message(f.room, f.sockets[0], wire(update));
+  }
+  expect(f.count('updates')).toBe(0); expect(f.count('snapshot')).toBe(0);
+  expect(f.count('snapshot_parts')).toBeGreaterThan(2);
+  expect((f.database.prepare('SELECT MAX(LENGTH(data)) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
+  expect(f.saved().getMap('project').get('third')).toBe('third' + 'x'.repeat(1_500_000));
+  const restored = f.create(); f.sockets[0].send.mockClear();
+  message(restored, f.sockets[0], syncStep1());
+  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
+  expect(peer.getMap('project').get('first')).toBe('first' + 'x'.repeat(1_500_000));
+  expect(peer.getMap('project').get('name')).toBe('A little motion');
+  source.destroy(); peer.destroy();
+});
+
+test('reads a legacy single-row snapshot and moves it into parts at the next compaction', () => {
+  const f = fixture();
+  // A room compacted before snapshot parts kept the whole document in one row.
+  const legacy = f.saved(); legacy.getMap('project').set('name', 'Legacy');
+  f.database.exec('DELETE FROM snapshot_parts');
+  f.database.prepare('INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)').run(Y.encodeStateAsUpdate(legacy));
+  const room = f.create();
+  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(0);
+  message(room, f.sockets[0], syncStep1());
+  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
+  expect(peer.getMap('project').get('name')).toBe('Legacy');
+  const source = f.saved(); let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
+  for (const key of ['first', 'second', 'third']) {
+    source.getMap('project').set(key, 'x'.repeat(1_500_000));
+    message(room, f.sockets[0], wire(update));
+  }
+  expect(f.count('snapshot')).toBe(0); expect(f.count('snapshot_parts')).toBeGreaterThan(1);
+  expect(f.saved().getMap('project').get('name')).toBe('Legacy');
+  legacy.destroy(); source.destroy(); peer.destroy();
 });

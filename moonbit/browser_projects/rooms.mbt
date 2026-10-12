@@ -6,6 +6,17 @@ fn dispose_host(value : @core.Any) -> Unit {
 }
 
 ///|
+/// Each publication message stays within half of the room servers' 2 MiB
+/// frame limit, so the journal row written for it fits a Durable Object
+/// SQLite row.
+let project_message_bytes : Int = 1048576
+
+///|
+/// JSON characters per staging transaction. Shared encoding needs a few bytes
+/// per character, so one transaction never approaches the message limit.
+let staging_budget : Int = 262144
+
+///|
 fn project_messages(
   source : @core.Any,
   project : @core.Any,
@@ -20,42 +31,36 @@ fn project_messages(
       yjs._call("encodeStateAsUpdate", [source]),
     ])
     |> ignore
-    let vector = yjs._call("encodeStateVector", [staged])
+    let updates : Array[@core.Any] = []
+    let collect = fn(update : @core.Any) { updates.push(update) }
+    staged._call("on", [@core.any("update"), @core.any(collect)]) |> ignore
+    let root = staged._call("getMap", [@core.any("project")])
     staged._call("transact", [
-      @core.any(fn() {
-        let root = staged._call("getMap", [@core.any("project")])
-        root._call("clear", []) |> ignore
-        for key in @core.object_keys(project) {
-          root._call("set", [
-            @core.any(key),
-            @boundary.to_shared(project._get(key), yjs),
-          ])
-          |> ignore
-        }
-      }),
+      @core.any(fn() { root._call("clear", []) |> ignore }),
     ])
     |> ignore
+    @boundary.fill_shared_bounded(staged, root, project, yjs, staging_budget)
+    staged._call("off", [@core.any("update"), @core.any(collect)]) |> ignore
     let encoding = runtime._get("encoding")
     let sync = runtime._get("sync")
-    let update = encoding._call("createEncoder", [])
-    encoding._call("writeVarUint", [update, @core.any(0)]) |> ignore
-    sync._call("writeUpdate", [
-      update,
-      yjs._call("encodeStateAsUpdate", [staged, vector]),
-    ])
-    |> ignore
-    let message = encoding._call("toUint8Array", [update])
-    let bytes : Int = message._get("byteLength").cast()
-    if bytes > 2097152 {
-      @core.throw_error(
-        "このプロジェクトは一度に開けるデータ量を超えています。シーンやオブジェクトを減らして保存してください。",
-      )
-    }
+    let messages = FixedArray::makei(updates.length(), fn(index) {
+      let update = encoding._call("createEncoder", [])
+      encoding._call("writeVarUint", [update, @core.any(0)]) |> ignore
+      sync._call("writeUpdate", [update, updates[index]]) |> ignore
+      let message = encoding._call("toUint8Array", [update])
+      let bytes : Int = message._get("byteLength").cast()
+      if bytes > project_message_bytes {
+        @core.throw_error(
+          "1 MB を超える値が含まれているため、このプロジェクトは開けません。",
+        )
+      }
+      message
+    })
     let request = encoding._call("createEncoder", [])
     encoding._call("writeVarUint", [request, @core.any(0)]) |> ignore
     sync._call("writeSyncStep1", [request, staged]) |> ignore
     @core.from_entries([
-      ("updateMessage", message),
+      ("updateMessages", @core.any(messages)),
       ("syncMessage", encoding._call("toUint8Array", [request])),
     ])
   })
@@ -200,7 +205,12 @@ async fn publish_room(
           @core.any(acknowledged),
         ])
         |> ignore
-        socket._call("send", [messages._get("updateMessage")]) |> ignore
+        let updates : FixedArray[@core.Any] = messages
+          ._get("updateMessages")
+          .cast()
+        for update in updates {
+          socket._call("send", [update]) |> ignore
+        }
         socket._call("send", [messages._get("syncMessage")]) |> ignore
       })
     } catch {

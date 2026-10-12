@@ -59,8 +59,8 @@ files or flatten AI edits into an uneditable generated video.
   Test offline/reconnect, independent edits and nested/observer transactions.
 - Persist unresolved Yjs dependencies as well as visible changes. Keep actual
   workerd hibernation, compaction, forced process restart and journal recovery tests.
-- Opening a portable project creates a fresh room, waits for server acknowledgment
-  and keeps the existing collaboration intact. Include media bytes in saved files;
+- Opening a portable project creates a fresh room, publishes it in bounded ordered
+  messages, waits for server acknowledgment and keeps the existing collaboration intact. Include media bytes in saved files;
   exclude chat and account data.
 
 ## AI and accounts

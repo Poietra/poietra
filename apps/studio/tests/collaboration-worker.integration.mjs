@@ -70,7 +70,7 @@ if (args.child) {
         await runtime.unsafeEvictDurableObject(workerName, 'ProjectRoom', { name: message.room, webSockets: 'hibernate' });
       } else if (message.command === 'journal') {
         const storage = await runtime.unsafeGetDurableObjectStorage(workerName, 'ProjectRoom', { name: message.room });
-        result = await storage.exec('SELECT (SELECT count(*) FROM snapshot) AS snapshots, (SELECT count(*) FROM updates) AS updates');
+        result = await storage.exec('SELECT (SELECT count(*) FROM snapshot_parts) AS snapshots, (SELECT count(*) FROM snapshot) AS legacy, (SELECT count(*) FROM updates) AS updates');
       }
       process.send?.({ id: message.id, result });
     } catch (error) { process.send?.({ id: message.id, error: String(error) }); }
@@ -298,7 +298,7 @@ if (args.child) {
     await expect(bob.page.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('333', { timeout: 15000 });
     console.log(`520-update burst reached both browser inspectors in ${Date.now() - burstStarted}ms`);
     const [journal] = await control('journal');
-    assert.equal(journal.snapshots, 1); assert(journal.updates < 256);
+    assert.equal(journal.snapshots, 1); assert.equal(journal.legacy, 1); assert(journal.updates < 256);
     assert(journal.updates > 0, 'Exercise both compacted snapshot and uncompacted journal tail');
     await control('hibernate');
     assert.equal(observer.provider.ws.readyState, WebSocket.OPEN);

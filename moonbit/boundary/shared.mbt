@@ -70,16 +70,86 @@ pub fn to_shared(value : @core.Any, host : @core.Any) -> @core.Any {
     for key in @core.object_keys(value) {
       map_set(result, key, to_shared(value._get(key), host))
     }
-    if !@core.object_keys(value).contains("keyframes") &&
-      @core.typeof_(value._get("objectId")) == "string" &&
-      @core.typeof_(value._get("start")) == "number" &&
-      @core.typeof_(value._get("duration")) == "number" &&
-      @core.typeof_(value._get("type")) == "string" {
+    if track_without_keyframes(value) {
       map_set(result, "keyframes", new_shared_map(host))
     }
     result
   } else {
     value
+  }
+}
+
+///|
+fn track_without_keyframes(value : @core.Any) -> Bool {
+  !@core.object_keys(value).contains("keyframes") &&
+  @core.typeof_(value._get("objectId")) == "string" &&
+  @core.typeof_(value._get("start")) == "number" &&
+  @core.typeof_(value._get("duration")) == "number" &&
+  @core.typeof_(value._get("type")) == "string"
+}
+
+///|
+extern "js" fn json_length(value : @core.Any) -> Int =
+  #|value => JSON.stringify(value).length
+
+///|
+/// Fills `map` with the entries of `value` through one transaction per subtree
+/// of at most `budget` JSON characters, creating the same shared maps as
+/// `to_shared`, so every transaction's update stays bounded for a transport
+/// with a message size limit.
+pub fn fill_shared_bounded(
+  doc : @core.Any,
+  map : @core.Any,
+  value : @core.Any,
+  host : @core.Any,
+  budget : Int,
+) -> Unit {
+  if json_length(value) <= budget {
+    transact(
+      doc,
+      fn() {
+        for key in @core.object_keys(value) {
+          map_set(map, key, to_shared(value._get(key), host))
+        }
+      },
+      @core.null(),
+    )
+    return
+  }
+  for key in @core.object_keys(value) {
+    set_shared_bounded(doc, map, key, value._get(key), host, budget)
+  }
+}
+
+///|
+fn set_shared_bounded(
+  doc : @core.Any,
+  parent : @core.Any,
+  key : String,
+  value : @core.Any,
+  host : @core.Any,
+  budget : Int,
+) -> Unit {
+  if is_array(value) ||
+    @core.is_null(value) ||
+    @core.typeof_(value) != "object" ||
+    json_length(value) <= budget {
+    transact(
+      doc,
+      fn() { map_set(parent, key, to_shared(value, host)) },
+      @core.null(),
+    )
+    return
+  }
+  let result = new_shared_map(host)
+  transact(doc, fn() { map_set(parent, key, result) }, @core.null())
+  fill_shared_bounded(doc, result, value, host, budget)
+  if track_without_keyframes(value) {
+    transact(
+      doc,
+      fn() { map_set(result, "keyframes", new_shared_map(host)) },
+      @core.null(),
+    )
   }
 }
 

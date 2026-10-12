@@ -31,12 +31,12 @@ try {
     }
     const project = { version: 1, name: 'Imported performance fixture', sceneOrder: [scene.id], scenes: { [scene.id]: scene } };
     const buffer = Buffer.from(JSON.stringify(project)), samples = [];
-    // Portable JSON limits and the room's initial 2 MiB CRDT packet limit differ.
-    // Check the actual handoff before timing so oversized inputs cannot masquerade
+    // Portable JSON size and the bounded CRDT messages that create the room differ.
+    // Record the actual handoff before timing so serialization cannot masquerade
     // as a slow import. The staged Yjs document is disposed by the production API.
     const empty = new Y.Doc();
     let updateMessageBytes;
-    try { updateMessageBytes = createProjectMessages(empty, project).updateMessage.byteLength; }
+    try { updateMessageBytes = createProjectMessages(empty, project).updateMessages.reduce((total, message) => total + message.byteLength, 0); }
     finally { empty.destroy(); }
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     try {

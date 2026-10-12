@@ -32,6 +32,16 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-10-12: The founder asked to remove the 2 MB project-open limit, which
+  was the Durable Object SQLite row limit surfacing through one initial CRDT
+  message. Open a project as an ordered sequence of messages of at most 1 MiB,
+  staged through bounded transactions that create the same shared structure as
+  `to_shared`; keep the 128 MB file limit and the room servers' 2 MiB frame cap.
+  Store compacted room snapshots in 1 MiB `snapshot_parts` rows; keep writing
+  the legacy single `snapshot` row while the document fits one part so an older
+  deployment still reads it, and read that row when no parts exist. Preserve
+  persist-before-acknowledge ordering, restart recovery and the API contract.
+
 - 2026-10-12: The founder requested removing headless-only output quotas that
   restricted local rendering. Use the same dimension and frame-index validation
   as browser export, without the 1080p, 60-second or 1800-frame caps. Local
