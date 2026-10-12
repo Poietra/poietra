@@ -90,13 +90,13 @@ fn track_without_keyframes(value : @core.Any) -> Bool {
 
 ///|
 extern "js" fn json_length(value : @core.Any) -> Int =
-  #|value => JSON.stringify(value).length
+  #|value => JSON.stringify(value)?.length ?? 0
 
 ///|
-/// Fills `map` with the entries of `value` through one transaction per subtree
-/// of at most `budget` JSON characters, creating the same shared maps as
-/// `to_shared`, so every transaction's update stays bounded for a transport
-/// with a message size limit.
+/// Packs shared entries into bounded transactions in one traversal. Strings use
+/// their length; only arrays need serialization for a conservative size estimate.
+/// The root version is written last, making the complete project readable and
+/// eligible for authoritative track initialization only after the final batch.
 pub fn fill_shared_bounded(
   doc : @core.Any,
   map : @core.Any,
@@ -104,50 +104,58 @@ pub fn fill_shared_bounded(
   host : @core.Any,
   budget : Int,
 ) -> Unit {
-  if json_length(value) <= budget {
+  let pending : Array[(@core.Any, String, @core.Any, Int)] = []
+  let enqueue = fn(parent : @core.Any, value : @core.Any, root : Bool) {
+    let keys = @core.object_keys(value)
+    for index = keys.length() - 1; index >= 0; index = index - 1 {
+      let key = keys[index]
+      if root && key == "version" {
+        continue
+      }
+      let child = value._get(key)
+      // Allow UTF-8 expansion and Yjs item/type metadata. Legacy tracks also
+      // create an empty keyframe map. The wire encoder checks the actual cap.
+      let content_size = if @core.typeof_(child) == "string" {
+        (child.cast() : String).length() * 3
+      } else if is_array(child) {
+        json_length(child) * 3
+      } else {
+        0
+      }
+      let size = key.length() * 3 + 64 + content_size
+      pending.push((parent, key, child, size))
+    }
+  }
+  if @core.object_keys(value).contains("version") {
+    pending.push((map, "version", value._get("version"), 64))
+  }
+  enqueue(map, value, true)
+  while !pending.is_empty() {
     transact(
       doc,
       fn() {
-        for key in @core.object_keys(value) {
-          map_set(map, key, to_shared(value._get(key), host))
+        let mut used = 0
+        while pending.pop() is Some(entry) {
+          let (parent, key, child, size) = entry
+          if used > 0 && used + size > budget {
+            pending.push(entry)
+            break
+          }
+          used += size
+          if !@core.is_null(child) &&
+            @core.typeof_(child) == "object" &&
+            !is_array(child) {
+            let result = new_shared_map(host)
+            if track_without_keyframes(child) {
+              map_set(result, "keyframes", new_shared_map(host))
+            }
+            map_set(parent, key, result)
+            enqueue(result, child, false)
+          } else {
+            map_set(parent, key, to_shared(child, host))
+          }
         }
       },
-      @core.null(),
-    )
-    return
-  }
-  for key in @core.object_keys(value) {
-    set_shared_bounded(doc, map, key, value._get(key), host, budget)
-  }
-}
-
-///|
-fn set_shared_bounded(
-  doc : @core.Any,
-  parent : @core.Any,
-  key : String,
-  value : @core.Any,
-  host : @core.Any,
-  budget : Int,
-) -> Unit {
-  if is_array(value) ||
-    @core.is_null(value) ||
-    @core.typeof_(value) != "object" ||
-    json_length(value) <= budget {
-    transact(
-      doc,
-      fn() { map_set(parent, key, to_shared(value, host)) },
-      @core.null(),
-    )
-    return
-  }
-  let result = new_shared_map(host)
-  transact(doc, fn() { map_set(parent, key, result) }, @core.null())
-  fill_shared_bounded(doc, result, value, host, budget)
-  if track_without_keyframes(value) {
-    transact(
-      doc,
-      fn() { map_set(result, "keyframes", new_shared_map(host)) },
       @core.null(),
     )
   }
@@ -321,6 +329,9 @@ pub fn changes_for(
 
 ///|
 pub fn ensure_scene_audio_tracks(doc : @core.Any, host : @core.Any) -> Bool {
+  if !has_version(shared_map(doc)) {
+    return false
+  }
   let scenes = map_get(shared_map(doc), "scenes")
   if !is_instance(scenes, host._get("Map")) {
     return false
@@ -404,6 +415,11 @@ fn animation_migration(doc : @core.Any, host : @core.Any) -> AnimationMigration 
 
 ///|
 pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool {
+  // Bounded imports publish version last. Keep any existing dirty flag until
+  // then, so initialization cannot race the arriving authored track parents.
+  if !has_version(shared_map(doc)) {
+    return false
+  }
   let state = animation_migration(doc, host)
   if !state.dirty {
     return false

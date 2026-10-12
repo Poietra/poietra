@@ -88,14 +88,14 @@ fn create_room(
       fn() { room.connections.size() },
     ),
   )
-  // Rooms compacted before snapshot parts keep their single legacy row until
-  // the next compaction moves it.
+  // An older deployment updates only the legacy row. Prefer it after a rollback;
+  // compaction removes it when the current document needs multiple parts.
   let mut snapshots = sql
-    .exec_raw("SELECT data FROM snapshot_parts ORDER BY part")
+    .exec_raw("SELECT data FROM snapshot WHERE id = 1")
     .to_array()
   if snapshots.is_empty() {
     snapshots = sql
-      .exec_raw("SELECT data FROM snapshot WHERE id = 1")
+      .exec_raw("SELECT data FROM snapshot_parts ORDER BY part")
       .to_array()
   }
   if !snapshots.is_empty() {

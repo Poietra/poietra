@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { makeDemoProject } from '../shared/demo';
-import { defaultState } from '../shared/model';
+import { defaultState, defaultTrack } from '../shared/model';
 import { parseProjectFile } from '../shared/project-file';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
-import { initializeDocument, readProject } from '../shared/document';
+import { ensureSceneAnimationTracks, ensureSceneAudioTracks, initializeDocument, readProject } from '../shared/document';
 import { createProjectMessages } from '../src/editor/projects';
 import { boundedUtf8Size } from '../../../_build/js/release/build/boundary/boundary.js';
 
@@ -120,18 +120,56 @@ describe('project file import', () => {
     source.destroy();
   });
 
-  it('publishes a project above one message as ordered bounded messages that reconstruct it', () => {
-    expect(createProjectMessages(new Y.Doc(), makeDemoProject()).updateMessages).toHaveLength(1);
+  it('opens a valid project above 2 MiB in compact bounded messages that reconstruct the shared document', () => {
+    const empty = new Y.Doc();
+    expect(createProjectMessages(empty, makeDemoProject()).updateMessages).toHaveLength(1);
+    empty.destroy();
     const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
-    const project = largeProject();
+    const project = parseProjectFile(JSON.stringify(largeProject()));
     const messages = createProjectMessages(source, project);
     expect(messages.updateMessages.length).toBeGreaterThan(1);
-    expect(messages.updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(1048576);
+    expect(messages.updateMessages.length).toBeLessThan(100);
+    expect(messages.updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(2 * 1048576);
     for (const message of messages.updateMessages) expect(message.byteLength).toBeLessThanOrEqual(1048576);
     expect(readProject(source)).toEqual(makeDemoProject());
     applyMessages(source, messages.updateMessages);
     expect(readProject(source)).toEqual(project);
-    source.destroy();
+    const whole = new Y.Doc(); initializeDocument(whole, project);
+    expect(shape(source.getMap('project'))).toEqual(shape(whole.getMap('project')));
+    source.destroy(); whole.destroy();
+  });
+  it('preserves authored tracks and 2,000 keyframes when the room initializes after every import message', () => {
+    const source = new Y.Doc(), server = new Y.Doc();
+    source.clientID = 1;
+    // A deterministic winner for defaults inserted concurrently with the staged import.
+    server.clientID = 0xffffffff;
+    initializeDocument(source, makeDemoProject());
+    ensureSceneAudioTracks(source); ensureSceneAnimationTracks(source);
+    Y.applyUpdate(server, Y.encodeStateAsUpdate(source));
+    const input = largeProject(2, 2); input.version = 2;
+    const tracks = input.scenes['scene-1'].transitions.t1.tracks;
+    for (const objectId of ['o0', 'o1']) tracks[objectId] = defaultTrack(objectId, {
+      type: 'write', start: 25, duration: 200, easing: 'easeOut',
+      keyframes: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [
+        `point-${i}`.padEnd(64, 'x'),
+        { property: 'x' as const, at: (i + 1) / 1001, value: i, easing: 'linear' as const },
+      ])),
+    });
+    expect(JSON.stringify(tracks).length).toBeGreaterThan(262144);
+    const project = parseProjectFile(JSON.stringify(input));
+    const { updateMessages } = createProjectMessages(source, project);
+    expect(updateMessages.length).toBeGreaterThan(1);
+    for (const [index, message] of updateMessages.entries()) {
+      expect(message.byteLength).toBeLessThanOrEqual(1048576);
+      applyMessages(server, [message]);
+      ensureSceneAudioTracks(server); ensureSceneAnimationTracks(server);
+      if (index < updateMessages.length - 1) expect(readProject(server)).toBeNull();
+    }
+    expect(readProject(server)!.scenes['scene-1'].transitions.t1.tracks).toEqual(tracks);
+    const whole = new Y.Doc(); initializeDocument(whole, project);
+    ensureSceneAudioTracks(whole); ensureSceneAnimationTracks(whole);
+    expect(shape(server.getMap('project'))).toEqual(shape(whole.getMap('project')));
+    source.destroy(); server.destroy(); whole.destroy();
   });
   it('creates the same shared structure in parts as a single conversion, including legacy track keyframes', () => {
     const project = largeProject();
@@ -171,16 +209,16 @@ function shape(value: unknown): unknown {
   return value;
 }
 
-// Serializes to several bounded messages; the 500-object fixture also backs the e2e import test.
+// Valid authored text content exceeds 2 MiB without any single oversized value.
 function largeProject(objects = 500, compositions = 6) {
   const project = makeDemoProject(), scene = project.scenes['scene-1'];
   scene.objects = {}; scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
-  for (let i = 0; i < objects; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false };
+  for (let i = 0; i < objects; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'text', order: i, groupId: null, locked: false };
   for (let c = 0; c < compositions; c++) {
     const id = `c${c}`; scene.compositionOrder.push(id);
     scene.compositions[id] = { id, name: `Composition ${c}`, accent: '#123456', duration: 1000,
-      states: Object.fromEntries(Object.keys(scene.objects).map((oid, i) => [oid, defaultState('circle', {
-        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20, text: '日本語😀',
+      states: Object.fromEntries(Object.keys(scene.objects).map((oid, i) => [oid, defaultState('text', {
+        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20, text: 'a'.repeat(400),
       })])) };
     if (c) scene.transitions[`t${c}`] = { id: `t${c}`, fromId: `c${c - 1}`, toId: id, duration: 250, tracks: {} };
   }

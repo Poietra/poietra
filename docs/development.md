@@ -48,10 +48,14 @@ The boundaries to preserve are:
 - Each room has one authoritative Yjs document. Reads share immutable snapshots;
   selective Undo preserves peer edits. Persist updates before broadcasting or
   acknowledging them, including unresolved dependencies. Opening a portable
-  project publishes it as ordered messages of at most 1 MiB (2026-10-12), and
-  Durable Object compaction stores the document in 1 MiB SQLite rows (plus the
-  legacy single row while it fits one part), so project size is bounded by the
-  128 MB file limit rather than one CRDT message.
+  project packs shared entries into ordered messages of at most 1 MiB in a
+  single traversal (2026-10-12). The root version arrives last; until then,
+  readers and automatic track initialization wait for the complete project.
+  Durable Object compaction stores the document in 1 MiB SQLite rows, retaining
+  the legacy row while it fits one part. Loading prefers that row when present
+  so edits saved by a rolled-back deployment survive a later upgrade. Users
+  open one file within the existing 128 MB limit; the smaller transport and
+  storage units are internal.
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.
@@ -389,6 +393,16 @@ performance or production-capacity measurements; provider HTTP was mocked.
 POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright test spatial-math.spec.ts math-geometry.spec.ts graphs.spec.ts clipping.spec.ts canvas.spec.ts motion-template.spec.ts text-editing.spec.ts undo-objects.spec.ts undo-tracks.spec.ts ai-create.spec.ts ai.spec.ts ai-dogfood.spec.ts --workers=2
 node apps/studio/tests/collaboration-worker.integration.mjs --port 8790
 ```
+
+Bounded project import verification (2026-10-12, working tree based on `11f59df`)
+used the pinned MoonBit compiler, Node 26.11.1 and isolated Node/workerd storage.
+The release web build, type/API checks and source/suite audits passed, alongside
+892 studio tests, 5 project browser tests and 8 workerd integration scenarios.
+The browser checks opened, reloaded and saved projects above 2 MiB in current
+and legacy formats. Regression checks retained 2,000 authored keyframes while
+initializing after every import message, and recovered edits after legacy
+snapshot compaction followed by an upgrade. These were local correctness
+checks; no production deployment or production-capacity test was performed.
 
 ## API documentation
 

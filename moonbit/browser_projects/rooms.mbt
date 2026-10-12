@@ -12,8 +12,8 @@ fn dispose_host(value : @core.Any) -> Unit {
 let project_message_bytes : Int = 1048576
 
 ///|
-/// JSON characters per staging transaction. Shared encoding needs a few bytes
-/// per character, so one transaction never approaches the message limit.
+/// Conservative UTF-8 and Yjs metadata budget per staging transaction, keeping
+/// small entries together with headroom beneath the encoded message limit.
 let staging_budget : Int = 262144
 
 ///|

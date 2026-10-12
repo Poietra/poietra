@@ -35,8 +35,8 @@ function fixture(sockets = [socket(), socket()]) {
   const count = (table: string) => (database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
   function saved() {
     const doc = new Y.Doc();
-    const parts = rows('SELECT data FROM snapshot_parts ORDER BY part');
-    const snapshot = parts.length ? parts : rows('SELECT data FROM snapshot WHERE id = 1');
+    const legacy = rows('SELECT data FROM snapshot WHERE id = 1');
+    const snapshot = legacy.length ? legacy : rows('SELECT data FROM snapshot_parts ORDER BY part');
     if (snapshot.length) Y.applyUpdate(doc, Buffer.concat(snapshot));
     for (const data of rows('SELECT data FROM updates ORDER BY seq')) Y.applyUpdate(doc, data);
     return doc;
@@ -197,4 +197,29 @@ test('reads a legacy single-row snapshot and moves it into parts at the next com
   expect(f.count('snapshot')).toBe(0); expect(f.count('snapshot_parts')).toBeGreaterThan(1);
   expect(f.saved().getMap('project').get('name')).toBe('Legacy');
   legacy.destroy(); source.destroy(); peer.destroy();
+});
+
+test('restores edits compacted by an older deployment instead of stale snapshot parts', () => {
+  const f = fixture();
+  const parts = f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all();
+  expect(f.count('snapshot')).toBe(1); expect(parts).toHaveLength(1);
+  // Roll back to a deployment that only reads and writes the legacy snapshot.
+  const legacy = new Y.Doc();
+  const row = f.database.prepare('SELECT data FROM snapshot WHERE id = 1').get() as { data: Uint8Array };
+  Y.applyUpdate(legacy, row.data);
+  legacy.getMap('project').set('name', 'Edited after rollback');
+  f.ctx.storage.transactionSync(() => {
+    f.database.prepare('INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)').run(Y.encodeStateAsUpdate(legacy));
+    f.database.exec('DELETE FROM updates');
+  });
+  expect(f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all()).toEqual(parts);
+  // A later journal edit depends on that legacy snapshot and must also survive.
+  legacy.on('update', bytes => f.database.prepare('INSERT INTO updates (data) VALUES (?)').run(bytes));
+  legacy.getMap('project').set('name', 'Latest edit');
+  const restored = f.create();
+  message(restored, f.sockets[0], syncStep1());
+  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
+  expect(peer.getMap('project').get('name')).toBe('Latest edit');
+  expect(f.ctx.abort).not.toHaveBeenCalled();
+  legacy.destroy(); peer.destroy();
 });
