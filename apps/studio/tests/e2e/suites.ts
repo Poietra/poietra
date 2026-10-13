@@ -42,6 +42,7 @@ export const suites = {
     'timeline.spec.ts',
     'undo-objects.spec.ts',
     'undo-tracks.spec.ts',
+    'workspace.spec.ts',
   ],
   components: [
     'dogfood-site-lifecycle.spec.ts',

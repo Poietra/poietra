@@ -57,10 +57,13 @@ test('a reverse marquee encloses rotated shapes, text and equations; the selecti
     await expect(page.locator('[data-selection-id]')).toHaveCount(3);
     const before = Object.fromEntries(await Promise.all(Object.values(ids).map(async id => [id, await origin(page, id)])));
     await moveAt(page, 430, 180, 24, 12);
-    const delta = (await origin(page, ids.rectangle)).x - before[ids.rectangle].x; expect(delta).toBeGreaterThan(30);
+    const moved = await origin(page, ids.rectangle);
+    // Each axis snaps independently; compare both observed deltas across members.
+    const delta = { x: moved.x - before[ids.rectangle].x, y: moved.y - before[ids.rectangle].y };
+    expect(delta.x).toBeGreaterThan(30); expect(delta.y).toBeGreaterThan(15);
     for (const id of Object.values(ids)) {
-      const after = await origin(page, id); expect(after.x - before[id].x).toBeCloseTo(delta, 1);
-      expect(after.y - before[id].y).toBeCloseTo(delta / 2, 1);
+      const after = await origin(page, id); expect(after.x - before[id].x).toBeCloseTo(delta.x, 1);
+      expect(after.y - before[id].y).toBeCloseTo(delta.y, 1);
       await expect.poll(() => origin(peer, id)).toEqual(after);
     }
     await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();

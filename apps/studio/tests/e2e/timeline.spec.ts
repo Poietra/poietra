@@ -238,7 +238,7 @@ test('bottom seeking follows the visible ruler after scrolling at a narrow width
   const strip = page.locator('.composition-strip');
   await strip.evaluate(element => { element.scrollLeft = element.scrollWidth; });
   expect(await strip.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
-  const tracks = page.locator('.transition-tracks');
+  const tracks = page.locator('.timeline-scroll');
   await page.locator('.track-lane').first().hover(); await page.mouse.wheel(0, 15);
   await expect.poll(() => tracks.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
   const ruler = await page.locator('.track-seek-control').boundingBox();

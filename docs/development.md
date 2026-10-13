@@ -52,6 +52,11 @@ The boundaries to preserve are:
   Durable Object compaction stores the document in 1 MiB SQLite rows (plus the
   legacy single row while it fits one part), so project size is bounded by the
   128 MB file limit rather than one CRDT message.
+- Workspace layout (2026-10-12) keeps heading and timeline heights independent of
+  Composition/Transition selection. Tracks and media share a scrolling body while
+  segment cards and transport stay fixed. CSS sizes the timeline to the viewport;
+  no layout state enters the document or Undo. Existing Composition editing and
+  Transition comparison/playback keep their separate views and controls.
 - Preview and export share prepared evaluation and render geometry. Capture
   export inputs before awaiting; preserve every output timestamp, cancellation,
   backpressure and cleanup. Keep playback-clock notifications local to consumers.
