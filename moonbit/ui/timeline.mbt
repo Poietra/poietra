@@ -197,7 +197,10 @@ pub fn timeline(input : @core.Any) -> @react.Element {
     },
     [
       typed_component(cached_timeline_structure, props),
-      children(input),
+      h("div", { "className": @core.any("timeline-scroll") }, [
+        typed_component(cached_timeline_details, props),
+        children(input),
+      ]),
       timeline_transport(input, editor, total),
     ],
   )
@@ -211,32 +214,11 @@ let cached_timeline_structure : TypedComponent[EditorView] = memo_typed_componen
 ///|
 fn timeline_structure(editor : EditorView) -> @react.Element {
   let scene = editor.scene
-  let selection = editor.selection
-  let selected_id : String = selection.id()
-  let scene_id : String = scene._get("id").cast()
-  // The playback clock does not rebuild structural timelines or target lists.
+  let selected_id = editor.selection.id()
   let segments : Array[@scene.Segment] = @react.use_memo(
     fn() { @boundary.read_scene_segments(scene) },
     [scene],
   )
-  let total = @react.use_memo(fn() { @boundary.scene_duration(scene) }, [scene])
-  let transition = if selection is TransitionSelection(_) &&
-    !editor.viewing_playback {
-    scene._get("transitions")._get(selected_id)
-  } else {
-    @core.undefined()
-  }
-  let animations : Array[TrackRowData] = @react.use_memo(
-    fn() {
-      if truthy(transition) {
-        native_timeline_tracks(editor, transition)
-      } else {
-        []
-      }
-    },
-    [scene, transition, editor.store],
-  )
-  let feedback = use_operation_feedback_state(scene_id + ":" + selected_id)
   let cards : Array[&@react.ReactNode] = []
   for part in segments {
     let id = part.id
@@ -333,23 +315,52 @@ fn timeline_structure(editor : EditorView) -> @react.Element {
       [icon("Plus", 21)],
     ),
   )
-  let content : Array[&@react.ReactNode] = [
-    h("div", { "className": @core.any("composition-strip") }, cards),
-  ]
+  h("div", { "className": @core.any("composition-strip") }, cards)
+}
+
+///|
+let cached_timeline_details : TypedComponent[EditorView] = memo_typed_component(
+  timeline_details,
+)
+
+///|
+fn timeline_details(editor : EditorView) -> @react.Element {
+  let scene = editor.scene
+  let selection = editor.selection
+  let selected_id : String = selection.id()
+  let scene_id : String = scene._get("id").cast()
+  // The playback clock does not rebuild structural timelines or target lists.
+  let segments : Array[@scene.Segment] = @react.use_memo(
+    fn() { @boundary.read_scene_segments(scene) },
+    [scene],
+  )
+  let total = @react.use_memo(fn() { @boundary.scene_duration(scene) }, [scene])
+  let transition = if selection is TransitionSelection(_) &&
+    !editor.viewing_playback {
+    scene._get("transitions")._get(selected_id)
+  } else {
+    @core.undefined()
+  }
+  let animations : Array[TrackRowData] = @react.use_memo(
+    fn() {
+      if truthy(transition) {
+        native_timeline_tracks(editor, transition)
+      } else {
+        []
+      }
+    },
+    [scene, transition, editor.store],
+  )
+  let feedback = use_operation_feedback_state(scene_id + ":" + selected_id)
   if truthy(transition) {
     let part = segments.iter().find_first(fn(part) { part.id == selected_id })
     let start : Double = part.map(fn(part) { part.start }).unwrap_or(0.0)
-    content.push(
-      timeline_tracks(editor, transition, start, animations, feedback),
-    )
+    timeline_tracks(editor, transition, start, animations, feedback)
   } else {
-    content.push(
-      component(
-        scene_ruler,
-        { "segments": @core.any(segments), "total": @core.any(total) },
-        [],
-      ),
+    component(
+      scene_ruler,
+      { "segments": @core.any(segments), "total": @core.any(total) },
+      [],
     )
   }
-  @react.fragment(content)
 }

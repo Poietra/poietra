@@ -130,12 +130,16 @@ test('media clips select with the keyboard, drag from committed input, and cance
   await expect(input).toHaveValue('3000');
   await expect(page.getByRole('slider', { name: '素材トラックの再生位置', exact: true })).toHaveAttribute('max', '5000');
   expect(await clip.evaluate(element => getComputedStyle(element).width)).not.toMatch(/NaN|Infinity|^-/);
-  const bounds = await page.locator('.media-timeline').boundingBox(), transport = await page.locator('.transport').boundingBox();
+  // Media now scrolls inside the fixed timeline; its viewport must stop above transport.
+  const bounds = await page.locator('.timeline-scroll').boundingBox(), transport = await page.locator('.transport').boundingBox();
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(transport!.y);
+  await page.locator('.media-track-status').scrollIntoViewIfNeeded();
+  await expect(page.locator('.media-track-status')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.transport')).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole('button', { name: 'Preview project', exact: true })).toBeInViewport();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await page.screenshot({ path: testInfo.outputPath('media-feedback.png') });
-  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.setViewportSize({ width: 1100, height: 640 });
   const tools = page.locator('.floating-tools');
   const toolBox = await tools.boundingBox(), stageArea = await page.locator('.main-stage-area').boundingBox();
   expect(toolBox!.y).toBeGreaterThanOrEqual(stageArea!.y);

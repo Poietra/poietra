@@ -22,9 +22,10 @@ async function setup(page: Page) {
   const scene = () => readProject(doc)!.scenes[sceneId];
   await page.getByRole('button', { name: '円 (O)', exact: true }).click();
   const box = (await page.getByTestId('stage-main').boundingBox())!;
-  await page.mouse.click(box.x + box.width * 200 / 1280, box.y + box.height / 3);
+  await page.mouse.click(box.x + box.width / 4, box.y + box.height / 2);
   const objectId = (await page.locator('.layer-row.selected').getAttribute('data-layer-id'))!;
   await field(page, 'Position X', 200);
+  await field(page, 'Position Y', 240);
   await page.locator('.composition-strip .add-composition').click();
   await page.locator(`[data-layer-id="${objectId}"] .layer-select`).click();
   await field(page, 'Position X', 1000); await field(page, 'Opacity', 20);
@@ -88,6 +89,7 @@ test('a custom object moves over two seconds while opacity finishes in 300 ms; r
     await expect(opacityRow).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: info.outputPath('independent-position-opacity.png') });
     await page.setViewportSize({ width: 1100, height: 800 });
+    await opacityRow.scrollIntoViewIfNeeded();
     await expect(opacityRow).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole('button', { name: 'プロジェクトを開く', exact: true })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: info.outputPath('independent-position-opacity-narrow.png') });
