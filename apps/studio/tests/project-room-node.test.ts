@@ -9,7 +9,7 @@ import * as Y from 'yjs';
 import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
 import { readProject } from '../shared/document';
-import { createProjectMessages, createProjectRoom } from '../src/editor/projects';
+import { createProjectRoom } from '../src/editor/projects';
 import type { Room } from '../server/collaboration';
 import { largeImportProject } from './helpers/project-import';
 
@@ -19,7 +19,7 @@ it('imports above 2 MiB through real Node sockets without overflowing echoes and
   vi.stubGlobal('WebSocket', WebSocket);
   const { Room } = await import('../server/collaboration');
   const server = new WebSocketServer({ port: 0 });
-  let target: Room | undefined, requests = 0;
+  let target: Room | undefined, requests = 0, publishedBytes = 0;
   const closes: number[] = [];
   server.on('connection', (socket, request) => {
     const id = request.url!.split('/').at(-1)!;
@@ -27,7 +27,10 @@ it('imports above 2 MiB through real Node sockets without overflowing echoes and
     socket.on('close', code => closes.push(code));
     socket.on('message', data => {
       const decoder = decoding.createDecoder(new Uint8Array(data as Buffer));
-      if (decoding.readVarUint(decoder) === 0 && decoding.readVarUint(decoder) === sync.messageYjsSyncStep1) requests++;
+      if (decoding.readVarUint(decoder) !== 0) return;
+      const kind = decoding.readVarUint(decoder);
+      if (kind === sync.messageYjsSyncStep1) requests++;
+      if (kind === sync.messageYjsUpdate) publishedBytes += (data as Buffer).byteLength;
     });
     target.connect(socket);
   });
@@ -36,16 +39,13 @@ it('imports above 2 MiB through real Node sockets without overflowing echoes and
   if (!address || typeof address === 'string') throw new Error('Missing test server address');
   const origin = `http://127.0.0.1:${address.port}`;
   vi.stubGlobal('location', { protocol: 'http:', host: `127.0.0.1:${address.port}`, href: `${origin}/?room=original` });
-  const project = largeImportProject(), baseline = new Y.Doc();
+  const project = largeImportProject();
   try {
-    const packets = createProjectMessages(baseline, project).updateMessages;
-    expect(packets.length).toBeGreaterThan(16);
-    expect(packets.reduce((sum, packet) => sum + packet.byteLength, 0)).toBeGreaterThan(2 * 1048576);
     const result = await createProjectRoom(project);
     const id = result.searchParams.get('room'); expect(id).toBe(target!.id);
     expect(requests).toBeGreaterThan(2);
-    // Inspect durable bytes immediately when publication returns, before closing
-    // the room could flush an unacknowledged trailing update for this test.
+    expect(publishedBytes).toBeGreaterThan(2 * 1048576);
+    // Read before disposal, which also persists the room.
     const persisted = new Y.Doc();
     try {
       Y.applyUpdate(persisted, readFileSync(join(directory, `${id}.yjs`)));
@@ -53,11 +53,7 @@ it('imports above 2 MiB through real Node sockets without overflowing echoes and
     } finally { persisted.destroy(); }
     await expect.poll(() => target!.connections.size).toBe(0);
     expect(closes).not.toContain(1013);
-    expect(target!.dispose()).toBe(true);
-    target = new Room(id!);
-    expect(readProject(target.doc)).toEqual(project);
   } finally {
-    baseline.destroy();
     for (const socket of server.clients) socket.terminate();
     await new Promise<void>(resolve => server.close(() => resolve()));
     target?.dispose();

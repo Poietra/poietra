@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { makeDemoProject } from '../../shared/demo';
-import { defaultState } from '../../shared/model';
+import { largeImportProject } from '../helpers/project-import';
 import { createProjectMessages } from '../../src/editor/projects';
 import * as Y from 'yjs';
 
@@ -70,18 +70,13 @@ test('closing a pending file read permits another operation and ignores the old 
 });
 
 for (const legacy of [false, true]) test(`an import above 2 MiB survives acknowledgment and reload (legacy tracks: ${legacy})`, async ({ page }) => {
-  const project = makeDemoProject(), scene = project.scenes['scene-1'];
-  project.name = 'Large imported project';
-  if (legacy) project.version = 1;
-  scene.objects = {}; scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
-  for (let i = 0; i < 500; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false };
-  for (let c = 0; c < 12; c++) {
-    const id = `c${c}`; scene.compositionOrder.push(id);
-    if (legacy && c) scene.transitions[`t${c}`] = { id: `t${c}`, fromId: `c${c - 1}`, toId: id, duration: 250, tracks: {} };
-    scene.compositions[id] = { id, name: `Composition ${c}`, accent: '#123456', duration: 1000,
-      states: Object.fromEntries(Object.keys(scene.objects).map((id, i) => [id, defaultState('circle', {
-        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20,
-      })])) };
+  const project = largeImportProject(), scene = project.scenes['scene-1'];
+  if (legacy) {
+    project.version = 1;
+    for (let c = 1; c < scene.compositionOrder.length; c++) {
+      const id = `t${c}`;
+      scene.transitions[id] = { id, fromId: `c${c - 1}`, toId: `c${c}`, duration: 250, tracks: {} };
+    }
   }
   const empty = new Y.Doc();
   try {

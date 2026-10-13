@@ -4,8 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Compile the actual last single-row Room from Git into an isolated directory;
-// never check a copied historical implementation into the application or tests.
+// Build the previous single-row Room from Git without vendoring historical code.
 export async function historicalRoomClass() {
   const root = fileURLToPath(new URL('../../../../', import.meta.url));
   const directory = mkdtempSync(join(tmpdir(), 'poietra-rollback-room-'));

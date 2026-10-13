@@ -1,8 +1,7 @@
 import { makeDemoProject } from '../../shared/demo';
 import { defaultState } from '../../shared/model';
 
-// Ordinary authored poses: no oversized leaves, with enough shared state to
-// overflow the Node room's echo queue if all publication frames arrive at once.
+// Ordinary poses exceed the 2 MiB echo queue without oversized leaves.
 export function largeImportProject() {
   const project = makeDemoProject(), scene = project.scenes['scene-1'];
   project.name = 'Large imported project';

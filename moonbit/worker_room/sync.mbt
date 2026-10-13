@@ -9,8 +9,7 @@ fn Room::compact(self : Room) -> Unit {
       let snapshot = self.runtime
         ._get("Y")
         ._call("encodeStateAsUpdate", [self.doc])
-      // Use the old writer's actual capacity, not the smaller part size. The
-      // savepoint leaves the previous snapshot intact if SQLite rejects the row.
+      // Probe SQLite's actual capacity without losing the previous snapshot.
       let legacy_written = @core.throwable(fn() {
         self.storage._call("transactionSync", [
           @core.any(fn() {
@@ -37,8 +36,7 @@ fn Room::compact(self : Room) -> Unit {
           }
         }
       }
-      // Deploy the multipart reader first. Until it is a safe rollback target,
-      // preserve the legacy snapshot and its complete journal on oversized docs.
+      // Keep the legacy snapshot and journal until a multipart reader is deployed.
       if legacy_written ||
         @core.equal(
           self.env._get("ROOM_SNAPSHOT_PARTS_WRITE"),
@@ -67,16 +65,14 @@ fn Room::compact(self : Room) -> Unit {
     }),
   ])
   |> ignore
-  // These counters measure work since the last compaction attempt; resetting
-  // them also bounds retries while a reader-only rollout retains the journal.
+  // Bound retries even when compaction keeps the journal.
   self.updates = 0
   self.journal_bytes = 0
 }
 
 ///|
 fn Room::migrate(self : Room) -> Bool {
-  // Migrations must survive even when a reader-only rollout defers compaction.
-  // Constructor migrations also need the same atomic journal as incoming edits.
+  // Preserve migration identities when oversized snapshots cannot be compacted.
   self.storage
   ._call("transactionSync", [
     @core.any(fn() {
@@ -92,9 +88,10 @@ fn Room::migrate(self : Room) -> Bool {
         self.doc,
         self.runtime._get("Y"),
       )
-      let animations = @boundary.ensure_scene_animation_tracks_bounded(
+      let animations = @boundary.initialize_animation_tracks(
         self.doc,
         self.runtime._get("Y"),
+        true,
       )
       audio || animations
     }),

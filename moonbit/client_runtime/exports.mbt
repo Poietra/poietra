@@ -91,10 +91,6 @@ pub fn export_boundary() -> @core.Any {
       "ensureSceneAnimationTracks",
       @core.any(@boundary.ensure_scene_animation_tracks),
     ),
-    (
-      "ensureSceneAnimationTracksBounded",
-      @core.any(@boundary.ensure_scene_animation_tracks_bounded),
-    ),
     ("readProject", @core.any(@boundary.read_project)),
     ("sceneStructureView", @core.any(@boundary.scene_structure_view)),
     ("projectStructureView", @core.any(@boundary.project_structure_view)),

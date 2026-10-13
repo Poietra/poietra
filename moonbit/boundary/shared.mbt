@@ -93,10 +93,7 @@ extern "js" fn json_length(value : @core.Any) -> Int =
   #|value => JSON.stringify(value)?.length ?? 0
 
 ///|
-/// Packs shared entries into bounded transactions in one traversal. Strings use
-/// their length; only arrays need serialization for a conservative size estimate.
-/// The root version is written last, making the complete project readable and
-/// eligible for authoritative track initialization only after the final batch.
+/// Publish version last so server initialization waits for all authored tracks.
 pub fn fill_shared_bounded(
   doc : @core.Any,
   map : @core.Any,
@@ -113,8 +110,7 @@ pub fn fill_shared_bounded(
         continue
       }
       let child = value._get(key)
-      // Allow UTF-8 expansion and Yjs item/type metadata. Legacy tracks also
-      // create an empty keyframe map. The wire encoder checks the actual cap.
+      // Allow UTF-8 and Yjs overhead; the wire encoder checks the final size.
       let content_size = if @core.typeof_(child) == "string" {
         (child.cast() : String).length() * 3
       } else if is_array(child) {
@@ -419,24 +415,13 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
 }
 
 ///|
-/// Worker journals each generated update independently. Keep legacy imports
-/// with many missing tracks below a SQLite row, without changing the ordinary
-/// single-transaction initialization used by browser and Node callers.
-pub fn ensure_scene_animation_tracks_bounded(
-  doc : @core.Any,
-  host : @core.Any,
-) -> Bool {
-  initialize_animation_tracks(doc, host, true)
-}
-
-///|
-fn initialize_animation_tracks(
+/// Worker journals bounded batches; other callers retain one transaction.
+pub fn initialize_animation_tracks(
   doc : @core.Any,
   host : @core.Any,
   bounded : Bool,
 ) -> Bool {
-  // Bounded imports publish version last. Keep any existing dirty flag until
-  // then, so initialization cannot race the arriving authored track parents.
+  // A staged import has no version until its final batch.
   if !has_version(shared_map(doc)) {
     return false
   }
@@ -493,8 +478,7 @@ fn initialize_animation_tracks(
           }
         }
         if bounded {
-          // Portable object IDs are bounded to 80 characters. A batch of
-          // 128 default tracks leaves ample space below the 1 MiB budget.
+          // 128 tracks with 80-character IDs fit below the 1 MiB journal budget.
           let mut start = 0
           while start < ids.length() {
             let end = (start + 128).min(ids.length())

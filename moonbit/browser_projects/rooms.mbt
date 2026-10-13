@@ -6,20 +6,15 @@ fn dispose_host(value : @core.Any) -> Unit {
 }
 
 ///|
-/// Each publication message stays within half of the room servers' 2 MiB
-/// frame limit, so the journal row written for it fits a Durable Object
-/// SQLite row.
+/// Leave room below the server frame and SQLite row limits.
 let project_message_bytes : Int = 1048576
 
 ///|
-/// Conservative UTF-8 and Yjs metadata budget per staging transaction, keeping
-/// small entries together with headroom beneath the encoded message limit.
+/// Include UTF-8 and Yjs overhead when grouping small entries.
 let staging_budget : Int = 262144
 
 ///|
-/// Leave space in the room's bounded echo queue for migration and control
-/// messages. One indivisible update may exceed this window, up to the frame
-/// limit above; a count bound also covers very small updates.
+/// Leave echo-queue headroom; one indivisible frame may exceed this window.
 let publication_window_bytes : Int = 524288
 
 ///|
@@ -123,8 +118,7 @@ fn Publication::send_window(
       count += 1
       bytes += size
     }
-    // The server persists preceding updates before sending this ordered reply.
-    // Reusing the completed document's vector keeps partial-window replies small.
+    // The final state vector keeps intermediate persisted acknowledgments small.
     socket._call("send", [self.sync_message]) |> ignore
   })
 }

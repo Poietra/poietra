@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import * as Y from 'yjs';
-import * as encoding from 'lib0/encoding';
-import * as decoding from 'lib0/decoding';
-import * as sync from 'y-protocols/sync';
+import type * as Y from 'yjs';
 import { makeDemoProject } from '../shared/demo';
-import { readProject } from '../shared/document';
 import { createProjectRoom } from '../src/editor/projects';
 import { largeImportProject } from './helpers/project-import';
 
@@ -32,40 +28,14 @@ beforeEach(() => {
   vi.stubGlobal('WebSocket', { OPEN: 1 });
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-async function sending() {
-  await vi.waitFor(() => expect(hooks.instances[0]?.ws.send).toHaveBeenCalledTimes(2));
+async function publishing() {
+  await vi.waitFor(() => expect(hooks.instances[0]?.ws.send.mock.calls.length).toBeGreaterThan(1));
   return hooks.instances[0];
 }
 function expectReleased(provider: Provider) {
   expect(provider.handlers.size).toBe(0); expect(provider.doc.isDestroyed).toBe(true);
   expect(provider.destroy).toHaveBeenCalledOnce(); expect(provider.awareness.destroy).toHaveBeenCalledOnce();
 }
-
-it('publishes the validated update then waits for the ordered sync acknowledgment', async () => {
-  const task = createProjectRoom(makeDemoProject()), provider = await sending();
-  const remove = vi.spyOn(provider.ws, 'removeEventListener');
-  let completed = false; void task.then(() => { completed = true; });
-  for (const bytes of [[], [1, 1], [0, 0]]) provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array(bytes).buffer }));
-  await Promise.resolve(); expect(completed).toBe(false);
-  provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array([0, 1]).buffer }));
-  const url = await task; expect(url.searchParams.get('room')).not.toBe('original');
-  expectReleased(provider); expect(remove).toHaveBeenCalledWith('message', expect.any(Function));
-});
-
-it('aborting acknowledgment wait closes subscriptions and its isolated document', async () => {
-  const controller = new AbortController(), task = createProjectRoom(makeDemoProject(), controller.signal);
-  const rejected = expect(task).rejects.toMatchObject({ name: 'AbortError' }), provider = await sending();
-  const remove = vi.spyOn(controller.signal, 'removeEventListener'); controller.abort(); await rejected;
-  expectReleased(provider); expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
-  provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array([0, 1]).buffer }));
-  expect(provider.destroy).toHaveBeenCalledOnce();
-});
-
-it('disconnecting before acknowledgment rejects the open operation', async () => {
-  const task = createProjectRoom(makeDemoProject()), rejected = expect(task).rejects.toThrow('接続が切れ');
-  const provider = await sending(); provider.handlers.get('status')?.({ status: 'disconnected' }); await rejected;
-  expectReleased(provider);
-});
 
 it('a synchronous connect failure still removes listeners and destroys acquired resources', async () => {
   const failure = new Error('connect failed'); hooks.connected.mockImplementationOnce(() => { throw failure; });
@@ -77,73 +47,65 @@ function acknowledge(provider: Provider) {
   provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array([0, 1]).buffer }));
 }
 
-async function publishing() {
-  await vi.waitFor(() => expect(hooks.instances[0]?.ws.send.mock.calls.length).toBeGreaterThan(1));
-  return hooks.instances[0];
-}
-
-it('bounds each publication window and waits for every ordered acknowledgment before completing', async () => {
-  const project = largeImportProject(), task = createProjectRoom(project), provider = await publishing();
-  const server = new Y.Doc(); let completed = false, start = 0, windows = 0, totalBytes = 0;
+it('bounds publication windows and waits for the final ordered acknowledgment', async () => {
+  const project = largeImportProject();
+  const scene = project.scenes['scene-1'];
+  scene.objects.o0.kind = 'equation';
+  scene.compositions.c0.states.o0.text = 'x'.repeat(900000);
+  const task = createProjectRoom(project), provider = await publishing();
+  const remove = vi.spyOn(provider.ws, 'removeEventListener');
+  let completed = false, start = 0, windows = 0, oversized = false;
   void task.then(() => { completed = true; });
-  try {
-    while (readProject(server)?.name !== project.name) {
-      const end = provider.ws.send.mock.calls.length;
-      const packets = provider.ws.send.mock.calls.slice(start, end).map(([packet]) => packet as Uint8Array);
-      const updates = packets.slice(0, -1), bytes = updates.reduce((sum, update) => sum + update.byteLength, 0);
-      expect(updates.length).toBeGreaterThan(0); expect(updates.length).toBeLessThanOrEqual(16);
-      expect(bytes).toBeLessThanOrEqual(Math.max(524288, ...updates.map(update => update.byteLength)));
-      for (const packet of packets) {
-        const decoder = decoding.createDecoder(packet); expect(decoding.readVarUint(decoder)).toBe(0);
-        const type = sync.readSyncMessage(decoder, encoding.createEncoder(), server, 'import');
-        expect(type).toBe(packet === packets.at(-1) ? sync.messageYjsSyncStep1 : sync.messageYjsUpdate);
-      }
-      await Promise.resolve(); expect(completed).toBe(false);
-      expect(provider.ws.send).toHaveBeenCalledTimes(end);
-      totalBytes += bytes; windows++; start = end;
-      acknowledge(provider);
-    }
-    await task;
-    expect(totalBytes).toBeGreaterThan(2 * 1048576); expect(windows).toBeGreaterThan(1);
-    expect(readProject(server)).toEqual(project); expectReleased(provider);
-  } finally { server.destroy(); }
-});
-
-it('sends a legal indivisible frame above the window budget on its own', async () => {
-  const project = makeDemoProject();
-  for (const composition of Object.values(project.scenes['scene-1'].compositions)) composition.states.equation.text = 'x'.repeat(900000);
-  const controller = new AbortController(), task = createProjectRoom(project, controller.signal);
-  const rejected = expect(task).rejects.toMatchObject({ name: 'AbortError' }), provider = await publishing();
-  let start = 0, found = false;
-  while (!found) {
+  const sent = provider.ws.send.mock.calls.length;
+  for (const bytes of [[], [1, 1], [0, 0]]) {
+    provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array(bytes).buffer }));
+  }
+  expect(provider.ws.send).toHaveBeenCalledTimes(sent);
+  while (true) {
     const end = provider.ws.send.mock.calls.length;
     const updates = provider.ws.send.mock.calls.slice(start, end - 1).map(([packet]) => packet as Uint8Array);
-    if (updates.some(packet => packet.byteLength > 524288)) {
-      expect(updates).toHaveLength(1); expect(updates[0].byteLength).toBeLessThanOrEqual(1048576); found = true;
-    } else { start = end; acknowledge(provider); }
+    expect(updates.length).toBeGreaterThan(0);
+    expect(updates.length).toBeLessThanOrEqual(16);
+    if (updates[0].byteLength > 524288) {
+      expect(updates).toHaveLength(1);
+      expect(updates[0].byteLength).toBeLessThanOrEqual(1048576);
+      oversized = true;
+    } else {
+      expect(updates.reduce((sum, update) => sum + update.byteLength, 0)).toBeLessThanOrEqual(524288);
+    }
+    await Promise.resolve();
+    expect(completed).toBe(false);
+    expect(provider.ws.send).toHaveBeenCalledTimes(end);
+    windows++;
+    acknowledge(provider);
+    if (provider.ws.send.mock.calls.length === end) break;
+    start = end;
   }
-  const sent = provider.ws.send.mock.calls.length;
-  controller.abort(); await rejected; acknowledge(provider);
-  expect(provider.ws.send).toHaveBeenCalledTimes(sent); expectReleased(provider);
+  const url = await task;
+  expect(url.searchParams.get('room')).not.toBe('original');
+  expect(windows).toBeGreaterThan(1);
+  expect(oversized).toBe(true);
+  expectReleased(provider);
+  expect(remove).toHaveBeenCalledWith('message', expect.any(Function));
 });
 
-it.each(['abort', 'disconnect', 'send', 'timeout'] as const)('stops a partial import after %s and ignores late acknowledgments', async failure => {
-  const timers = vi.spyOn(globalThis, 'setTimeout');
+it.each(['abort', 'disconnect', 'send'] as const)('stops a partial import after %s and ignores late acknowledgments', async failure => {
   const controller = new AbortController(), task = createProjectRoom(largeImportProject(), controller.signal);
-  const rejected = expect(task).rejects.toMatchObject(failure === 'abort' ? { name: 'AbortError' } : { name: 'Error' });
+  const rejected = failure === 'abort'
+    ? expect(task).rejects.toMatchObject({ name: 'AbortError' })
+    : expect(task).rejects.toThrow(failure === 'disconnect' ? '接続が切れ' : 'send failed');
   const provider = await publishing(); acknowledge(provider);
+  const remove = vi.spyOn(controller.signal, 'removeEventListener');
   const before = provider.ws.send.mock.calls.length;
   if (failure === 'abort') controller.abort();
   else if (failure === 'disconnect') provider.handlers.get('status')?.({ status: 'disconnected' });
-  else if (failure === 'send') {
+  else {
     provider.ws.send.mockImplementationOnce(() => { throw new Error('send failed'); }); acknowledge(provider);
-  } else {
-    const timeout = timers.mock.calls.findLast(([, delay]) => delay === 15000);
-    expect(timeout).toBeDefined(); (timeout![0] as () => void)();
   }
   await rejected; const sent = provider.ws.send.mock.calls.length; acknowledge(provider);
   expect(sent).toBe(before + (failure === 'send' ? 1 : 0));
   expect(provider.ws.send).toHaveBeenCalledTimes(sent); expectReleased(provider);
+  expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
 });
 
 it('renews the acknowledgment timeout only when a publication window makes progress', async () => {

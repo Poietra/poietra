@@ -377,8 +377,7 @@ if (args.child) {
     const [pendingJournal] = await control('journal', pendingRoom);
     assert.equal(pendingJournal.snapshots, 1); assert(pendingJournal.updates > 0 && pendingJournal.updates < 256);
 
-    // Exercise workerd's actual SQLITE_TOOBIG savepoint failure: this total is
-    // deliberately above the local runtime's native single-row capacity.
+    // Exceed workerd's native row capacity to exercise SQLITE_TOOBIG rollback.
     const largeRoom = crypto.randomUUID(), largeSource = new Y.Doc();
     const largeSocket = await rawConnection(largeRoom);
     largeSource.on('update', bytes => sendUpdate(largeSocket, bytes));
@@ -425,10 +424,7 @@ if (args.child) {
     for (const client of clients) client.destroy(); clients.length = 0;
     await killRuntime(); await start(true);
     const largeWriter = await connect(largeRoom); checkLarge(largeWriter.doc);
-    // Replayed bytes exceed the threshold, so the initial sync or this edit
-    // activates multipart compaction. An edit after sync can remain in the
-    // journal; acknowledge it before the next restart rather than assuming an
-    // empty tail or relying on a local document echo.
+    // Initial sync may compact first; acknowledge the later edit before restart.
     largeWriter.doc.getMap('rollback-proof').set('after-reader-rollout', true);
     await roundtrip(largeWriter.provider.ws);
     await eventually(async () => (await control('journal', largeRoom))[0].legacy === 0, 'Explicit multipart writer did not compact');

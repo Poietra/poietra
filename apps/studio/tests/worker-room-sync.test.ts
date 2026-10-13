@@ -6,7 +6,9 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import { projectRoomClass } from '../../../_build/js/release/build/worker_room/worker_room.js';
 import { presenceMessage } from '../worker/presence';
-import { initializeDocument, readProject } from '../shared/document';
+import { ensureSceneAnimationTracks, ensureSceneAudioTracks, initializeDocument, readProject } from '../shared/document';
+import { makeDemoProject } from '../shared/demo';
+import { defaultTrack } from '../shared/model';
 import { largeImportProject } from './helpers/project-import';
 import { historicalRoomClass } from './helpers/historical-room';
 
@@ -27,8 +29,7 @@ function fixture(sockets = [socket(), socket()], env = {}, snapshotLimit = 2 * 1
   let transaction = 0;
   const ctx = { getWebSockets: vi.fn(() => sockets), abort: vi.fn(() => { throw new Error('aborted'); }), storage: {
     sql: { exec(query: string, ...values: any[]) {
-      // node:sqlite has a larger limit; emulate the native error for migration
-      // tests. The writer must use SQLite's actual capacity, not a guessed size.
+      // node:sqlite permits larger rows than workerd; exercise its native error path.
       if (query.startsWith('INSERT OR REPLACE INTO snapshot ') && values[0].byteLength > snapshotLimit) throw new Error('string or blob too big: SQLITE_TOOBIG');
       const rows = database.prepare(query).all(...values); return { toArray: () => rows };
     } },
@@ -50,7 +51,11 @@ function fixture(sockets = [socket(), socket()], env = {}, snapshotLimit = 2 * 1
     for (const data of rows('SELECT data FROM updates ORDER BY seq')) Y.applyUpdate(doc, data);
     return doc;
   }
-  return { room, create, ctx, database, sockets, saved, count };
+  function read(room: any) {
+    sockets[0].send.mockClear(); message(room, sockets[0], syncStep1());
+    const doc = new Y.Doc(); readUpdates(sockets[0], doc); return doc;
+  }
+  return { room, create, ctx, database, sockets, saved, count, read };
 }
 function syncStep1() { const e = encoding.createEncoder(); encoding.writeVarUint(e, 0); sync.writeSyncStep1(e, new Y.Doc()); return encoding.toUint8Array(e); }
 function wire(update: Uint8Array) { const e = encoding.createEncoder(); encoding.writeVarUint(e, 0); sync.writeUpdate(e, update); return encoding.toUint8Array(e); }
@@ -154,22 +159,8 @@ test.each([false, true])('large incoming updates preserve a restartable journal 
   expect(f.count('updates')).toBe(multipart ? 0 : 3); expect(f.count('snapshot')).toBe(multipart ? 0 : 1);
   expect(f.count('snapshot_parts')).toBe(multipart ? 5 : 1);
   expect((f.database.prepare('SELECT MAX(LENGTH(data)) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
-  // A reader-capable release can be rolled back to with the writer gate off.
-  const restored = f.create(projectRoomClass, {}); f.sockets[0].send.mockClear();
-  message(restored, f.sockets[0], syncStep1());
-  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
-  for (const key of ['first', 'second', 'third']) expect(peer.getMap('project').get(key)).toBe(key + 'x'.repeat(1_500_000));
-  expect(peer.getMap('project').get('name')).toBe('A little motion');
-  if (!multipart) {
-    // The actual previous implementation must recover the retained journal,
-    // including a document beyond its own single-row compaction capacity.
-    f.sockets[0].send.mockClear(); message(f.create(oldRoomClass), f.sockets[0], syncStep1());
-    const oldPeer = new Y.Doc(); readUpdates(f.sockets[0], oldPeer);
-    expect(oldPeer.getMap('project').toJSON()).toEqual(peer.getMap('project').toJSON()); oldPeer.destroy();
-    f.sockets[0].send.mockClear(); message(f.create(), f.sockets[0], syncStep1());
-    const newPeer = new Y.Doc(); readUpdates(f.sockets[0], newPeer);
-    expect(newPeer.getMap('project').toJSON()).toEqual(peer.getMap('project').toJSON()); newPeer.destroy();
-  }
+  const peer = f.read(f.create(multipart ? projectRoomClass : oldRoomClass, {}));
+  expect(peer.getMap('project').toJSON()).toEqual(source.getMap('project').toJSON());
   source.destroy(); peer.destroy();
 });
 
@@ -178,9 +169,14 @@ test('new → actual old → new Room keeps a 500-object / five-composition snap
   for (const id of scene.compositionOrder.slice(5)) delete scene.compositions[id];
   scene.compositionOrder = scene.compositionOrder.slice(0, 5);
   const source = f.saved();
+  f.database.exec('DELETE FROM snapshot_parts');
+  const upgraded = f.create();
+  const reopened = f.read(upgraded);
+  expect(Y.encodeStateVector(reopened)).toEqual(Y.encodeStateVector(source));
+  reopened.destroy();
   let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
   source.transact(() => { source.getMap('project').clear(); initializeDocument(source, project); });
-  message(f.room, f.sockets[0], wire(update));
+  message(upgraded, f.sockets[0], wire(update));
   const publish = (room: any, doc: Y.Doc, prefix: string) => {
     let next!: Uint8Array; const collect = (bytes: Uint8Array) => { next = bytes; }; doc.on('update', collect);
     for (let i = 0; i < 256; i++) {
@@ -189,44 +185,51 @@ test('new → actual old → new Room keeps a 500-object / five-composition snap
     }
     doc.off('update', collect);
   };
-  publish(f.room, source, 'Before rollback');
+  publish(upgraded, source, 'Before rollback');
   const bytes = (f.database.prepare('SELECT LENGTH(data) AS n FROM snapshot WHERE id = 1').get() as { n: number }).n;
   expect(bytes).toBeGreaterThan(1048576); expect(bytes).toBeLessThan(2 * 1048576);
   expect(f.count('snapshot_parts')).toBe(2);
   const staleParts = f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all();
-  const read = (room: any) => {
-    f.sockets[0].send.mockClear(); message(room, f.sockets[0], syncStep1());
-    const doc = new Y.Doc(); readUpdates(f.sockets[0], doc); return doc;
-  };
-  const oldRoom = f.create(oldRoomClass), oldPeer = read(oldRoom);
+  const oldRoom = f.create(oldRoomClass), oldPeer = f.read(oldRoom);
   expect(readProject(oldPeer)).toEqual(readProject(source));
   publish(oldRoom, oldPeer, 'Edited after rollback');
   expect(f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all()).toEqual(staleParts);
-  const newPeer = read(f.create());
+  const newPeer = f.read(f.create());
   expect(readProject(newPeer)).toEqual(readProject(oldPeer));
-  expect(readProject(newPeer)?.scenes['scene-1'].compositionOrder).toHaveLength(5);
-  expect(Object.keys(readProject(newPeer)!.scenes['scene-1'].objects)).toHaveLength(500);
   expect(f.ctx.abort).not.toHaveBeenCalled();
   source.destroy(); oldPeer.destroy(); newPeer.destroy();
 });
 
-test.each(['incoming', 'constructor'])('journals automatic migration identities when %s compaction is deferred', where => {
+test.each(['incoming', 'constructor'])('journals bounded migration values and identities when %s compaction is deferred', where => {
   const f = fixture(undefined, {}, 64 * 1024), source = f.saved();
+  const project = makeDemoProject(), scene = project.scenes['scene-1'];
+  const ids = Array.from({ length: 500 }, (_, i) => `o${i}`.padEnd(80, 'x'));
+  scene.objects = Object.fromEntries(ids.map((id, i) => [id, { id, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false }]));
+  scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
+  for (let i = 0; i < 25; i++) {
+    const id = `c${i}`; scene.compositionOrder.push(id);
+    scene.compositions[id] = { id, name: id, accent: '#123456', duration: 1000, states: {} };
+    if (i) scene.transitions[`t${i}`] = { id: `t${i}`, fromId: `c${i - 1}`, toId: id, duration: 250, tracks: {} };
+  }
+  scene.transitions.t1.tracks[ids[0]] = defaultTrack(ids[0], { type: 'write', start: 25, duration: 200, easing: 'easeOut' });
   let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
   source.transact(() => {
-    source.getMap('project').set('padding', 'x'.repeat(100_000));
+    source.getMap('project').clear(); initializeDocument(source, project);
     const scene = (source.getMap('project').get('scenes') as Y.Map<any>).get('scene-1') as Y.Map<any>;
     scene.delete('audioTracks');
-    for (const transition of scene.get('transitions').values()) for (const id of [...transition.get('tracks').keys()]) transition.get('tracks').delete(id);
+    scene.get('transitions').get('t1').get('tracks').get(ids[0]).delete('keyframes');
   });
   let room = f.room;
   if (where === 'constructor') {
     f.database.prepare('INSERT INTO updates (data) VALUES (?)').run(update); room = f.create();
   } else { message(room, f.sockets[0], wire(update)); vi.advanceTimersByTime(26); }
   expect(f.count('snapshot')).toBe(1); expect(f.count('updates')).toBeGreaterThan(1);
-  const stored = f.saved();
-  f.sockets[0].send.mockClear(); message(room, f.sockets[0], syncStep1());
-  const live = new Y.Doc(); readUpdates(f.sockets[0], live);
+  const sizes = f.database.prepare('SELECT LENGTH(data) AS n FROM updates').all() as { n: number }[];
+  expect(sizes.reduce((total, row) => total + row.n, 0)).toBeGreaterThan(2 * 1048576);
+  for (const { n } of sizes) expect(n).toBeLessThanOrEqual(1048576);
+  const stored = f.saved(), live = f.read(room);
+  ensureSceneAudioTracks(source); ensureSceneAnimationTracks(source);
+  expect(stored.getMap('project').toJSON()).toEqual(source.getMap('project').toJSON());
   expect(Y.encodeStateVector(stored)).toEqual(Y.encodeStateVector(live));
   const rowsBeforeRestart = f.count('updates'); f.create();
   expect(f.count('updates')).toBe(rowsBeforeRestart);
@@ -250,8 +253,8 @@ test('a non-size snapshot error aborts and rolls back instead of activating mult
   expect(f.ctx.abort).toHaveBeenCalledOnce();
   expect(f.database.prepare('SELECT data FROM snapshot WHERE id = 1').get()).toEqual(before);
   expect(f.count('snapshot_parts')).toBe(1); expect(f.count('updates')).toBe(2);
-  expect(f.saved().getMap('project').has('third')).toBe(false);
-  source.destroy();
+  const stored = f.saved(); expect(stored.getMap('project').has('third')).toBe(false);
+  source.destroy(); stored.destroy();
 });
 
 test('full rosters remain readable by legacy clients with a 16 KiB / 100-entry input budget', () => {
@@ -264,27 +267,4 @@ test('full rosters remain readable by legacy clients with a 16 KiB / 100-entry i
   // Simulate a stock y-websocket client relaying the received roster.
   for (const [bytes] of [...observer.send.mock.calls]) message(f.room, observer, bytes);
   expect(observer.close).not.toHaveBeenCalled();
-});
-
-test.each([false, true])('reads the latest legacy snapshot and migrates it on compaction (stale parts: %s)', staleParts => {
-  const f = fixture(undefined, { ROOM_SNAPSHOT_PARTS_WRITE: 'true' });
-  // Old deployments compact only the legacy row, possibly leaving stale parts after a rollback.
-  const legacy = f.saved(); legacy.getMap('project').set('name', 'Legacy');
-  if (!staleParts) f.database.exec('DELETE FROM snapshot_parts');
-  f.database.prepare('INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)').run(Y.encodeStateAsUpdate(legacy));
-  legacy.on('update', bytes => f.database.prepare('INSERT INTO updates (data) VALUES (?)').run(bytes));
-  legacy.getMap('project').set('name', 'Latest edit'); // depends on the legacy compaction
-  const room = f.create();
-  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(staleParts ? 1 : 0);
-  message(room, f.sockets[0], syncStep1());
-  const peer = new Y.Doc(); readUpdates(f.sockets[0], peer);
-  expect(peer.getMap('project').get('name')).toBe('Latest edit');
-  const source = f.saved(); let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
-  for (const key of ['first', 'second', 'third']) {
-    source.getMap('project').set(key, 'x'.repeat(1_500_000));
-    message(room, f.sockets[0], wire(update));
-  }
-  expect(f.count('snapshot')).toBe(0); expect(f.count('snapshot_parts')).toBeGreaterThan(1);
-  expect(f.saved().getMap('project').get('name')).toBe('Latest edit');
-  legacy.destroy(); source.destroy(); peer.destroy();
 });

@@ -100,7 +100,6 @@ options(
         "changes_for:changesFor",
         "ensure_scene_audio_tracks:ensureSceneAudioTracks",
         "ensure_scene_animation_tracks:ensureSceneAnimationTracks",
-        "ensure_scene_animation_tracks_bounded:ensureSceneAnimationTracksBounded",
         "read_project:readProject",
         "scene_structure_view:sceneStructureView",
         "project_structure_view:projectStructureView",
