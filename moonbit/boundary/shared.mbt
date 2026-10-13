@@ -415,6 +415,26 @@ fn animation_migration(doc : @core.Any, host : @core.Any) -> AnimationMigration 
 
 ///|
 pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool {
+  initialize_animation_tracks(doc, host, false)
+}
+
+///|
+/// Worker journals each generated update independently. Keep legacy imports
+/// with many missing tracks below a SQLite row, without changing the ordinary
+/// single-transaction initialization used by browser and Node callers.
+pub fn ensure_scene_animation_tracks_bounded(
+  doc : @core.Any,
+  host : @core.Any,
+) -> Bool {
+  initialize_animation_tracks(doc, host, true)
+}
+
+///|
+fn initialize_animation_tracks(
+  doc : @core.Any,
+  host : @core.Any,
+  bounded : Bool,
+) -> Bool {
   // Bounded imports publish version last. Keep any existing dirty flag until
   // then, so initialization cannot race the arriving authored track parents.
   if !has_version(shared_map(doc)) {
@@ -430,30 +450,31 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
     return false
   }
   let mut changed = false
-  transact(
-    doc,
-    fn() {
-      for scene in map_values(scenes) {
-        if !is_instance(scene, host._get("Map")) {
+  let initialize = fn() {
+    for scene in map_values(scenes) {
+      if !is_instance(scene, host._get("Map")) {
+        continue
+      }
+      let objects = map_get(scene, "objects")
+      let transitions = map_get(scene, "transitions")
+      if !is_instance(objects, host._get("Map")) ||
+        !is_instance(transitions, host._get("Map")) {
+        continue
+      }
+      for transition in map_values(transitions) {
+        if !is_instance(transition, host._get("Map")) {
           continue
         }
-        let objects = map_get(scene, "objects")
-        let transitions = map_get(scene, "transitions")
-        if !is_instance(objects, host._get("Map")) ||
-          !is_instance(transitions, host._get("Map")) {
+        let tracks = map_get(transition, "tracks")
+        let duration = map_get(transition, "duration")
+        if !is_instance(tracks, host._get("Map")) ||
+          @core.typeof_(duration) != "number" {
           continue
         }
-        for transition in map_values(transitions) {
-          if !is_instance(transition, host._get("Map")) {
-            continue
-          }
-          let tracks = map_get(transition, "tracks")
-          let duration = map_get(transition, "duration")
-          if !is_instance(tracks, host._get("Map")) ||
-            @core.typeof_(duration) != "number" {
-            continue
-          }
-          for id in map_keys(objects) {
+        let ids = map_keys(objects)
+        let initialize_rows = fn(start : Int, end : Int) {
+          for index = start; index < end; index = index + 1 {
+            let id = ids[index]
             if !map_has(tracks, id) {
               let track = @scene.default_track(id, duration.cast())
               let value = @project_codec.encode_Track({
@@ -471,10 +492,30 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
             }
           }
         }
+        if bounded {
+          // Portable object IDs are bounded to 80 characters. A batch of
+          // 128 default tracks leaves ample space below the 1 MiB budget.
+          let mut start = 0
+          while start < ids.length() {
+            let end = (start + 128).min(ids.length())
+            transact(
+              doc,
+              fn() { initialize_rows(start, end) },
+              @core.any("initialize-animation-tracks"),
+            )
+            start = end
+          }
+        } else {
+          initialize_rows(0, ids.length())
+        }
       }
-    },
-    @core.any("initialize-animation-tracks"),
-  )
+    }
+  }
+  if bounded {
+    initialize()
+  } else {
+    transact(doc, initialize, @core.any("initialize-animation-tracks"))
+  }
   state.dirty = false
   changed
 }

@@ -169,6 +169,7 @@ test('large images are normalized and portable imports preserve compressed pixel
     });
     await page.getByLabel('画像ファイル', { exact: true }).setInputFiles({ name: 'Texture.png', mimeType: 'image/png', buffer: Buffer.from(encoded, 'base64') });
     await expect(page.getByRole('button', { name: 'Texture', exact: true })).toBeVisible();
+    await expect.poll(() => Object.values(watch.project().scenes['scene-1'].objects).filter(object => object.kind === 'image').length).toBe(1);
     const original = Object.values(watch.project().scenes['scene-1'].objects).find(object => object.kind === 'image')!.image!;
     expect(original.width).toBeLessThanOrEqual(2048); expect(original.width / original.height).toBe(2);
     const response = await page.request.get(original.src); expect(response.headers()['content-type']).toBe('image/webp'); expect((await response.body()).length).toBeLessThanOrEqual(1024 * 1024);

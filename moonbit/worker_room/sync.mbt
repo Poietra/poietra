@@ -1,6 +1,5 @@
 ///|
-/// A Durable Object SQLite row holds at most 2 MB, so the compacted document
-/// is stored in parts of this size and reassembled on load.
+/// Keep individual parts below the Durable Object SQLite row limit.
 let snapshot_part_bytes : Int = 1048576
 
 ///|
@@ -10,50 +9,97 @@ fn Room::compact(self : Room) -> Unit {
       let snapshot = self.runtime
         ._get("Y")
         ._call("encodeStateAsUpdate", [self.doc])
-      let length : Int = snapshot._get("byteLength").cast()
-      self.sql.exec_raw("DELETE FROM snapshot_parts") |> ignore
-      // A document that fits one part also keeps the legacy row, so an older
-      // deployment still finds it instead of re-initializing the room.
-      if length <= snapshot_part_bytes {
-        self.sql.exec1(
-          "INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)", snapshot,
-        )
+      // Use the old writer's actual capacity, not the smaller part size. The
+      // savepoint leaves the previous snapshot intact if SQLite rejects the row.
+      let legacy_written = @core.throwable(fn() {
+        self.storage._call("transactionSync", [
+          @core.any(fn() {
+            self.sql.exec1(
+              "INSERT OR REPLACE INTO snapshot (id, data) VALUES (1, ?)", snapshot,
+            )
+            |> ignore
+          }),
+        ])
         |> ignore
-      } else {
-        self.sql.exec_raw("DELETE FROM snapshot") |> ignore
+        true
+      }) catch {
+        error => {
+          let native = @http.native_error(error)
+          if !@core.is_nullish(native) &&
+            @core.equal(
+              native._get("message"),
+              @core.any("string or blob too big: SQLITE_TOOBIG"),
+            ) {
+            false
+          } else {
+            @core.throw_(native)
+            false
+          }
+        }
       }
-      let mut offset = 0
-      let mut part = 0
-      while offset < length {
-        let end = (offset + snapshot_part_bytes).min(length)
-        self.sql.exec2(
-          "INSERT INTO snapshot_parts (part, data) VALUES (?, ?)",
-          @core.any(part),
-          snapshot._call("slice", [@core.any(offset), @core.any(end)]),
-        )
-        |> ignore
-        offset = end
-        part += 1
+      // Deploy the multipart reader first. Until it is a safe rollback target,
+      // preserve the legacy snapshot and its complete journal on oversized docs.
+      if legacy_written ||
+        @core.equal(
+          self.env._get("ROOM_SNAPSHOT_PARTS_WRITE"),
+          @core.any("true"),
+        ) {
+        let length : Int = snapshot._get("byteLength").cast()
+        self.sql.exec_raw("DELETE FROM snapshot_parts") |> ignore
+        if !legacy_written {
+          self.sql.exec_raw("DELETE FROM snapshot") |> ignore
+        }
+        let mut offset = 0
+        let mut part = 0
+        while offset < length {
+          let end = (offset + snapshot_part_bytes).min(length)
+          self.sql.exec2(
+            "INSERT INTO snapshot_parts (part, data) VALUES (?, ?)",
+            @core.any(part),
+            snapshot._call("slice", [@core.any(offset), @core.any(end)]),
+          )
+          |> ignore
+          offset = end
+          part += 1
+        }
+        self.sql.exec_raw("DELETE FROM updates") |> ignore
       }
-      self.sql.exec_raw("DELETE FROM updates") |> ignore
     }),
   ])
   |> ignore
+  // These counters measure work since the last compaction attempt; resetting
+  // them also bounds retries while a reader-only rollout retains the journal.
   self.updates = 0
   self.journal_bytes = 0
 }
 
 ///|
 fn Room::migrate(self : Room) -> Bool {
-  let audio = @boundary.ensure_scene_audio_tracks(
-    self.doc,
-    self.runtime._get("Y"),
-  )
-  let animations = @boundary.ensure_scene_animation_tracks(
-    self.doc,
-    self.runtime._get("Y"),
-  )
-  audio || animations
+  // Migrations must survive even when a reader-only rollout defers compaction.
+  // Constructor migrations also need the same atomic journal as incoming edits.
+  self.storage
+  ._call("transactionSync", [
+    @core.any(fn() {
+      let persist = fn(bytes : @core.Any) {
+        self.sql.exec1("INSERT INTO updates (data) VALUES (?)", bytes) |> ignore
+        self.updates += 1
+        self.journal_bytes += (bytes._get("byteLength").cast() : Int)
+      }
+      self.doc._call("on", [@core.any("update"), @core.any(persist)]) |> ignore
+      defer self.doc._call("off", [@core.any("update"), @core.any(persist)])
+        |> ignore
+      let audio = @boundary.ensure_scene_audio_tracks(
+        self.doc,
+        self.runtime._get("Y"),
+      )
+      let animations = @boundary.ensure_scene_animation_tracks_bounded(
+        self.doc,
+        self.runtime._get("Y"),
+      )
+      audio || animations
+    }),
+  ])
+  .cast()
 }
 
 ///|

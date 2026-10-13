@@ -89,7 +89,7 @@ fn create_room(
     ),
   )
   // An older deployment updates only the legacy row. Prefer it after a rollback;
-  // compaction removes it when the current document needs multiple parts.
+  // only an explicitly enabled multipart writer may remove it when it cannot fit.
   let mut snapshots = sql
     .exec_raw("SELECT data FROM snapshot WHERE id = 1")
     .to_array()

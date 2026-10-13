@@ -17,6 +17,15 @@ let project_message_bytes : Int = 1048576
 let staging_budget : Int = 262144
 
 ///|
+/// Leave space in the room's bounded echo queue for migration and control
+/// messages. One indivisible update may exceed this window, up to the frame
+/// limit above; a count bound also covers very small updates.
+let publication_window_bytes : Int = 524288
+
+///|
+let publication_window_messages : Int = 16
+
+///|
 fn project_messages(
   source : @core.Any,
   project : @core.Any,
@@ -83,15 +92,48 @@ pub fn create_project_messages(
 ///|
 priv enum PublishPhase {
   Connecting
-  AwaitingAck(@core.Any)
+  AwaitingAck(@core.Any, Publication)
   Finished(@core.Any?)
+}
+
+///|
+priv struct Publication {
+  updates : FixedArray[@core.Any]
+  sync_message : @core.Any
+  mut next : Int
+}
+
+///|
+fn Publication::send_window(
+  self : Publication,
+  socket : @core.Any,
+) -> Unit raise {
+  @core.throwable(fn() {
+    let mut bytes = 0
+    let mut count = 0
+    while self.next < self.updates.length() &&
+          count < publication_window_messages {
+      let update = self.updates[self.next]
+      let size : Int = update._get("byteLength").cast()
+      if count > 0 && bytes + size > publication_window_bytes {
+        break
+      }
+      socket._call("send", [update]) |> ignore
+      self.next += 1
+      count += 1
+      bytes += size
+    }
+    // The server persists preceding updates before sending this ordered reply.
+    // Reusing the completed document's vector keeps partial-window replies small.
+    socket._call("send", [self.sync_message]) |> ignore
+  })
 }
 
 ///|
 fn PublishPhase::socket(self : PublishPhase) -> @core.Any? {
   match self {
     Connecting => None
-    AwaitingAck(socket) => Some(socket)
+    AwaitingAck(socket, _) => Some(socket)
     Finished(socket) => socket
   }
 }
@@ -131,23 +173,34 @@ async fn publish_room(
       ),
     )
   }
-  let timeout = global._call("setTimeout", [
-    @core.any(fn() {
-      finish(
-        Some(
-          native_error(
-            ProjectFailure(
-              "接続できませんでした。通信を確認して、もう一度開いてください。",
+  let timeout : Ref[@core.Any?] = Ref(None)
+  let await_progress = fn() {
+    if timeout.val is Some(previous) {
+      global._call("clearTimeout", [previous]) |> ignore
+    }
+    timeout.val = Some(
+      global._call("setTimeout", [
+        @core.any(fn() {
+          finish(
+            Some(
+              native_error(
+                ProjectFailure(
+                  "接続できませんでした。通信を確認して、もう一度開いてください。",
+                ),
+              ),
             ),
-          ),
-        ),
-      )
-    }),
-    @core.any(15000),
-  ])
-  defer global._call("clearTimeout", [timeout]) |> ignore
+          )
+        }),
+        @core.any(15000),
+      ]),
+    )
+  }
+  await_progress()
+  defer (if timeout.val is Some(timeout) {
+    global._call("clearTimeout", [timeout]) |> ignore
+  })
   let status = fn(event : @core.Any) {
-    if phase.val is AwaitingAck(_) &&
+    if phase.val is AwaitingAck(_, _) &&
       @core.equal(event._get("status"), @core.any("disconnected")) {
       finish(
         Some(
@@ -161,27 +214,33 @@ async fn publish_room(
     }
   }
   let acknowledged = fn(event : @core.Any) {
-    if !(phase.val is AwaitingAck(_)) || !is_array_buffer(event._get("data")) {
+    guard phase.val is AwaitingAck(socket, publication) &&
+      is_array_buffer(event._get("data")) else {
       return
     }
-    try {
-      let acknowledged : Bool = @core.throwable(fn() {
-        let decoding = runtime._get("decoding")
-        let decoder = decoding._call("createDecoder", [
-          @core.new(global._get("Uint8Array"), [event._get("data")]),
-        ])
-        let message : Int = decoding._call("readVarUint", [decoder]).cast()
-        message == 0 &&
-        @core.equal(
-          decoding._call("readVarUint", [decoder]),
-          runtime._get("sync")._get("messageYjsSyncStep2"),
-        )
-      })
-      if acknowledged {
+    let acknowledged : Bool = @core.throwable(fn() {
+      let decoding = runtime._get("decoding")
+      let decoder = decoding._call("createDecoder", [
+        @core.new(global._get("Uint8Array"), [event._get("data")]),
+      ])
+      let message : Int = decoding._call("readVarUint", [decoder]).cast()
+      message == 0 &&
+      @core.equal(
+        decoding._call("readVarUint", [decoder]),
+        runtime._get("sync")._get("messageYjsSyncStep2"),
+      )
+    }) catch {
+      _ => false
+    }
+    if acknowledged {
+      if publication.next == publication.updates.length() {
         finish(None)
+      } else {
+        await_progress()
+        publication.send_window(socket) catch {
+          error => finish(Some(native_error(error)))
+        }
       }
-    } catch {
-      _ => ()
     }
   }
   let synced = fn(value : Bool) {
@@ -198,21 +257,21 @@ async fn publish_room(
         raise ProjectFailure("接続できませんでした。")
       }
       let messages = project_messages(doc, project, runtime)
-      phase.val = AwaitingAck(socket)
+      let publication : Publication = {
+        updates: messages._get("updateMessages").cast(),
+        sync_message: messages._get("syncMessage"),
+        next: 0,
+      }
+      phase.val = AwaitingAck(socket, publication)
       @core.throwable(fn() {
         socket._call("addEventListener", [
           @core.any("message"),
           @core.any(acknowledged),
         ])
         |> ignore
-        let updates : FixedArray[@core.Any] = messages
-          ._get("updateMessages")
-          .cast()
-        for update in updates {
-          socket._call("send", [update]) |> ignore
-        }
-        socket._call("send", [messages._get("syncMessage")]) |> ignore
       })
+      await_progress()
+      publication.send_window(socket)
     } catch {
       error => finish(Some(native_error(error)))
     }

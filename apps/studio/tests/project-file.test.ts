@@ -8,7 +8,7 @@ import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
 import { ensureSceneAnimationTracks, ensureSceneAudioTracks, initializeDocument, readProject } from '../shared/document';
 import { createProjectMessages } from '../src/editor/projects';
-import { boundedUtf8Size } from '../../../_build/js/release/build/boundary/boundary.js';
+import { boundedUtf8Size, ensureSceneAnimationTracksBounded } from '../../../_build/js/release/build/boundary/boundary.js';
 
 describe('project file import', () => {
   it('counts UTF-8 with bounded scratch memory across surrogate and buffer boundaries', () => {
@@ -170,6 +170,42 @@ describe('project file import', () => {
     expect(track.get('extra')).toHaveLength(300000);
     expect(shape(parts.getMap('project'))).toEqual(shape(whole.getMap('project')));
     parts.destroy(); whole.destroy();
+  });
+  it('journals large legacy track initialization as independent bounded updates with the same authored values', () => {
+    const project = makeDemoProject(), scene = project.scenes['scene-1'];
+    const ids = Array.from({ length: 500 }, (_, i) => `o${i}`.padEnd(80, 'x'));
+    scene.objects = Object.fromEntries(ids.map((id, i) => [id, { id, name: `Object ${i}`, kind: 'circle', order: i, groupId: null, locked: false }]));
+    scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
+    for (let i = 0; i < 25; i++) {
+      const id = `c${i}`; scene.compositionOrder.push(id);
+      scene.compositions[id] = { id, name: id, accent: '#123456', duration: 1000, states: {} };
+      if (i) scene.transitions[`t${i}`] = { id: `t${i}`, fromId: `c${i - 1}`, toId: id, duration: 250, tracks: {} };
+    }
+    scene.transitions.t1.tracks[ids[0]] = defaultTrack(ids[0], { type: 'write', start: 25, duration: 200, easing: 'easeOut' });
+    const source = new Y.Doc(); initializeDocument(source, parseProjectFile(JSON.stringify(project)));
+    const authored = (source.getMap('project').get('scenes') as Y.Map<any>).get('scene-1').get('transitions').get('t1').get('tracks').get(ids[0]);
+    authored.delete('keyframes');
+    const baseline = Y.encodeStateAsUpdate(source); source.destroy();
+    const whole = new Y.Doc(); Y.applyUpdate(whole, baseline);
+    let wholeBytes = 0; whole.on('update', update => { wholeBytes += update.byteLength; });
+    expect(ensureSceneAnimationTracks(whole)).toBe(true);
+    expect(wholeBytes).toBeGreaterThan(2 * 1048576);
+    const expected = whole.getMap('project').toJSON(); whole.destroy();
+    const bounded = new Y.Doc(), restored = new Y.Doc();
+    try {
+      Y.applyUpdate(bounded, baseline); Y.applyUpdate(restored, baseline);
+      let updates = 0;
+      bounded.on('update', update => {
+        expect(update.byteLength).toBeLessThanOrEqual(1048576);
+        Y.applyUpdate(restored, update); updates++;
+      });
+      expect(ensureSceneAnimationTracksBounded(bounded, Y)).toBe(true);
+      expect(updates).toBeGreaterThan(1);
+      expect(restored.getMap('project').toJSON()).toEqual(expected);
+      const count = updates;
+      expect(ensureSceneAnimationTracksBounded(bounded, Y)).toBe(false);
+      expect(updates).toBe(count);
+    } finally { bounded.destroy(); restored.destroy(); }
   });
   it('rejects a single value that cannot fit one message before mutating or sending the project', () => {
     const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
