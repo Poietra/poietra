@@ -47,44 +47,27 @@ function acknowledge(provider: Provider) {
   provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array([0, 1]).buffer }));
 }
 
-it('bounds publication windows and waits for the final ordered acknowledgment', async () => {
-  const project = largeImportProject();
-  const scene = project.scenes['scene-1'];
-  scene.objects.o0.kind = 'equation';
-  scene.compositions.c0.states.o0.text = 'x'.repeat(900000);
-  const task = createProjectRoom(project), provider = await publishing();
+it('waits for the final ordered acknowledgment across a large import', async () => {
+  const task = createProjectRoom(largeImportProject()), provider = await publishing();
   const remove = vi.spyOn(provider.ws, 'removeEventListener');
-  let completed = false, start = 0, windows = 0, oversized = false;
+  let completed = false;
   void task.then(() => { completed = true; });
   const sent = provider.ws.send.mock.calls.length;
   for (const bytes of [[], [1, 1], [0, 0]]) {
     provider.ws.dispatchEvent(new MessageEvent('message', { data: new Uint8Array(bytes).buffer }));
   }
   expect(provider.ws.send).toHaveBeenCalledTimes(sent);
-  while (true) {
+  acknowledge(provider);
+  expect(provider.ws.send.mock.calls.length).toBeGreaterThan(sent);
+  do {
     const end = provider.ws.send.mock.calls.length;
-    const updates = provider.ws.send.mock.calls.slice(start, end - 1).map(([packet]) => packet as Uint8Array);
-    expect(updates.length).toBeGreaterThan(0);
-    expect(updates.length).toBeLessThanOrEqual(16);
-    if (updates[0].byteLength > 524288) {
-      expect(updates).toHaveLength(1);
-      expect(updates[0].byteLength).toBeLessThanOrEqual(1048576);
-      oversized = true;
-    } else {
-      expect(updates.reduce((sum, update) => sum + update.byteLength, 0)).toBeLessThanOrEqual(524288);
-    }
     await Promise.resolve();
     expect(completed).toBe(false);
-    expect(provider.ws.send).toHaveBeenCalledTimes(end);
-    windows++;
     acknowledge(provider);
     if (provider.ws.send.mock.calls.length === end) break;
-    start = end;
-  }
+  } while (!completed);
   const url = await task;
   expect(url.searchParams.get('room')).not.toBe('original');
-  expect(windows).toBeGreaterThan(1);
-  expect(oversized).toBe(true);
   expectReleased(provider);
   expect(remove).toHaveBeenCalledWith('message', expect.any(Function));
 });

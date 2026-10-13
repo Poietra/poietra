@@ -10,7 +10,6 @@ fn dispose_host(value : @core.Any) -> Unit {
 let project_message_bytes : Int = 1048576
 
 ///|
-/// Include UTF-8 and Yjs overhead when grouping small entries.
 let staging_budget : Int = 262144
 
 ///|

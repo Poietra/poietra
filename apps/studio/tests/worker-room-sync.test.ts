@@ -150,15 +150,15 @@ test('a malformed frame cannot poison another sender’s queued edits', () => {
 
 test.each([false, true])('large incoming updates preserve a restartable journal until multipart writes are enabled (%s)', multipart => {
   const f = fixture(undefined, multipart ? { ROOM_SNAPSHOT_PARTS_WRITE: 'true' } : {}), source = f.saved();
-  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(1);
+  expect(f.count('snapshot')).toBe(1); expect(f.count('snapshot_parts')).toBe(0);
   let update!: Uint8Array; source.on('update', bytes => { update = bytes; });
   for (const key of ['first', 'second', 'third']) {
     source.getMap('project').set(key, key + 'x'.repeat(1_500_000));
     message(f.room, f.sockets[0], wire(update));
   }
   expect(f.count('updates')).toBe(multipart ? 0 : 3); expect(f.count('snapshot')).toBe(multipart ? 0 : 1);
-  expect(f.count('snapshot_parts')).toBe(multipart ? 5 : 1);
-  expect((f.database.prepare('SELECT MAX(LENGTH(data)) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
+  expect(f.count('snapshot_parts')).toBe(multipart ? 5 : 0);
+  expect((f.database.prepare('SELECT COALESCE(MAX(LENGTH(data)), 0) AS n FROM snapshot_parts').get() as { n: number }).n).toBeLessThanOrEqual(1048576);
   const peer = f.read(f.create(multipart ? projectRoomClass : oldRoomClass, {}));
   expect(peer.getMap('project').toJSON()).toEqual(source.getMap('project').toJSON());
   source.destroy(); peer.destroy();
@@ -169,7 +169,6 @@ test('new → actual old → new Room keeps a 500-object / five-composition snap
   for (const id of scene.compositionOrder.slice(5)) delete scene.compositions[id];
   scene.compositionOrder = scene.compositionOrder.slice(0, 5);
   const source = f.saved();
-  f.database.exec('DELETE FROM snapshot_parts');
   const upgraded = f.create();
   const reopened = f.read(upgraded);
   expect(Y.encodeStateVector(reopened)).toEqual(Y.encodeStateVector(source));
@@ -188,12 +187,10 @@ test('new → actual old → new Room keeps a 500-object / five-composition snap
   publish(upgraded, source, 'Before rollback');
   const bytes = (f.database.prepare('SELECT LENGTH(data) AS n FROM snapshot WHERE id = 1').get() as { n: number }).n;
   expect(bytes).toBeGreaterThan(1048576); expect(bytes).toBeLessThan(2 * 1048576);
-  expect(f.count('snapshot_parts')).toBe(2);
-  const staleParts = f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all();
+  expect(f.count('snapshot_parts')).toBe(0);
   const oldRoom = f.create(oldRoomClass), oldPeer = f.read(oldRoom);
   expect(readProject(oldPeer)).toEqual(readProject(source));
   publish(oldRoom, oldPeer, 'Edited after rollback');
-  expect(f.database.prepare('SELECT data FROM snapshot_parts ORDER BY part').all()).toEqual(staleParts);
   const newPeer = f.read(f.create());
   expect(readProject(newPeer)).toEqual(readProject(oldPeer));
   expect(f.ctx.abort).not.toHaveBeenCalled();
@@ -252,7 +249,7 @@ test('a non-size snapshot error aborts and rolls back instead of activating mult
   }
   expect(f.ctx.abort).toHaveBeenCalledOnce();
   expect(f.database.prepare('SELECT data FROM snapshot WHERE id = 1').get()).toEqual(before);
-  expect(f.count('snapshot_parts')).toBe(1); expect(f.count('updates')).toBe(2);
+  expect(f.count('snapshot_parts')).toBe(0); expect(f.count('updates')).toBe(2);
   const stored = f.saved(); expect(stored.getMap('project').has('third')).toBe(false);
   source.destroy(); stored.destroy();
 });

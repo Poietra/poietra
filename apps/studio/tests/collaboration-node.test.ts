@@ -8,6 +8,9 @@ import { join } from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import { presenceMessage } from '../worker/presence';
 import type { Room } from '../server/collaboration';
+import { readProject } from '../shared/document';
+import { createProjectRoom } from '../src/editor/projects';
+import { largeImportProject } from './helpers/project-import';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
@@ -17,14 +20,20 @@ let directory: string;
 let server: WebSocketServer;
 let room: Room;
 const sockets: WebSocket[] = [];
+const connectedRooms = new Map<string, Room>();
 
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), 'poietra-node-collaboration-'));
   vi.stubEnv('POIETRA_DATA_DIR', directory);
   const { Room } = await import('../server/collaboration');
   room = new Room('presence-reconnect-test');
+  connectedRooms.set(room.id, room);
   server = new WebSocketServer({ port: 0 });
-  server.on('connection', socket => room.connect(socket));
+  server.on('connection', (socket, request) => {
+    const id = request.url?.match(/^\/sync\/([^/?]+)$/)?.[1] ?? room.id;
+    if (!connectedRooms.has(id)) connectedRooms.set(id, new Room(id));
+    connectedRooms.get(id)!.connect(socket);
+  });
   await once(server, 'listening');
 });
 
@@ -32,7 +41,7 @@ afterAll(async () => {
   for (const socket of sockets) socket.terminate();
   for (const socket of server.clients) socket.terminate();
   await new Promise<void>(resolve => server.close(() => resolve()));
-  room.dispose();
+  for (const target of connectedRooms.values()) target.dispose();
   vi.unstubAllEnvs();
   await rm(directory, { recursive: true, force: true });
 });
@@ -72,6 +81,40 @@ test('the local server preserves socket ownership through reconnect and remote t
   await expect.poll(() => room.awareness.getStates().has(99)).toBe(false);
   expect(room.awareness.getStates().get(100)?.user.name).toBe('Bob');
 });
+
+test('imports above 2 MiB through real Node sockets and returns after persistence without overflowing echoes', async () => {
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Missing test server address');
+  const origin = `http://127.0.0.1:${address.port}`;
+  vi.stubGlobal('WebSocket', WebSocket);
+  vi.stubGlobal('location', { protocol: 'http:', host: `127.0.0.1:${address.port}`, href: `${origin}/?room=original` });
+  let publishedBytes = 0;
+  const closes: number[] = [];
+  const observe = (socket: WebSocket) => {
+    socket.on('close', code => closes.push(code));
+    socket.on('message', data => {
+      const decoder = decoding.createDecoder(new Uint8Array(data as Buffer));
+      if (decoding.readVarUint(decoder) === 0 && decoding.readVarUint(decoder) === sync.messageYjsUpdate) publishedBytes += (data as Buffer).byteLength;
+    });
+  };
+  server.on('connection', observe);
+  try {
+    const project = largeImportProject(), result = await createProjectRoom(project);
+    const id = result.searchParams.get('room')!, target = connectedRooms.get(id)!;
+    expect(target.id).toBe(id);
+    expect(publishedBytes).toBeGreaterThan(2 * 1048576);
+    const persisted = new Y.Doc();
+    try {
+      Y.applyUpdate(persisted, readFileSync(join(directory, `${id}.yjs`)));
+      expect(readProject(persisted)).toEqual(project);
+    } finally { persisted.destroy(); }
+    await expect.poll(() => target.connections.size).toBe(0);
+    expect(closes).not.toContain(1013);
+  } finally {
+    server.off('connection', observe);
+    vi.unstubAllGlobals();
+  }
+}, 30000);
 
 test('new rooms evict saved inactive rooms and restore them without evicting an AI request', async () => {
   const { getRoom, rooms } = await import('../server/collaboration');

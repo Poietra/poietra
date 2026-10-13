@@ -37,16 +37,17 @@ fn Room::compact(self : Room) -> Unit {
         }
       }
       // Keep the legacy snapshot and journal until a multipart reader is deployed.
-      if legacy_written ||
-        @core.equal(
+      if !legacy_written &&
+        !@core.equal(
           self.env._get("ROOM_SNAPSHOT_PARTS_WRITE"),
           @core.any("true"),
         ) {
+        return
+      }
+      self.sql.exec_raw("DELETE FROM snapshot_parts") |> ignore
+      if !legacy_written {
         let length : Int = snapshot._get("byteLength").cast()
-        self.sql.exec_raw("DELETE FROM snapshot_parts") |> ignore
-        if !legacy_written {
-          self.sql.exec_raw("DELETE FROM snapshot") |> ignore
-        }
+        self.sql.exec_raw("DELETE FROM snapshot") |> ignore
         let mut offset = 0
         let mut part = 0
         while offset < length {
@@ -60,8 +61,8 @@ fn Room::compact(self : Room) -> Unit {
           offset = end
           part += 1
         }
-        self.sql.exec_raw("DELETE FROM updates") |> ignore
       }
+      self.sql.exec_raw("DELETE FROM updates") |> ignore
     }),
   ])
   |> ignore

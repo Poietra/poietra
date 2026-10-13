@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeDemoProject } from '../shared/demo';
-import { defaultState, defaultTrack } from '../shared/model';
+import { defaultTrack } from '../shared/model';
 import { parseProjectFile } from '../shared/project-file';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
@@ -9,6 +9,7 @@ import * as sync from 'y-protocols/sync';
 import { ensureSceneAnimationTracks, ensureSceneAudioTracks, initializeDocument, readProject } from '../shared/document';
 import { createProjectMessages } from '../src/editor/projects';
 import { boundedUtf8Size } from '../../../_build/js/release/build/boundary/boundary.js';
+import { largeImportProject } from './helpers/project-import';
 
 describe('project file import', () => {
   it('counts UTF-8 with bounded scratch memory across surrogate and buffer boundaries', () => {
@@ -132,8 +133,10 @@ describe('project file import', () => {
     ensureSceneAudioTracks(source); ensureSceneAnimationTracks(source);
     const original = readProject(source);
     Y.applyUpdate(server, Y.encodeStateAsUpdate(source));
-    const input = largeProject(); input.version = 2;
-    const tracks = input.scenes['scene-1'].transitions.t1.tracks;
+    const input = largeImportProject(); input.version = 2;
+    const scene = input.scenes['scene-1'];
+    scene.transitions.t1 = { id: 't1', fromId: 'c0', toId: 'c1', duration: 250, tracks: {} };
+    const tracks = scene.transitions.t1.tracks;
     for (const objectId of ['o0', 'o1']) tracks[objectId] = defaultTrack(objectId, {
       type: 'write', start: 25, duration: 200, easing: 'easeOut',
       keyframes: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [
@@ -187,20 +190,4 @@ function shape(value: unknown): unknown {
   if (value instanceof Y.Map) return { map: Object.fromEntries([...value.keys()].sort().map(key => [key, shape(value.get(key))])) };
   if (value instanceof Y.Array) return { array: value.toArray().map(shape) };
   return value;
-}
-
-// Valid authored text content exceeds 2 MiB without any single oversized value.
-function largeProject(objects = 500, compositions = 6) {
-  const project = makeDemoProject(), scene = project.scenes['scene-1'];
-  scene.objects = {}; scene.compositions = {}; scene.compositionOrder = []; scene.transitions = {};
-  for (let i = 0; i < objects; i++) scene.objects[`o${i}`] = { id: `o${i}`, name: `Object ${i}`, kind: 'text', order: i, groupId: null, locked: false };
-  for (let c = 0; c < compositions; c++) {
-    const id = `c${c}`; scene.compositionOrder.push(id);
-    scene.compositions[id] = { id, name: `Composition ${c}`, accent: '#123456', duration: 1000,
-      states: Object.fromEntries(Object.keys(scene.objects).map((oid, i) => [oid, defaultState('text', {
-        x: 25 + (i % 25) * 48 + c, y: 25 + Math.floor(i / 25) * 32, width: 20, height: 20, text: 'a'.repeat(400),
-      })])) };
-    if (c) scene.transitions[`t${c}`] = { id: `t${c}`, fromId: `c${c - 1}`, toId: id, duration: 250, tracks: {} };
-  }
-  return project;
 }

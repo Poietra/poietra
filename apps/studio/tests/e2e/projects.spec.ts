@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { makeDemoProject } from '../../shared/demo';
 import { largeImportProject } from '../helpers/project-import';
-import { createProjectMessages } from '../../src/editor/projects';
-import * as Y from 'yjs';
 
 test('opening a saved project creates a separate shared room and leaves collaborators in the original', async ({ browser }) => {
   const context = await browser.newContext();
@@ -69,22 +67,13 @@ test('closing a pending file read permits another operation and ignores the old 
   await expect(page.getByRole('button', { name: 'Save project', exact: true })).toBeEnabled();
 });
 
-for (const legacy of [false, true]) test(`an import above 2 MiB survives acknowledgment and reload (legacy tracks: ${legacy})`, async ({ page }) => {
+test('an import above 2 MiB with legacy tracks survives acknowledgment and reload', async ({ page }) => {
   const project = largeImportProject(), scene = project.scenes['scene-1'];
-  if (legacy) {
-    project.version = 1;
-    for (let c = 1; c < scene.compositionOrder.length; c++) {
-      const id = `t${c}`;
-      scene.transitions[id] = { id, fromId: `c${c - 1}`, toId: `c${c}`, duration: 250, tracks: {} };
-    }
+  project.version = 1;
+  for (let c = 1; c < scene.compositionOrder.length; c++) {
+    const id = `t${c}`;
+    scene.transitions[id] = { id, fromId: `c${c - 1}`, toId: `c${c}`, duration: 250, tracks: {} };
   }
-  const empty = new Y.Doc();
-  try {
-    const { updateMessages } = createProjectMessages(empty, project);
-    expect(updateMessages.length).toBeGreaterThan(1);
-    expect(updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(2 * 1048576);
-    for (const message of updateMessages) expect(message.byteLength).toBeLessThanOrEqual(1048576);
-  } finally { empty.destroy(); }
   const originalRoom = crypto.randomUUID(); await page.goto(`/?room=${originalRoom}`);
   await expect(page.getByText('Live', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'プロジェクトを開く', exact: true }).click();

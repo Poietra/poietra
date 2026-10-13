@@ -299,7 +299,7 @@ if (args.child) {
     await expect(bob.page.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('333', { timeout: 15000 });
     console.log(`520-update burst reached both browser inspectors in ${Date.now() - burstStarted}ms`);
     const [journal] = await control('journal');
-    assert.equal(journal.snapshots, 1); assert.equal(journal.legacy, 1); assert(journal.updates < 256);
+    assert.equal(journal.snapshots, 0); assert.equal(journal.legacy, 1); assert(journal.updates < 256);
     assert(journal.updates > 0, 'Exercise both compacted snapshot and uncompacted journal tail');
     await control('hibernate');
     assert.equal(observer.provider.ws.readyState, WebSocket.OPEN);
@@ -375,7 +375,7 @@ if (args.child) {
     sendUpdate(pendingSocket, updates[2]);
     await roundtrip(pendingSocket);
     const [pendingJournal] = await control('journal', pendingRoom);
-    assert.equal(pendingJournal.snapshots, 1); assert(pendingJournal.updates > 0 && pendingJournal.updates < 256);
+    assert.equal(pendingJournal.snapshots, 0); assert.equal(pendingJournal.legacy, 1); assert(pendingJournal.updates > 0 && pendingJournal.updates < 256);
 
     // Exceed workerd's native row capacity to exercise SQLITE_TOOBIG rollback.
     const largeRoom = crypto.randomUUID(), largeSource = new Y.Doc();
@@ -384,7 +384,7 @@ if (args.child) {
     for (let index = 0; index < 6; index++) largeSource.getMap('rollback-proof').set(`part${index}`, `${index}:` + 'x'.repeat(1_500_000));
     await roundtrip(largeSocket);
     const [largeJournal] = await control('journal', largeRoom);
-    assert.equal(largeJournal.legacy, 1); assert(largeJournal.snapshots >= 1); assert(largeJournal.updates > 0);
+    assert.equal(largeJournal.legacy, 1); assert.equal(largeJournal.snapshots, 0); assert(largeJournal.updates > 0);
     const checkLarge = doc => {
       for (let index = 0; index < 6; index++) assert.equal(doc.getMap('rollback-proof').get(`part${index}`), `${index}:` + 'x'.repeat(1_500_000));
     };
