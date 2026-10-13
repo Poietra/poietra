@@ -15,7 +15,7 @@ extern "js" fn closest_element(
 fn shortcut_text_target(target : @core.Any) -> Bool {
   !@core.is_nullish(
     closest_element(
-      target, "input, textarea, select, .color-field, [contenteditable=\"true\"], [role=\"dialog\"], [role=\"menu\"], [role=\"menuitem\"], [role=\"combobox\"], [role=\"listbox\"], [role=\"option\"]",
+      target, "input, textarea, select, summary, .color-field, [contenteditable=\"true\"], [role=\"dialog\"], [role=\"menu\"], [role=\"menuitem\"], [role=\"combobox\"], [role=\"listbox\"], [role=\"option\"]",
     ),
   )
 }
@@ -242,7 +242,7 @@ fn use_keyboard_controls(input : EditorControls) -> Unit {
         if !@core.is_nullish(
             closest_element(
               event._get("target"),
-              "button, [role=\"button\"], .stage-surface",
+              "button, summary, [role=\"button\"], .stage-surface",
             ),
           ) {
           let selection = window._call("getSelection", [])

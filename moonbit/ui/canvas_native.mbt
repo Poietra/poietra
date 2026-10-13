@@ -26,10 +26,5 @@ fn canvas_settings(controller : InspectorController) -> @react.Element {
   typed_component(canvas_settings_component, {
     size: export_source_size(controller.scene),
     change,
-    swap: fn() {
-      if current() is Some(size) {
-        change(Some(size.height), Some(size.width))
-      }
-    },
   })
 }

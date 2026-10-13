@@ -1,5 +1,37 @@
 import { expect, test } from '@playwright/test';
 
+test('inspector help opens with native keys without playing or editing the selection', async ({ page }) => {
+  await page.goto(`/?room=${crypto.randomUUID()}`);
+  await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Circle', exact: true }).click();
+  for (const label of ['Parent のヘルプ', 'Group のヘルプ']) {
+    if (label.startsWith('Group')) {
+      await page.getByRole('button', { name: 'Sigmoid path', exact: true }).click({ modifiers: ['Shift'] });
+      await page.getByRole('button', { name: 'Group', exact: true }).click();
+      await page.getByRole('button', { name: 'Circle', exact: true }).click();
+    }
+    const summary = page.locator('summary', { hasText: label });
+    const help = summary.locator('..');
+    const x = page.getByRole('spinbutton', { name: 'Position X', exact: true });
+    const before = await x.inputValue();
+    await expect(help).not.toHaveAttribute('open');
+    await summary.focus();
+    await summary.press('Space');
+    await expect(help).toHaveAttribute('open');
+    await expect(help.locator('p')).toBeVisible();
+    await expect(summary).toBeFocused();
+    await summary.press('ArrowRight');
+    await summary.press('Delete');
+    await summary.press('r');
+    await expect(x).toHaveValue(before);
+    await expect(page.getByRole('button', { name: 'Circle を非表示', exact: true })).toBeEnabled();
+    await expect(page.locator('.playback-panel, .tool-instruction')).toHaveCount(0);
+    await summary.press('Enter');
+    await expect(help).not.toHaveAttribute('open');
+    await expect(help.locator('p')).toBeHidden();
+  }
+});
+
 test('select triggers and portalled options keep editor shortcuts out of keyboard selection', async ({ page }) => {
   await page.goto(`/?room=${crypto.randomUUID()}`);
   await expect(page.getByText('Live', { exact: true })).toBeVisible({ timeout: 15000 });

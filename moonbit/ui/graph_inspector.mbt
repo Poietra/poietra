@@ -128,7 +128,7 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
       [expression],
     ),
     h("p", { "className": @core.any("muted small") }, [
-      "x^3-a*x、x^2+y^2=a^2 など。等式では x・y、係数 a・b・c が使えます。Enter で反映。",
+      "変数 x（等式では x・y）、係数 a・b・c。Enter で反映。",
     ]),
     h("div", { "className": @core.any("property-grid") }, [
       number_field(
@@ -237,7 +237,7 @@ fn graph_inspector(input : GraphInspectorView) -> @react.Element {
   )
   content.push(
     h("p", { "className": @core.any("muted small") }, [
-      "不連続になる x の値をカンマで指定。係数の動きは Transition の Graph parameters で編集できます。",
+      "不連続点の x をカンマ区切りで指定。",
     ]),
   )
   if @render.graph_geometry(

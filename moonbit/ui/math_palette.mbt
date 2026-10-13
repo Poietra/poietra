@@ -62,9 +62,6 @@ fn math_palette(input : @core.Any) -> @react.Element {
     {
       "open": @core.any(controller.state.math_open),
       "title": @core.any("数学の表現を追加"),
-      "description": @core.any(
-        "表現を選び、キャンバスをクリックまたはドラッグして追加します。",
-      ),
       "onOpenChange": @core.any(fn(value : Bool) {
         controller.update({ ..controller.state, math_open: value, })
       }),

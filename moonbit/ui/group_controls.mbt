@@ -92,9 +92,9 @@ pub fn group_controls(_input : @core.Any) -> @react.Element {
   }
   if !groups.is_empty() {
     content.push(
-      h("p", Map([]), [
-        "表示中・未ロックのメンバーが一緒に移動します。行で個別に選択できます。",
-      ]),
+      inspector_help(
+        "Group のヘルプ", "表示中・未ロックのメンバーが一緒に移動します。レイヤー一覧で個別に選択できます。",
+      ),
     )
   }
   if selected.any(fn(object) { truthy(object._get("locked")) }) {

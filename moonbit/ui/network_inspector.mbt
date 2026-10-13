@@ -100,9 +100,6 @@ fn network_inspector(input : NetworkInspectorView) -> @react.Element {
     ])
   }
   let content : Array[&@react.ReactNode] = [
-    h("p", { "className": @core.any("muted small") }, [
-      "ノードをドラッグすると、接続している辺が追従します。自己ループ・平行辺も作れます。",
-    ]),
     component(field, { "label": @core.any("Element") }, [
       select_input(
         "Network element",

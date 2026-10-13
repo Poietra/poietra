@@ -144,23 +144,31 @@ fn composition_properties(
     } else {
       dimensions
     }
-    content.push(
-      inspector_section(if kind is Image { "Image" } else { "Video" }, [
-        h("p", { "className": @core.any("muted small") }, [description]),
-        inspector_button(
-          "元の縦横比に戻す",
-          "",
-          fn() { controller.number("height", state.width * height / width) },
-          class_name="text-button",
-        ),
+    let media_content : Array[&@react.ReactNode] = [
+      h("p", { "className": @core.any("muted small") }, [description]),
+      inspector_button(
+        "元の縦横比に戻す",
+        "",
+        fn() { controller.number("height", state.width * height / width) },
+        class_name="text-button",
+      ),
+    ]
+    if kind is Image {
+      media_content.push(
         h("p", { "className": @core.any("muted small") }, [
-          if kind is Image {
-            "角をドラッグして拡大縮小。Shift で縦横比を変更。"
-          } else {
-            "下の素材トラックで開始位置とトリミングを編集できます。音声は独立トラックです。"
-          },
+          "角で拡縮 · Shift で縦横比を変更",
         ]),
-      ]),
+      )
+    }
+    content.push(
+      inspector_section(
+        if kind is Image {
+          "Image"
+        } else {
+          "Video"
+        },
+        media_content,
+      ),
     )
   }
   if kind is Text || kind is Equation {
