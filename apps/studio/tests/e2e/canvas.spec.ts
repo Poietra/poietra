@@ -44,7 +44,7 @@ async function peer(page: Page) {
   return { doc, scene: () => readProject(doc)!.scenes['scene-1'], close };
 }
 
-test('canvas presets, custom dimensions and swapping preserve artwork, peer edits and saved size', async ({ page }, testInfo) => {
+test('canvas presets and custom dimensions preserve artwork, peer edits and saved size', async ({ page }, testInfo) => {
   await open(page);
   const data = await peer(page);
   try {
@@ -91,7 +91,8 @@ test('canvas presets, custom dimensions and swapping preserve artwork, peer edit
     await expect.poll(() => [data.scene().width, data.scene().height]).toEqual([900, 1400]);
     await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
     await expect(width).toHaveValue('600'); await expect(height).toHaveValue('1400');
-    await page.getByRole('button', { name: '幅と高さを入れ替え', exact: true }).click();
+    await width.fill('1400'); await width.press('Tab');
+    await height.fill('600'); await height.press('Tab');
     await expect.poll(() => [data.scene().width, data.scene().height]).toEqual([1400, 600]);
     expect(data.scene().compositions).toEqual(initial.compositions);
     expect(data.scene().transitions).toEqual(initial.transitions);

@@ -71,9 +71,6 @@ fn transform_inspector(input : @core.Any) -> @react.Element {
         disabled=truthy(object._get("locked")),
       ),
     ]),
-    h("p", { "className": @core.any("property-timing-note") }, [
-      "親の移動・回転・拡縮に追従します。親の変更時は各 Composition の見た目を保ちます。",
-    ]),
     h(
       "div",
       { "className": @core.any("property-grid property-grid-stacked") },
@@ -149,12 +146,19 @@ fn transform_inspector(input : @core.Any) -> @react.Element {
         "子を矩形の枠内に切り抜く",
       ]),
     )
-    content.push(
-      h("p", { "className": @core.any("property-timing-note") }, [
-        "子の Parent にこの矩形を指定します。枠を非表示にしても切り抜きは有効です。角丸は切り抜きに影響しません。",
-      ]),
-    )
   }
+  let help = "親の移動・回転・拡縮に追従します。親を変更しても各 Composition の見た目は保たれます。"
+  content.push(
+    inspector_help(
+      "Parent のヘルプ",
+      help +
+      (if @core.equal(object._get("kind"), @core.any("rectangle")) {
+        " 切り抜くには、子の Parent にこの矩形を指定し、切り抜きを有効にします。枠の表示・角丸は切り抜きに影響しません。"
+      } else {
+        ""
+      }),
+    ),
+  )
   if !error.is_empty() {
     content.push(
       h(

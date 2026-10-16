@@ -133,13 +133,7 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
       ]),
     ]),
   ]
-  if clips.is_empty() {
-    content.push(
-      h("p", { "className": @core.any("media-empty") }, [
-        "音声は独立トラックに。波形を見ながら位置や長さを調整できます。",
-      ]),
-    )
-  } else {
+  if !clips.is_empty() {
     let marks : Array[&@react.ReactNode] = []
     for index = 0; index < 5; index = index + 1 {
       marks.push(
@@ -180,14 +174,9 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
       (if clip.kind is AudioClip { "音声" } else { "動画" }) +
       " · " +
       media_seconds(clip.asset._get("duration").cast()) +
-      " · " +
-      (if clip.locked {
-        "ロック中 · 選択のみ"
-      } else {
-        "ドラッグで移動、両端でトリミング"
-      })
+      (if clip.locked { " · ロック中 · 選択のみ" } else { "" })
     } else {
-      "クリップを選ぶと開始位置・長さ・音量を編集できます"
+      ""
     }
     content.push(
       h(

@@ -349,7 +349,6 @@ fn scene_tabs_content(input : SceneTabsView) -> @react.Element {
       {
         "open": @core.any(draft is Some(_)),
         "title": @core.any("Rename scene"),
-        "description": @core.any("Scene の名前を変更します。"),
         "onOpenChange": @core.any(fn(open : Bool) {
           if !open {
             set_draft(None)
@@ -434,9 +433,6 @@ fn playback_panel_view(
     h("div", { "className": @core.any("property-section") }, [
       icon("Clapperboard", 25, props={ "strokeWidth": @core.any(1.4) }),
       h("h3", Map([]), [HostNode::{ value: title, }]),
-      h("p", Map([]), [
-        "再生位置の場面を開いて、配置や動きを編集できます。",
-      ]),
       h(
         "button",
         {

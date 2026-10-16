@@ -2,7 +2,6 @@
 priv struct CanvasSettingsView {
   size : @exporting.Size
   change : (Double?, Double?) -> Unit
-  swap : () -> Unit
 }
 
 ///|
@@ -88,17 +87,6 @@ fn render_canvas_settings(view : CanvasSettingsView) -> @react.Element {
     ]),
     h("div", { "className": @core.any("canvas-dimensions") }, [
       h("span", Map([]), [canvas_ratio(view.size)]),
-      h(
-        "button",
-        {
-          "className": @core.any("text-button"),
-          "onClick": @core.any(view.swap),
-        },
-        ["幅と高さを入れ替え"],
-      ),
-    ]),
-    h("p", { "className": @core.any("muted small") }, [
-      "配置と動きを保ったまま、Scene 全体のキャンバスを変更します。",
     ]),
   ])
 }

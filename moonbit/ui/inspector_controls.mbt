@@ -96,6 +96,14 @@ fn inspector_section(
 }
 
 ///|
+fn inspector_help(label : String, text : String) -> @react.Element {
+  h("details", { "className": @core.any("inspector-help") }, [
+    h("summary", Map([]), [label]),
+    h("p", Map([]), [text]),
+  ])
+}
+
+///|
 fn inspector_button(
   label : String,
   image : String,

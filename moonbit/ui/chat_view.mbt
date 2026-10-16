@@ -50,12 +50,6 @@ fn chat_view(
     }
     rows.push(
       h("div", { "className": @core.any("assistant-welcome") }, [
-        h("p", Map([]), [
-          "この部屋のメンバーと、制作の相談を。",
-          h("br", Map([]), []),
-          h("strong", Map([]), ["@codex"]),
-          " で AI も会話に参加します。",
-        ]),
         h("div", { "className": @core.any("prompt-suggestions") }, suggestions),
         h("small", Map([]), [
           "AI の編集案は、依頼した人が確認して適用できます。",

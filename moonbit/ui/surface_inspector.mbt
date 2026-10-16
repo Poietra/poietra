@@ -84,11 +84,7 @@ fn surface_inspector(input : SurfaceInspectorView) -> @react.Element {
   let scalar = fn(key : String, v : Double) {
     apply(host_record(Map([(key, @core.any(v))])))
   }
-  let content : Array[&@react.ReactNode] = [
-    h("p", { "className": @core.any("muted small") }, [
-      "式から3D曲面を作ります。Yaw・Pitchで視点を回転し、Zoomで表示倍率を変えます。",
-    ]),
-  ]
+  let content : Array[&@react.ReactNode] = []
   content.push(
     component(field, { "label": @core.any("Example") }, [
       select_input(
@@ -242,7 +238,7 @@ fn surface_inspector(input : SurfaceInspectorView) -> @react.Element {
         if geometry.limited {
           "未定義・不連続付近の領域を省略しました。範囲や分割数を調整してください。"
         } else {
-          "曲面は分割メッシュによる数値近似です。細かな形は分割数や範囲を調整してください。"
+          "数値近似 · 細部は分割数で調整"
         },
       ],
     ),

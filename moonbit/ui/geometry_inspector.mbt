@@ -121,7 +121,7 @@ fn geometry_inspector(input : GeometryInspectorView) -> @react.Element {
   }
   let content : Array[&@react.ReactNode] = [
     h("p", { "className": @core.any("muted small") }, [
-      "点をドラッグするか座標を編集すると、参照しているベクトル・中点・角度も変わります。Xは右、Yは上が正です。",
+      "X は右、Y は上が正。",
     ]),
   ]
   content.push(
