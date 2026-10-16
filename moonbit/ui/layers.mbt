@@ -163,6 +163,7 @@ pub fn sidebar(input : @core.Any) -> @react.Element {
   let scene = editor.scene
   let cid : String = editor.composition_id
   let dependencies = editor_presentation_inputs(editor)
+  dependencies.push(scene._get("name"))
   dependencies.push(scene._get("objects"))
   dependencies.append(composition_presentation_inputs(scene, false))
   for id in @core.object_keys(scene._get("objects")) {
@@ -207,6 +208,14 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
   let playback = editor.viewing_playback
   let (searching, set_searching) = @react.use_state(false)
   let (query, set_query) = @react.use_state("")
+  let search_button = @react.use_ref((None : @core.Any?))
+  let close_search = fn() {
+    set_searching(false)
+    set_query("")
+    if search_button.get_current() is Some(button) {
+      button._call("focus", []) |> ignore
+    }
+  }
   let (collapsed, set_collapsed) = @react.use_state(
     (Map([]) : Map[String, Bool]),
   )
@@ -302,34 +311,90 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
     )
   }
   let scene_count = input.scene_count
+  let scene_name : String = scene._get("name").cast()
   let content : Array[&@react.ReactNode] = [
-    h("div", { "className": @core.any("new-scene-row") }, [
+    h(
+      "div",
+      {
+        "className": @core.any("new-scene-row"),
+        "onKeyDown": @core.any(fn(event : @core.Any) {
+          if searching &&
+            string_value(event._get("key")) == "Escape" &&
+            !truthy(event._get("nativeEvent")._get("isComposing")) {
+            prevent_default(event)
+            event._call("stopPropagation", []) |> ignore
+            close_search()
+          }
+        }),
+      },
+      [
+        if searching {
+          h("div", { "className": @core.any("layer-search") }, [
+            icon("Search", 13),
+            h(
+              "input",
+              {
+                "autoFocus": @core.any(true),
+                "aria-label": @core.any("レイヤーを検索"),
+                "placeholder": @core.any("Find a layer…"),
+                "value": @core.any(query),
+                "onChange": @core.any(fn(event : @core.Any) {
+                  set_query(event._get("target")._get("value").cast())
+                }),
+              },
+              [],
+            ),
+          ])
+        } else {
+          h(
+            "button",
+            {
+              "className": @core.any("new-scene-button"),
+              "onClick": @core.any(input.new_scene),
+              "disabled": @core.any(scene_count >= 100),
+            },
+            [
+              icon("ChartNoAxesColumnIncreasing", 13),
+              h("span", Map([]), ["New scene"]),
+              h("span", { "className": @core.any("shortcut") }, ["＋"]),
+            ],
+          )
+        },
+        component(
+          icon_button,
+          {
+            "ref": search_button.as_any(),
+            "label": @core.any(
+              if searching {
+                "検索を閉じる"
+              } else {
+                "レイヤーを検索"
+              },
+            ),
+            "active": @core.any(searching),
+            "aria-expanded": @core.any(searching),
+            "onClick": @core.any(fn() {
+              if searching {
+                close_search()
+              } else {
+                set_searching(true)
+              }
+            }),
+          },
+          [icon(if searching { "X" } else { "Search" }, 15)],
+        ),
+      ],
+    ),
+    h("h2", { "className": @core.any("sidebar-scene-title") }, [
+      h("span", { "className": @core.any("sidebar-scene-label") }, ["Scene"]),
       h(
-        "button",
+        "span",
         {
-          "className": @core.any("new-scene-button"),
-          "onClick": @core.any(input.new_scene),
-          "disabled": @core.any(scene_count >= 100),
+          "className": @core.any("sidebar-scene-name"),
+          "title": @core.any(scene_name),
         },
-        [
-          icon("Square", 13),
-          h("span", Map([]), ["New scene"]),
-          h("span", { "className": @core.any("shortcut") }, ["＋"]),
-        ],
+        [scene_name],
       ),
-      component(
-        icon_button,
-        {
-          "label": @core.any("レイヤーを検索"),
-          "active": @core.any(searching),
-          "onClick": @core.any(fn() { set_searching(!searching) }),
-        },
-        [icon("Search", 15)],
-      ),
-    ]),
-    h("div", { "className": @core.any("sidebar-scene-title") }, [
-      h("span", Map([]), ["Scenes"]),
-      icon("ChevronDown", 13),
     ]),
     h("div", { "className": @core.any("sidebar-section-heading") }, [
       h("span", Map([]), ["Layers"]),
@@ -351,26 +416,6 @@ fn sidebar_content(input : SidebarView) -> @react.Element {
           h("span", Map([]), ["Shift + click"]),
         ],
       ),
-    )
-  }
-  if searching {
-    content.push(
-      h("div", { "className": @core.any("layer-search") }, [
-        icon("Search", 13),
-        h(
-          "input",
-          {
-            "autoFocus": @core.any(true),
-            "aria-label": @core.any("レイヤーを検索"),
-            "placeholder": @core.any("Find a layer…"),
-            "value": @core.any(query),
-            "onChange": @core.any(fn(event : @core.Any) {
-              set_query(event._get("target")._get("value").cast())
-            }),
-          },
-          [],
-        ),
-      ]),
     )
   }
   let layers : Array[&@react.ReactNode] = []
