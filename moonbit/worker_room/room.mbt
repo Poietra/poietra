@@ -45,6 +45,7 @@ fn create_room(
   for
     statement in [
       "CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), data BLOB NOT NULL)",
+      "CREATE TABLE IF NOT EXISTS snapshot_parts (part INTEGER PRIMARY KEY, data BLOB NOT NULL)",
       "CREATE TABLE IF NOT EXISTS updates (seq INTEGER PRIMARY KEY AUTOINCREMENT, data BLOB NOT NULL)",
       "CREATE TABLE IF NOT EXISTS ai_lock (id INTEGER PRIMARY KEY CHECK (id = 1), request_id TEXT NOT NULL, until_ms INTEGER NOT NULL)",
       "CREATE TABLE IF NOT EXISTS images (id TEXT PRIMARY KEY, mime TEXT NOT NULL, size INTEGER NOT NULL)",
@@ -87,15 +88,30 @@ fn create_room(
       fn() { room.connections.size() },
     ),
   )
-  let snapshots = sql
+  // An older deployment updates only the legacy row. Prefer it after a rollback;
+  // only an explicitly enabled multipart writer may remove it when it cannot fit.
+  let mut snapshots = sql
     .exec_raw("SELECT data FROM snapshot WHERE id = 1")
     .to_array()
+  if snapshots.is_empty() {
+    snapshots = sql
+      .exec_raw("SELECT data FROM snapshot_parts ORDER BY part")
+      .to_array()
+  }
   if !snapshots.is_empty() {
-    yjs._call("applyUpdate", [
-      doc,
-      @buffer.Uint8Array::from_array_buffer(snapshots[0]._get("data").cast()).as_any(),
-    ])
-    |> ignore
+    let parts = snapshots.map(fn(row) {
+      @buffer.Uint8Array::from_array_buffer(row._get("data").cast())
+    })
+    let snapshot = @buffer.Uint8Array::from_size(
+      parts.fold(init=0, fn(total, part) { total + part.length() }),
+    )
+    let mut offset = 0
+    for part in parts {
+      snapshot.as_any()._call("set", [part.as_any(), @core.any(offset)])
+      |> ignore
+      offset += part.length()
+    }
+    yjs._call("applyUpdate", [doc, snapshot.as_any()]) |> ignore
   }
   for row in sql.exec_raw("SELECT data FROM updates ORDER BY seq").to_array() {
     yjs._call("applyUpdate", [

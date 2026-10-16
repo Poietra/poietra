@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { makeDemoProject } from '../shared/demo';
+import { defaultTrack } from '../shared/model';
 import { parseProjectFile } from '../shared/project-file';
 import * as Y from 'yjs';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as sync from 'y-protocols/sync';
-import { initializeDocument, readProject } from '../shared/document';
+import { ensureSceneAnimationTracks, ensureSceneAudioTracks, initializeDocument, readProject } from '../shared/document';
 import { createProjectMessages } from '../src/editor/projects';
 import { boundedUtf8Size } from '../../../_build/js/release/build/boundary/boundary.js';
+import { largeImportProject } from './helpers/project-import';
 
 describe('project file import', () => {
   it('counts UTF-8 with bounded scratch memory across surrogate and buffer boundaries', () => {
@@ -107,13 +109,14 @@ describe('project file import', () => {
   });
 
   it('prepares a replacement without mutating the source and delivers it with the standard sync protocol', () => {
+    const empty = new Y.Doc();
+    expect(createProjectMessages(empty, makeDemoProject()).updateMessages).toHaveLength(1);
+    empty.destroy();
     const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
     const project = makeDemoProject(); project.name = 'Restored';
     const messages = createProjectMessages(source, project);
     expect(readProject(source)!.name).toBe('A little motion');
-    const decoder = decoding.createDecoder(messages.updateMessage);
-    expect(decoding.readVarUint(decoder)).toBe(0);
-    sync.readSyncMessage(decoder, encoding.createEncoder(), source, 'test');
+    applyMessages(source, messages.updateMessages);
     expect(readProject(source)).toEqual(project);
     const request = decoding.createDecoder(messages.syncMessage);
     expect(decoding.readVarUint(request)).toBe(0);
@@ -121,12 +124,70 @@ describe('project file import', () => {
     source.destroy();
   });
 
-  it('rejects an oversized encoded update before mutating or sending the project', () => {
+  it('opens projects above 2 MiB in compact bounded messages without losing authored keyframes to room initialization', () => {
+    const source = new Y.Doc(), server = new Y.Doc();
+    source.clientID = 1;
+    // A deterministic winner for defaults inserted concurrently with the staged import.
+    server.clientID = 0xffffffff;
+    initializeDocument(source, makeDemoProject());
+    ensureSceneAudioTracks(source); ensureSceneAnimationTracks(source);
+    const original = readProject(source);
+    Y.applyUpdate(server, Y.encodeStateAsUpdate(source));
+    const input = largeImportProject(); input.version = 2;
+    const scene = input.scenes['scene-1'];
+    scene.transitions.t1 = { id: 't1', fromId: 'c0', toId: 'c1', duration: 250, tracks: {} };
+    const tracks = scene.transitions.t1.tracks;
+    for (const objectId of ['o0', 'o1']) tracks[objectId] = defaultTrack(objectId, {
+      type: 'write', start: 25, duration: 200, easing: 'easeOut',
+      keyframes: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [
+        `point-${i}`.padEnd(64, 'x'),
+        { property: 'x' as const, at: (i + 1) / 1001, value: i, easing: 'linear' as const },
+      ])),
+    });
+    const project = parseProjectFile(JSON.stringify(input));
+    // This legacy track spans a staging transaction and lacks a keyframe map.
+    (project.scenes['scene-1'].transitions.t1.tracks as Record<string, unknown>).o2 = {
+      objectId: 'o2', type: 'move', start: 0, duration: 250, easing: 'linear', order: 'together', path: null, extra: 'x'.repeat(300000),
+    };
+    const { updateMessages } = createProjectMessages(source, project);
+    expect(updateMessages.length).toBeGreaterThan(1);
+    expect(updateMessages.length).toBeLessThan(100);
+    expect(updateMessages.reduce((total, message) => total + message.byteLength, 0)).toBeGreaterThan(2 * 1048576);
+    expect(readProject(source)).toEqual(original);
+    for (const [index, message] of updateMessages.entries()) {
+      expect(message.byteLength).toBeLessThanOrEqual(1048576);
+      applyMessages(server, [message]);
+      ensureSceneAudioTracks(server); ensureSceneAnimationTracks(server);
+      if (index < updateMessages.length - 1) expect(readProject(server)).toBeNull();
+    }
+    const whole = new Y.Doc(); initializeDocument(whole, project);
+    ensureSceneAudioTracks(whole); ensureSceneAnimationTracks(whole);
+    const legacy = (server.getMap('project').get('scenes') as Y.Map<any>).get('scene-1').get('transitions').get('t1').get('tracks').get('o2');
+    expect(legacy.get('keyframes')).toBeInstanceOf(Y.Map);
+    expect(shape(server.getMap('project'))).toEqual(shape(whole.getMap('project')));
+    source.destroy(); server.destroy(); whole.destroy();
+  });
+  it('rejects a single value that cannot fit one message before mutating or sending the project', () => {
     const source = new Y.Doc(); initializeDocument(source, makeDemoProject());
     const project = makeDemoProject();
     project.scenes['scene-1'].compositions['comp-1'].states.equation.text = 'a'.repeat(2 * 1024 * 1024);
-    expect(() => createProjectMessages(source, project)).toThrow('データ量');
+    expect(() => createProjectMessages(source, project)).toThrow('1 MB');
     expect(readProject(source)).toEqual(makeDemoProject());
     source.destroy();
   });
 });
+
+function applyMessages(doc: Y.Doc, messages: Uint8Array[]) {
+  for (const message of messages) {
+    const decoder = decoding.createDecoder(message);
+    expect(decoding.readVarUint(decoder)).toBe(0);
+    sync.readSyncMessage(decoder, encoding.createEncoder(), doc, 'test');
+  }
+}
+
+// Nested shared maps and arrays versus plain leaves, independent of item order.
+function shape(value: unknown): unknown {
+  if (value instanceof Y.Map) return { map: Object.fromEntries([...value.keys()].sort().map(key => [key, shape(value.get(key))])) };
+  if (value instanceof Y.Array) return { array: value.toArray().map(shape) };
+  return value;
+}

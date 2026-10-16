@@ -6,6 +6,20 @@ fn dispose_host(value : @core.Any) -> Unit {
 }
 
 ///|
+/// Leave room below the server frame and SQLite row limits.
+let project_message_bytes : Int = 1048576
+
+///|
+let staging_budget : Int = 262144
+
+///|
+/// Leave echo-queue headroom; one indivisible frame may exceed this window.
+let publication_window_bytes : Int = 524288
+
+///|
+let publication_window_messages : Int = 16
+
+///|
 fn project_messages(
   source : @core.Any,
   project : @core.Any,
@@ -20,42 +34,36 @@ fn project_messages(
       yjs._call("encodeStateAsUpdate", [source]),
     ])
     |> ignore
-    let vector = yjs._call("encodeStateVector", [staged])
+    let updates : Array[@core.Any] = []
+    let collect = fn(update : @core.Any) { updates.push(update) }
+    staged._call("on", [@core.any("update"), @core.any(collect)]) |> ignore
+    let root = staged._call("getMap", [@core.any("project")])
     staged._call("transact", [
-      @core.any(fn() {
-        let root = staged._call("getMap", [@core.any("project")])
-        root._call("clear", []) |> ignore
-        for key in @core.object_keys(project) {
-          root._call("set", [
-            @core.any(key),
-            @boundary.to_shared(project._get(key), yjs),
-          ])
-          |> ignore
-        }
-      }),
+      @core.any(fn() { root._call("clear", []) |> ignore }),
     ])
     |> ignore
+    @boundary.fill_shared_bounded(staged, root, project, yjs, staging_budget)
+    staged._call("off", [@core.any("update"), @core.any(collect)]) |> ignore
     let encoding = runtime._get("encoding")
     let sync = runtime._get("sync")
-    let update = encoding._call("createEncoder", [])
-    encoding._call("writeVarUint", [update, @core.any(0)]) |> ignore
-    sync._call("writeUpdate", [
-      update,
-      yjs._call("encodeStateAsUpdate", [staged, vector]),
-    ])
-    |> ignore
-    let message = encoding._call("toUint8Array", [update])
-    let bytes : Int = message._get("byteLength").cast()
-    if bytes > 2097152 {
-      @core.throw_error(
-        "このプロジェクトは一度に開けるデータ量を超えています。シーンやオブジェクトを減らして保存してください。",
-      )
-    }
+    let messages = FixedArray::makei(updates.length(), fn(index) {
+      let update = encoding._call("createEncoder", [])
+      encoding._call("writeVarUint", [update, @core.any(0)]) |> ignore
+      sync._call("writeUpdate", [update, updates[index]]) |> ignore
+      let message = encoding._call("toUint8Array", [update])
+      let bytes : Int = message._get("byteLength").cast()
+      if bytes > project_message_bytes {
+        @core.throw_error(
+          "1 MB を超える値が含まれているため、このプロジェクトは開けません。",
+        )
+      }
+      message
+    })
     let request = encoding._call("createEncoder", [])
     encoding._call("writeVarUint", [request, @core.any(0)]) |> ignore
     sync._call("writeSyncStep1", [request, staged]) |> ignore
     @core.from_entries([
-      ("updateMessage", message),
+      ("updateMessages", @core.any(messages)),
       ("syncMessage", encoding._call("toUint8Array", [request])),
     ])
   })
@@ -78,15 +86,47 @@ pub fn create_project_messages(
 ///|
 priv enum PublishPhase {
   Connecting
-  AwaitingAck(@core.Any)
+  AwaitingAck(@core.Any, Publication)
   Finished(@core.Any?)
+}
+
+///|
+priv struct Publication {
+  updates : FixedArray[@core.Any]
+  sync_message : @core.Any
+  mut next : Int
+}
+
+///|
+fn Publication::send_window(
+  self : Publication,
+  socket : @core.Any,
+) -> Unit raise {
+  @core.throwable(fn() {
+    let mut bytes = 0
+    let mut count = 0
+    while self.next < self.updates.length() &&
+          count < publication_window_messages {
+      let update = self.updates[self.next]
+      let size : Int = update._get("byteLength").cast()
+      if count > 0 && bytes + size > publication_window_bytes {
+        break
+      }
+      socket._call("send", [update]) |> ignore
+      self.next += 1
+      count += 1
+      bytes += size
+    }
+    // The final state vector keeps intermediate persisted acknowledgments small.
+    socket._call("send", [self.sync_message]) |> ignore
+  })
 }
 
 ///|
 fn PublishPhase::socket(self : PublishPhase) -> @core.Any? {
   match self {
     Connecting => None
-    AwaitingAck(socket) => Some(socket)
+    AwaitingAck(socket, _) => Some(socket)
     Finished(socket) => socket
   }
 }
@@ -126,23 +166,34 @@ async fn publish_room(
       ),
     )
   }
-  let timeout = global._call("setTimeout", [
-    @core.any(fn() {
-      finish(
-        Some(
-          native_error(
-            ProjectFailure(
-              "接続できませんでした。通信を確認して、もう一度開いてください。",
+  let timeout : Ref[@core.Any?] = Ref(None)
+  let await_progress = fn() {
+    if timeout.val is Some(previous) {
+      global._call("clearTimeout", [previous]) |> ignore
+    }
+    timeout.val = Some(
+      global._call("setTimeout", [
+        @core.any(fn() {
+          finish(
+            Some(
+              native_error(
+                ProjectFailure(
+                  "接続できませんでした。通信を確認して、もう一度開いてください。",
+                ),
+              ),
             ),
-          ),
-        ),
-      )
-    }),
-    @core.any(15000),
-  ])
-  defer global._call("clearTimeout", [timeout]) |> ignore
+          )
+        }),
+        @core.any(15000),
+      ]),
+    )
+  }
+  await_progress()
+  defer (if timeout.val is Some(timeout) {
+    global._call("clearTimeout", [timeout]) |> ignore
+  })
   let status = fn(event : @core.Any) {
-    if phase.val is AwaitingAck(_) &&
+    if phase.val is AwaitingAck(_, _) &&
       @core.equal(event._get("status"), @core.any("disconnected")) {
       finish(
         Some(
@@ -156,27 +207,33 @@ async fn publish_room(
     }
   }
   let acknowledged = fn(event : @core.Any) {
-    if !(phase.val is AwaitingAck(_)) || !is_array_buffer(event._get("data")) {
+    guard phase.val is AwaitingAck(socket, publication) &&
+      is_array_buffer(event._get("data")) else {
       return
     }
-    try {
-      let acknowledged : Bool = @core.throwable(fn() {
-        let decoding = runtime._get("decoding")
-        let decoder = decoding._call("createDecoder", [
-          @core.new(global._get("Uint8Array"), [event._get("data")]),
-        ])
-        let message : Int = decoding._call("readVarUint", [decoder]).cast()
-        message == 0 &&
-        @core.equal(
-          decoding._call("readVarUint", [decoder]),
-          runtime._get("sync")._get("messageYjsSyncStep2"),
-        )
-      })
-      if acknowledged {
+    let acknowledged : Bool = @core.throwable(fn() {
+      let decoding = runtime._get("decoding")
+      let decoder = decoding._call("createDecoder", [
+        @core.new(global._get("Uint8Array"), [event._get("data")]),
+      ])
+      let message : Int = decoding._call("readVarUint", [decoder]).cast()
+      message == 0 &&
+      @core.equal(
+        decoding._call("readVarUint", [decoder]),
+        runtime._get("sync")._get("messageYjsSyncStep2"),
+      )
+    }) catch {
+      _ => false
+    }
+    if acknowledged {
+      if publication.next == publication.updates.length() {
         finish(None)
+      } else {
+        await_progress()
+        publication.send_window(socket) catch {
+          error => finish(Some(native_error(error)))
+        }
       }
-    } catch {
-      _ => ()
     }
   }
   let synced = fn(value : Bool) {
@@ -193,16 +250,21 @@ async fn publish_room(
         raise ProjectFailure("接続できませんでした。")
       }
       let messages = project_messages(doc, project, runtime)
-      phase.val = AwaitingAck(socket)
+      let publication : Publication = {
+        updates: messages._get("updateMessages").cast(),
+        sync_message: messages._get("syncMessage"),
+        next: 0,
+      }
+      phase.val = AwaitingAck(socket, publication)
       @core.throwable(fn() {
         socket._call("addEventListener", [
           @core.any("message"),
           @core.any(acknowledged),
         ])
         |> ignore
-        socket._call("send", [messages._get("updateMessage")]) |> ignore
-        socket._call("send", [messages._get("syncMessage")]) |> ignore
       })
+      await_progress()
+      publication.send_window(socket)
     } catch {
       error => finish(Some(native_error(error)))
     }

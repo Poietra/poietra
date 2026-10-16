@@ -47,7 +47,10 @@ The boundaries to preserve are:
   keep the shared document snapshots intact.
 - Each room has one authoritative Yjs document. Reads share immutable snapshots;
   selective Undo preserves peer edits. Persist updates before broadcasting or
-  acknowledging them, including unresolved dependencies.
+  acknowledging them, including unresolved dependencies. Portable imports use
+  messages of at most 1 MiB in bounded windows, waiting for persisted sync
+  acknowledgments to prevent echo-queue overflow (2026-10-13). SQLite snapshot
+  parts use the [staged rollout](#deployment-and-limits) below.
 - Workspace layout (2026-10-12) keeps heading and timeline heights independent of
   Composition/Transition selection. Tracks and media share a scrolling body while
   segment cards and transport stay fixed. CSS sizes the timeline to the viewport;
@@ -289,6 +292,12 @@ redundant scenarios. Provider HTTP is mocked; these checks do not verify live
 OAuth completion or paid AI calls. Timing probes are separate from correctness
 checks; run them using the [measurement guide](../benchmarks/README.md).
 
+Room import checks (2026-10-13, `bf4de47`, MoonBit `0.10.13+cbb11c36f`, Node
+`26.11.1`) cover the actual `7bad3d5` Room editing the same SQLite database between
+current versions, real Node sockets and workerd restart before/after writer
+activation. [CI results](https://github.com/Poietra/poietra/actions/runs/38344214368)
+and ignored `test-results/pr-13-review-2026-10-13/` retain correctness evidence.
+
 Function graph verification (2026-10-10, working tree based on `e19bc49`) used
 the pinned MoonBit compiler, Node 24.13.0 and Chromium 153.0.8010.12 with isolated
 Node room storage. Type/API checks, production web build and source/suite audits
@@ -471,6 +480,12 @@ Confirm the active version before deploying again.
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
 The default Wrangler config uses isolated storage; only explicit `production`
 commands target the existing service. A dry run or successful CI is not a deployment.
+Snapshot rollout (2026-10-13): deploy with `ROOM_SNAPSHOT_PARTS_WRITE` unset and
+retain that multipart reader as the rollback target before enabling
+`ROOM_SNAPSHOT_PARTS_WRITE=true`. Legacy snapshots remain wherever SQLite accepts
+them; oversized rooms retain their snapshot and journal until activation. Older
+readers can recover that data but may hit their original compaction limit on
+further edits. After activation, rollback requires the multipart reader.
 A Worker rollback restores code/assets, not room data; it must understand version
 7 graph shading, version 6 networks/surfaces, version 5 diagrams and graph grammar v2 equations,
 as well as persistent account dismissals. See [current limits](../apps/studio/README.md#現在の制限).
