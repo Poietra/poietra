@@ -141,6 +141,9 @@ test('returning to a tab refreshes changes to the same account list made elsewhe
     ? { projects: visible ? [{ roomId: 'elsewhere-private-room', name: 'Work from another device', updatedAt: Date.now() }] : [] }
     : { project: null } }));
   await page.goto(`/?room=${crypto.randomUUID()}&projects=1`);
+  // Cold editor startup precedes the list read; wait for the signed-in panel
+  // before testing the initial shortcut and the subsequent focus refresh.
+  await expect(page.getByRole('region', { name: '自分のプロジェクト', exact: true })).toBeVisible({ timeout: 15000 });
   const shortcut = page.getByRole('link', { name: /Work from another device/ });
   await expect(shortcut).toBeVisible();
   visible = false;

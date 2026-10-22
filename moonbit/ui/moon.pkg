@@ -3,6 +3,7 @@ import {
   "mizchi/npm_typed/react",
   "mizchi/js_builtin/collection",
   "poietra/poietra/audio",
+  "poietra/poietra/sound_effects",
   "poietra/poietra/browser_media",
   "poietra/poietra/exporting",
   "poietra/poietra/scene",

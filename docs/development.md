@@ -20,6 +20,32 @@ rejects executable application TS/TSX. It does not measure runtime dependencies.
 | Hosts and storage | `node_*`, `worker_*`, `room_assets`, `r2_upload`, `http_policy`, `http_runtime` | HTTP/WebSockets, persistence, quotas and media publication |
 | Public site | `site`, `site_shell`, `site_boundary`, `browser_site`, `developer_site`, `site_build` | Localized pages, developer documentation and prerendering |
 
+Procedural effects (2026-10-23) address the need to find and import a file before
+adding a short sound. `sound_effects` is a pure MoonBit synthesizer with a curated
+catalog, seeded variations, duration/pitch controls, DC removal, silent edges and
+6 dB of peak headroom. Stationary modal voices use recurrences; moving noise uses
+bounded filters and small delay lines. Only the requested sound is synthesized;
+the palette retains one take and releases its AudioContext and nodes on close.
+Preview PCM is quantized identically to the generated 48 kHz mono PCM16 WAV.
+`editor.sound_placement` aligns measured onset, 5 ms RMS peak or end with visual
+timing, trimming pre-roll at Scene zero. Audio options are encoded before the
+single import transaction, with destination/capacity/timing rechecked after upload.
+The visual cue can use an individual property channel such as Position or Opacity
+instead of the union of selected track intervals; inherited property timing is
+resolved through the shared evaluator boundary.
+The existing media store, portable files, mixer and renderers consume the WAV;
+no new document format, external synthesis service or runtime dependency is needed.
+The UI and browser lifetimes live in `ui/sound_palette` and `ui/sound_session`.
+
+The concept was informed by [Earshot's model-free sound bank and measured sync
+points](https://github.com/Leonxlnx/earshot/tree/925ebe56a1b755e5d354ab642bb8f344440cfa9c/earshot/forge),
+reviewed with its MIT license, Python/NumPy/SciPy implementation and bank/kit tests
+on 2026-10-23. These are original Poietra recipes, not ports of Earshot's bank or
+recording-derived fits. Python dependencies and model-based listening/search were
+not adopted for the browser workflow. No acoustic equivalence or relative speed
+claim is made against Earshot; subjective sound preference remains for creators
+to judge by auditioning.
+
 The boundaries to preserve are:
 
 - Pure domain packages are independent of React, Yjs and host types. Edit plans
@@ -274,7 +300,7 @@ Run pure MoonBit tests from the root:
 ```sh
 node scripts/moon.mjs check --target js --deny-warn
 node scripts/moon.mjs test --target js
-node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/math_geometry moonbit/math_network moonbit/math_surface moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/media_pipeline moonbit/render_job
+node scripts/moon.mjs test --target wasm moonbit/motion moonbit/math_plot moonbit/math_geometry moonbit/math_network moonbit/math_surface moonbit/proposal_plan moonbit/editor moonbit/scene moonbit/render moonbit/exporting moonbit/audio moonbit/sound_effects moonbit/media_pipeline moonbit/render_job
 ```
 
 Install Chromium with `pnpm --dir apps/studio exec playwright install --with-deps chromium`.
@@ -391,7 +417,29 @@ POIETRA_TEST_URL=http://127.0.0.1:5442 pnpm --dir apps/studio exec playwright te
 node apps/studio/tests/collaboration-worker.integration.mjs --port 8790
 ```
 
+Sound-effect verification (2026-10-23, working tree based on `f879b9c`) used
+MoonBit `0.10.13+cbb11c36f`, Node `24.13.0` and local Chromium with isolated
+storage. The pure synthesis/analytic-recurrence and placement/import checks passed
+on JS and WASM; the existing Vitest suite passed 886 tests. Browser checks cover
+audition PCM versus the actual WAV (exact stored PCM, independent browser decode
+within one PCM16 step), selected-motion alignment after a peer timing change,
+one-step Undo/Redo, shared tracks, portable save/reopen, cancellation/late upload
+completion and retry. FFmpeg independently decoded browser WebM and headless MP4
+exports with the expected silence, cue time and gain. Build, type/API checks,
+five extension checks and source/suite audits passed. This is local verification;
+the feature has not been deployed.
+
+[Synthesis measurements](../benchmarks/2026-10-23-sound-effects/synthesis.json)
+use the same source in an isolated JS release artifact on an Intel Core Ultra 7
+255H (WSL2, affinity CPU 8), five warmups and twenty samples per case, run without
+concurrent project builds, tests or encoders. Across ten default presets, per-case
+medians were 0.36–2.67 ms (individual samples 0.30–10.96 ms). Three-second takes
+had per-case medians 7.31–10.42 ms (samples 6.57–17.61 ms). These costs include
+waveform/cue analysis and PCM16 WAV encoding, and exclude UI, Web Audio and upload.
+They establish local generation cost, not an Earshot speedup or user-visible FPS.
+
 ## API documentation
+
 
 The bilingual [developer pages](https://poietra.com/developers/) contain CLI,
 HTTP/MCP instructions, codecs and limits. To read documentation for this checkout,

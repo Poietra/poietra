@@ -50,6 +50,7 @@ export const suites = {
     'project-preview.spec.ts',
   ],
   mediaEditor: [
+    'sound-effects.spec.ts',
     'project-playback.spec.ts',
     'media-files.spec.ts',
   ],
