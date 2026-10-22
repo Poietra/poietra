@@ -426,8 +426,8 @@ within one PCM16 step), selected-motion alignment after a peer timing change,
 one-step Undo/Redo, shared tracks, portable save/reopen, cancellation/late upload
 completion and retry. FFmpeg independently decoded browser WebM and headless MP4
 exports with the expected silence, cue time and gain. Build, type/API checks,
-five extension checks and source/suite audits passed. This is local verification;
-the feature has not been deployed.
+five extension checks and source/suite audits passed. These checks used isolated
+local hosts; production verification is recorded below.
 
 [Synthesis measurements](../benchmarks/2026-10-23-sound-effects/synthesis.json)
 use the same source in an isolated JS release artifact on an Intel Core Ultra 7
@@ -479,41 +479,37 @@ not a production deployment.
 
 ## Deployment and limits
 
-Last recorded deployment: **2026-10-12 00:07 JST**, Worker version
-`540e5b71-7ba4-4b09-8c01-590de1746e69` at 100% on `poietra.com`.
-The application source was clean commit `dc1ae0b91b59c60d35f2c5fb679745a14d5b732b`,
-tagged `prs-dc1ae0b`, with all eight checks passing in
-[CI run 38148724104](https://github.com/Poietra/poietra/actions/runs/38148724104).
-Its predecessor was `9a901272-73fa-4f75-91a3-61369a0c5409`.
+Last recorded deployment: **2026-10-23 06:48 JST**, Worker version
+`17dbb98b-f51e-4ec3-9a7f-90c610e90d0c` at 100% on `poietra.com`.
+The application source was clean commit `f557e5565bdde32648d983ff0114d986c2c9a945`
+from [PR #15](https://github.com/Poietra/poietra/pull/15), with Cloudflare version
+tag `sfx-f557e55` and all eight checks passing in
+[CI run 39857298028](https://github.com/Poietra/poietra/actions/runs/39857298028).
+Its predecessor was `540e5b71-7ba4-4b09-8c01-590de1746e69`.
 The production build and dry run passed with the pinned MoonBit compiler and
 Node 24.13.0. Before promotion, version metadata confirmed identical bindings,
 Durable Object namespaces/classes, migration tags, runtime settings and asset
 routing. R2, secret bindings, domain and existing workers.dev links were preserved.
 
-Production Chromium 153.0.8010.12 checks covered ten browser cases: graph area
-picking, shared shading, selective Undo and portable v7 save/reload; network
-gestures and surface editing; figure paste, file selection/drop, shared stored
-images, preparation guards, cancellation, distinct requests and restoration.
-The seven figure cases passed after the test helper waited for its initial
-attachment before typing; the initial run and rerun are retained as evidence.
-AI HTTP was mocked in those cases; room storage, image bytes, collaboration and
-proposal application used the real production service.
+Production Chromium 153.0.8010.12 passed all four sound-effect browser cases:
+audition PCM versus saved WAV, shared tracks and Undo/Redo, portable save/reopen,
+motion timing changes before and during upload, cancellation/late completion,
+retry, and exported timing/gain. Room editing and media storage used the real
+production service; the failure/retry case injected an HTTP error. FFmpeg
+independently decoded the browser WebM and the MP4 rendered locally from its
+saved project. This does not deploy the headless rendering API to Cloudflare.
 
-Six dedicated rooms retained their full v1/v4/v5/v6 project snapshots across
-the deployment, and the earlier image retained its SHA-256. A new v7 graph with
-an equation survived reload and retrieval by a fresh browser without IndexedDB.
-Playback and seeking passed. Its exported 320 × 180 H.264 MP4 contained 25 frames
-over 0.82 seconds; FFmpeg decoded every frame, and pixel samples confirmed
-quarter-opacity shading for wholly offscreen curves, changing coefficients and
-visible equation output. English/Japanese pages and health passed; served
-bootstrap, client runtime, kernel, schema and OpenAPI hashes matched the build.
-No browser errors occurred in the export canary. Live provider login, paid AI
-calls and 500 production clients were outside these correctness checks.
-Raw logs, version metadata, initial failure trace, screenshots, portable file,
-MP4 and manifests are retained in ignored
-`apps/studio/test-results/production-prs-2026-10-12-thi44wsz/`.
+A dedicated predeployment room retained its full project snapshot and image
+SHA-256 across promotion, checked by fresh Node and Chromium clients. Playback
+and seeking passed without browser errors. English/Japanese home and developer
+pages and health passed; served bootstrap, client runtime, WASM kernel, schema
+and OpenAPI hashes matched the build. Live provider login, paid AI calls and
+500 production clients were outside these correctness checks.
+Raw logs, version comparisons, snapshots, screenshots, portable files, exports
+and manifests are retained in ignored
+`apps/studio/test-results/production-sfx-2026-10-23-f557e55/`.
 
-[Previous deployment record](https://github.com/Poietra/poietra/blob/dc1ae0b91b59c60d35f2c5fb679745a14d5b732b/docs/development.md#deployment-and-limits).
+[Previous deployment record](https://github.com/Poietra/poietra/blob/f557e5565bdde32648d983ff0114d986c2c9a945/docs/development.md#deployment-and-limits).
 Confirm the active version before deploying again.
 
 Follow the [studio deployment procedure](../apps/studio/README.md#実行と配置).
