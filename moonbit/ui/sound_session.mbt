@@ -27,7 +27,6 @@ priv enum SoundStatus {
 
 ///|
 priv struct SoundPaletteView {
-  editor : EditorView
   close : () -> Unit
   added : (String) -> Unit
 }

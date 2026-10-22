@@ -136,6 +136,9 @@ test('the measured peak follows selected motion timing including a peer change d
     await palette(page);
     await chooseOption(dialog(page).getByRole('combobox', { name: '効果音を合わせる属性', exact: true }), 'position');
     await expect(dialog(page).getByTestId('sound-cue')).toContainText('1.850 s');
+    // The open palette observes peer timing without invalidating the media lanes.
+    applyChanges(watch.doc, [{ path: ['scenes', 'scene-1', 'transitions', tid, 'tracks', 'dot', 'positionTiming', 'start'], value: 600 }], 'peer');
+    await expect(dialog(page).getByTestId('sound-cue')).toContainText('2.050 s');
     await dialog(page).getByRole('button', { name: '試聴', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.soundProbe.starts.length)).toBe(1);
     await expect(dialog(page).getByRole('button', { name: '試聴を停止', exact: true })).toBeVisible();

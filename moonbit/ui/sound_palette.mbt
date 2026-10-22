@@ -5,7 +5,8 @@ let cached_sound_palette : TypedComponent[SoundPaletteView] = memo_typed_compone
 
 ///|
 fn sound_palette(input : SoundPaletteView) -> @react.Element {
-  let editor = input.editor
+  // Subscribe only while open so motion edits leave the media lanes unchanged.
+  let editor = use_editor_state()
   let time = use_editor_position(editor)
   let presets = @sound_effects.presets()
   let (query, set_query) = @react.use_state("")

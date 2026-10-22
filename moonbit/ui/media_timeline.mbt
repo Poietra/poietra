@@ -13,9 +13,6 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
   dependencies.append([
     scene._get("objects"),
     scene._get("audioTracks"),
-    scene._get("transitions"),
-    scene._get("compositions"),
-    scene._get("compositionOrder"),
     @core.any(@boundary.scene_duration(scene)),
     input._get("disabled"),
   ])
@@ -210,7 +207,6 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
   if sound_open {
     content.push(
       typed_component(cached_sound_palette, SoundPaletteView::{
-        editor,
         close: fn() { set_sound_open(false) },
         added: fn(id) {
           set_selected(Some(id))
