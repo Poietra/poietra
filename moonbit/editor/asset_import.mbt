@@ -23,6 +23,12 @@ pub(all) struct AssetInsertion {
 }
 
 ///|
+pub(all) struct AudioImport {
+  playback : @scene.MediaPlayback
+  volume : Double
+}
+
+///|
 pub fn asset_name(filename : String, fallback : String) -> String {
   let mut end = filename.length()
   for index = filename.length() - 1; index >= 0; index = index - 1 {
@@ -61,6 +67,7 @@ pub fn import_assets(
   assets : Array[PreparedAsset],
   point : @scene.Point?,
   allocate : (String) -> String,
+  audio_options? : AudioImport,
 ) -> Result[AssetInsertion, String] {
   if !target.compositions.contains(composition) {
     return Err(
@@ -81,6 +88,31 @@ pub fn import_assets(
         if media.hasAudio {
           audio_count += 1
         }
+      }
+    }
+  }
+  if audio_options is Some(options) {
+    let playback = options.playback
+    if playback.start.is_nan() ||
+      playback.start.is_inf() ||
+      playback.start < 0.0 ||
+      playback.start > 86400000.0 ||
+      playback.offset.is_nan() ||
+      playback.offset.is_inf() ||
+      playback.offset < 0.0 ||
+      playback.duration.is_nan() ||
+      playback.duration.is_inf() ||
+      playback.duration <= 0.0 ||
+      options.volume.is_nan() ||
+      options.volume.is_inf() ||
+      options.volume < 0.0 ||
+      options.volume > 2.0 {
+      return Err("音声の配置または音量が範囲外です。")
+    }
+    for asset in assets {
+      if asset is ImportedAudio(_, media) &&
+        playback.offset + playback.duration > media.duration + 0.001 {
+        return Err("音声の長さを超えて配置できません。")
       }
     }
   }
@@ -183,7 +215,10 @@ pub fn import_assets(
       order += 1.0
     }
     if media is Some(media) && (!video || media.hasAudio) {
-      let playback = playback.unwrap()
+      let options = if video { None } else { audio_options }
+      let playback = options
+        .map(fn(value) { value.playback })
+        .unwrap_or(playback.unwrap())
       audio.push({
         id: allocate("audio"),
         name: bounded_asset_name(name + (if video { " · Audio" } else { "" })),
@@ -191,7 +226,7 @@ pub fn import_assets(
         start: playback.start,
         offset: playback.offset,
         duration: playback.duration,
-        volume: 1.0,
+        volume: options.map(fn(value) { value.volume }).unwrap_or(1.0),
         muted: false,
       })
     }

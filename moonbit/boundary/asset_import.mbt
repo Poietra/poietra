@@ -5,6 +5,7 @@ pub fn asset_import_changes(
   assets : Array[@editor.PreparedAsset],
   point : @scene.Point?,
   start_override? : Double,
+  audio_options? : @editor.AudioImport,
 ) -> @core.Any raise {
   let objects = scene._get("objects")
   let transitions = scene._get("transitions")
@@ -34,7 +35,14 @@ pub fn asset_import_changes(
     },
   }
   let additions = match
-    @editor.import_assets(target, composition, assets, point, new_id) {
+    @editor.import_assets(
+      target,
+      composition,
+      assets,
+      point,
+      new_id,
+      audio_options?,
+    ) {
     Ok(additions) => additions
     Err(message) => {
       @core.throwable(fn() { @core.throw_error(message) })
