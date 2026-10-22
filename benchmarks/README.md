@@ -64,6 +64,14 @@ Video fixtures require FFmpeg/libx264 (`--skip-video` omits them). Export accept
 Headless probes run without a server from the root:
 `node scripts/benchmark-headless.mjs` and `node scripts/benchmark-headless-heap.mjs`.
 
+Procedural sound generation: `node scripts/benchmark-sound-effects.mjs --samples 20
+--output test-results/benchmarks/sound-effects.json` builds the pure source in a
+temporary release artifact, then measures uncached synthesis, cue/waveform
+analysis and WAV encoding. [Raw samples](2026-10-23-sound-effects/synthesis.json)
+include default and 3-second takes, warmup, affinity and source hashes. They
+exclude browser playback, upload and video encoding and are not an Earshot
+comparison or an acoustic-quality score.
+
 ## CI latency — 2026-09-27
 
 | Recorded sample | Serial | Split |

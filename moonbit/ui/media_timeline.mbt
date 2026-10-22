@@ -13,6 +13,9 @@ pub fn media_timeline(input : @core.Any) -> @react.Element {
   dependencies.append([
     scene._get("objects"),
     scene._get("audioTracks"),
+    scene._get("transitions"),
+    scene._get("compositions"),
+    scene._get("compositionOrder"),
     @core.any(@boundary.scene_duration(scene)),
     input._get("disabled"),
   ])
@@ -40,6 +43,7 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
   let (selected, set_selected) = @react.use_state((None : String?))
   let (draft, set_draft) = @react.use_state((None : @scene.MediaPlayback?))
   let (message, set_message) = @react.use_state("")
+  let (sound_open, set_sound_open) = @react.use_state(false)
   let controller : MediaController = @react.use_memo(
     fn() {
       {
@@ -116,6 +120,13 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
         ]),
       ]),
       h("div", Map([]), [
+        inspector_button(
+          "効果音を追加",
+          "Volume2",
+          fn() { set_sound_open(true) },
+          class_name="text-button",
+          disabled=busy,
+        ),
         inspector_button(
           "音声を追加",
           "Plus",
@@ -194,6 +205,18 @@ fn media_timeline_content(input : MediaTimelineView) -> @react.Element {
         },
         [description],
       ),
+    )
+  }
+  if sound_open {
+    content.push(
+      typed_component(cached_sound_palette, SoundPaletteView::{
+        editor,
+        close: fn() { set_sound_open(false) },
+        added: fn(id) {
+          set_selected(Some(id))
+          set_sound_open(false)
+        },
+      }),
     )
   }
   h(
