@@ -28,7 +28,7 @@
   min-width: 0;
 }
 
-.assistant-thinking-copy strong { color: #c6c6d3; font-size: 11px; font-weight: 500; }
+.assistant-thinking-copy strong { color: var(--gray-21); font-size: 11px; font-weight: 500; }
 .assistant-thinking-copy > span { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .assistant-thinking-dots { display: inline-flex; align-items: center; gap: 3px; }
 .assistant-thinking-dot {
@@ -52,10 +52,10 @@
   padding: 5px 8px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  color: #b3b3c2;
+  color: var(--gray-20);
   font-size: 11px;
 }
-.assistant-panel .assistant-thinking button:hover { background: var(--color-field); color: #e4e2ee; }
+.assistant-panel .assistant-thinking button:hover { background: var(--color-field); color: var(--gray-24); }
 .assistant-jump { display: flex; justify-content: center; padding: 4px 12px; }
 .assistant-jump button {
   display: inline-flex;
@@ -65,15 +65,15 @@
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--color-field);
-  color: #c6c6d3;
+  color: var(--gray-21);
   font-size: 11px;
 }
 .assistant-jump button:hover { border-color: var(--accent); }
 .assistant-composer form:focus-within { border-color: var(--accent); }
 
 .composer-actions { display: flex; align-items: center; gap: 4px; }
-.assistant-composer .figure-button { width: 25px; height: 25px; color: #9c9cad; }
-.assistant-composer .figure-button:hover:not(:disabled) { color: #e4e2ee; background: var(--color-field); }
+.assistant-composer .figure-button { width: 25px; height: 25px; color: var(--gray-18); }
+.assistant-composer .figure-button:hover:not(:disabled) { color: var(--gray-24); background: var(--color-field); }
 .chat-figures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .chat-figures img {
   display: block;
@@ -99,8 +99,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #3a3a48;
-  color: #e4e2ee;
+  background: var(--gray-9);
+  color: var(--gray-24);
 }
-.composer-figures button:hover { background: #8160a3; }
-.composer-figures .figure-preparing { align-self: center; color: #9c9cad; font-size: 12px; }
+.composer-figures button:hover { background: var(--iris-10); }
+.composer-figures .figure-preparing { align-self: center; color: var(--gray-18); font-size: 12px; }

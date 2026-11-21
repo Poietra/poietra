@@ -5,7 +5,7 @@
 .connection-popup h2 { margin: 0 0 12px; font-size: 13px; font-weight: 500; }
 .connection-detail, .connection-storage { margin: 0 0 12px; font-size: 12px; line-height: 1.65; text-wrap: pretty; }
 .connection-storage { color: var(--muted); }
-.connection-warning { color: #d8b86d; }
+.connection-warning { color: var(--warning); }
 .connection-retry { display: inline-flex; align-items: center; gap: 7px; }
 .connection-expanded { width: 320px; max-width: calc(100vw - 32px); text-align: center; }
 .connection-expanded > strong { display: block; margin-bottom: 10px; font-size: 13px; font-weight: 500; }

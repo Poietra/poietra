@@ -188,3 +188,16 @@ test('the shared colour popup edits background and intermediate keyframe colours
   await page.getByRole('button', { name: '元に戻す (⌘Z)', exact: true }).click();
   await expect(keyframe).toHaveValue(initial);
 });
+
+test('the rail toggle switches to the light theme and keeps it across reloads', async ({ page }) => {
+  const room = crypto.randomUUID(); await open(page, room);
+  const studio = page.locator('.studio');
+  await expect(studio).toHaveCSS('background-color', 'rgb(25, 25, 32)');
+  await page.getByRole('button', { name: 'ライトテーマに切り替え', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(studio).not.toHaveCSS('background-color', 'rgb(25, 25, 32)');
+  await expect(page.getByTestId('stage-main')).toHaveCSS('background-color', 'rgb(8, 9, 11)');
+  await open(page, room);
+  await page.getByRole('button', { name: 'ダークテーマに切り替え', exact: true }).click();
+  await expect(studio).toHaveCSS('background-color', 'rgb(25, 25, 32)');
+});

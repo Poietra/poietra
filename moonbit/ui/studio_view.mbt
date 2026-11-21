@@ -75,6 +75,7 @@ fn studio_rail(controller : StudioController) -> @react.Element {
         ),
       ]),
       studio_div("rail-bottom", [
+        component(theme_toggle, Map([]), []),
         studio_icon_button(
           "キーボードショートカット",
           "Keyboard",
@@ -98,6 +99,42 @@ fn studio_rail(controller : StudioController) -> @react.Element {
         ),
       ]),
     ],
+  )
+}
+
+///|
+fn theme_toggle(_ : @core.Any) -> @react.Element {
+  let root = @core.global_this()._get("document")._get("documentElement")
+  let (light, set_light) = @react.use_state(
+    @core.equal(root._get("dataset")._get("theme"), @core.any("light")),
+  )
+  studio_icon_button(
+    if light {
+      "ダークテーマに切り替え"
+    } else {
+      "ライトテーマに切り替え"
+    },
+    if light {
+      "Sun"
+    } else {
+      "Moon"
+    },
+    17,
+    fn() {
+      let theme = if light { "dark" } else { "light" }
+      root._get("dataset")._set("theme", @core.any(theme))
+      try
+        @core.throwable(fn() {
+          @core.global_this()
+          ._get("localStorage")
+          ._call("setItem", [@core.any("poietra-theme"), @core.any(theme)])
+        })
+        |> ignore
+      catch {
+        _ => ()
+      }
+      set_light(!light)
+    },
   )
 }
 

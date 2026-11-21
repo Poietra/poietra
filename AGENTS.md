@@ -32,6 +32,15 @@ project entry point; architecture and development instructions live in the
 
 ## Implementation
 
+- 2026-11-21: A light editor theme was requested alongside the dark one, whose
+  colours were hundreds of stylesheet literals. Editor colours come from the
+  `gray`/`iris` ramps and named tokens in `apps/studio/src/theme.css`; the light
+  theme redefines the same tokens under `:root[data-theme='light']`, so add a
+  token rather than a literal. Dark stays the default; the rail toggle stores a
+  browser-local choice that `index.html` applies before first paint. The stage
+  background, selection handles, colour picker and avatar text are document or
+  fixed colours and do not follow the theme. Public pages stay dark.
+
 - 2026-10-12: The founder requested removing headless-only output quotas that
   restricted local rendering. Use the same dimension and frame-index validation
   as browser export, without the 1080p, 60-second or 1800-frame caps. Local

@@ -1,21 +1,21 @@
 .property-timing-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
-.property-timing-note { margin: 7px 0 12px; color: var(--muted, #96939f); font-size: 11px; line-height: 1.6; text-wrap: pretty; }
+.property-timing-note { margin: 7px 0 12px; color: var(--muted); font-size: 11px; line-height: 1.6; text-wrap: pretty; }
 /* Reserve both messages' height so creating an override does not move its curve mid-drag. */
 .property-timing-mode { display: grid; }
 .property-timing-mode > span { grid-area: 1 / 1; }
 .property-timing-mode > [aria-hidden="true"] { visibility: hidden; }
 .property-timing-reset { margin-top: 10px; }
-.property-timing-error { margin: 10px 0 0; color: #ef8078; font-size: 11px; line-height: 1.6; }
+.property-timing-error { margin: 10px 0 0; color: var(--danger-strong); font-size: 11px; line-height: 1.6; }
 .track-row.property-track-row { height: 32px; }
-.property-track-row .track-label { padding-left: 27px; gap: 7px; color: #b4afc4; }
+.property-track-row .track-label { padding-left: 27px; gap: 7px; color: var(--gray-20); }
 .property-track-row .track-label > svg { color: var(--accent); flex-shrink: 0; }
-.property-track-row .animation-bar { top: 5px; height: 22px; background: #292b43; border-color: #49445f; }
-.property-track-row .animation-bar.selected { background: #343854; border-color: #8a7ddc; }
+.property-track-row .animation-bar { top: 5px; height: 22px; background: var(--iris-1); border-color: var(--iris-4); }
+.property-track-row .animation-bar.selected { background: var(--iris-2); border-color: var(--iris-15); }
 .property-track-row .bar-handle { top: 3px; bottom: 3px; }
 .property-track-row .bar-name { font-variant-numeric: tabular-nums; }
 
 .keyframe-fields { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
-.keyframe-graph { display: block; width: 100%; height: 72px; margin: 10px 0; background: var(--panel, #181820); border-radius: 4px; }
-.keyframe-row { margin: 12px 0; padding-top: 10px; border-top: 1px solid #34343e; }
+.keyframe-graph { display: block; width: 100%; height: 72px; margin: 10px 0; background: var(--panel); border-radius: 4px; }
+.keyframe-row { margin: 12px 0; padding-top: 10px; border-top: 1px solid var(--gray-8); }
 .keyframe-values { display: grid; gap: 8px; }
 .keyframe-values > .property-field { margin-top: 0; }
