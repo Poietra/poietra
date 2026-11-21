@@ -31,7 +31,7 @@ async fn AuthService::identify(
       ]),
     ),
     ("body", body),
-    ("redirect", @core.any("error")),
+    ("redirect", @core.any("manual")),
     (
       "signal",
       @core.global_this()
@@ -71,7 +71,7 @@ async fn AuthService::identify(
         ("User-Agent", "Poietra"),
       ]),
     ),
-    ("redirect", @core.any("error")),
+    ("redirect", @core.any("manual")),
     (
       "signal",
       @core.global_this()

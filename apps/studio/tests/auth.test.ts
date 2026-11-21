@@ -23,9 +23,11 @@ function fixture() {
       const fields = new URLSearchParams(String(init?.body));
       expect(fields.get('code_verifier')).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(fields.get('redirect_uri')).toBe(`${origin}/api/auth/callback/${url.includes('github') ? 'github' : 'google'}`);
-      expect(init?.redirect).toBe('error');
+      // Workers rejects redirect: 'error'; manual keeps provider redirects as failures.
+      expect(init?.redirect).toBe('manual');
       return Response.json({ access_token: fields.get('code'), token_type: 'Bearer', id_token: 'untrusted-ignored' });
     }
+    expect(init?.redirect).toBe('manual');
     const name = new Headers(init?.headers).get('Authorization')!.slice('Bearer '.length);
     if (url === 'https://openidconnect.googleapis.com/v1/userinfo') return Response.json({ sub: name, name, email: 'same@example.com' });
     if (url === 'https://api.github.com/user') return Response.json({ id: name === 'Alice' ? 1 : 2, name, email: 'same@example.com' });
@@ -56,6 +58,14 @@ describe('optional accounts and private project index', () => {
     expect((await empty.handle(new Request(origin + '/api/auth/login/google')))!.status).toBe(503);
     expect((await (await f.service.handle(new Request('https://legacy.workers.dev/api/auth/session')))!.json()).providers).toEqual({ google: false, github: false });
     for (const path of ['/sync/' + room, '/api/rooms/' + room + '/images', '/api/rooms/' + room + '/media', '/api/ai/propose', '/api/health', '/']) expect(await f.service.handle(new Request(origin + path))).toBeNull();
+  });
+  it('treats provider redirects during sign-in as failures', async () => {
+    const f = fixture();
+    f.exchange.mockImplementationOnce(async () => new Response(null, { status: 302, headers: { Location: 'https://example.com/' } }));
+    const callback = await f.complete(await f.start('github'), 'Alice', 'github');
+    expect(callback.status).toBe(303);
+    expect(new URL(callback.headers.get('Location')!, origin).searchParams.get('auth_error')).toBe('failed');
+    expect(cookiePair(callback, 'session')).toBe('');
   });
   it('requires verified sessions for every index operation; supplied identity does not authenticate', async () => {
     const f = fixture();
