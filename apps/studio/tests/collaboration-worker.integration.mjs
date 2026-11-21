@@ -33,6 +33,7 @@ const { values: args } = parseArgs({ options: {
   child: { type: 'boolean' },
   bundle: { type: 'string' },
   inspect: { type: 'boolean' },
+  'snapshot-parts-write': { type: 'boolean' },
 } });
 const port = Number(args.port);
 assert(![5173, 8787].includes(port), 'Use an isolated port, not a normal development port');
@@ -47,7 +48,7 @@ if (args.child) {
     scriptPath: args.bundle, modulesRoot: resolve(args.bundle, '..'), compatibilityDate: '2026-09-15', compatibilityFlags: ['nodejs_compat'],
     durableObjects: { ROOMS: { className: 'ProjectRoom', useSQLite: true } },
     resourcePersistencePath: args['persist-to'],
-    bindings: { OPENAI_MODEL: 'gpt-6-astra' },
+    bindings: { OPENAI_MODEL: 'gpt-6-astra', ...(args['snapshot-parts-write'] ? { ROOM_SNAPSHOT_PARTS_WRITE: 'true' } : {}) },
     serviceBindings: { ASSETS: async request => {
       const pathname = new URL(request.url).pathname;
       let path = resolve(repository, 'dist', `.${pathname.endsWith('/') ? pathname + 'index.html' : pathname}`);
@@ -70,7 +71,7 @@ if (args.child) {
         await runtime.unsafeEvictDurableObject(workerName, 'ProjectRoom', { name: message.room, webSockets: 'hibernate' });
       } else if (message.command === 'journal') {
         const storage = await runtime.unsafeGetDurableObjectStorage(workerName, 'ProjectRoom', { name: message.room });
-        result = await storage.exec('SELECT (SELECT count(*) FROM snapshot) AS snapshots, (SELECT count(*) FROM updates) AS updates');
+        result = await storage.exec('SELECT (SELECT count(*) FROM snapshot_parts) AS snapshots, (SELECT count(*) FROM snapshot) AS legacy, (SELECT count(*) FROM updates) AS updates');
       }
       process.send?.({ id: message.id, result });
     } catch (error) { process.send?.({ id: message.id, error: String(error) }); }
@@ -92,9 +93,9 @@ if (args.child) {
     while (Date.now() < deadline) { if (await check()) return; await delay(25); }
     assert.fail(message);
   }
-  async function start() {
+  async function start(multipart = false) {
     let logs = '';
-    child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--child', '--port', String(port), '--persist-to', persistTo, '--bundle', resolve(bundleDirectory, 'index.js')], {
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--child', '--port', String(port), '--persist-to', persistTo, '--bundle', resolve(bundleDirectory, 'index.js'), ...(multipart ? ['--snapshot-parts-write'] : [])], {
       cwd: repository, detached: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     });
     child.stdout.on('data', data => { logs = (logs + data).slice(-12000); });
@@ -298,7 +299,7 @@ if (args.child) {
     await expect(bob.page.getByRole('spinbutton', { name: 'Position Y', exact: true })).toHaveValue('333', { timeout: 15000 });
     console.log(`520-update burst reached both browser inspectors in ${Date.now() - burstStarted}ms`);
     const [journal] = await control('journal');
-    assert.equal(journal.snapshots, 1); assert(journal.updates < 256);
+    assert.equal(journal.snapshots, 0); assert.equal(journal.legacy, 1); assert(journal.updates < 256);
     assert(journal.updates > 0, 'Exercise both compacted snapshot and uncompacted journal tail');
     await control('hibernate');
     assert.equal(observer.provider.ws.readyState, WebSocket.OPEN);
@@ -374,7 +375,20 @@ if (args.child) {
     sendUpdate(pendingSocket, updates[2]);
     await roundtrip(pendingSocket);
     const [pendingJournal] = await control('journal', pendingRoom);
-    assert.equal(pendingJournal.snapshots, 1); assert(pendingJournal.updates > 0 && pendingJournal.updates < 256);
+    assert.equal(pendingJournal.snapshots, 0); assert.equal(pendingJournal.legacy, 1); assert(pendingJournal.updates > 0 && pendingJournal.updates < 256);
+
+    // Exceed workerd's native row capacity to exercise SQLITE_TOOBIG rollback.
+    const largeRoom = crypto.randomUUID(), largeSource = new Y.Doc();
+    const largeSocket = await rawConnection(largeRoom);
+    largeSource.on('update', bytes => sendUpdate(largeSocket, bytes));
+    for (let index = 0; index < 6; index++) largeSource.getMap('rollback-proof').set(`part${index}`, `${index}:` + 'x'.repeat(1_500_000));
+    await roundtrip(largeSocket);
+    const [largeJournal] = await control('journal', largeRoom);
+    assert.equal(largeJournal.legacy, 1); assert.equal(largeJournal.snapshots, 0); assert(largeJournal.updates > 0);
+    const checkLarge = doc => {
+      for (let index = 0; index < 6; index++) assert.equal(doc.getMap('rollback-proof').get(`part${index}`), `${index}:` + 'x'.repeat(1_500_000));
+    };
+    largeSource.destroy();
 
     // Kill the entire runtime process group while editors are still connected.
     // Destroy every client before restart so none can repopulate the server.
@@ -404,6 +418,23 @@ if (args.child) {
     assert.equal(pendingReader.doc.getMap('pending-proof').get('second'), 2);
     source.destroy();
     console.log('PASS pending dependencies survive snapshot compaction + journal + fresh runtime restart');
+
+    checkLarge((await connect(largeRoom)).doc);
+    console.log('PASS native SQLite size failure retains legacy snapshot and full journal across fresh workerd restart');
+    for (const client of clients) client.destroy(); clients.length = 0;
+    await killRuntime(); await start(true);
+    const largeWriter = await connect(largeRoom); checkLarge(largeWriter.doc);
+    // Initial sync may compact first; acknowledge the later edit before restart.
+    largeWriter.doc.getMap('rollback-proof').set('after-reader-rollout', true);
+    await roundtrip(largeWriter.provider.ws);
+    await eventually(async () => (await control('journal', largeRoom))[0].legacy === 0, 'Explicit multipart writer did not compact');
+    const [multipartJournal] = await control('journal', largeRoom);
+    assert(multipartJournal.snapshots > 1); assert(multipartJournal.updates < 256);
+    for (const client of clients) client.destroy(); clients.length = 0;
+    await killRuntime(); await start();
+    const readerRollback = await connect(largeRoom); checkLarge(readerRollback.doc);
+    assert.equal(readerRollback.doc.getMap('rollback-proof').get('after-reader-rollout'), true);
+    console.log('PASS multipart-only writes require the explicit gate and survive rollback to the reader release with gate off');
   } finally {
     for (const client of clients) client.destroy();
     for (const socket of rawSockets) socket.terminate();

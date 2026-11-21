@@ -70,16 +70,90 @@ pub fn to_shared(value : @core.Any, host : @core.Any) -> @core.Any {
     for key in @core.object_keys(value) {
       map_set(result, key, to_shared(value._get(key), host))
     }
-    if !@core.object_keys(value).contains("keyframes") &&
-      @core.typeof_(value._get("objectId")) == "string" &&
-      @core.typeof_(value._get("start")) == "number" &&
-      @core.typeof_(value._get("duration")) == "number" &&
-      @core.typeof_(value._get("type")) == "string" {
+    if track_without_keyframes(value) {
       map_set(result, "keyframes", new_shared_map(host))
     }
     result
   } else {
     value
+  }
+}
+
+///|
+fn track_without_keyframes(value : @core.Any) -> Bool {
+  !@core.object_keys(value).contains("keyframes") &&
+  @core.typeof_(value._get("objectId")) == "string" &&
+  @core.typeof_(value._get("start")) == "number" &&
+  @core.typeof_(value._get("duration")) == "number" &&
+  @core.typeof_(value._get("type")) == "string"
+}
+
+///|
+extern "js" fn json_length(value : @core.Any) -> Int =
+  #|value => JSON.stringify(value)?.length ?? 0
+
+///|
+/// Publish version last so server initialization waits for all authored tracks.
+pub fn fill_shared_bounded(
+  doc : @core.Any,
+  map : @core.Any,
+  value : @core.Any,
+  host : @core.Any,
+  budget : Int,
+) -> Unit {
+  let pending : Array[(@core.Any, String, @core.Any, Int)] = []
+  let enqueue = fn(parent : @core.Any, value : @core.Any, root : Bool) {
+    let keys = @core.object_keys(value)
+    for index = keys.length() - 1; index >= 0; index = index - 1 {
+      let key = keys[index]
+      if root && key == "version" {
+        continue
+      }
+      let child = value._get(key)
+      // Allow UTF-8 and Yjs overhead; the wire encoder checks the final size.
+      let content_size = if @core.typeof_(child) == "string" {
+        (child.cast() : String).length() * 3
+      } else if is_array(child) {
+        json_length(child) * 3
+      } else {
+        0
+      }
+      let size = key.length() * 3 + 64 + content_size
+      pending.push((parent, key, child, size))
+    }
+  }
+  if @core.object_keys(value).contains("version") {
+    pending.push((map, "version", value._get("version"), 64))
+  }
+  enqueue(map, value, true)
+  while !pending.is_empty() {
+    transact(
+      doc,
+      fn() {
+        let mut used = 0
+        while pending.pop() is Some(entry) {
+          let (parent, key, child, size) = entry
+          if used > 0 && used + size > budget {
+            pending.push(entry)
+            break
+          }
+          used += size
+          if !@core.is_null(child) &&
+            @core.typeof_(child) == "object" &&
+            !is_array(child) {
+            let result = new_shared_map(host)
+            if track_without_keyframes(child) {
+              map_set(result, "keyframes", new_shared_map(host))
+            }
+            map_set(parent, key, result)
+            enqueue(result, child, false)
+          } else {
+            map_set(parent, key, to_shared(child, host))
+          }
+        }
+      },
+      @core.null(),
+    )
   }
 }
 
@@ -251,6 +325,9 @@ pub fn changes_for(
 
 ///|
 pub fn ensure_scene_audio_tracks(doc : @core.Any, host : @core.Any) -> Bool {
+  if !has_version(shared_map(doc)) {
+    return false
+  }
   let scenes = map_get(shared_map(doc), "scenes")
   if !is_instance(scenes, host._get("Map")) {
     return false
@@ -334,6 +411,20 @@ fn animation_migration(doc : @core.Any, host : @core.Any) -> AnimationMigration 
 
 ///|
 pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool {
+  initialize_animation_tracks(doc, host, false)
+}
+
+///|
+/// Worker journals bounded batches; other callers retain one transaction.
+pub fn initialize_animation_tracks(
+  doc : @core.Any,
+  host : @core.Any,
+  bounded : Bool,
+) -> Bool {
+  // A staged import has no version until its final batch.
+  if !has_version(shared_map(doc)) {
+    return false
+  }
   let state = animation_migration(doc, host)
   if !state.dirty {
     return false
@@ -344,30 +435,31 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
     return false
   }
   let mut changed = false
-  transact(
-    doc,
-    fn() {
-      for scene in map_values(scenes) {
-        if !is_instance(scene, host._get("Map")) {
+  let initialize = fn() {
+    for scene in map_values(scenes) {
+      if !is_instance(scene, host._get("Map")) {
+        continue
+      }
+      let objects = map_get(scene, "objects")
+      let transitions = map_get(scene, "transitions")
+      if !is_instance(objects, host._get("Map")) ||
+        !is_instance(transitions, host._get("Map")) {
+        continue
+      }
+      for transition in map_values(transitions) {
+        if !is_instance(transition, host._get("Map")) {
           continue
         }
-        let objects = map_get(scene, "objects")
-        let transitions = map_get(scene, "transitions")
-        if !is_instance(objects, host._get("Map")) ||
-          !is_instance(transitions, host._get("Map")) {
+        let tracks = map_get(transition, "tracks")
+        let duration = map_get(transition, "duration")
+        if !is_instance(tracks, host._get("Map")) ||
+          @core.typeof_(duration) != "number" {
           continue
         }
-        for transition in map_values(transitions) {
-          if !is_instance(transition, host._get("Map")) {
-            continue
-          }
-          let tracks = map_get(transition, "tracks")
-          let duration = map_get(transition, "duration")
-          if !is_instance(tracks, host._get("Map")) ||
-            @core.typeof_(duration) != "number" {
-            continue
-          }
-          for id in map_keys(objects) {
+        let ids = map_keys(objects)
+        let initialize_rows = fn(start : Int, end : Int) {
+          for index = start; index < end; index = index + 1 {
+            let id = ids[index]
             if !map_has(tracks, id) {
               let track = @scene.default_track(id, duration.cast())
               let value = @project_codec.encode_Track({
@@ -385,10 +477,29 @@ pub fn ensure_scene_animation_tracks(doc : @core.Any, host : @core.Any) -> Bool 
             }
           }
         }
+        if bounded {
+          // 128 tracks with 80-character IDs fit below the 1 MiB journal budget.
+          let mut start = 0
+          while start < ids.length() {
+            let end = (start + 128).min(ids.length())
+            transact(
+              doc,
+              fn() { initialize_rows(start, end) },
+              @core.any("initialize-animation-tracks"),
+            )
+            start = end
+          }
+        } else {
+          initialize_rows(0, ids.length())
+        }
       }
-    },
-    @core.any("initialize-animation-tracks"),
-  )
+    }
+  }
+  if bounded {
+    initialize()
+  } else {
+    transact(doc, initialize, @core.any("initialize-animation-tracks"))
+  }
   state.dirty = false
   changed
 }

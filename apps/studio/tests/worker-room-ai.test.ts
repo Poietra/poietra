@@ -9,14 +9,15 @@ const databases: DatabaseSync[] = [];
 afterEach(() => { for (const db of databases.splice(0)) db.close(); vi.restoreAllMocks(); });
 function fixture() {
   const database = new DatabaseSync(':memory:'); databases.push(database);
+  let transaction = 0;
   const sql = { exec(query: string, ...parameters: never[]) {
     const rows = database.prepare(query).all(...parameters);
     return { toArray: () => rows, [Symbol.iterator]: () => rows[Symbol.iterator]() };
   } };
   const ctx = { storage: { sql, transactionSync<T>(run: () => T) {
-    database.exec('BEGIN');
-    try { const result = run(); database.exec('COMMIT'); return result; }
-    catch (error) { database.exec('ROLLBACK'); throw error; }
+    const id = `tx${++transaction}`; database.exec(`SAVEPOINT ${id}`);
+    try { const result = run(); database.exec(`RELEASE ${id}`); return result; }
+    catch (error) { database.exec(`ROLLBACK TO ${id}; RELEASE ${id}`); throw error; }
   } } };
   const pending: Array<{ resolve: (value: unknown) => void; reject: (error: Error) => void }> = [];
   const createEditProposal = vi.fn(() => new Promise((resolve, reject) => pending.push({ resolve, reject })));

@@ -26,6 +26,8 @@ jobs:
           moon fmt
           git diff --exit-code -- moonbit apps/studio/shared/scene-types.d.ts
           moon check --target js --deny-warn
+      - name: Fetch the fixed snapshot rollback compatibility baseline
+        run: git fetch --depth=1 origin 7bad3d585039f809a04b971beb8ff7092063dc40
       - run: pnpm test
       - name: Check headless API and MCP without browser or FFmpeg
         run: pnpm test:render
