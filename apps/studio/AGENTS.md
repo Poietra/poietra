@@ -130,7 +130,7 @@ files or flatten AI edits into an uneditable generated video.
 
 ## UI and scope
 
-- Keep the established dark editor layout, logo/project menu, Scene tabs, canvas,
+- Keep the established editor layout in both themes (dark by default), logo/project menu, Scene tabs, canvas,
   properties, Composition/Transition timeline and per-object animation tracks.
   [Editor reference](docs/assets/ui-editor-reference.png) and
   [Transition reference](docs/assets/ui-transition-reference.png) record the design
