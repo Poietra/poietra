@@ -27,6 +27,8 @@ await writeFile(join(snapshot, 'accounts-test.ts'), `
 import original from './worker/index';
 export { ProjectRoom, AuthRecord, UserAccount } from './worker/index';
 const providerFetch: typeof fetch = async (input, init) => {
+  // Let workerd validate fetch options it rejects at the edge (e.g. redirect: 'error').
+  new Request(input, init);
   const target = String(input);
   if (target === 'https://oauth2.googleapis.com/token' || target === 'https://github.com/login/oauth/access_token') {
     const params = new URLSearchParams(String(init?.body));
